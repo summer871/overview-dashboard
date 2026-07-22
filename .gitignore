@@ -1,0 +1,9 @@
+﻿.clasprc.json
+.clasp.json
+.env
+.env.*
+credentials*.json
+service-account*.json
+*.key
+*.pem
+node_modules/
