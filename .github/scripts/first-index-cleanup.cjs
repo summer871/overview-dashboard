@@ -131,7 +131,7 @@ function buildReport(details) {
     '- Closing `</script>` count unchanged: ' + details.scriptCloseUnchanged,
     '- Apps Script template-expression count unchanged: ' + details.templateCountUnchanged,
     '- Doctype preserved: ' + details.doctypePreserved,
-    '- Root HTML closing tag preserved: ' + details.htmlClosePreserved,
+    '- Root HTML closing tag count preserved: ' + details.htmlClosePreserved,
     '',
     '## Required validation',
     '',
@@ -146,6 +146,7 @@ const originalLines = original.split(/\r?\n/).length;
 const originalScriptOpen = countMatches(original, /<script\b/gi);
 const originalScriptClose = countMatches(original, /<\/script>/gi);
 const originalTemplateCount = countMatches(original, /<\?[!=]?/g);
+const originalHtmlClose = countMatches(original, /<\/html>/gi);
 
 const headerResult = removeStaleHeaderComment(original);
 const styleResult = removeEarlierDuplicateStyleBlocks(headerResult.source);
@@ -156,6 +157,7 @@ const finalStyleClose = countMatches(updated, /<\/style>/gi);
 const finalScriptOpen = countMatches(updated, /<script\b/gi);
 const finalScriptClose = countMatches(updated, /<\/script>/gi);
 const finalTemplateCount = countMatches(updated, /<\?[!=]?/g);
+const finalHtmlClose = countMatches(updated, /<\/html>/gi);
 
 const details = {
   headerRemoved: headerResult.removed,
@@ -172,7 +174,7 @@ const details = {
   scriptCloseUnchanged: originalScriptClose === finalScriptClose,
   templateCountUnchanged: originalTemplateCount === finalTemplateCount,
   doctypePreserved: /^<!DOCTYPE html>/i.test(updated),
-  htmlClosePreserved: /<\/html>\s*$/i.test(updated)
+  htmlClosePreserved: originalHtmlClose > 0 && originalHtmlClose === finalHtmlClose
 };
 
 const allChecksPass =
