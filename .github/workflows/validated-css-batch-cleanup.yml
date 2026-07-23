@@ -16,8 +16,19 @@ jobs:
           ref: refactor/flatten-index
           fetch-depth: 0
 
+      - name: Download validator from main
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          curl -fsSL \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "Accept: application/vnd.github.raw+json" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/contents/.github/scripts/remove-validated-css-batch.py?ref=main" \
+            -o /tmp/remove-validated-css-batch.py
+          test -s /tmp/remove-validated-css-batch.py
+
       - name: Run validated 12-rule CSS batch cleanup
-        run: python3 .github/scripts/remove-validated-css-batch.py
+        run: python3 /tmp/remove-validated-css-batch.py
 
       - name: Confirm only approved files changed
         run: |
