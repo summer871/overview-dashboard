@@ -1,0 +1,102 @@
+name: Update dashboard footer version
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Footer version, for example v6.530"
+        required: true
+        default: "v6.530"
+      expected_footer_count:
+        description: "Expected number of Remake/TAT footer occurrences"
+        required: true
+        default: "2"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-dashboard-footer-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  update-footer:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Require feature branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${GITHUB_REF_NAME}" != "refactor/flatten-index" ]]; then
+            echo "This workflow may only run on refactor/flatten-index."
+            exit 1
+          fi
+
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          ref: refactor/flatten-index
+          fetch-depth: 0
+
+      - name: Verify complete Index.html baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f Index.html
+          bytes=$(wc -c < Index.html)
+          echo "Index.html size: ${bytes} bytes"
+          if (( bytes < 100000 )); then
+            echo "Index.html is unexpectedly small; restore the complete file before running this workflow."
+            exit 1
+          fi
+          if grep -Fq "Full content omitted here due to size in this interface" Index.html; then
+            echo "Index.html contains the known truncation placeholder."
+            exit 1
+          fi
+
+      - name: Apply guarded footer update
+        env:
+          EXPECTED_FOOTER_COUNT: ${{ inputs.expected_footer_count }}
+        run: node scripts/update-footer-version.js Index.html "${{ inputs.version }}"
+
+      - name: Validate intended diff only
+        shell: bash
+        run: |
+          set -euo pipefail
+          changed=$(git diff --name-only)
+          echo "Changed files:"
+          printf '%s\n' "$changed"
+          if [[ "$changed" != "Index.html" ]]; then
+            echo "Only Index.html is allowed to change."
+            exit 1
+          fi
+
+          if git diff --check; then
+            echo "Whitespace validation passed."
+          else
+            exit 1
+          fi
+
+          old_worker_count=$(grep -Fo "Worker cache updated:" Index.html | wc -l)
+          old_cache_count=$(grep -Fo "Browser cache current:" Index.html | wc -l)
+          version_count=$(grep -Fo "Version: ${{ inputs.version }}" Index.html | wc -l)
+
+          test "$old_worker_count" -eq 0
+          test "$old_cache_count" -eq 0
+          test "$version_count" -eq "${{ inputs.expected_footer_count }}"
+
+          echo "Diff summary:"
+          git diff --stat
+          echo "Footer-related diff:"
+          git diff --unified=3 -- Index.html | grep -E "^[+-].*(Worker|Cache|Version|saved copy)" || true
+
+      - name: Commit update
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Index.html
+          git commit -m "Update dashboard footer to ${{ inputs.version }}"
+          git push origin HEAD:refactor/flatten-index
