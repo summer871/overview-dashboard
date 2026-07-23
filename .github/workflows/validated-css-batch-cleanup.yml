@@ -32,9 +32,9 @@ jobs:
 
       - name: Confirm only approved files changed
         run: |
-          changed="$(git diff --name-only)"
+          changed="$(git status --short | sed -E 's/^.. //' | sort)"
           printf '%s\n' "$changed"
-          test "$changed" = $'CSS_BATCH_CLEANUP_REPORT.md\nIndex.html' || test "$changed" = $'Index.html\nCSS_BATCH_CLEANUP_REPORT.md'
+          test "$changed" = $'CSS_BATCH_CLEANUP_REPORT.md\nIndex.html'
 
       - name: Commit validated cleanup
         run: |
