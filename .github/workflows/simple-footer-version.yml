@@ -1,0 +1,46 @@
+name: Simple footer version
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out dashboard branch
+        uses: actions/checkout@v4
+        with:
+          ref: refactor/flatten-index
+          fetch-depth: 0
+
+      - name: Download updater from main
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          curl -fsSL \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "Accept: application/vnd.github.raw+json" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/contents/.github/scripts/update-simple-footer-version.py?ref=main" \
+            -o /tmp/update-simple-footer-version.py
+          test -s /tmp/update-simple-footer-version.py
+
+      - name: Update footer wording and version
+        run: python3 /tmp/update-simple-footer-version.py
+
+      - name: Confirm only Index changed
+        run: |
+          changed="$(git status --short | sed -E 's/^.. //' | sort)"
+          printf '%s\n' "$changed"
+          test "$changed" = 'Index.html'
+
+      - name: Commit footer update
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Index.html
+          git diff --cached --quiet && exit 0
+          git commit -m "Simplify cache timestamps and add footer version"
+          git push origin HEAD:refactor/flatten-index
