@@ -1,0 +1,12 @@
+{
+  "name": "overview-dashboard",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Google Apps Script dashboard with a safe local preview mode.",
+  "scripts": {
+    "preview": "node preview/server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
