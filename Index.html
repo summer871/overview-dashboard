@@ -40659,8 +40659,14 @@ window.CDA_REMAKE_LAYOUT_REFRESH_VERSION = 'v6.408';
     return null;
   }
 
+  let remakeMetaLastCheckedAtV6409 = 0;
+  let remakeAutoSyncTimerV6409 = 0;
+  const REMAKE_AUTO_SYNC_INTERVAL_MS_V6409 = 2 * 60 * 60 * 1000;
+  const REMAKE_FOCUS_SYNC_MIN_AGE_MS_V6409 = 10 * 60 * 1000;
+
   function performRemakeAutomaticCacheSyncV6409(reason) {
     if (typeof window.checkRemakeFactorServerMetaV6409 !== 'function') return Promise.resolve(false);
+    remakeMetaLastCheckedAtV6409 = Date.now();
     return window.checkRemakeFactorServerMetaV6409({ force: true, reason: reason || 'scheduled' });
   }
 
