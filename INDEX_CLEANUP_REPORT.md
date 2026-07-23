@@ -1,23 +1,24 @@
 # Index.html First Cleanup Report
 
-Generated: 2026-07-23T05:49:24.378Z
+Generated: 2026-07-23T06:04:03.514Z
 
 ## Scope
 
-- Removed the stale version-history comment immediately after the doctype.
-- Removed only earlier byte-equivalent duplicate `<style>` blocks.
+- Checked for the stale version-history comment immediately after the doctype.
+- Removed only earlier byte-equivalent duplicate `<style>` blocks when present.
 - Kept the final occurrence of every duplicate style block to preserve the final CSS cascade.
 - Did not edit JavaScript, Apps Script template expressions, HTML elements, data logic, or chart configuration.
 
 ## Results
 
-- Stale header removed: true
+- Stale header removed: false
 - Original style blocks: 31
 - Duplicate style blocks removed: 0
 - Final style blocks: 36
-- Original lines: 44644
+- Index.html changed: false
+- Original lines: 44638
 - Final lines: 44638
-- Original SHA-256: `5b219bed722cd757cc679970cb8a4e03b86b1d2335c4a38954edd6efab4e2f6d`
+- Original SHA-256: `241dc87e086d5161e308faf174a55df812e405009369fa703544de2fb4627e3c`
 - Final SHA-256: `241dc87e086d5161e308faf174a55df812e405009369fa703544de2fb4627e3c`
 
 ## Duplicate groups
