@@ -7,13 +7,14 @@ const path = require('path');
 const repositoryRoot = path.resolve(__dirname, '..');
 const dashboardPath = path.join(repositoryRoot, 'Index.html');
 const port = Number(process.env.PORT || 4173);
+const localBaseUrl = `http://127.0.0.1:${port}/`;
 
 const previewInjection = `
   <script>
     window.CDA_LOCAL_PREVIEW = true;
-    window.CDA_SERVER_PRESENTATION = { mode: 'all' };
+    window.CDA_LOCAL_PREVIEW_VERSION = 'v3-template-rendering';
   </script>
-  <script src="/preview/mock-google-script-run.js"></script>
+  <script src="/preview/mock-google-script-run.js?v=3"></script>
 `;
 
 function contentType(filePath) {
@@ -30,9 +31,42 @@ function contentType(filePath) {
 function send(response, statusCode, body, type) {
   response.writeHead(statusCode, {
     'Content-Type': type,
-    'Cache-Control': 'no-store'
+    'Cache-Control': 'no-store, no-cache, must-revalidate',
+    'Pragma': 'no-cache',
+    'Expires': '0'
   });
   response.end(body);
+}
+
+function renderAppsScriptTemplate(source) {
+  let rendered = source;
+
+  rendered = rendered.replace(
+    /<\?!=\s*dashboardBaseUrl\s*\?>/g,
+    localBaseUrl
+  );
+
+  rendered = rendered.replace(
+    /<\?!=\s*JSON\.stringify\(dashboardPresentationVersion\s*\|\|\s*'[^']*'\)\s*\?>/g,
+    JSON.stringify('local-preview-v3')
+  );
+
+  rendered = rendered.replace(
+    /<\?!=\s*JSON\.stringify\(dashboardPresentationMode\s*\|\|\s*'[^']*'\)\s*\?>/g,
+    JSON.stringify('remake')
+  );
+
+  rendered = rendered.replace(
+    /<\?!=\s*JSON\.stringify\(dashboardPresentationSource\s*\|\|\s*'[^']*'\)\s*\?>/g,
+    JSON.stringify('Local preview server')
+  );
+
+  const unresolved = rendered.match(/<\?[!=]?[^?]*\?>/g);
+  if (unresolved && unresolved.length) {
+    throw new Error(`Unresolved Apps Script template expressions: ${unresolved.join(', ')}`);
+  }
+
+  return rendered;
 }
 
 function serveDashboard(response) {
@@ -42,11 +76,21 @@ function serveDashboard(response) {
       return;
     }
 
-    const html = source.includes('</head>')
-      ? source.replace('</head>', `${previewInjection}</head>`)
-      : `${previewInjection}${source}`;
+    try {
+      const renderedSource = renderAppsScriptTemplate(source);
+      const html = renderedSource.includes('</head>')
+        ? renderedSource.replace('</head>', `${previewInjection}</head>`)
+        : `${previewInjection}${renderedSource}`;
 
-    send(response, 200, html, 'text/html; charset=utf-8');
+      send(response, 200, html, 'text/html; charset=utf-8');
+    } catch (templateError) {
+      send(
+        response,
+        500,
+        `Could not render the local Apps Script template: ${templateError.message}`,
+        'text/plain; charset=utf-8'
+      );
+    }
   });
 }
 
@@ -83,7 +127,8 @@ const server = http.createServer((request, response) => {
 server.listen(port, '127.0.0.1', () => {
   console.log('');
   console.log('Overview Dashboard local preview is running.');
-  console.log(`Open: http://127.0.0.1:${port}/?presentation=all`);
+  console.log(`Open: ${localBaseUrl}?presentation=all`);
+  console.log('Apps Script template expressions were rendered locally.');
   console.log('Press Ctrl+C to stop.');
   console.log('');
 });
