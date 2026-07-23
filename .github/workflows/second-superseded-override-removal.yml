@@ -1,0 +1,52 @@
+name: Second superseded override removal
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  remove:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out cleanup branch
+        uses: actions/checkout@v4
+        with:
+          ref: refactor/flatten-index
+          fetch-depth: 0
+
+      - name: Prepare validated TAT removal
+        run: |
+          cp .github/scripts/remove-first-superseded-override.cjs /tmp/remove-second-superseded-override.cjs
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('/tmp/remove-second-superseded-override.cjs')
+          text = path.read_text()
+          replacements = {
+              "const reportPath = 'FIRST_OVERRIDE_REMOVAL_REPORT.md';": "const reportPath = 'SECOND_OVERRIDE_REMOVAL_REPORT.md';",
+              "const targetSelector = '#remakeTabFilterHostV6337 .remakeDropdownButtonV6245';": "const targetSelector = '#tatTabFilterHostV6509 .remakeDropdownButtonV6245';",
+              'const expectedEarlierLineMin = 36650;': 'const expectedEarlierLineMin = 41900;',
+              'const expectedEarlierLineMax = 36690;': 'const expectedEarlierLineMax = 41950;',
+              'const expectedLaterLineMin = 44270;': 'const expectedLaterLineMin = 44240;',
+              "'# First Superseded Override Removal Report'": "'# Second Superseded Override Removal Report'",
+              "'First override removal validation failed. Index.html was not written.'": "'Second override removal validation failed. Index.html was not written.'"
+          }
+          for old, new in replacements.items():
+              if old not in text:
+                  raise SystemExit(f'Missing expected source marker: {old}')
+              text = text.replace(old, new, 1)
+          path.write_text(text)
+          PY
+
+      - name: Remove one verified TAT override
+        run: node /tmp/remove-second-superseded-override.cjs
+
+      - name: Commit validated change
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Index.html SECOND_OVERRIDE_REMOVAL_REPORT.md
+          git diff --cached --quiet && exit 0
+          git commit -m "Remove second verified superseded CSS override"
+          git push origin HEAD:refactor/flatten-index
