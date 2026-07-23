@@ -104,8 +104,8 @@ function buildReport(details) {
     '',
     '## Scope',
     '',
-    '- Removed the stale version-history comment immediately after the doctype.',
-    '- Removed only earlier byte-equivalent duplicate `<style>` blocks.',
+    '- Checked for the stale version-history comment immediately after the doctype.',
+    '- Removed only earlier byte-equivalent duplicate `<style>` blocks when present.',
     '- Kept the final occurrence of every duplicate style block to preserve the final CSS cascade.',
     '- Did not edit JavaScript, Apps Script template expressions, HTML elements, data logic, or chart configuration.',
     '',
@@ -115,6 +115,7 @@ function buildReport(details) {
     `- Original style blocks: ${details.originalStyleBlocks}`,
     `- Duplicate style blocks removed: ${details.removedStyleBlocks}`,
     `- Final style blocks: ${details.finalStyleBlocks}`,
+    `- Index.html changed: ${details.changed}`,
     `- Original lines: ${details.originalLines}`,
     `- Final lines: ${details.finalLines}`,
     `- Original SHA-256: \`${details.beforeHash}\``,
@@ -158,16 +159,18 @@ const finalScriptOpen = countMatches(updated, /<script\b/gi);
 const finalScriptClose = countMatches(updated, /<\/script>/gi);
 const finalTemplateCount = countMatches(updated, /<\?[!=]?/g);
 const finalHtmlClose = countMatches(updated, /<\/html>/gi);
+const afterHash = sha256(updated);
 
 const details = {
   headerRemoved: headerResult.removed,
   originalStyleBlocks: styleResult.originalBlockCount,
   removedStyleBlocks: styleResult.removedBlockCount,
   finalStyleBlocks: finalStyleOpen,
+  changed: beforeHash !== afterHash,
   originalLines,
   finalLines: updated.split(/\r?\n/).length,
   beforeHash,
-  afterHash: sha256(updated),
+  afterHash,
   duplicateGroups: styleResult.duplicateGroups,
   styleTagsBalanced: finalStyleOpen === finalStyleClose,
   scriptOpenUnchanged: originalScriptOpen === finalScriptOpen,
@@ -178,20 +181,20 @@ const details = {
 };
 
 const allChecksPass =
-  details.headerRemoved &&
   details.styleTagsBalanced &&
   details.scriptOpenUnchanged &&
   details.scriptCloseUnchanged &&
   details.templateCountUnchanged &&
   details.doctypePreserved &&
-  details.htmlClosePreserved &&
-  details.beforeHash !== details.afterHash;
+  details.htmlClosePreserved;
 
 if (!allChecksPass) {
   console.error(JSON.stringify(details, null, 2));
-  throw new Error('Index cleanup validation failed. Index.html was not written.');
+  throw new Error('Index cleanup structural validation failed. Index.html was not written.');
 }
 
-fs.writeFileSync(indexPath, updated, 'utf8');
+if (details.changed) {
+  fs.writeFileSync(indexPath, updated, 'utf8');
+}
 fs.writeFileSync(reportPath, buildReport(details), 'utf8');
 console.log(JSON.stringify(details, null, 2));
