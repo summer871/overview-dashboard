@@ -1,5 +1,6 @@
 name: Consolidate shared dashboard footer v6.531
 
+# Clean trigger after removal of the malformed predecessor workflows.
 on:
   workflow_dispatch:
   push:
