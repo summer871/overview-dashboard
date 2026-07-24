@@ -31,9 +31,9 @@ function fail(message) {
   throw new Error(message);
 }
 
-function read(path) {
-  if (!fs.existsSync(path)) fail(`Missing required file: ${path}`);
-  return fs.readFileSync(path, 'utf8');
+function read(filePath) {
+  if (!fs.existsSync(filePath)) fail(`Missing required file: ${filePath}`);
+  return fs.readFileSync(filePath, 'utf8');
 }
 
 function sha256(value) {
@@ -60,8 +60,9 @@ const start = originalBase.indexOf(startMarker);
 const end = originalBase.lastIndexOf('\n</style>');
 if (start < 0 || end <= start) fail('Could not isolate the Remake tail CSS.');
 
-const tailCss = originalBase.slice(start, end).replace(/\s+$/, '');
-const basePrefix = originalBase.slice(0, start).replace(/\s+$/, '');
+// Preserve every original CSS byte. Do not trim or reformat either side of the split.
+const baseBeforeTail = originalBase.slice(0, start);
+const tailCss = originalBase.slice(start, end);
 const selectorCounts = {};
 
 requiredSelectors.forEach((selector) => {
@@ -75,8 +76,8 @@ if (!tailCss.includes('@media (max-width: 1100px)')) {
   fail('Tail is missing the final responsive media block.');
 }
 
-const nextBase = `${basePrefix}\n\n</style>\n`;
-const nextTail = `<style id="cdaRemakeTailStylesV6529">\n${tailCss}\n</style>\n`;
+const nextBase = `${baseBeforeTail}\n</style>\n`;
+const nextTail = `<style id="cdaRemakeTailStylesV6529">${tailCss}</style>\n`;
 const nextIndex = originalIndex.replace(baseInclude, `${baseInclude}\n${tailInclude}`);
 
 if (count(nextIndex, baseInclude) !== 1 || count(nextIndex, tailInclude) !== 1) {
@@ -109,11 +110,13 @@ requiredSelectors.forEach((selector) => {
   }
 });
 
-// Splitting one style block into two adjacent style blocks must preserve the exact CSS payload order.
-const reconstructedCss = `${nextBase.slice(0, nextBase.lastIndexOf('\n</style>'))}\n\n${nextTail
-  .replace(/^<style[^>]*>\n/, '')
-  .replace(/\n<\/style>\n$/, '')}`;
-const originalCss = originalBase.slice(0, originalBase.lastIndexOf('\n</style>'));
+// Rejoin the two style payloads and require an exact byte-for-byte match.
+const basePayload = nextBase.slice(0, nextBase.lastIndexOf('\n</style>'));
+const tailPayload = nextTail
+  .replace(/^<style[^>]*>/, '')
+  .replace(/<\/style>\n$/, '');
+const reconstructedCss = `${basePayload}${tailPayload}`;
+const originalCss = originalBase.slice(0, end);
 if (reconstructedCss !== originalCss) {
   fail('The reconstructed CSS payload is not byte-for-byte identical to the original payload.');
 }
@@ -128,5 +131,6 @@ console.log(JSON.stringify({
   extractedBytes: Buffer.byteLength(tailCss, 'utf8'),
   selectorCounts,
   cssPayloadOrderPreserved: true,
+  cssPayloadByteForBytePreserved: true,
   javascriptChanged: false
 }, null, 2));
