@@ -1,0 +1,217 @@
+name: Push guarded Remake extraction to Apps Script
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/push-remake-tail-to-apps-script.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: overview-dashboard-apps-script-test-push
+  cancel-in-progress: false
+
+jobs:
+  push-test-code:
+    runs-on: ubuntu-latest
+    env:
+      CLASPRC_JSON: ${{ secrets.CLASPRC_JSON || secrets.CLASP_CREDENTIALS || secrets.CLASP_AUTH_JSON }}
+      CLASPRC_JSON_B64: ${{ secrets.CLASPRC_JSON_B64 || secrets.CLASP_CREDENTIALS_B64 }}
+    steps:
+      - name: Check out isolated extraction branch
+        uses: actions/checkout@v4
+        with:
+          ref: refactor/remake-trend-tail-extraction
+          fetch-depth: 0
+
+      - name: Verify approved Git state and rollback point
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin refactor/flatten-index --no-tags
+          test "$(git branch --show-current)" = "refactor/remake-trend-tail-extraction"
+          git merge-base --is-ancestor origin/refactor/flatten-index HEAD
+          test -z "$(git status --porcelain)"
+
+          changed="$(git diff --name-only origin/refactor/flatten-index...HEAD | sort)"
+          expected="$(printf '%s\n' \
+            .github/scripts/extract-remake-tail.cjs \
+            DashboardBaseStyles.html \
+            Index.html \
+            RemakeTailStyles.html | sort)"
+          printf 'Approved branch changes:\n%s\n' "$changed"
+          test "$changed" = "$expected"
+
+          git rev-parse initial-production-snapshot
+          mkdir -p /tmp/apps-script-push-verification
+          git rev-parse HEAD > /tmp/apps-script-push-verification/github-head.txt
+          printf '%s\n' "$changed" > /tmp/apps-script-push-verification/approved-changed-files.txt
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install clasp
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --global @google/clasp@latest
+          clasp --version | tee /tmp/apps-script-push-verification/clasp-version.txt
+
+      - name: Configure clasp authorization
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME"
+          if [ -n "${CLASPRC_JSON_B64:-}" ]; then
+            printf '%s' "$CLASPRC_JSON_B64" | base64 --decode > "$HOME/.clasprc.json"
+          elif [ -n "${CLASPRC_JSON:-}" ]; then
+            printf '%s' "$CLASPRC_JSON" > "$HOME/.clasprc.json"
+          else
+            echo '::error::No clasp authorization secret is configured. Add CLASPRC_JSON or CLASPRC_JSON_B64 as a repository Actions secret.'
+            exit 2
+          fi
+          chmod 600 "$HOME/.clasprc.json"
+          node -e "JSON.parse(require('fs').readFileSync(process.env.HOME + '/.clasprc.json', 'utf8'));"
+          clasp --user work show-authorized-user --json > /tmp/clasp-authorized-user.json
+
+      - name: Identify the verified Apps Script project
+        shell: bash
+        run: |
+          set -euo pipefail
+          report_dir=/tmp/apps-script-push-verification
+          baseline_files="$report_dir/baseline-files.txt"
+          git ls-tree -r --name-only origin/refactor/flatten-index \
+            | grep -E '^(appsscript\.json|[^/]+\.(js|html))$' \
+            | sort > "$baseline_files"
+
+          candidates=(
+            '19ep_9Khzq86AIdumIxVN9BfM6rMwG0cHlPaUr46CZy_xJ1ve6_CcHhmo'
+            '19ep_9Khzz86AIdumIxVN9BfM6rMwG0cHlPaUr46CZy_xJ1ve6_CcHhmo'
+          )
+          matches=()
+
+          for script_id in "${candidates[@]}"; do
+            key="$(printf '%s' "$script_id" | sha256sum | cut -c1-12)"
+            candidate_dir="/tmp/apps-script-candidate-$key"
+            mkdir -p "$candidate_dir"
+            printf '{"scriptId":"%s","rootDir":"."}\n' "$script_id" > "$candidate_dir/.clasp.json"
+
+            if ! (cd "$candidate_dir" && clasp --user work pull > pull.log 2>&1); then
+              continue
+            fi
+
+            find "$candidate_dir" -maxdepth 1 -type f \
+              \( -name 'appsscript.json' -o -name '*.js' -o -name '*.html' \) \
+              -printf '%f\n' | sort > "$candidate_dir/files.txt"
+
+            if ! diff -u "$baseline_files" "$candidate_dir/files.txt" > "$candidate_dir/inventory.diff"; then
+              continue
+            fi
+
+            parity=1
+            while IFS= read -r file; do
+              if ! cmp -s <(git show "origin/refactor/flatten-index:$file") "$candidate_dir/$file"; then
+                parity=0
+                printf '%s\n' "$file" >> "$candidate_dir/hash-mismatches.txt"
+              fi
+            done < "$baseline_files"
+            if [ "$parity" -ne 1 ]; then
+              continue
+            fi
+
+            if ! (cd "$candidate_dir" && clasp --user work deployments > deployments.log 2>&1); then
+              continue
+            fi
+            if ! grep -q '@47' "$candidate_dir/deployments.log"; then
+              continue
+            fi
+
+            matches+=("$script_id")
+            cp "$candidate_dir/deployments.log" "$report_dir/deployments-before.txt"
+            (cd "$candidate_dir" && sha256sum $(cat files.txt)) > "$report_dir/live-before-sha256.txt"
+          done
+
+          if [ "${#matches[@]}" -ne 1 ]; then
+            echo "::error::Expected exactly one verified Apps Script project; found ${#matches[@]}."
+            exit 1
+          fi
+
+          script_id="${matches[0]}"
+          printf '%s\n' "$script_id" > "$report_dir/verified-script-id.txt"
+          printf 'SCRIPT_ID=%s\n' "$script_id" >> "$GITHUB_ENV"
+          echo 'Verified one Apps Script project against the baseline inventory and deployment @47.'
+
+      - name: Run clasp status and verify tracked inventory
+        shell: bash
+        run: |
+          set -euo pipefail
+          report_dir=/tmp/apps-script-push-verification
+          printf '{"scriptId":"%s","rootDir":"."}\n' "$SCRIPT_ID" > .clasp.json
+
+          clasp --user work status | tee "$report_dir/clasp-status-before.txt"
+          grep -q 'RemakeTailStyles.html' "$report_dir/clasp-status-before.txt"
+
+          find . -maxdepth 1 -type f \
+            \( -name 'appsscript.json' -o -name '*.js' -o -name '*.html' \) \
+            -printf '%f\n' | sort > "$report_dir/repository-push-files.txt"
+
+          test -z "$(git status --porcelain)"
+          sha256sum $(cat "$report_dir/repository-push-files.txt") > "$report_dir/repository-before-push-sha256.txt"
+
+      - name: Push approved files to Apps Script
+        shell: bash
+        run: |
+          set -euo pipefail
+          clasp --user work push | tee /tmp/apps-script-push-verification/clasp-push-output.txt
+
+      - name: Pull back and verify Apps Script contents
+        shell: bash
+        run: |
+          set -euo pipefail
+          report_dir=/tmp/apps-script-push-verification
+          after_dir=/tmp/apps-script-live-after
+          mkdir -p "$after_dir"
+          printf '{"scriptId":"%s","rootDir":"."}\n' "$SCRIPT_ID" > "$after_dir/.clasp.json"
+          (cd "$after_dir" && clasp --user work pull > "$report_dir/clasp-pull-after.txt" 2>&1)
+
+          find "$after_dir" -maxdepth 1 -type f \
+            \( -name 'appsscript.json' -o -name '*.js' -o -name '*.html' \) \
+            -printf '%f\n' | sort > "$report_dir/live-after-files.txt"
+          diff -u "$report_dir/repository-push-files.txt" "$report_dir/live-after-files.txt"
+
+          while IFS= read -r file; do
+            cmp -s "$file" "$after_dir/$file" || {
+              echo "::error::Apps Script pull-back mismatch: $file"
+              exit 1
+            }
+          done < "$report_dir/repository-push-files.txt"
+
+          (cd "$after_dir" && sha256sum $(cat "$report_dir/live-after-files.txt")) > "$report_dir/live-after-sha256.txt"
+          (cd "$after_dir" && clasp --user work deployments) | tee "$report_dir/deployments-after.txt"
+          grep -q '@47' "$report_dir/deployments-after.txt"
+
+          cat > "$report_dir/result.txt" <<RESULT
+          GitHub branch: refactor/remake-trend-tail-extraction
+          GitHub commit: $(git rev-parse HEAD)
+          Apps Script project ID: $SCRIPT_ID
+          Apps Script push: completed
+          Pull-back inventory: matched
+          Pull-back file contents: matched
+          Stable deployment @47: still present
+          Production redeployment: not performed
+          /dev validation: pending Summer test
+          RESULT
+
+      - name: Upload push verification artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: apps-script-remake-tail-push-verification
+          path: /tmp/apps-script-push-verification/
+          if-no-files-found: error
+          retention-days: 30
