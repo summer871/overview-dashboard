@@ -1,0 +1,108 @@
+{
+  "generatedAt": "2026-07-24T19:12:51.287Z",
+  "analyzer": ".github/scripts/build-selector-dependency-map.cjs",
+  "branch": "main",
+  "commit": "6e5fe006e806b4a32193061126d266add123b326",
+  "sourceFiles": [
+    {
+      "file": "CaeramistRemakeProfiler.js",
+      "sha256": "7581278e92b203af70787eebb26d0a302fb3937a865a67133b8f8cc63a5ce7c5"
+    },
+    {
+      "file": "Code.js",
+      "sha256": "2f5e88c64de990e465abee691194be1f3e61b4ed79f67a8c8e6d5ba29b48e0c6"
+    },
+    {
+      "file": "DashboardBaseStyles.html",
+      "sha256": "a72de1213e81b8154fff7a0d13a8dc1e97ab6f5fa2a548413a3bf806d93dcf03"
+    },
+    {
+      "file": "DashboardMainScript.html",
+      "sha256": "ff8d52573f064d74cf164587eb2af3e3ea49e043314d571cdd11fb5239f1ee98"
+    },
+    {
+      "file": "DashboardSupportScript01.html",
+      "sha256": "901f82000ae8543532f1ba8a4dc96d1a828eb240b7df777f53d2173812078d21"
+    },
+    {
+      "file": "DashboardSupportScript02.html",
+      "sha256": "479cfb510413352800c448ab7d1460af200236e5d6223735929ad799a8e0d182"
+    },
+    {
+      "file": "DashboardSupportScript03.html",
+      "sha256": "bf20ccc08ff510b30e34bf2c99ac976bb22476f4b19380942c5b8f20ed20c033"
+    },
+    {
+      "file": "DashboardSupportScript04.html",
+      "sha256": "b7168ae650029cc2d71f0966fbfba4ddce73221c93d9fcc0a21d581613b01a0d"
+    },
+    {
+      "file": "Index.html",
+      "sha256": "b4f1948674b023097bc14d08aef1ab21edfc48e51c6ab185011156025822607c"
+    },
+    {
+      "file": "RemakeFactorCache.js",
+      "sha256": "3c5ed59873136714e3bbb1538bc56808dfe433e8b00b76b86dbb9a714b5a6365"
+    },
+    {
+      "file": "RemakeResponsiveStyles.html",
+      "sha256": "1721444af10026fd15ece175b2ddf4368163fb0d16bfcc7dee593c69e17161d5"
+    },
+    {
+      "file": "SharedTopParityStyles.html",
+      "sha256": "bfa7cff7bb0b6a1a4167f2d296039d8c235a1767468612d69533c3d5a3643798"
+    },
+    {
+      "file": "TatDashboardCache.js",
+      "sha256": "6477a8d3fe4e983035ca24da466a13a4250651ae34588f9505204b07bb06f8c3"
+    },
+    {
+      "file": "TatDashboardControllerScript.html",
+      "sha256": "093f6834ff402f30f1a40f7d4694f83a210df97254e2d1c8dca7faceaea00a8b"
+    },
+    {
+      "file": "TatRemakeAliasStyles.html",
+      "sha256": "81ea06c386b0f663f3fa887e46f2579fce2670fd38963c5f4a30c6d3d59d4ade"
+    },
+    {
+      "file": "UnifiedControlsStyles.html",
+      "sha256": "472394c35e8270c466c2b66f4a686dbd1f49edba9d4a214900996df275041251"
+    }
+  ],
+  "outputs": [
+    {
+      "file": "reports/selector-dependency-map/SELECTOR_DEPENDENCY_MAP.md",
+      "sha256": "23bc63df4de5896a363e18f0e448bd128de4cf8699f5b86d5c664cc677e5e8fa",
+      "bytes": 56968
+    },
+    {
+      "file": "reports/selector-dependency-map/SELECTOR_DEPENDENCY_MAP.csv",
+      "sha256": "b06514e42a949cec9a263245c3c9b190cfa25d014c9d6bee1bd818e6b89fdd4e",
+      "bytes": 530243
+    },
+    {
+      "file": "reports/selector-dependency-map/SELECTOR_OCCURRENCES.csv",
+      "sha256": "036a9fba7f979faf1229efd48105d381d0bb50afe70921e96cac517018229aea",
+      "bytes": 761236
+    },
+    {
+      "file": "reports/selector-dependency-map/SELECTOR_DEPENDENCY_MAP.json",
+      "sha256": "26928b1bcd86e1979f8f05cc745ef694bc00c7bf30dadff30f27bdaf69f0362a",
+      "bytes": 4283091
+    }
+  ],
+  "sourceFilesUnchanged": true,
+  "summary": {
+    "selectorOccurrences": 3039,
+    "selectorContextGroups": 2115,
+    "highRiskGroups": 737,
+    "crossFileGroups": 117,
+    "likelyObsoleteReviewGroups": 62,
+    "ownershipCounts": {
+      "Shared": 892,
+      "TAT": 84,
+      "Remake": 487,
+      "Overview": 652
+    }
+  }
+}
