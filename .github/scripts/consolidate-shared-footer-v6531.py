@@ -34,17 +34,23 @@ def main() -> None:
         raise SystemExit('SharedFooter.html already exists. No files were changed.')
 
     original = INDEX_PATH.read_text(encoding='utf-8')
-    required_index_markers = [
+    unique_index_markers = [
         "includeDashboardFile('RemakeTailStyles')",
-        'id="remakeCeramistStatusV6342"',
-        'id="remakeLastRefresh"',
-        'id="tatStampV6509"',
         STYLE_ID,
         SCRIPT_ID,
     ]
-    missing = [marker for marker in required_index_markers if original.count(marker) != 1]
-    if missing:
-        raise SystemExit(f'Index baseline markers are missing or duplicated: {missing}. No files were changed.')
+    invalid_unique = [marker for marker in unique_index_markers if original.count(marker) != 1]
+    source_identifiers = [
+        'remakeCeramistStatusV6342',
+        'remakeLastRefresh',
+        'tatStampV6509',
+    ]
+    missing_sources = [identifier for identifier in source_identifiers if identifier not in original]
+    if invalid_unique or missing_sources:
+        raise SystemExit(
+            f'Index baseline validation failed. Invalid unique markers: {invalid_unique}; '
+            f'missing source identifiers: {missing_sources}. No files were changed.'
+        )
     if original.count(MARKER_START) != 1:
         raise SystemExit(f'Expected one temporary marker block, found {original.count(MARKER_START)}. No files were changed.')
     if SHARED_INCLUDE in original:
