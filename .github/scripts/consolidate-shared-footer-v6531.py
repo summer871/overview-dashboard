@@ -4,6 +4,7 @@ import subprocess
 
 EXPECTED_HEAD = 'aa01fb96bceef183293f7c019b6d598affd19d59'
 INDEX_PATH = Path('Index.html')
+TAT_CONTROLLER_PATH = Path('TatDashboardControllerScript.html')
 FOOTER_PATH = Path('SharedFooter.html')
 MARKER_START = '<!-- v6.530: unmistakable /dev-only build identity. Presentation only; no data, filter, chart, or cache behavior changes. -->'
 STYLE_ID = 'cdaVisibleDevBuildMarkerStylesV6530'
@@ -32,24 +33,27 @@ def main() -> None:
         raise SystemExit(f'Unexpected branch head. Expected {EXPECTED_HEAD}, got {git_head()}. No files were changed.')
     if FOOTER_PATH.exists():
         raise SystemExit('SharedFooter.html already exists. No files were changed.')
+    if not TAT_CONTROLLER_PATH.exists():
+        raise SystemExit('TatDashboardControllerScript.html is missing. No files were changed.')
 
     original = INDEX_PATH.read_text(encoding='utf-8')
+    tat_controller = TAT_CONTROLLER_PATH.read_text(encoding='utf-8')
+
     unique_index_markers = [
         "includeDashboardFile('RemakeTailStyles')",
+        'id="remakeLastRefresh"',
         STYLE_ID,
         SCRIPT_ID,
     ]
-    invalid_unique = [marker for marker in unique_index_markers if original.count(marker) != 1]
-    source_identifiers = [
-        'remakeCeramistStatusV6342',
-        'remakeLastRefresh',
-        'tatStampV6509',
-    ]
-    missing_sources = [identifier for identifier in source_identifiers if identifier not in original]
-    if invalid_unique or missing_sources:
+    invalid_index_markers = [marker for marker in unique_index_markers if original.count(marker) != 1]
+    if invalid_index_markers:
         raise SystemExit(
-            f'Index baseline validation failed. Invalid unique markers: {invalid_unique}; '
-            f'missing source identifiers: {missing_sources}. No files were changed.'
+            f'Index baseline validation failed for unique markers: {invalid_index_markers}. No files were changed.'
+        )
+    if tat_controller.count('id="tatStampV6509"') != 1:
+        raise SystemExit(
+            f'TAT source validation failed: expected one tatStampV6509 markup source, '
+            f'found {tat_controller.count("id=\"tatStampV6509\"")}. No files were changed.'
         )
     if original.count(MARKER_START) != 1:
         raise SystemExit(f'Expected one temporary marker block, found {original.count(MARKER_START)}. No files were changed.')
@@ -81,10 +85,9 @@ def main() -> None:
 
     shared_footer = r'''<!-- SharedFooter.html v6.531
 One shared body-level footer for Remake and TAT.
-Owns visible cache/build identity only; source status elements retain their existing data behavior.
+Owns visible cache/build identity only; existing status elements remain hidden data sources.
 -->
 <style id="cdaSharedFooterStylesV6531">
-  #remakeCeramistStatusV6342,
   #remakeLastRefresh,
   #tatStampV6509,
   .remakePageFooterV6338 {
@@ -147,7 +150,7 @@ Owns visible cache/build identity only; source status elements retain their exis
   const BUILD_LABEL_V6531 = 'SHARED-FOOTER-01';
   const BASE_COMMIT_V6531 = 'aa01fb9';
   const FOOTER_ID_V6531 = 'cdaSharedAppFooterV6531';
-  const SOURCE_SELECTOR_V6531 = '#remakeCeramistStatusV6342,#remakeLastRefresh,#tatStampV6509';
+  const SOURCE_SELECTOR_V6531 = '.remakePageFooterV6338,#remakeLastRefresh,#tatStampV6509';
   let renderFrameV6531 = 0;
 
   window.CDA_CURRENT_FRONTEND_VERSION = UI_VERSION_V6531;
@@ -174,13 +177,12 @@ Owns visible cache/build identity only; source status elements retain their exis
     if (!raw) return 'Not loaded';
     if (/loading|waiting|updating/i.test(raw)) return 'Loading';
     if (/failed|unavailable/i.test(raw)) return 'Unavailable';
-    let text = stripPrefixV6531(raw, [
+    const text = stripPrefixV6531(raw, [
       /^Worker cache updated:\s*/i,
       /^Worker cache:\s*/i,
       /^Worker:\s*/i
     ]);
-    text = text.replace(/\s*[·•]\s*(saved browser copy|nightly source|saved copy is current).*$/i, '');
-    return cleanV6531(text) || 'Not loaded';
+    return text || 'Not loaded';
   }
 
   function simpleCacheV6531(value){
@@ -198,6 +200,22 @@ Owns visible cache/build identity only; source status elements retain their exis
     ]);
     text = text.replace(/\s*[·•]\s*optimized cache rebuilding.*$/i, '');
     return cleanV6531(text) || 'Not loaded';
+  }
+
+  function readRemakeStatusV6531(){
+    const legacyFooter = document.querySelector('.remakePageFooterV6338');
+    const rawFooter = cleanV6531(legacyFooter && legacyFooter.textContent);
+    const refreshNode = byIdV6531('remakeLastRefresh');
+    const refreshFallback = cleanV6531(refreshNode && refreshNode.textContent);
+    const workerMatch = rawFooter.match(/Worker cache updated:\s*([^·•]+)/i);
+    const cacheMatch = rawFooter.match(/Browser cache current:\s*([^·•]+)/i);
+    const savedCurrent = /saved (?:browser )?copy is current/i.test(rawFooter);
+
+    return {
+      worker: simpleWorkerV6531(workerMatch ? workerMatch[0] : ''),
+      cache: simpleCacheV6531(cacheMatch ? cacheMatch[0] : refreshFallback),
+      saved: savedCurrent ? 'current' : ''
+    };
   }
 
   function routerLabelV6531(){
@@ -249,10 +267,10 @@ Owns visible cache/build identity only; source status elements retain their exis
       const tat = byIdV6531('tatStampV6509');
       appendItemV6531(footer, 'Cache', simpleCacheV6531(tat && tat.textContent));
     } else {
-      const worker = byIdV6531('remakeCeramistStatusV6342');
-      const cache = byIdV6531('remakeLastRefresh');
-      appendItemV6531(footer, 'Worker', simpleWorkerV6531(worker && worker.textContent));
-      appendItemV6531(footer, 'Cache', simpleCacheV6531(cache && cache.textContent));
+      const remakeStatus = readRemakeStatusV6531();
+      appendItemV6531(footer, 'Worker', remakeStatus.worker);
+      appendItemV6531(footer, 'Cache', remakeStatus.cache);
+      if (remakeStatus.saved) appendItemV6531(footer, 'Saved copy', remakeStatus.saved);
     }
 
     appendItemV6531(footer, 'UI', UI_VERSION_V6531, 'cdaSharedFooterIdentityV6531');
@@ -310,7 +328,7 @@ Owns visible cache/build identity only; source status elements retain their exis
 </script>
 '''
 
-    required_footer_markers = [
+    unique_footer_markers = [
         'id="cdaSharedFooterStylesV6531"',
         'id="cdaSharedFooterControllerV6531"',
         "const UI_VERSION_V6531 = 'v6.531';",
@@ -318,12 +336,21 @@ Owns visible cache/build identity only; source status elements retain their exis
         "const BASE_COMMIT_V6531 = 'aa01fb9';",
         "const FOOTER_ID_V6531 = 'cdaSharedAppFooterV6531';",
         'window.CDA_CURRENT_FRONTEND_VERSION = UI_VERSION_V6531;',
-        '.remakePageFooterV6338',
-        '#tatStampV6509',
     ]
-    invalid = [marker for marker in required_footer_markers if shared_footer.count(marker) != 1]
-    if invalid:
-        raise SystemExit(f'Shared footer validation failed for markers: {invalid}. No files were changed.')
+    invalid_unique_footer = [marker for marker in unique_footer_markers if shared_footer.count(marker) != 1]
+    required_footer_markers = [
+        '.remakePageFooterV6338',
+        '#remakeLastRefresh',
+        '#tatStampV6509',
+        'function readRemakeStatusV6531()',
+        "document.querySelector('.remakePageFooterV6338')",
+    ]
+    missing_footer_markers = [marker for marker in required_footer_markers if marker not in shared_footer]
+    if invalid_unique_footer or missing_footer_markers:
+        raise SystemExit(
+            f'Shared footer validation failed. Invalid unique markers: {invalid_unique_footer}; '
+            f'missing required markers: {missing_footer_markers}. No files were changed.'
+        )
     if shared_footer.count('<style') != 1 or shared_footer.count('</style>') != 1:
         raise SystemExit('Shared footer style structure is invalid. No files were changed.')
     if shared_footer.count('<script') != 1 or shared_footer.count('</script>') != 1:
@@ -331,7 +358,7 @@ Owns visible cache/build identity only; source status elements retain their exis
 
     INDEX_PATH.write_text(updated_index, encoding='utf-8', newline='\n')
     FOOTER_PATH.write_text(shared_footer, encoding='utf-8', newline='\n')
-    print('Created SharedFooter.html v6.531 and replaced the temporary floating marker with one include.')
+    print('Created SharedFooter.html v6.531 using the actual Remake and TAT status sources.')
 
 
 if __name__ == '__main__':
