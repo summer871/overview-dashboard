@@ -1,1 +1,4 @@
-README.txt
+**/**
+!appsscript.json
+!*.js
+!*.html
