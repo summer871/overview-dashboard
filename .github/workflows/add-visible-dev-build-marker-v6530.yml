@@ -1,0 +1,205 @@
+name: Add visible dev build marker v6.530
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/add-visible-dev-build-marker-v6530.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: overview-dashboard-visible-dev-build-marker
+  cancel-in-progress: false
+
+jobs:
+  add-marker:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out isolated extraction branch
+        uses: actions/checkout@v4
+        with:
+          ref: refactor/remake-trend-tail-extraction
+          fetch-depth: 0
+
+      - name: Verify approved extraction baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "d73e44e523e4c3007fd326f0a3544f7058eded83"
+          test -z "$(git status --porcelain)"
+          grep -q "includeDashboardFile('RemakeTailStyles')" Index.html
+          test "$(grep -o "includeDashboardFile('RemakeTailStyles')" Index.html | wc -l)" -eq 1
+
+      - name: Add visible dev build marker
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          path = Path('Index.html')
+          original = path.read_text(encoding='utf-8')
+          style_id = 'cdaVisibleDevBuildMarkerStylesV6530'
+          script_id = 'cdaVisibleDevBuildMarkerV6530'
+
+          if style_id in original or script_id in original:
+              raise SystemExit('Visible dev build marker v6.530 already exists. No file was changed.')
+
+          before = {
+              'style_open': len(re.findall(r'<style\b', original, flags=re.I)),
+              'style_close': len(re.findall(r'</style>', original, flags=re.I)),
+              'script_open': len(re.findall(r'<script\b', original, flags=re.I)),
+              'script_close': len(re.findall(r'</script>', original, flags=re.I)),
+              'body_close': len(re.findall(r'</body>', original, flags=re.I)),
+              'html_close': len(re.findall(r'</html>', original, flags=re.I)),
+              'apps_script_print': original.count('<?='),
+              'apps_script_code': original.count('<?'),
+          }
+
+          block = r'''
+
+          <!-- v6.530: unmistakable /dev-only build identity. Presentation only; no data, filter, chart, or cache behavior changes. -->
+          <style id="cdaVisibleDevBuildMarkerStylesV6530">
+            #cdaVisibleDevBuildMarkerV6530 {
+              position:fixed;
+              left:12px;
+              bottom:10px;
+              z-index:2147483646;
+              max-width:calc(100vw - 24px);
+              box-sizing:border-box;
+              padding:7px 10px;
+              border:1px solid rgba(255,255,255,.42);
+              border-radius:7px;
+              background:rgba(17,24,39,.94);
+              color:#ffffff;
+              box-shadow:0 4px 14px rgba(15,23,42,.24);
+              font:800 11px/1.2 Roboto,Arial,sans-serif;
+              letter-spacing:.01em;
+              white-space:nowrap;
+              overflow:hidden;
+              text-overflow:ellipsis;
+              pointer-events:none;
+              user-select:none;
+            }
+            @media(max-width:700px) {
+              #cdaVisibleDevBuildMarkerV6530 {
+                left:8px;
+                right:8px;
+                bottom:8px;
+                max-width:none;
+                font-size:10px;
+                text-align:center;
+              }
+            }
+          </style>
+          <script id="cdaVisibleDevBuildMarkerV6530">
+          (function installCdaVisibleDevBuildMarkerV6530(){
+            'use strict';
+            const UI_VERSION_V6530 = 'v6.530';
+            const BUILD_LABEL_V6530 = 'RT-TAIL-01';
+            const BASE_COMMIT_V6530 = 'd73e44e';
+            const MARKER_ID_V6530 = 'cdaVisibleDevBuildMarkerV6530';
+
+            window.CDA_CURRENT_FRONTEND_VERSION = UI_VERSION_V6530;
+            window.CDA_VISIBLE_DEV_BUILD_VERSION = UI_VERSION_V6530;
+            window.CDA_VISIBLE_DEV_BUILD_LABEL = BUILD_LABEL_V6530;
+            window.CDA_VISIBLE_DEV_BUILD_BASE = BASE_COMMIT_V6530;
+
+            function routerLabelV6530(){
+              const presentation = window.CDA_SERVER_PRESENTATION || {};
+              const source = String(presentation.source || '');
+              const match = source.match(/Code\.gs\s+v[0-9.]+/i);
+              return match ? match[0] : 'Router unknown';
+            }
+
+            function ensureMarkerV6530(){
+              if (!document.body || !/\/dev\/?$/i.test(window.location.pathname || '')) return;
+              let marker = document.getElementById(MARKER_ID_V6530);
+              if (!marker) {
+                marker = document.createElement('div');
+                marker.id = MARKER_ID_V6530;
+                marker.setAttribute('role', 'status');
+                marker.setAttribute('aria-live', 'polite');
+                document.body.appendChild(marker);
+              }
+              const text = 'DEV BUILD · UI ' + UI_VERSION_V6530 + ' · ' + routerLabelV6530() + ' · ' + BUILD_LABEL_V6530 + ' · base ' + BASE_COMMIT_V6530;
+              if (marker.textContent !== text) marker.textContent = text;
+              marker.title = 'Development build identity. Production deployment @47 is unchanged.';
+            }
+
+            if (document.readyState === 'loading') {
+              document.addEventListener('DOMContentLoaded', ensureMarkerV6530, {once:true});
+            } else {
+              ensureMarkerV6530();
+            }
+            window.addEventListener('pageshow', ensureMarkerV6530);
+          })();
+          </script>
+          '''
+
+          text = original.rstrip() + block + '\n'
+          after = {
+              'style_open': len(re.findall(r'<style\b', text, flags=re.I)),
+              'style_close': len(re.findall(r'</style>', text, flags=re.I)),
+              'script_open': len(re.findall(r'<script\b', text, flags=re.I)),
+              'script_close': len(re.findall(r'</script>', text, flags=re.I)),
+              'body_close': len(re.findall(r'</body>', text, flags=re.I)),
+              'html_close': len(re.findall(r'</html>', text, flags=re.I)),
+              'apps_script_print': text.count('<?='),
+              'apps_script_code': text.count('<?'),
+          }
+          expected = dict(before)
+          expected['style_open'] += 1
+          expected['style_close'] += 1
+          expected['script_open'] += 1
+          expected['script_close'] += 1
+          if after != expected:
+              raise SystemExit(f'Structural validation failed: expected {expected}, got {after}. No file was changed.')
+
+          required = [
+              style_id,
+              script_id,
+              "const UI_VERSION_V6530 = 'v6.530';",
+              "const BUILD_LABEL_V6530 = 'RT-TAIL-01';",
+              "const BASE_COMMIT_V6530 = 'd73e44e';",
+              "window.CDA_CURRENT_FRONTEND_VERSION = UI_VERSION_V6530;",
+              "includeDashboardFile('RemakeTailStyles')",
+          ]
+          missing = [item for item in required if text.count(item) != 1]
+          if missing:
+              raise SystemExit(f'Visible marker validation failed: {missing}. No file was changed.')
+
+          path.write_text(text, encoding='utf-8', newline='\n')
+          print('Added visible /dev build marker: DEV BUILD · UI v6.530 · Code.gs v6.40 · RT-TAIL-01 · base d73e44e')
+          PY
+
+      - name: Verify only Index changed
+        shell: bash
+        run: |
+          set -euo pipefail
+          changed="$(git status --short --untracked-files=all | sed -E 's/^.. //' | sort)"
+          printf '%s\n' "$changed"
+          test "$changed" = "Index.html"
+          test "$(grep -o 'id="cdaVisibleDevBuildMarkerStylesV6530"' Index.html | wc -l)" -eq 1
+          test "$(grep -o 'id="cdaVisibleDevBuildMarkerV6530"' Index.html | wc -l)" -eq 1
+          grep -q "const UI_VERSION_V6530 = 'v6.530';" Index.html
+          grep -q "const BUILD_LABEL_V6530 = 'RT-TAIL-01';" Index.html
+          grep -q "const BASE_COMMIT_V6530 = 'd73e44e';" Index.html
+          grep -q "window.CDA_CURRENT_FRONTEND_VERSION = UI_VERSION_V6530;" Index.html
+          grep -q "Production deployment @47 is unchanged" Index.html
+          grep -q "includeDashboardFile('RemakeTailStyles')" Index.html
+
+      - name: Commit visible dev build marker
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Index.html
+          git commit -m "Add visible dev build marker v6.530"
+          git push origin HEAD:refactor/remake-trend-tail-extraction
