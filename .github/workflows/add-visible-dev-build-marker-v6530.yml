@@ -161,18 +161,23 @@ jobs:
           if after != expected:
               raise SystemExit(f'Structural validation failed: expected {expected}, got {after}. No file was changed.')
 
-          required = [
-              style_id,
-              script_id,
+          required_once = [
+              'id="cdaVisibleDevBuildMarkerStylesV6530"',
+              'id="cdaVisibleDevBuildMarkerV6530"',
               "const UI_VERSION_V6530 = 'v6.530';",
               "const BUILD_LABEL_V6530 = 'RT-TAIL-01';",
               "const BASE_COMMIT_V6530 = 'd73e44e';",
+              "const MARKER_ID_V6530 = 'cdaVisibleDevBuildMarkerV6530';",
               "window.CDA_CURRENT_FRONTEND_VERSION = UI_VERSION_V6530;",
               "includeDashboardFile('RemakeTailStyles')",
           ]
-          missing = [item for item in required if text.count(item) != 1]
-          if missing:
-              raise SystemExit(f'Visible marker validation failed: {missing}. No file was changed.')
+          invalid_once = [item for item in required_once if text.count(item) != 1]
+          selector_count = text.count('#cdaVisibleDevBuildMarkerV6530')
+          if invalid_once or selector_count != 2:
+              raise SystemExit(
+                  f'Visible marker validation failed: invalid_once={invalid_once}, '
+                  f'selector_count={selector_count}. No file was changed.'
+              )
 
           path.write_text(text, encoding='utf-8', newline='\n')
           print('Added visible /dev build marker: DEV BUILD · UI v6.530 · Code.gs v6.40 · RT-TAIL-01 · base d73e44e')
@@ -187,9 +192,11 @@ jobs:
           test "$changed" = "Index.html"
           test "$(grep -o 'id="cdaVisibleDevBuildMarkerStylesV6530"' Index.html | wc -l)" -eq 1
           test "$(grep -o 'id="cdaVisibleDevBuildMarkerV6530"' Index.html | wc -l)" -eq 1
+          test "$(grep -o '#cdaVisibleDevBuildMarkerV6530' Index.html | wc -l)" -eq 2
           grep -q "const UI_VERSION_V6530 = 'v6.530';" Index.html
           grep -q "const BUILD_LABEL_V6530 = 'RT-TAIL-01';" Index.html
           grep -q "const BASE_COMMIT_V6530 = 'd73e44e';" Index.html
+          grep -q "const MARKER_ID_V6530 = 'cdaVisibleDevBuildMarkerV6530';" Index.html
           grep -q "window.CDA_CURRENT_FRONTEND_VERSION = UI_VERSION_V6530;" Index.html
           grep -q "Production deployment @47 is unchanged" Index.html
           grep -q "includeDashboardFile('RemakeTailStyles')" Index.html
