@@ -69,9 +69,11 @@ jobs:
           grep -q "const FOOTER_ID_V6531 = 'cdaSharedAppFooterV6531';" SharedFooter.html
           grep -q "window.CDA_CURRENT_FRONTEND_VERSION = UI_VERSION_V6531;" SharedFooter.html
           grep -q '\.remakePageFooterV6338' SharedFooter.html
-          grep -q '#remakeCeramistStatusV6342' SharedFooter.html
           grep -q '#remakeLastRefresh' SharedFooter.html
           grep -q '#tatStampV6509' SharedFooter.html
+          grep -q 'function readRemakeStatusV6531()' SharedFooter.html
+          grep -Fq "document.querySelector('.remakePageFooterV6338')" SharedFooter.html
+          test "$(grep -o 'remakeCeramistStatusV6342' SharedFooter.html | wc -l)" -eq 0
 
       - name: Commit shared footer consolidation
         shell: bash
