@@ -62,9 +62,14 @@ if (start < 0 || end <= start) fail('Could not isolate the Remake tail CSS.');
 
 const tailCss = originalBase.slice(start, end).replace(/\s+$/, '');
 const basePrefix = originalBase.slice(0, start).replace(/\s+$/, '');
+const selectorCounts = {};
 
 requiredSelectors.forEach((selector) => {
-  if (!tailCss.includes(selector)) fail(`Tail is missing expected selector: ${selector}`);
+  const originalCount = count(originalBase, selector);
+  const extractedCount = count(tailCss, selector);
+  if (extractedCount < 1) fail(`Tail is missing expected selector: ${selector}`);
+  if (originalCount < extractedCount) fail(`Invalid selector count for ${selector}.`);
+  selectorCounts[selector] = { originalCount, extractedCount };
 });
 if (!tailCss.includes('@media (max-width: 1100px)')) {
   fail('Tail is missing the final responsive media block.');
@@ -80,9 +85,28 @@ if (count(nextIndex, baseInclude) !== 1 || count(nextIndex, tailInclude) !== 1) 
 if (nextIndex.indexOf(tailInclude) !== nextIndex.indexOf(baseInclude) + baseInclude.length + 1) {
   fail('RemakeTailStyles must load immediately after DashboardBaseStyles.');
 }
+
 requiredSelectors.forEach((selector) => {
-  if (nextBase.includes(selector)) fail(`Selector remained in ${basePath}: ${selector}`);
-  if (!nextTail.includes(selector)) fail(`Selector missing from ${targetPath}: ${selector}`);
+  const counts = selectorCounts[selector];
+  const expectedRemainingCount = counts.originalCount - counts.extractedCount;
+  const actualRemainingCount = count(nextBase, selector);
+  const actualExtractedCount = count(nextTail, selector);
+
+  if (actualRemainingCount !== expectedRemainingCount) {
+    fail(
+      `Unexpected remaining count for ${selector}: ` +
+      `expected ${expectedRemainingCount}, found ${actualRemainingCount}.`
+    );
+  }
+  if (actualExtractedCount !== counts.extractedCount) {
+    fail(
+      `Unexpected extracted count for ${selector}: ` +
+      `expected ${counts.extractedCount}, found ${actualExtractedCount}.`
+    );
+  }
+  if (actualRemainingCount + actualExtractedCount !== counts.originalCount) {
+    fail(`Total selector count changed for ${selector}.`);
+  }
 });
 
 // Splitting one style block into two adjacent style blocks must preserve the exact CSS payload order.
@@ -102,7 +126,7 @@ console.log(JSON.stringify({
   status: 'prepared',
   changedFiles: [basePath, indexPath, targetPath],
   extractedBytes: Buffer.byteLength(tailCss, 'utf8'),
-  selectorsPreserved: requiredSelectors,
+  selectorCounts,
   cssPayloadOrderPreserved: true,
   javascriptChanged: false
 }, null, 2));
