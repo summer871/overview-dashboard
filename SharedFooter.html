@@ -1,4 +1,4 @@
-<!-- SharedFooter.html v6.531
+<!-- SharedFooter.html v6.532
 One shared body-level footer for Remake and TAT.
 Owns visible cache/build identity only; existing status elements remain hidden data sources.
 -->
@@ -14,15 +14,16 @@ Owns visible cache/build identity only; existing status elements remain hidden d
     width:100%;
     box-sizing:border-box;
     display:flex;
-    justify-content:center;
+    justify-content:flex-end;
     align-items:center;
     flex-wrap:wrap;
     gap:0;
-    padding:13px 16px 16px;
-    color:#667085;
+    padding:4px 12px 6px;
+    color:#98a2b3;
     background:transparent;
-    font:700 10.5px/1.35 Roboto,Arial,sans-serif;
-    text-align:center;
+    font:500 8px/1.2 Roboto,Arial,sans-serif;
+    text-align:right;
+    opacity:.78;
   }
 
   #cdaSharedAppFooterV6531 [data-footer-item] {
@@ -34,26 +35,23 @@ Owns visible cache/build identity only; existing status elements remain hidden d
   #cdaSharedAppFooterV6531 [data-footer-item] + [data-footer-item]::before {
     content:'•';
     display:inline-block;
-    margin:0 9px;
-    color:#c1c7d0;
+    margin:0 5px;
+    color:#d0d5dd;
   }
 
   #cdaSharedAppFooterV6531 .cdaSharedFooterIdentityV6531 {
-    color:#475467;
-    font-weight:800;
+    color:inherit;
+    font-weight:600;
   }
 
   @media(max-width:760px) {
     #cdaSharedAppFooterV6531 {
-      align-items:flex-start;
-      flex-direction:column;
-      gap:4px;
-      padding:11px 14px 15px;
-      text-align:left;
+      padding:4px 8px 6px;
+      font-size:8px;
     }
 
     #cdaSharedAppFooterV6531 [data-footer-item] + [data-footer-item]::before {
-      display:none;
+      margin:0 4px;
     }
   }
 </style>
@@ -61,9 +59,9 @@ Owns visible cache/build identity only; existing status elements remain hidden d
 (function installCdaSharedFooterV6531(){
   'use strict';
 
-  const UI_VERSION_V6531 = 'v6.531';
-  const BUILD_LABEL_V6531 = 'SHARED-FOOTER-01';
-  const BASE_COMMIT_V6531 = 'aa01fb9';
+  const UI_VERSION_V6531 = 'v6.532';
+  const BUILD_LABEL_V6531 = 'SHARED-FOOTER-02';
+  const BASE_COMMIT_V6531 = '7b9c2a0';
   const FOOTER_ID_V6531 = 'cdaSharedAppFooterV6531';
   const SOURCE_SELECTOR_V6531 = '.remakePageFooterV6338,#remakeLastRefresh,#tatStampV6509';
   let renderFrameV6531 = 0;
