@@ -21,7 +21,7 @@ jobs:
 
       - name: Verify dashboard source files are unchanged
         run: |
-          changed="$(git status --short | sed -E 's/^.. //' | sort)"
+          changed="$(git status --short --untracked-files=all | sed -E 's/^.. //' | sort)"
           printf '%s\n' "$changed"
           test -n "$changed"
           unexpected="$(printf '%s\n' "$changed" | grep -v '^reports/selector-dependency-map/' || true)"
