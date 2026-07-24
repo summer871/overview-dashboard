@@ -54,7 +54,7 @@ if (fs.existsSync(targetPath)) fail(`${targetPath} already exists.`);
 if (count(originalBase, startMarker) !== 1) fail(`Expected one ${startMarker} marker.`);
 if (count(originalIndex, baseInclude) !== 1) fail('Expected one DashboardBaseStyles include.');
 if (originalIndex.includes(tailInclude)) fail('RemakeTailStyles include already exists.');
-if (!originalBase.endsWith('</style>\n')) fail(`${basePath} must end with </style>.`);
+if (!/<\/style>\s*$/.test(originalBase)) fail(`${basePath} must end with </style>.`);
 
 const start = originalBase.indexOf(startMarker);
 const end = originalBase.lastIndexOf('\n</style>');
