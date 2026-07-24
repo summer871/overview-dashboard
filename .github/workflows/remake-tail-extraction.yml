@@ -1,0 +1,100 @@
+name: Guarded Remake tail extraction
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/remake-tail-extraction.yml
+
+permissions:
+  contents: write
+
+jobs:
+  extract:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out isolated extraction branch
+        uses: actions/checkout@v4
+        with:
+          ref: refactor/remake-trend-tail-extraction
+          fetch-depth: 0
+
+      - name: Verify transformation script syntax
+        run: node --check .github/scripts/extract-remake-tail.cjs
+
+      - name: Extract the exact Remake tail CSS
+        run: node .github/scripts/extract-remake-tail.cjs
+
+      - name: Verify only approved source files changed
+        run: |
+          changed="$(git status --short --untracked-files=all | sed -E 's/^.. //' | sort)"
+          expected="$(printf '%s\n' DashboardBaseStyles.html Index.html RemakeTailStyles.html | sort)"
+          printf 'Changed files:\n%s\n' "$changed"
+          test "$changed" = "$expected"
+
+      - name: Verify source boundaries and unchanged behavior contracts
+        run: |
+          test -s DashboardBaseStyles.html
+          test -s Index.html
+          test -s RemakeTailStyles.html
+          ! grep -q '\.remakeTrendList' DashboardBaseStyles.html
+          grep -q '\.remakeTrendList' RemakeTailStyles.html
+          grep -q '\.remakeTrendValue' RemakeTailStyles.html
+          grep -q '\.remakeDirectionalNote' RemakeTailStyles.html
+          grep -q '@media (max-width: 1100px)' RemakeTailStyles.html
+          test "$(grep -c "includeDashboardFile('RemakeTailStyles')" Index.html)" -eq 1
+          node - <<'NODE'
+          const fs = require('fs');
+          const index = fs.readFileSync('Index.html', 'utf8');
+          const base = "  <?!= includeDashboardFile('DashboardBaseStyles') ?>";
+          const tail = "  <?!= includeDashboardFile('RemakeTailStyles') ?>";
+          if (!index.includes(`${base}\n${tail}`)) {
+            throw new Error('RemakeTailStyles is not immediately after DashboardBaseStyles.');
+          }
+          const protectedFiles = [
+            'DashboardMainScript.html',
+            'DashboardSupportScript01.html',
+            'DashboardSupportScript02.html',
+            'DashboardSupportScript03.html',
+            'DashboardSupportScript04.html',
+            'RemakeResponsiveStyles.html',
+            'UnifiedControlsStyles.html',
+            'TatDashboardControllerScript.html',
+            'TatRemakeAliasStyles.html',
+            'SharedTopParityStyles.html',
+            'Code.js',
+            'RemakeFactorCache.js',
+            'TatDashboardCache.js',
+            'CaeramistRemakeProfiler.js'
+          ];
+          for (const file of protectedFiles) {
+            const result = require('child_process').execFileSync('git', ['diff', '--quiet', '--', file], { stdio: 'ignore' });
+          }
+          console.log('No JavaScript, backend, shared-control, TAT, or responsive module changed.');
+          NODE
+
+      - name: Create review artifact
+        run: |
+          mkdir -p /tmp/remake-tail-extraction
+          git diff -- DashboardBaseStyles.html Index.html RemakeTailStyles.html > /tmp/remake-tail-extraction/remake-tail-extraction.patch
+          cp RemakeTailStyles.html /tmp/remake-tail-extraction/RemakeTailStyles.html
+          git diff --stat > /tmp/remake-tail-extraction/diff-stat.txt
+
+      - name: Upload review artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: remake-tail-extraction-review
+          path: /tmp/remake-tail-extraction/
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Commit prepared extraction
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add DashboardBaseStyles.html Index.html RemakeTailStyles.html
+          git diff --cached --quiet && exit 0
+          git commit -m "Extract guarded Remake tail styles"
+          git push origin HEAD:refactor/remake-trend-tail-extraction
