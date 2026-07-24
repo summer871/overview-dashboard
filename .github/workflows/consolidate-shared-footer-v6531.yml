@@ -1,0 +1,83 @@
+name: Consolidate shared dashboard footer v6.531
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/consolidate-shared-footer-v6531.yml
+      - .github/scripts/consolidate-shared-footer-v6531.py
+
+permissions:
+  contents: write
+
+concurrency:
+  group: overview-dashboard-shared-footer-v6531
+  cancel-in-progress: false
+
+jobs:
+  consolidate-shared-footer:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out isolated extraction branch
+        uses: actions/checkout@v4
+        with:
+          ref: refactor/remake-trend-tail-extraction
+          fetch-depth: 0
+
+      - name: Download controlled transformer from main
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsSL \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "Accept: application/vnd.github.raw+json" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/contents/.github/scripts/consolidate-shared-footer-v6531.py?ref=main" \
+            -o /tmp/consolidate-shared-footer-v6531.py
+          test -s /tmp/consolidate-shared-footer-v6531.py
+          python3 -m py_compile /tmp/consolidate-shared-footer-v6531.py
+
+      - name: Create shared footer module and remove temporary marker
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 /tmp/consolidate-shared-footer-v6531.py
+
+      - name: Verify only the shared footer boundary changed
+        shell: bash
+        run: |
+          set -euo pipefail
+          changed="$(git status --short --untracked-files=all | sed -E 's/^.. //' | sort)"
+          printf '%s\n' "$changed"
+          expected=$'Index.html\nSharedFooter.html'
+          test "$changed" = "$expected"
+
+          test "$(grep -o "includeDashboardFile('SharedFooter')" Index.html | wc -l)" -eq 1
+          test "$(grep -o "includeDashboardFile('RemakeTailStyles')" Index.html | wc -l)" -eq 1
+          test "$(grep -o 'cdaVisibleDevBuildMarkerStylesV6530' Index.html | wc -l)" -eq 0
+          test "$(grep -o 'cdaVisibleDevBuildMarkerScriptV6530' Index.html | wc -l)" -eq 0
+
+          test "$(grep -o 'id="cdaSharedFooterStylesV6531"' SharedFooter.html | wc -l)" -eq 1
+          test "$(grep -o 'id="cdaSharedFooterControllerV6531"' SharedFooter.html | wc -l)" -eq 1
+          grep -q "const UI_VERSION_V6531 = 'v6.531';" SharedFooter.html
+          grep -q "const BUILD_LABEL_V6531 = 'SHARED-FOOTER-01';" SharedFooter.html
+          grep -q "const BASE_COMMIT_V6531 = 'aa01fb9';" SharedFooter.html
+          grep -q "const FOOTER_ID_V6531 = 'cdaSharedAppFooterV6531';" SharedFooter.html
+          grep -q "window.CDA_CURRENT_FRONTEND_VERSION = UI_VERSION_V6531;" SharedFooter.html
+          grep -q '\.remakePageFooterV6338' SharedFooter.html
+          grep -q '#remakeCeramistStatusV6342' SharedFooter.html
+          grep -q '#remakeLastRefresh' SharedFooter.html
+          grep -q '#tatStampV6509' SharedFooter.html
+
+      - name: Commit shared footer consolidation
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Index.html SharedFooter.html
+          git commit -m "Consolidate shared dashboard footer v6.531"
+          git push origin HEAD:refactor/remake-trend-tail-extraction
