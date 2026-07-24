@@ -1,0 +1,861 @@
+<style id="remakeResponsiveV6382Styles">
+  #remakeCompactToolbarV6382,
+  #remakeViewsPanelV6382 {
+    display:none;
+  }
+
+  #remakeViewsPanelV6382 {
+    position:fixed;
+    z-index:24050;
+    width:min(370px,calc(100vw - 16px));
+    max-height:calc(100vh - 16px);
+    flex-direction:column;
+    overflow:hidden;
+    border:1px solid #d7dce2;
+    border-radius:10px;
+    background:#fff;
+    box-shadow:0 12px 30px rgba(15,23,42,.20);
+    color:#202124;
+    box-sizing:border-box;
+    font-family:Roboto,Arial,sans-serif;
+  }
+
+  #remakeViewsPanelV6382.open {
+    display:flex !important;
+  }
+
+  .remakeViewsHeaderV6382 {
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    min-height:40px;
+    padding:7px 9px 7px 11px;
+    border-bottom:1px solid #edf0f3;
+    background:#fff;
+  }
+
+  .remakeViewsHeaderV6382 strong {
+    color:#172033;
+    font:900 12px/1.2 Roboto,Arial,sans-serif;
+  }
+
+  .remakeViewsCloseV6382 {
+    width:27px;
+    min-width:27px;
+    height:27px;
+    padding:0;
+    border:0;
+    border-radius:50%;
+    background:transparent;
+    color:#667085;
+    font:800 18px/1 Roboto,Arial,sans-serif;
+    cursor:pointer;
+  }
+
+  .remakeViewsBodyV6382 {
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+    min-height:0;
+    padding:9px 10px 10px;
+    overflow:auto;
+  }
+
+  .remakeViewSaveRowV6382 {
+    display:grid;
+    grid-template-columns:minmax(0,1fr) auto;
+    gap:6px;
+  }
+
+  .remakeViewSaveRowV6382 input,
+  .remakeViewDefaultsV6382 select,
+  .remakeViewNameV6382 {
+    width:100%;
+    height:32px;
+    min-width:0;
+    padding:0 8px;
+    border:1px solid #d7dce2;
+    border-radius:7px;
+    background:#fff;
+    color:#202124;
+    outline:none;
+    box-sizing:border-box;
+    font:700 11px/1 Roboto,Arial,sans-serif;
+  }
+
+  .remakeViewSaveRowV6382 input:focus,
+  .remakeViewDefaultsV6382 select:focus,
+  .remakeViewNameV6382:focus {
+    border-color:#94a3b8;
+    box-shadow:0 0 0 2px rgba(59,85,110,.10);
+  }
+
+  .remakeViewPrimaryV6382,
+  .remakeViewActionV6382,
+  .remakeViewUtilityV6382 {
+    min-height:32px;
+    padding:0 9px;
+    border:1px solid #d7dce2;
+    border-radius:7px;
+    background:#fff;
+    color:#344054;
+    font:800 10.5px/1 Roboto,Arial,sans-serif;
+    white-space:nowrap;
+    cursor:pointer;
+  }
+
+  .remakeViewPrimaryV6382 {
+    border-color:#172033;
+    background:#172033;
+    color:#fff;
+  }
+
+  .remakeViewActionV6382:hover,
+  .remakeViewsCloseV6382:hover {
+    background:#f5f7f9;
+  }
+
+  .remakeViewPrimaryV6382:hover {
+    filter:brightness(.96);
+  }
+
+  .remakeViewDefaultsV6382 {
+    display:grid;
+    grid-template-columns:minmax(0,1fr);
+    gap:6px;
+    padding:0;
+    border:0;
+    background:transparent;
+  }
+
+  .remakeViewDefaultsV6382 label {
+    display:grid;
+    grid-template-columns:74px minmax(0,1fr);
+    align-items:center;
+    gap:7px;
+    min-width:0;
+    color:#667085;
+    font:800 10px/1.15 Roboto,Arial,sans-serif;
+    letter-spacing:0;
+    text-transform:none;
+  }
+
+  .remakeViewDefaultsV6382 select {
+    height:32px;
+    text-transform:none;
+    letter-spacing:normal;
+  }
+
+  .remakeViewSectionLabelV6382 {
+    display:none;
+  }
+
+  .remakeViewListV6382 {
+    display:flex;
+    flex-direction:column;
+    gap:0;
+    border-top:1px solid #edf0f3;
+  }
+
+  .remakeViewEmptyV6382 {
+    padding:9px 2px 5px;
+    border:0;
+    border-radius:0;
+    color:#667085;
+    text-align:left;
+    font:700 10.5px/1.35 Roboto,Arial,sans-serif;
+  }
+
+  .remakeViewRowV6382 {
+    display:grid;
+    grid-template-columns:minmax(0,1fr) auto auto auto;
+    gap:4px;
+    align-items:center;
+    padding:6px 0;
+    border:0;
+    border-bottom:1px solid #edf0f3;
+    border-radius:0;
+    background:#fff;
+  }
+
+  .remakeViewRowV6382.isOpenDefaultV6382 {
+    box-shadow:inset 2px 0 0 #3b556e;
+    padding-left:6px;
+  }
+
+  .remakeViewRowV6382.isResetDefaultV6382 {
+    border-bottom-color:#e5c35b;
+  }
+
+  .remakeViewNameV6382 {
+    height:30px;
+    padding-left:4px;
+    border-color:transparent;
+    background:transparent;
+    font-weight:800;
+  }
+
+  .remakeViewNameV6382:hover,
+  .remakeViewNameV6382:focus {
+    border-color:#d7dce2;
+    background:#fff;
+  }
+
+  .remakeViewActionV6382 {
+    min-width:31px;
+    min-height:30px;
+    padding:0 7px;
+  }
+
+  .remakeViewDeleteV6382[data-confirm="1"] {
+    border-color:#ef4444;
+    background:#fff1f2;
+    color:#b42318;
+  }
+
+  .remakeViewsFooterV6382 {
+    display:flex;
+    flex-wrap:wrap;
+    gap:4px 10px;
+    padding-top:2px;
+  }
+
+  .remakeViewUtilityV6382 {
+    min-height:26px;
+    padding:0 2px;
+    border:0;
+    border-radius:0;
+    background:transparent;
+    color:#475467;
+    font-size:10px;
+  }
+
+  .remakeViewUtilityV6382:hover {
+    color:#172033;
+    text-decoration:underline;
+    background:transparent;
+  }
+
+  .remakeViewStatusV6382 {
+    min-height:0;
+    color:#667085;
+    font:700 10px/1.3 Roboto,Arial,sans-serif;
+  }
+
+  .remakeViewStatusV6382:empty {
+    display:none;
+  }
+
+  .remakeViewStatusV6382.error {
+    color:#b42318;
+  }
+
+  #remakeTabViewsV6382 {
+    display:none;
+  }
+
+  @media (min-width:1280px) {
+    #remakeTabFilterHostV6337:not([hidden]) #remakeTabViewsV6382 {
+      display:inline-flex !important;
+    }
+  }
+
+  @media (max-width:1279px) {
+    html,
+    body {
+      width:100% !important;
+      max-width:100% !important;
+      overflow-x:hidden !important;
+    }
+
+    body {
+      background:#ebe9ed !important;
+    }
+
+    .managerTabs {
+      position:sticky !important;
+      top:0 !important;
+      z-index:22000 !important;
+      width:100% !important;
+      max-width:100% !important;
+      min-width:0 !important;
+      overflow-x:auto !important;
+      overflow-y:visible !important;
+      -webkit-overflow-scrolling:touch;
+      scrollbar-width:thin;
+      box-sizing:border-box !important;
+    }
+
+    body.remakeCompactActiveV6382 #remakeCompactToolbarV6382 {
+      position:sticky !important;
+      top:var(--remakeManagerTabsHeightV6382,44px) !important;
+      z-index:21990 !important;
+      display:grid !important;
+      grid-template-columns:minmax(82px,1fr) repeat(5,40px) !important;
+      align-items:center !important;
+      gap:4px !important;
+      width:100% !important;
+      max-width:100% !important;
+      min-width:0 !important;
+      min-height:52px !important;
+      margin:0 !important;
+      padding:6px max(6px,env(safe-area-inset-right)) 6px max(6px,env(safe-area-inset-left)) !important;
+      border:1px solid #d7dce2 !important;
+      border-left:0 !important;
+      border-right:0 !important;
+      background:rgba(255,255,255,.98) !important;
+      box-shadow:0 4px 12px rgba(20,32,42,.12) !important;
+      backdrop-filter:blur(12px) !important;
+      -webkit-backdrop-filter:blur(12px) !important;
+      box-sizing:border-box !important;
+    }
+
+    #remakeCompactToolbarV6382 .remakeCompactToolV6382 {
+      position:relative !important;
+      display:inline-flex !important;
+      align-items:center !important;
+      justify-content:center !important;
+      width:40px !important;
+      min-width:40px !important;
+      height:40px !important;
+      min-height:40px !important;
+      margin:0 !important;
+      padding:0 !important;
+      border:1px solid #cbd5df !important;
+      border-radius:8px !important;
+      background:#fff !important;
+      color:#334155 !important;
+      box-shadow:none !important;
+      cursor:pointer !important;
+      touch-action:manipulation !important;
+    }
+
+    #remakeCompactToolbarV6382 .remakeCompactToolV6382:hover,
+    #remakeCompactToolbarV6382 .remakeCompactToolV6382:focus-visible,
+    #remakeCompactToolbarV6382 .remakeCompactToolV6382[aria-expanded="true"] {
+      border-color:#e5c35b !important;
+      background:#fff7d6 !important;
+      color:#7a4a00 !important;
+      outline:none !important;
+    }
+
+    #remakeCompactToolbarV6382 .remakeCompactToolV6382:disabled {
+      opacity:.5 !important;
+      cursor:wait !important;
+    }
+
+    #remakeCompactToolbarV6382 .remakeCompactToolV6382 svg,
+    #remakeTabViewsV6382 svg {
+      width:18px !important;
+      height:18px !important;
+      fill:none !important;
+      stroke:currentColor !important;
+      stroke-width:2 !important;
+      stroke-linecap:round !important;
+      stroke-linejoin:round !important;
+      pointer-events:none !important;
+    }
+
+    #remakeCompactToolbarV6382 .remakeCompactFiltersV6382 {
+      width:100% !important;
+      min-width:82px !important;
+      padding:0 9px !important;
+      justify-content:space-between !important;
+      gap:6px !important;
+      border-color:#172033 !important;
+      background:#172033 !important;
+      color:#fff !important;
+      font:900 11px/1 Roboto,Arial,sans-serif !important;
+      white-space:nowrap !important;
+    }
+
+    #remakeCompactToolbarV6382 .remakeCompactFiltersV6382[aria-expanded="true"] {
+      border-color:#e5c35b !important;
+      background:#fff7d6 !important;
+      color:#7a4a00 !important;
+    }
+
+    .remakeCompactFilterCountV6382 {
+      display:none;
+      align-items:center;
+      justify-content:center;
+      min-width:18px;
+      height:18px;
+      padding:0 5px;
+      border-radius:999px;
+      background:#fff;
+      color:#172033;
+      font:900 9px/1 Roboto,Arial,sans-serif;
+    }
+
+    .remakeCompactFilterCountV6382.active {
+      display:inline-flex;
+    }
+
+    #remakeTabFilterHostV6337 {
+      display:none !important;
+    }
+
+    #remakeFactorPage.cleanRemakeV6230 {
+      width:100% !important;
+      max-width:100% !important;
+      min-width:0 !important;
+      min-height:100vh !important;
+      padding:8px 8px max(18px,env(safe-area-inset-bottom)) !important;
+      overflow-x:hidden !important;
+      background:#ebe9ed !important;
+      box-sizing:border-box !important;
+    }
+
+    #remakeFactorPage.cleanRemakeV6230 .remakeShellV6230,
+    #remakeFactorPage.cleanRemakeV6230 .remakeStickyTopV6245 {
+      width:100% !important;
+      max-width:100% !important;
+      min-width:0 !important;
+      margin:0 !important;
+      padding:0 !important;
+      gap:8px !important;
+      overflow:visible !important;
+      background:transparent !important;
+      border:0 !important;
+      box-shadow:none !important;
+      box-sizing:border-box !important;
+    }
+
+    #remakeFactorPage.cleanRemakeV6230 .remakeStickyTopV6245 {
+      position:relative !important;
+      top:auto !important;
+      z-index:1000 !important;
+    }
+
+    #remakeFactorPage.cleanRemakeV6230 .remakeGlobalSearchBarV6304 {
+      position:fixed !important;
+      top:0 !important;
+      right:0 !important;
+      width:0 !important;
+      height:0 !important;
+      z-index:24100 !important;
+      overflow:visible !important;
+    }
+
+    #remakeFactorPage.cleanRemakeV6230 .remakeGlobalSearchBarV6304 > .remakeGlobalSearchButtonV6304 {
+      display:none !important;
+    }
+
+    #remakeFactorPage.cleanRemakeV6230 .remakeGlobalSearchPanelV6304 {
+      position:fixed !important;
+      left:8px !important;
+      right:8px !important;
+      top:var(--remakeCompactPanelTopV6382,104px) !important;
+      bottom:8px !important;
+      width:auto !important;
+      min-width:0 !important;
+      max-height:none !important;
+      border-radius:12px !important;
+      z-index:24110 !important;
+      box-sizing:border-box !important;
+    }
+
+    #remakeFactorPage.cleanRemakeV6230 .remakeFilterBarV6230 {
+      display:none !important;
+    }
+
+    body.remakeCompactFiltersOpenV6382 #remakeFactorPage.cleanRemakeV6230 .remakeFilterBarV6230 {
+      position:fixed !important;
+      left:8px !important;
+      right:8px !important;
+      top:var(--remakeCompactPanelTopV6382,104px) !important;
+      z-index:24080 !important;
+      display:grid !important;
+      grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+      gap:8px !important;
+      width:auto !important;
+      max-width:none !important;
+      min-width:0 !important;
+      max-height:calc(100vh - var(--remakeCompactPanelTopV6382,104px) - 8px) !important;
+      margin:0 !important;
+      padding:10px !important;
+      overflow:auto !important;
+      border:1px solid #cbd5df !important;
+      border-radius:12px !important;
+      background:#fff !important;
+      box-shadow:0 18px 38px rgba(16,24,40,.24) !important;
+      box-sizing:border-box !important;
+    }
+
+    body.remakeCompactFiltersOpenV6382 #remakeFactorPage.cleanRemakeV6230 .remakeFilter {
+      width:100% !important;
+      max-width:100% !important;
+      min-width:0 !important;
+      min-height:0 !important;
+      margin:0 !important;
+      padding:8px !important;
+      overflow:visible !important;
+      border:1px solid #e1e6ee !important;
+      border-radius:9px !important;
+      background:#fff !important;
+      box-shadow:none !important;
+      box-sizing:border-box !important;
+    }
+
+    body.remakeCompactFiltersOpenV6382 #remakeFactorPage.cleanRemakeV6230 .remakeFilter label {
+      position:static !important;
+      display:block !important;
+      width:auto !important;
+      height:auto !important;
+      margin:0 0 5px !important;
+      padding:0 !important;
+      overflow:visible !important;
+      clip:auto !important;
+      white-space:normal !important;
+      color:#667085 !important;
+      font:900 9px/1 Roboto,Arial,sans-serif !important;
+      letter-spacing:.05em !important;
+      text-transform:uppercase !important;
+    }
+
+    body.remakeCompactFiltersOpenV6382 #remakeFactorPage.cleanRemakeV6230 .remakeDropdownButtonV6245 {
+      width:100% !important;
+      max-width:100% !important;
+      min-height:40px !important;
+      height:40px !important;
+      padding:0 30px 0 9px !important;
+      border:1px solid #cbd5df !important;
+      border-radius:8px !important;
+      background:#fff !important;
+      color:#202124 !important;
+      font:800 12px/1 Roboto,Arial,sans-serif !important;
+      box-sizing:border-box !important;
+    }
+
+    #remakeFactorPage.cleanRemakeV6230 .remakeDropdownPanelV6245 {
+      position:fixed !important;
+      left:8px !important;
+      right:8px !important;
+      top:var(--remakeCompactPanelTopV6382,104px) !important;
+      bottom:8px !important;
+      width:auto !important;
+      min-width:0 !important;
+      max-width:none !important;
+      max-height:none !important;
+      border-radius:12px !important;
+      z-index:24130 !important;
+      box-sizing:border-box !important;
+    }
+
+    #remakeFactorPage.cleanRemakeV6230 .remakeDropdownListV6245 {
+      max-height:calc(100vh - var(--remakeCompactPanelTopV6382,104px) - 126px) !important;
+      overflow-y:auto !important;
+    }
+
+    #remakeFactorPage.cleanRemakeV6230 .remakeDropdownRowV6245 {
+      min-height:42px !important;
+      padding:8px 9px !important;
+    }
+
+    #remakeViewsPanelV6382 {
+      left:8px !important;
+      right:8px !important;
+      top:var(--remakeCompactPanelTopV6382,104px) !important;
+      width:auto !important;
+      max-height:calc(100vh - var(--remakeCompactPanelTopV6382,104px) - 8px) !important;
+    }
+
+    #remakeFactorPage.cleanRemakeV6230 .remakePillsV6230:empty,
+    #remakeFactorPage.cleanRemakeV6230 #remakeNotice:empty {
+      display:none !important;
+    }
+
+    #remakeFactorPage.cleanRemakeV6230 .remakePillsV6230:not(:empty) {
+      display:flex !important;
+      flex-wrap:nowrap !important;
+      width:100% !important;
+      min-width:0 !important;
+      margin:0 !important;
+      padding:0 0 3px !important;
+      gap:6px !important;
+      overflow-x:auto !important;
+      overflow-y:hidden !important;
+      -webkit-overflow-scrolling:touch;
+      scrollbar-width:thin;
+    }
+
+    #remakeFactorPage.cleanRemakeV6230 .remakePillV6230,
+    #remakeFactorPage.cleanRemakeV6230 .remakeClearAllV6230 {
+      flex:0 0 auto !important;
+      min-height:34px !important;
+      font-size:10px !important;
+    }
+
+    #remakeFactorPage.cleanRemakeV6230 .remakeKpisV6230 {
+      display:grid !important;
+      grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+      grid-auto-flow:row !important;
+      grid-auto-columns:auto !important;
+      width:100% !important;
+      max-width:100% !important;
+      min-width:0 !important;
+      gap:8px !important;
+      margin:0 !important;
+      padding:0 !important;
+      overflow:visible !important;
+      box-sizing:border-box !important;
+    }
+
+    #remakeFactorPage.cleanRemakeV6230 .remakeKpi {
+      width:auto !important;
+      max-width:100% !important;
+      min-width:0 !important;
+      min-height:88px !important;
+      padding:10px !important;
+      border-radius:10px !important;
+      box-sizing:border-box !important;
+    }
+
+    #remakeFactorPage.cleanRemakeV6230 .remakeKpisV6230 > .remakeKpi:last-of-type {
+      grid-column:1 / -1 !important;
+    }
+
+    #remakeFactorPage.cleanRemakeV6230 .remakeKpi .label {
+      margin-bottom:6px !important;
+      font-size:10px !important;
+      line-height:1.15 !important;
+      white-space:normal !important;
+    }
+
+    #remakeFactorPage.cleanRemakeV6230 .remakeKpi .value {
+      font-size:clamp(21px,5.2vw,27px) !important;
+      line-height:1.05 !important;
+      overflow-wrap:anywhere !important;
+    }
+
+    #remakeFactorPage.cleanRemakeV6230 .remakeKpi .sub {
+      min-height:14px !important;
+      margin-top:5px !important;
+      gap:4px !important;
+      font-size:10px !important;
+      line-height:1.2 !important;
+      white-space:normal !important;
+      flex-wrap:wrap !important;
+    }
+
+    #remakeFactorPage.cleanRemakeV6230 .remakeKpiControlsV6279 {
+      grid-column:1 / -1 !important;
+      width:100% !important;
+      min-width:0 !important;
+      align-items:flex-start !important;
+      text-align:left !important;
+    }
+
+    #remakeFactorPage.cleanRemakeV6230 .remakeGridV6230,
+    #remakeFactorPage.cleanRemakeV6230 .remakeCustomerSplitV6230,
+    #remakeFactorPage.cleanRemakeV6230 .ceramistWorkspaceV6343 {
+      display:grid !important;
+      grid-template-columns:minmax(0,1fr) !important;
+      width:100% !important;
+      max-width:100% !important;
+      min-width:0 !important;
+      margin:0 !important;
+      gap:10px !important;
+      box-sizing:border-box !important;
+    }
+
+    #remakeFactorPage.cleanRemakeV6230 .remakeCard,
+    #remakeFactorPage.cleanRemakeV6230 .ceramistPanelV6343 {
+      width:100% !important;
+      max-width:100% !important;
+      min-width:0 !important;
+      margin:0 !important;
+      border-radius:10px !important;
+      overflow:hidden !important;
+      box-sizing:border-box !important;
+    }
+
+    #remakeFactorPage.cleanRemakeV6230 .remakeCardHeader {
+      display:flex !important;
+      align-items:flex-start !important;
+      justify-content:space-between !important;
+      flex-wrap:wrap !important;
+      gap:7px !important;
+      min-height:0 !important;
+      padding:9px 10px !important;
+    }
+
+    #remakeFactorPage.cleanRemakeV6230 .remakeCardTitle {
+      min-width:0 !important;
+      font-size:13px !important;
+      line-height:1.25 !important;
+      white-space:normal !important;
+    }
+
+    #remakeFactorPage.cleanRemakeV6230 .remakeCardActionsV6230,
+    #remakeFactorPage.cleanRemakeV6230 .remakeChartModeBarV6230,
+    #remakeFactorPage.cleanRemakeV6230 .ceramistBreakdownBarV6343,
+    #remakeFactorPage.cleanRemakeV6230 .ceramistFlagBarV6342 {
+      display:flex !important;
+      flex-wrap:nowrap !important;
+      width:auto !important;
+      max-width:100% !important;
+      min-width:0 !important;
+      gap:6px !important;
+      overflow-x:auto !important;
+      overflow-y:hidden !important;
+      -webkit-overflow-scrolling:touch;
+      scrollbar-width:thin;
+    }
+
+    #remakeFactorPage.cleanRemakeV6230 .remakeCardActionsV6230 button,
+    #remakeFactorPage.cleanRemakeV6230 .remakeChartModeBarV6230 button,
+    #remakeFactorPage.cleanRemakeV6230 .ceramistBreakdownBarV6343 button,
+    #remakeFactorPage.cleanRemakeV6230 .ceramistFlagBarV6342 button {
+      flex:0 0 auto !important;
+      min-height:36px !important;
+      white-space:nowrap !important;
+    }
+
+    #remakeFactorPage.cleanRemakeV6230 .remakeChartBoxV6230,
+    #remakeFactorPage.cleanRemakeV6230 .remakeTrendCanvasWrapV6230,
+    #remakeFactorPage.cleanRemakeV6230 .remakeOverviewChartBox {
+      width:100% !important;
+      max-width:100% !important;
+      min-width:0 !important;
+      height:clamp(290px,72vw,390px) !important;
+      min-height:290px !important;
+      padding:8px !important;
+      overflow:hidden !important;
+      box-sizing:border-box !important;
+    }
+
+    #remakeFactorPage.cleanRemakeV6230 canvas {
+      max-width:100% !important;
+    }
+
+    #remakeFactorPage.cleanRemakeV6230 .remakeTableWrap,
+    #remakeFactorPage.cleanRemakeV6230 .remakeDepartmentTableWrapV6230,
+    #remakeFactorPage.cleanRemakeV6230 .remakeProductTableWrapV6230,
+    #remakeFactorPage.cleanRemakeV6230 .remakeCustomerTableWrapV6230,
+    #remakeFactorPage.cleanRemakeV6230 .ceramistPreviewTableWrapV6342 {
+      display:block !important;
+      width:100% !important;
+      max-width:100% !important;
+      min-width:0 !important;
+      height:auto !important;
+      min-height:0 !important;
+      max-height:min(62vh,520px) !important;
+      overflow-x:auto !important;
+      overflow-y:auto !important;
+      -webkit-overflow-scrolling:touch !important;
+      scrollbar-gutter:stable !important;
+      box-sizing:border-box !important;
+    }
+
+    #remakeFactorPage.cleanRemakeV6230 .remakeTable {
+      width:max-content !important;
+      min-width:780px !important;
+      max-width:none !important;
+      table-layout:auto !important;
+    }
+
+    #remakeFactorPage.cleanRemakeV6230 #remakeCeramistTableV6342 {
+      min-width:690px !important;
+    }
+
+    #remakeFactorPage.cleanRemakeV6230 #remakeCeramistDetailTableV6343 {
+      min-width:760px !important;
+    }
+
+    #remakeFactorPage.cleanRemakeV6230 .remakeTable th,
+    #remakeFactorPage.cleanRemakeV6230 .remakeTable td {
+      min-width:78px !important;
+      padding:7px 8px !important;
+      font-size:10.5px !important;
+      line-height:1.25 !important;
+      white-space:nowrap !important;
+    }
+
+    #remakeFactorPage.cleanRemakeV6230 .remakeTable th:first-child,
+    #remakeFactorPage.cleanRemakeV6230 .remakeTable td:first-child {
+      position:sticky !important;
+      left:0 !important;
+      min-width:170px !important;
+      max-width:230px !important;
+      z-index:3 !important;
+    }
+
+    #remakeFactorPage.cleanRemakeV6230 .remakeTable thead th:first-child {
+      z-index:5 !important;
+      background:#203038 !important;
+    }
+
+    #remakeFactorPage.cleanRemakeV6230 .remakeTable tbody tr:nth-child(odd) td:first-child {
+      background:#fff !important;
+    }
+
+    #remakeFactorPage.cleanRemakeV6230 .remakeTable tbody tr:nth-child(even) td:first-child {
+      background:#fafafa !important;
+    }
+
+    #remakeFactorPage.cleanRemakeV6230 .remakePageFooterV6338 {
+      display:flex !important;
+      flex-direction:column !important;
+      align-items:flex-start !important;
+      gap:6px !important;
+      width:100% !important;
+      min-width:0 !important;
+      padding:10px !important;
+      box-sizing:border-box !important;
+    }
+
+    #remakeFactorPage.cleanRemakeV6230 .remakeCacheActionBarV6338 {
+      display:none !important;
+    }
+
+    #remakeFactorPage.cleanRemakeV6230 .remakeFooterStampV6338 {
+      width:100% !important;
+      min-width:0 !important;
+      margin:0 !important;
+      text-align:left !important;
+      white-space:normal !important;
+      overflow-wrap:anywhere !important;
+      font-size:9.5px !important;
+    }
+  }
+
+  @media (max-width:600px) {
+    body.remakeCompactActiveV6382 #remakeCompactToolbarV6382 {
+      grid-template-columns:minmax(78px,1fr) repeat(5,38px) !important;
+      gap:3px !important;
+      min-height:50px !important;
+      padding-left:5px !important;
+      padding-right:5px !important;
+    }
+
+    #remakeCompactToolbarV6382 .remakeCompactToolV6382 {
+      width:38px !important;
+      min-width:38px !important;
+      height:38px !important;
+      min-height:38px !important;
+    }
+
+    body.remakeCompactFiltersOpenV6382 #remakeFactorPage.cleanRemakeV6230 .remakeFilterBarV6230 {
+      grid-template-columns:minmax(0,1fr) !important;
+    }
+
+    .remakeViewDefaultsV6382 {
+      grid-template-columns:minmax(0,1fr);
+    }
+
+    .remakeViewRowV6382 {
+      grid-template-columns:minmax(0,1fr) repeat(3,36px);
+    }
+
+    .remakeViewActionV6382 {
+      width:36px;
+      min-width:36px;
+      padding:0;
+      font-size:10px;
+    }
+  }
+
+</style>

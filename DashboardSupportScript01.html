@@ -1,0 +1,505 @@
+<script>
+/* v6.245 final backend fast presentation controller
+   Safe cleanup: preserves all existing functions and all cache layers.
+   Backend-controlled mode: Code.gs passes presentationMode before the HTML loads.
+   v6.285: Default mode is Remake Factor only. Use ?presentation=all for all tabs while testing.
+   v6.241 Remake Reasons table clarification is retained. */
+(function finalBackendFastRemakeOnlyControllerV6243() {
+  'use strict';
+
+  const VERSION = 'v6.251';
+  const VERSION_TEXT = 'DEBUG v6.251 backendFastRemakeOnly - Remake-only, manual refresh, current-month refresh, all-customer table toggle; fast cache retained';
+  const REMAKE_TAB_NAME_RE = /\bremake\s*factor\b/i;
+  const EXEC_PATH_RE = /\/exec(?:[/?#]|$)/i;
+  const DEV_PATH_RE = /\/dev(?:[/?#]|$)/i;
+
+  function safeStringV6243(value) {
+    try { return String(value || ''); } catch (error) { return ''; }
+  }
+
+  function getLocationSourcesV6243() {
+    const sources = [];
+    try { sources.push(window.location.href); } catch (error) {}
+    try { sources.push(window.location.pathname); } catch (error) {}
+    try { sources.push(document.URL); } catch (error) {}
+    try { sources.push(document.location && document.location.href); } catch (error) {}
+    try { sources.push(document.referrer); } catch (error) {}
+    try {
+      if (window.location && window.location.ancestorOrigins) {
+        for (let i = 0; i < window.location.ancestorOrigins.length; i++) sources.push(window.location.ancestorOrigins[i]);
+      }
+    } catch (error) {}
+    try { sources.push(sessionStorage.getItem('cdaLastVisibleWebAppUrlV6243')); } catch (error) {}
+    try { sources.push(sessionStorage.getItem('cdaLastVisibleWebAppUrlV6240')); } catch (error) {}
+    return sources.map(safeStringV6243).filter(Boolean);
+  }
+
+  const locationSourcesV6243 = getLocationSourcesV6243();
+
+  function getAllParamsV6243() {
+    const merged = new Map();
+    locationSourcesV6243.forEach(source => {
+      try {
+        const url = new URL(source, window.location.href);
+        url.searchParams.forEach((value, key) => merged.set(key, value));
+      } catch (error) {
+        try {
+          const search = source.indexOf('?') >= 0 ? source.slice(source.indexOf('?')) : '';
+          if (search) new URLSearchParams(search).forEach((value, key) => merged.set(key, value));
+        } catch (innerError) {}
+      }
+    });
+    return {
+      get: key => merged.has(key) ? merged.get(key) : '',
+      has: key => merged.has(key)
+    };
+  }
+
+  function normalizeModeV6243(value) {
+    return safeStringV6243(value).trim().toLowerCase().replace(/[\s_-]+/g, '');
+  }
+
+  function readServerModeV6243() {
+    try {
+      return normalizeModeV6243(window.CDA_SERVER_PRESENTATION && window.CDA_SERVER_PRESENTATION.mode);
+    } catch (error) {
+      return '';
+    }
+  }
+
+  const paramsV6243 = getAllParamsV6243();
+  const joinedSourcesV6243 = locationSourcesV6243.join(' ');
+  const isExecV6243 = EXEC_PATH_RE.test(joinedSourcesV6243);
+  const isDevV6243 = DEV_PATH_RE.test(joinedSourcesV6243);
+  const serverModeV6243 = readServerModeV6243();
+
+  const wantsAllTabsV6243 =
+    serverModeV6243 === 'remaketat' ||
+    serverModeV6243 === 'tat' ||
+    serverModeV6243 === 'all' ||
+    serverModeV6243 === 'alltabs' ||
+    serverModeV6243 === 'devall' ||
+    paramsV6243.get('presentation') === 'all' ||
+    paramsV6243.get('allTabs') === '1' ||
+    paramsV6243.get('devAll') === '1';
+
+  const wantsPreviewRemakeV6243 =
+    serverModeV6243 === 'remake' ||
+    serverModeV6243 === 'remakefactor' ||
+    serverModeV6243 === 'remakefactoronly' ||
+    paramsV6243.get('presentation') === 'remake' ||
+    paramsV6243.get('presentation') === 'remakeFactor' ||
+    paramsV6243.get('view') === 'remakeOnly' ||
+    paramsV6243.get('boss') === '1' ||
+    paramsV6243.get('remakeOnly') === '1';
+
+  const hasBackendModeV6243 = !!serverModeV6243;
+  const isRemakeOnlyModeV6243 = !wantsAllTabsV6243;
+
+  try {
+    if (isExecV6243 || isDevV6243) sessionStorage.setItem('cdaLastVisibleWebAppUrlV6243', joinedSourcesV6243);
+  } catch (error) {}
+
+  window.CDA_FINAL_PRESENTATION_CONFIG = {
+    version: VERSION,
+    mode: isRemakeOnlyModeV6243 ? 'remake-factor-only' : 'all-tabs',
+    backendMode: serverModeV6243 || '(not passed)',
+    hasBackendMode: hasBackendModeV6243,
+    isExec: isExecV6243,
+    isDev: isDevV6243,
+    wantsPreviewRemake: wantsPreviewRemakeV6243,
+    wantsAllTabs: wantsAllTabsV6243,
+    locationSources: locationSourcesV6243,
+    fastCacheRetained: true,
+    notes: 'Backend mode from Code.gs is authoritative. Existing functions and cache readers/writers are preserved.'
+  };
+
+  function byIdV6243(id) {
+    return document.getElementById(id);
+  }
+
+  function hideImportantV6243(el) {
+    if (!el || el === document.documentElement || el === document.body) return;
+    el.style.setProperty('display', 'none', 'important');
+    el.style.setProperty('visibility', 'hidden', 'important');
+    el.style.setProperty('pointer-events', 'none', 'important');
+  }
+
+  function showImportantV6243(el, displayValue) {
+    if (!el) return;
+    el.style.setProperty('display', displayValue || 'block', 'important');
+    el.style.setProperty('visibility', 'visible', 'important');
+    el.style.removeProperty('pointer-events');
+  }
+
+  function ensureStyleV6243() {
+    if (byIdV6243('finalFastExecRemakeOnlyStyleV6243')) return;
+    const style = document.createElement('style');
+    style.id = 'finalFastExecRemakeOnlyStyleV6243';
+    style.textContent = `
+      html.cdaExecRemakeOnlyV6243 #singleShellDebugBanner,
+      body.cdaExecRemakeOnlyV6243 #singleShellDebugBanner,
+      html.cdaExecRemakeOnlyV6243 #singleShellClientError:empty,
+      body.cdaExecRemakeOnlyV6243 #singleShellClientError:empty,
+      html.cdaExecRemakeOnlyV6243 #dropdownDebugOverlayV6199,
+      body.cdaExecRemakeOnlyV6243 #dropdownDebugOverlayV6199,
+      html.cdaExecRemakeOnlyV6243 #dropdownDebugOverlayV6196,
+      body.cdaExecRemakeOnlyV6243 #dropdownDebugOverlayV6196,
+      html.cdaExecRemakeOnlyV6243 .debugOverlay,
+      body.cdaExecRemakeOnlyV6243 .debugOverlay,
+      html.cdaExecRemakeOnlyV6243 .debugPanel,
+      body.cdaExecRemakeOnlyV6243 .debugPanel,
+      html.cdaExecRemakeOnlyV6243 .layoutEditButton,
+      body.cdaExecRemakeOnlyV6243 .layoutEditButton,
+      html.cdaExecRemakeOnlyV6243 .editLayoutButton,
+      body.cdaExecRemakeOnlyV6243 .editLayoutButton,
+      html.cdaExecRemakeOnlyV6243 #editLayoutButton,
+      body.cdaExecRemakeOnlyV6243 #editLayoutButton,
+      html.cdaExecRemakeOnlyV6243 #layoutEditButton,
+      body.cdaExecRemakeOnlyV6243 #layoutEditButton,
+      html.cdaExecRemakeOnlyV6243 #layoutEditButtonV6183,
+      body.cdaExecRemakeOnlyV6243 #layoutEditButtonV6183,
+      html.cdaExecRemakeOnlyV6243 #layoutEditPanelV6183,
+      body.cdaExecRemakeOnlyV6243 #layoutEditPanelV6183,
+      html.cdaExecRemakeOnlyV6243 #layoutCardEditorV6184,
+      body.cdaExecRemakeOnlyV6243 #layoutCardEditorV6184,
+      html.cdaExecRemakeOnlyV6243 .layoutResizeHandleV6184,
+      body.cdaExecRemakeOnlyV6243 .layoutResizeHandleV6184,
+      html.cdaExecRemakeOnlyV6243 #overviewNavActions,
+      body.cdaExecRemakeOnlyV6243 #overviewNavActions {
+        display: none !important;
+        visibility: hidden !important;
+        pointer-events: none !important;
+      }
+
+
+      /* v6.299: the old debug banner can be made invisible by later legacy code
+         without being removed from layout. Collapse it completely so the
+         Remake Factor tab starts at the top. Keep non-empty client errors visible. */
+      html.cdaExecRemakeOnlyV6243 #singleShellDebugBanner,
+      body.cdaExecRemakeOnlyV6243 #singleShellDebugBanner,
+      html.cdaExecRemakeOnlyV6243 #singleShellClientError:empty,
+      body.cdaExecRemakeOnlyV6243 #singleShellClientError:empty {
+        display: none !important;
+        visibility: hidden !important;
+        pointer-events: none !important;
+        position: static !important;
+        width: 0 !important;
+        height: 0 !important;
+        min-width: 0 !important;
+        min-height: 0 !important;
+        max-width: 0 !important;
+        max-height: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        border: 0 !important;
+        overflow: hidden !important;
+      }
+
+      html.cdaExecRemakeOnlyV6243 #tabOneBtn,
+      body.cdaExecRemakeOnlyV6243 #tabOneBtn,
+      html.cdaExecRemakeOnlyV6243 #underConstructionBtn,
+      body.cdaExecRemakeOnlyV6243 #underConstructionBtn,
+      html.cdaExecRemakeOnlyV6243 #underConstructionMenu,
+      body.cdaExecRemakeOnlyV6243 #underConstructionMenu,
+      html.cdaExecRemakeOnlyV6243 #categoricalTabBtn,
+      body.cdaExecRemakeOnlyV6243 #categoricalTabBtn,
+      html.cdaExecRemakeOnlyV6243 .managerTabs .tabGroup,
+      body.cdaExecRemakeOnlyV6243 .managerTabs .tabGroup {
+        display: none !important;
+        visibility: hidden !important;
+        pointer-events: none !important;
+      }
+
+      html.cdaExecRemakeOnlyV6243 #overviewOne,
+      body.cdaExecRemakeOnlyV6243 #overviewOne,
+      html.cdaExecRemakeOnlyV6243 #categoricalPage,
+      body.cdaExecRemakeOnlyV6243 #categoricalPage,
+      html.cdaExecRemakeOnlyV6243 #overviewTwo,
+      body.cdaExecRemakeOnlyV6243 #overviewTwo {
+        display: none !important;
+        visibility: hidden !important;
+        pointer-events: none !important;
+      }
+
+      html.cdaExecRemakeOnlyV6243 #remakeFactorPage,
+      body.cdaExecRemakeOnlyV6243 #remakeFactorPage {
+        display: block !important;
+        visibility: visible !important;
+      }
+
+      html.cdaExecRemakeOnlyV6243 #remakeFactorTabBtn,
+      body.cdaExecRemakeOnlyV6243 #remakeFactorTabBtn {
+        display: inline-flex !important;
+        visibility: visible !important;
+        pointer-events: auto !important;
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  function writeDevBannerV6243() {
+    const banner = byIdV6243('singleShellDebugBanner');
+    if (!banner) return;
+    if (isRemakeOnlyModeV6243) {
+      hideImportantV6243(banner);
+      return;
+    }
+    if (banner.textContent !== VERSION_TEXT) banner.textContent = VERSION_TEXT;
+    banner.style.removeProperty('display');
+    banner.style.removeProperty('visibility');
+    banner.style.removeProperty('pointer-events');
+  }
+
+  function lockStoredTabToRemakeV6243() {
+    if (!isRemakeOnlyModeV6243) return;
+    try {
+      const key = 'cdaDashboardLastState.v6.183';
+      const raw = localStorage.getItem(key);
+      const parsed = raw ? JSON.parse(raw) : {};
+      if (parsed && typeof parsed === 'object') {
+        parsed.version = VERSION;
+        parsed.savedAt = new Date().toISOString();
+        parsed.activeTab = 'remakeFactor';
+        localStorage.setItem(key, JSON.stringify(parsed));
+      }
+    } catch (error) {}
+  }
+
+  function hideNonRemakeTabsByTextV6243() {
+    if (!isRemakeOnlyModeV6243) return;
+    const tabButtons = document.querySelectorAll('.managerTabs .tabBtn, .tabs .tabBtn, .tabDropdownBtn');
+    tabButtons.forEach(btn => {
+      const text = safeStringV6243(btn.textContent).trim();
+      if (REMAKE_TAB_NAME_RE.test(text)) {
+        showImportantV6243(btn, 'inline-flex');
+        btn.classList.add('active');
+      } else {
+        btn.classList.remove('active');
+        hideImportantV6243(btn);
+      }
+    });
+  }
+
+  function hideDebugTextPanelsV6243() {
+    if (!isRemakeOnlyModeV6243) return;
+    ['dropdownDebugOverlayV6199', 'dropdownDebugOverlayV6196'].forEach(id => hideImportantV6243(byIdV6243(id)));
+    document.querySelectorAll('.debugTitle').forEach(title => {
+      if (safeStringV6243(title.textContent).trim() === 'Dropdown Debug') {
+        const panel = title.closest('#dropdownDebugOverlayV6199, #dropdownDebugOverlayV6196, .debugOverlay, .debugPanel') || title.parentElement && title.parentElement.parentElement;
+        hideImportantV6243(panel);
+      }
+    });
+    document.querySelectorAll('body > div, body > section, body > aside').forEach(el => {
+      const text = safeStringV6243(el.textContent);
+      if (text.indexOf('Dropdown Debug') >= 0 && text.indexOf('MAX LAG') >= 0 && text.indexOf('LAST ACTION') >= 0) hideImportantV6243(el);
+      if (/^DEBUG v\d+/i.test(text.trim()) && text.length < 220) hideImportantV6243(el);
+    });
+  }
+
+  let lastRemakeEnsureAtV6243 = 0;
+  function ensureRemakeDataV6243() {
+    if (!isRemakeOnlyModeV6243) return;
+    const now = Date.now();
+    if (now - lastRemakeEnsureAtV6243 < 900) return;
+    lastRemakeEnsureAtV6243 = now;
+    try {
+      if (!window.remakeFactorState || !window.remakeFactorState.loaded) {
+        if (typeof window.loadRemakeFactorData === 'function' && !(window.remakeFactorState && window.remakeFactorState.loading)) {
+          window.loadRemakeFactorData(false);
+        }
+      }
+      // v6.249 anti-twitch: once remake data is loaded, do not re-render from
+      // the presentation guard. Hover, tooltip, and style changes should never
+      // rebuild the chart/table DOM.
+    } catch (error) {}
+  }
+
+  function applyRemakeOnlyV6243() {
+    ensureStyleV6243();
+    writeDevBannerV6243();
+
+    document.documentElement.classList.toggle('cdaExecRemakeOnlyV6243', !!isRemakeOnlyModeV6243);
+    if (document.body) document.body.classList.toggle('cdaExecRemakeOnlyV6243', !!isRemakeOnlyModeV6243);
+
+    if (!isRemakeOnlyModeV6243) return;
+
+    const hiddenBannerV6299 = byIdV6243('singleShellDebugBanner');
+    if (hiddenBannerV6299) {
+      hideImportantV6243(hiddenBannerV6299);
+      ['position','width','height','min-width','min-height','max-width','max-height','margin','padding','border','overflow'].forEach(function(property) {
+        hiddenBannerV6299.style.setProperty(property, property === 'position' ? 'static' : (property === 'overflow' ? 'hidden' : '0'), 'important');
+      });
+    }
+    const emptyClientErrorV6299 = byIdV6243('singleShellClientError');
+    if (emptyClientErrorV6299 && !safeStringV6243(emptyClientErrorV6299.textContent).trim()) {
+      hideImportantV6243(emptyClientErrorV6299);
+      emptyClientErrorV6299.style.setProperty('height', '0', 'important');
+      emptyClientErrorV6299.style.setProperty('min-height', '0', 'important');
+      emptyClientErrorV6299.style.setProperty('max-height', '0', 'important');
+      emptyClientErrorV6299.style.setProperty('margin', '0', 'important');
+      emptyClientErrorV6299.style.setProperty('padding', '0', 'important');
+      emptyClientErrorV6299.style.setProperty('border', '0', 'important');
+      emptyClientErrorV6299.style.setProperty('overflow', 'hidden', 'important');
+    }
+
+    lockStoredTabToRemakeV6243();
+
+    if (window.state && typeof window.state === 'object') window.state.activeTab = 'remakeFactor';
+
+    [
+      'tabOneBtn',
+      'underConstructionBtn',
+      'underConstructionMenu',
+      'categoricalTabBtn',
+      'overviewOne',
+      'categoricalPage',
+      'overviewTwo',
+      'overviewNavActions',
+      'dropdownDebugOverlayV6199',
+      'dropdownDebugOverlayV6196',
+      'layoutEditButtonV6183',
+      'layoutEditPanelV6183',
+      'layoutCardEditorV6184'
+    ].forEach(id => hideImportantV6243(byIdV6243(id)));
+
+    document.querySelectorAll('.managerTabs .tabGroup, .tabDropdown.open, .tabDropdown').forEach(hideImportantV6243);
+    hideNonRemakeTabsByTextV6243();
+    hideDebugTextPanelsV6243();
+
+    const remakePage = byIdV6243('remakeFactorPage');
+    if (remakePage) {
+      showImportantV6243(remakePage, 'block');
+      remakePage.classList.add('active');
+    }
+
+    const remakeBtn = byIdV6243('remakeFactorTabBtn') || Array.from(document.querySelectorAll('.managerTabs .tabBtn, .tabs .tabBtn')).find(btn => REMAKE_TAB_NAME_RE.test(safeStringV6243(btn.textContent)));
+    if (remakeBtn) {
+      showImportantV6243(remakeBtn, 'inline-flex');
+      remakeBtn.classList.add('active');
+    }
+
+    ['overviewOne', 'categoricalPage', 'overviewTwo'].forEach(id => {
+      const el = byIdV6243(id);
+      if (el) el.classList.remove('active');
+    });
+
+    ['tabOneBtn', 'underConstructionBtn', 'categoricalTabBtn'].forEach(id => {
+      const el = byIdV6243(id);
+      if (el) el.classList.remove('active');
+    });
+
+    const clientError = byIdV6243('singleShellClientError');
+    if (clientError && !String(clientError.textContent || '').trim()) hideImportantV6243(clientError);
+
+    ensureRemakeDataV6243();
+  }
+
+  function patchBannerWritersV6243() {
+    Object.keys(window).forEach(key => {
+      if (!/^setBanner/i.test(key)) return;
+      if (typeof window[key] !== 'function') return;
+      if (window[key].__finalV6243) return;
+      const replacement = function finalBannerWriterV6243() {
+        writeDevBannerV6243();
+      };
+      replacement.__finalV6243 = true;
+      try { window[key] = replacement; } catch (error) {}
+    });
+  }
+
+  function installSwitchGuardV6243() {
+    const currentSwitch = typeof window.switchTab === 'function' ? window.switchTab : null;
+    if (!currentSwitch || currentSwitch.__finalRemakeOnlyV6243) return;
+
+    const guardedSwitch = function guardedSwitchTabV6243(tab) {
+      if (isRemakeOnlyModeV6243) {
+        let result;
+        try { result = currentSwitch.call(this, 'remakeFactor'); } catch (error) {}
+        applyRemakeOnlyV6243();
+        return result;
+      }
+      const result = currentSwitch.apply(this, arguments);
+      scheduleApplyV6243();
+      return result;
+    };
+    guardedSwitch.__finalRemakeOnlyV6243 = true;
+    window.switchTab = guardedSwitch;
+    try { switchTab = guardedSwitch; } catch (error) {}
+  }
+
+  function installRenderGuardV6243() {
+    if (!isRemakeOnlyModeV6243) return;
+    if (typeof window.renderAll !== 'function' || window.renderAll.__finalRemakeOnlyV6243) return;
+    const previousRenderAll = window.renderAll;
+    const guardedRenderAll = function guardedRenderAllV6243() {
+      if (window.state && typeof window.state === 'object') window.state.activeTab = 'remakeFactor';
+      let result;
+      try {
+        if (typeof window.renderRemakeFactorDashboard === 'function') result = window.renderRemakeFactorDashboard();
+        else result = previousRenderAll.apply(this, arguments);
+      } catch (error) {}
+      scheduleApplyV6243();
+      return result;
+    };
+    guardedRenderAll.__finalRemakeOnlyV6243 = true;
+    window.renderAll = guardedRenderAll;
+    try { renderAll = guardedRenderAll; } catch (error) {}
+  }
+
+  function installClickGuardV6243() {
+    if (window.__finalClickGuardV6243) return;
+    window.__finalClickGuardV6243 = true;
+    document.addEventListener('click', function blockNonRemakeTabClicksV6243(event) {
+      if (!isRemakeOnlyModeV6243) return;
+      const btn = event.target && event.target.closest ? event.target.closest('.managerTabs .tabBtn, .tabs .tabBtn, .tabDropdownBtn, #tabOneBtn, #underConstructionBtn, #categoricalTabBtn') : null;
+      if (!btn) return;
+      const text = safeStringV6243(btn.textContent).trim();
+      if (REMAKE_TAB_NAME_RE.test(text) || btn.id === 'remakeFactorTabBtn') return;
+      event.preventDefault();
+      event.stopPropagation();
+      if (event.stopImmediatePropagation) event.stopImmediatePropagation();
+      if (typeof window.switchTab === 'function') {
+        try { window.switchTab('remakeFactor'); } catch (error) {}
+      }
+      applyRemakeOnlyV6243();
+    }, true);
+  }
+
+  let pendingApplyV6243 = false;
+  function scheduleApplyV6243() {
+    if (pendingApplyV6243) return;
+    pendingApplyV6243 = true;
+    const run = function() {
+      pendingApplyV6243 = false;
+      patchBannerWritersV6243();
+      installSwitchGuardV6243();
+      installRenderGuardV6243();
+      installClickGuardV6243();
+      applyRemakeOnlyV6243();
+    };
+    if (typeof requestAnimationFrame === 'function') requestAnimationFrame(run);
+    else setTimeout(run, 0);
+  }
+
+  function bootV6243() {
+    patchBannerWritersV6243();
+    installSwitchGuardV6243();
+    installRenderGuardV6243();
+    installClickGuardV6243();
+    applyRemakeOnlyV6243();
+  }
+
+  bootV6243();
+  document.addEventListener('DOMContentLoaded', bootV6243);
+  window.addEventListener('load', bootV6243);
+
+  // v6.422 no-twitch: the presentation guard is now event-driven.
+  // The old whole-document observer and long startup timer ladder repeatedly
+  // reapplied layout rules while charts and tables were rendering. The render,
+  // tab, DOMContentLoaded, and load hooks above already keep Remake-only mode
+  // enforced without continuously rewriting the visible page.
+  window.__finalRemakeOnlyObserverV6243 = null;
+})();
+
+</script>

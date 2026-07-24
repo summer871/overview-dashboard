@@ -1,0 +1,185 @@
+<style id="cdaRemakeTatUnifiedControlsV6509">
+  /* Both views use the same compact control geometry. State remains independent. */
+  #remakeTabFilterHostV6337,
+  #tatTabFilterHostV6509 {
+    display:flex;
+    flex:1 1 auto;
+    min-width:0;
+    height:100%;
+    margin-left:auto;
+    align-items:center;
+    justify-content:flex-end;
+    gap:6px;
+    overflow:visible;
+    position:relative;
+    z-index:10020;
+  }
+  #tatTabFilterHostV6509[hidden] {display:none !important;}
+  .managerTabs.cdaTatActiveV6509 {position:sticky !important;top:0 !important;z-index:10000 !important;overflow:visible !important;}
+  .managerTabs.cdaTatActiveV6509 #remakeTabFilterHostV6337 {display:none !important;}
+  #remakeTabFilterHostV6337 .remakeFilterBarV6230,
+  #tatTabFilterHostV6509 .remakeFilterBarV6230 {
+    display:flex !important;
+    flex:0 1 auto !important;
+    width:auto !important;
+    max-width:none !important;
+    min-width:0 !important;
+    gap:5px !important;
+    align-items:center !important;
+    padding:0 !important;
+    margin:0 !important;
+    overflow:visible !important;
+  }
+  #remakeTabFilterHostV6337 .remakeFilter,
+  #tatTabFilterHostV6509 .remakeFilter {
+    flex:0 0 auto !important;
+    min-width:0 !important;
+    min-height:32px !important;
+    height:32px !important;
+    padding:0 !important;
+    margin:0 !important;
+    border:0 !important;
+    border-radius:0 !important;
+    background:transparent !important;
+    box-shadow:none !important;
+    position:relative !important;
+    overflow:visible !important;
+  }
+  #remakeTabFilterHostV6337 [data-filter-kind="year"],
+  #tatTabFilterHostV6509 [data-filter-kind="year"] {width:88px !important;}
+  #remakeTabFilterHostV6337 [data-filter-kind="department"],
+  #tatTabFilterHostV6509 [data-filter-kind="department"] {width:145px !important;}
+  #remakeTabFilterHostV6337 [data-filter-kind="product"],
+  #tatTabFilterHostV6509 [data-filter-kind="product"] {width:176px !important;}
+  #remakeTabFilterHostV6337 [data-filter-kind="productGroup"],
+  #tatTabFilterHostV6509 [data-filter-kind="productGroup"] {width:145px !important;}
+  #remakeTabFilterHostV6337 [data-filter-kind="customer"],
+  #tatTabFilterHostV6509 [data-filter-kind="customer"] {width:184px !important;}
+  #remakeTabFilterHostV6337 [data-filter-kind="reason"],
+  #tatTabFilterHostV6509 [data-filter-kind="reason"] {width:145px !important;}
+  #tatTabFilterHostV6509 .remakeDropdownPanelV6245 {
+    display:none;position:fixed;width:360px;min-width:300px;max-height:430px;background:#fff;border:1px solid #cbd5df;
+    border-radius:10px;box-shadow:0 18px 38px rgba(16,24,40,.24);z-index:10040;overflow:hidden;
+  }
+  #tatTabFilterHostV6509 .remakeDropdownPanelV6245.open {display:flex !important;flex-direction:column !important;}
+  #tatTabFilterHostV6509 .remakeDropdownHeaderV6245 {
+    display:grid !important;grid-template-columns:repeat(3,max-content) !important;justify-content:start !important;align-items:center !important;
+    column-gap:6px !important;row-gap:7px !important;padding:8px 9px !important;border-bottom:1px solid #e5e7eb !important;background:#f8fafc !important;overflow:visible !important;
+  }
+  #tatTabFilterHostV6509 .remakeVisibleToggleV6502 {
+    display:inline-flex !important;align-items:center !important;gap:6px !important;width:auto !important;min-height:29px !important;padding:4px 9px !important;
+    border:1px solid #cbd5df !important;border-radius:999px !important;background:#fff !important;color:#1f2937 !important;
+    font:800 11px/1 Roboto,Arial,sans-serif !important;cursor:pointer !important;white-space:nowrap !important;position:relative !important;margin:0 !important;
+  }
+  #tatTabFilterHostV6509 .remakeVisibleToggleV6502 input {width:16px !important;height:16px !important;margin:0 !important;accent-color:#d89b00 !important;cursor:pointer !important;}
+  #tatTabFilterHostV6509 .remakeVisibleToggleV6502:has(input:checked),
+  #tatTabFilterHostV6509 .remakeVisibleToggleV6502:has(input:indeterminate) {border-color:#f2c94c !important;background:#fff7d6 !important;color:#7a4a00 !important;}
+  #tatTabFilterHostV6509 .remakeDropdownCountV6245 {grid-column:1 / -1 !important;display:block !important;width:100% !important;margin:0 !important;padding:7px 2px 1px !important;border-top:1px solid #e5e7eb !important;color:#667085 !important;font:800 11px/1.25 Roboto,Arial,sans-serif !important;white-space:normal !important;}
+  #tatTabFilterHostV6509 .remakeDropdownEmptyV6245 {padding:14px 10px !important;color:#667085 !important;font:800 12px/1.3 Roboto,Arial,sans-serif !important;}
+  #tatTabFilterHostV6509 .remakeTabToolButtonV6337 {flex:0 0 auto;height:32px;min-height:32px;border:1px solid #cbd5e1;border-radius:7px;background:#fff;color:#334155;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font:800 11px/1 Roboto,Arial,sans-serif;box-shadow:none;}
+  #tatTabFilterHostV6509 .remakeTabToolButtonV6337:hover,
+  #tatTabFilterHostV6509 .remakeTabToolButtonV6337[aria-expanded="true"] {background:#fff7d6;border-color:#f2c94c;color:#7a4a00;}
+  #tatTabFilterHostV6509 .remakeTabSearchProxyV6337 {width:32px;min-width:32px;padding:0;}
+  #tatTabFilterHostV6509 .remakeTabSearchProxyV6337 svg,
+  #tatTabFilterHostV6509 .tatSettingsButtonV6509 svg {width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+  #tatTabFilterHostV6509 .remakeTabResetV6337 {padding:0 10px;}
+  #tatTabFilterHostV6509 .remakeCacheActionBarV6338 {display:inline-flex;flex:0 0 auto;align-items:center;justify-content:flex-end;gap:5px;}
+  #tatTabFilterHostV6509 .remakeCacheActionBarV6338 .remakeButton {height:32px;min-height:32px;border:1px solid #cbd5e1;border-radius:7px;padding:0 9px;background:#172033;color:#fff;display:inline-flex;align-items:center;justify-content:center;gap:5px;cursor:pointer;font:900 11px/1 Roboto,Arial,sans-serif;white-space:nowrap;box-shadow:none;}
+  #tatTabFilterHostV6509 .remakeCacheActionBarV6338 .remakeButton.secondary {background:#fff7d6;color:#7a4a00;border-color:#f2c94c;}
+  #tatTabFilterHostV6509 .remakeCacheActionBarV6338 .remakeButton:disabled {opacity:.55;cursor:wait;}
+  .tatFloatingPanelV6509 {display:none;position:fixed;z-index:10050;width:min(430px,calc(100vw - 18px));max-height:min(520px,calc(100vh - 20px));overflow:hidden;border:1px solid #cbd5df;border-radius:10px;background:#fff;box-shadow:0 18px 38px rgba(16,24,40,.24);}
+  .tatFloatingPanelV6509.open {display:flex;flex-direction:column;}
+  .tatGlobalSearchHeadV6509 {display:flex;align-items:center;gap:7px;padding:8px;border-bottom:1px solid #e5e7eb;background:#f8fafc;}
+  .tatGlobalSearchHeadV6509 input {flex:1 1 auto;height:34px;border:1px solid #d5dae2;border-radius:7px;padding:0 9px;font:700 12px/1 Roboto,Arial,sans-serif;}
+  .tatGlobalSearchHeadV6509 button {width:30px;height:30px;border:0;border-radius:50%;background:transparent;color:#667085;cursor:pointer;font:900 18px/1 Arial,sans-serif;}
+  .tatGlobalResultsV6509,.tatGlobalSearchResultsV6509 {max-height:390px;overflow:auto;}
+  .tatGlobalResultV6509 {display:grid;grid-template-columns:82px minmax(0,1fr) auto;gap:8px;align-items:center;padding:8px 10px;border-bottom:1px solid #f1f3f5;cursor:pointer;}
+  .tatGlobalResultV6509:hover {background:#eef5ff;}
+  .tatGlobalResultV6509 .type {color:#667085;font:900 9px/1 Roboto,Arial,sans-serif;text-transform:uppercase;letter-spacing:.04em;}
+  .tatGlobalResultV6509 .label {overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#344054;font:800 11px/1.2 Roboto,Arial,sans-serif;}
+  .tatSettingsV6509,.tatSettingsBodyV6509 {padding:10px;gap:8px;}
+  .tatSettingsV6509 h4,.tatSettingsBodyV6509 h4 {margin:0 0 8px;color:#172033;font:900 11px/1.2 Roboto,Arial,sans-serif;}
+  .tatSettingsChoicesV6509,.tatSettingsBodyV6509 {display:flex;gap:5px;flex-wrap:wrap;}
+  .tatSettingsChoicesV6509 button,.tatSettingsBodyV6509 button {height:30px;padding:0 10px;border:1px solid #cbd5df;border-radius:7px;background:#fff;color:#344054;cursor:pointer;font:800 10.5px/1 Roboto,Arial,sans-serif;}
+  .tatSettingsChoicesV6509 button.active,.tatSettingsBodyV6509 button.active {background:#172033;color:#fff;border-color:#172033;}
+
+  /* Remake Customers remains full width but is collapsible. */
+  #remakeFactorPage.cleanRemakeV6230 #remakeCustomerCardV6230 .remakeCustomerSplitV6230 {display:flex !important;flex-direction:column !important;grid-template-columns:1fr !important;gap:0 !important;padding:0 10px 10px !important;}
+  #remakeFactorPage.cleanRemakeV6230 #remakeCustomerCardV6230 .remakeCustomerDetailPanelV6503 {display:contents !important;}
+  #remakeFactorPage.cleanRemakeV6230 #remakeCustomerCardV6230 .remakeCustomerChartBoxV6230,
+  #remakeFactorPage.cleanRemakeV6230 #remakeCustomerCardV6230 #remakeCustomerDetailEmptyV6503 {display:none !important;}
+  #remakeFactorPage.cleanRemakeV6230 #remakeCustomerCardV6230.remakeSectionCollapsedV6402 .remakeCustomerSplitV6230,
+  #remakeFactorPage.cleanRemakeV6230 #remakeCustomerCardV6230.cdaCollapsedV6509 .remakeCustomerSplitV6230 {display:none !important;}
+  #remakeFactorPage.cleanRemakeV6230 #remakeCustomerCardV6230.remakeSectionCollapsedV6402 .remakeCardHeader,
+  #remakeFactorPage.cleanRemakeV6230 #remakeCustomerCardV6230.cdaCollapsedV6509 .remakeCardHeader {border-bottom:0 !important;}
+  #remakeFactorPage.cleanRemakeV6230 #remakeCustomerResponsibilitySummaryV6502 {order:1 !important;display:flex !important;align-items:center !important;gap:12px !important;width:100% !important;min-height:36px !important;margin:0 0 7px !important;padding:7px 10px !important;border:1px solid #e1e5eb !important;border-radius:6px !important;background:#fbfcfd !important;box-shadow:none !important;overflow:hidden !important;}
+  #remakeFactorPage.cleanRemakeV6230 #remakeCustomerResponsibilitySummaryV6502:has(.remakeResponsibilityEmptyV6504),
+  #remakeFactorPage.cleanRemakeV6230 #remakeCustomerResponsibilitySummaryV6502:has(.remakeResponsibilityMultipleV6504) {display:none !important;}
+  #remakeFactorPage.cleanRemakeV6230 #remakeCustomerCardV6230 .remakeCustomerTableWrapV6230 {order:2 !important;width:100% !important;height:500px !important;min-height:420px !important;}
+
+  /* TAT view */
+  #tatDashboardPageV6509 {display:none;padding:0 !important;background:#ebe9ed;min-height:calc(100vh - 42px);color:#172033;font-family:Roboto,Arial,sans-serif;}
+  #tatDashboardPageV6509.active {display:block !important;}
+  .tatShellV6509 {max-width:1900px;margin:0 auto;padding:8px 10px 28px;}
+  .tatKpiStageV6509 {position:relative;padding:9px 34px 10px;background:#e8e6ea;border-bottom:1px solid #d7dce2;}
+  .tatKpisV6509 {display:grid;grid-template-columns:repeat(5,minmax(145px,190px));justify-content:center;gap:9px;}
+  .tatKpiV6509 {min-width:0;min-height:72px;padding:9px 11px;background:#fff;border:1px solid #d7dce2;border-radius:8px;box-shadow:0 1px 3px rgba(20,32,42,.14);}
+  .tatKpiV6509 .label {color:#667085;font-size:9px;font-weight:900;letter-spacing:.045em;text-transform:uppercase;}
+  .tatKpiV6509 .value {margin-top:5px;color:#172033;font-size:24px;line-height:1;font-weight:900;letter-spacing:-.025em;}
+  .tatKpiV6509 .sub {margin-top:6px;color:#667085;font-size:9px;line-height:1.15;font-weight:750;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .tatKpiV6509 .sub.good {color:#067647;}.tatKpiV6509 .sub.bad {color:#b42318;}
+  .tatStampV6509 {position:absolute;top:7px;right:9px;color:#667085;font-size:9px;font-weight:800;white-space:nowrap;}
+  .tatStampV6509.loading {color:#7a4a00;}
+  .tatCoverageV6509 {display:flex;align-items:stretch;gap:0;margin:8px 2px;background:#fff;border:1px solid #d7dce2;border-radius:8px;box-shadow:0 1px 3px rgba(20,32,42,.10);overflow:hidden;}
+  .tatCoverageMetricV6509 {flex:0 0 auto;min-width:118px;padding:8px 11px;border-right:1px solid #e4e7ec;}
+  .tatCoverageMetricV6509:last-of-type {border-right:0;}
+  .tatCoverageMetricV6509 span {display:block;color:#667085;font-size:8.5px;font-weight:900;text-transform:uppercase;letter-spacing:.035em;}
+  .tatCoverageMetricV6509 strong {display:block;margin-top:3px;color:#172033;font-size:15px;font-weight:900;}
+  .tatCoverageNoteV6509 {flex:1 1 auto;display:flex;align-items:center;padding:8px 12px;color:#667085;font-size:9.5px;font-weight:750;line-height:1.35;background:#fbfcfd;}
+  .tatCoverageV6509.warn {border-color:#f2c94c;}.tatCoverageV6509.warn .tatCoverageNoteV6509 {background:#fff7d6;color:#7a4a00;}
+  .tatPillsV6509 {display:flex;align-items:center;gap:6px;flex-wrap:wrap;min-height:0;margin:8px 2px;}
+  .tatPillV6509 {display:inline-flex;align-items:center;gap:5px;height:26px;padding:0 9px;border:1px solid #f2c94c;border-radius:999px;background:#fff7d6;color:#7a4a00;font-size:9.5px;font-weight:900;}
+  .tatPillV6509 button {width:16px;height:16px;border:0;border-radius:50%;padding:0;background:transparent;color:#7a4a00;font-weight:900;cursor:pointer;}
+  .tatNoticeV6509 {display:none;margin:7px 2px;padding:8px 10px;border:1px solid #f2c94c;border-radius:8px;background:#fff7d6;color:#7a4a00;font-size:10px;font-weight:800;}
+  .tatNoticeV6509.error {border-color:#fda29b;background:#fef3f2;color:#b42318;}
+  .tatGridV6509 {display:grid;grid-template-columns:minmax(0,1.45fr) minmax(380px,.72fr);gap:9px;align-items:stretch;}
+  .tatCardV6509 {min-width:0;background:#fff;border:1px solid #d7dce2;border-radius:9px;box-shadow:0 1px 3px rgba(20,32,42,.14);overflow:hidden;}
+  .tatCardV6509.tatWideV6509 {grid-column:1 / -1;}
+  .tatCardHeadV6509 {display:flex;justify-content:space-between;align-items:center;gap:8px;min-height:40px;padding:7px 10px;border-bottom:1px solid #e4e7ec;}
+  .tatCardTitleV6509 {color:#172033;font-size:11px;font-weight:900;}
+  .tatCardSubV6509 {margin-top:2px;color:#667085;font-size:8.5px;font-weight:700;}
+  .tatCardActionsV6509 {display:flex;align-items:center;gap:4px;flex-wrap:wrap;justify-content:flex-end;}
+  .tatMiniButtonV6509 {height:25px;padding:0 7px;border:1px solid #cbd5df;border-radius:6px;background:#fff;color:#475467;cursor:pointer;font:800 9px/1 Roboto,Arial,sans-serif;white-space:nowrap;}
+  .tatMiniButtonV6509:hover,.tatMiniButtonV6509.active {background:#fff7d6;border-color:#f2c94c;color:#7a4a00;}
+  .tatCollapseButtonV6509 {width:27px;padding:0;font-size:14px;}
+  .tatCardV6509.collapsed .tatCollapsibleBodyV6509 {display:none !important;}
+  .tatCardV6509.collapsed .tatCardHeadV6509 {border-bottom:0;}
+  .tatChartV6509 {height:310px;padding:7px 9px 10px;}
+  .tatChartV6509 canvas {width:100% !important;height:100% !important;}
+  .tatSummaryTableV6509 {height:310px;overflow:auto;scrollbar-gutter:stable;}
+  .tatCustomersWrapV6509 {height:430px;overflow:auto;scrollbar-gutter:stable both-edges;}
+  .tatQualityBodyV6509 {padding:9px;}
+  .tatIssueSummaryV6509 {display:grid;grid-template-columns:repeat(5,minmax(125px,1fr));gap:7px;margin-bottom:8px;}
+  .tatIssueButtonV6509 {min-width:0;padding:8px 9px;border:1px solid #d7dce2;border-radius:7px;background:#fff;color:#344054;text-align:left;cursor:pointer;}
+  .tatIssueButtonV6509:hover,.tatIssueButtonV6509.active {border-color:#f2c94c;background:#fff7d6;color:#7a4a00;}
+  .tatIssueButtonV6509 span {display:block;font-size:8.5px;font-weight:900;text-transform:uppercase;letter-spacing:.035em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .tatIssueButtonV6509 strong {display:block;margin-top:4px;font-size:17px;font-weight:900;}
+  .tatQualityTableWrapV6509 {height:360px;overflow:auto;scrollbar-gutter:stable both-edges;}
+  .tatTableV6509 {width:100%;border-collapse:collapse;font-size:10px;}
+  .tatTableV6509 th {position:sticky;top:0;z-index:2;padding:7px 8px;border:1px solid #34454f;background:#203038;color:#fff;text-align:left;font-size:9px;font-weight:900;white-space:nowrap;cursor:default;}
+  .tatTableV6509 td {padding:7px 8px;border:1px solid #e5e7eb;background:#fff;color:#344054;font-weight:700;white-space:nowrap;}
+  .tatTableV6509 tbody tr:nth-child(even) td {background:#fafafa;}
+  .tatTableV6509 tbody tr.clickable {cursor:pointer;}
+  .tatTableV6509 tbody tr.clickable:hover td,.tatTableV6509 tbody tr.selected td {background:#eef4ff;}
+  .tatTableV6509 td.num,.tatTableV6509 th.num {text-align:right;}
+  .tatEmptyV6509 {padding:34px !important;text-align:center !important;color:#667085 !important;font-size:11px !important;font-weight:800 !important;}
+
+  @media(max-width:1450px){
+    #remakeTabFilterHostV6337 [data-filter-kind="product"],#tatTabFilterHostV6509 [data-filter-kind="product"] {width:150px !important;}
+    #remakeTabFilterHostV6337 [data-filter-kind="customer"],#tatTabFilterHostV6509 [data-filter-kind="customer"] {width:158px !important;}
+    #remakeTabFilterHostV6337 [data-filter-kind="department"],#tatTabFilterHostV6509 [data-filter-kind="department"],#remakeTabFilterHostV6337 [data-filter-kind="productGroup"],#tatTabFilterHostV6509 [data-filter-kind="productGroup"],#remakeTabFilterHostV6337 [data-filter-kind="reason"],#tatTabFilterHostV6509 [data-filter-kind="reason"] {width:125px !important;}
+    .tatKpisV6509 {grid-template-columns:repeat(5,minmax(128px,175px));}
+  }
+  @media(max-width:1279px){#tatTabFilterHostV6509 {display:none !important;}.tatGridV6509 {grid-template-columns:1fr;}.tatCardV6509.tatWideV6509 {grid-column:1;}.tatKpisV6509 {grid-template-columns:repeat(3,minmax(145px,1fr));}.tatIssueSummaryV6509 {grid-template-columns:repeat(2,minmax(0,1fr));}.tatCoverageV6509 {flex-wrap:wrap;}.tatCoverageNoteV6509 {flex-basis:100%;}}
+  @media(max-width:700px){.tatKpisV6509 {grid-template-columns:repeat(2,minmax(0,1fr));}.tatKpiV6509 .value {font-size:21px;}.tatChartV6509,.tatSummaryTableV6509 {height:260px;}.tatCustomersWrapV6509,.tatQualityTableWrapV6509 {height:380px;}.tatIssueSummaryV6509 {grid-template-columns:1fr;}}
+</style>

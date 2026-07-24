@@ -1,0 +1,683 @@
+<script id="cdaTatDashboardControllerV6509">
+(function installCdaTatDashboardV6509(){
+  'use strict';
+  window.CDA_REMAKE_TAT_ONLY_VERSION = 'v6.528';
+  window.CDA_TAT_DASHBOARD_VERSION = 'v3.3-v6.528-kpi-header-parity';
+
+  const FILTER_TYPES = ['year','department','product','productGroup','customer','reason'];
+  const LABELS = {year:'Year',department:'Department',product:'Product',productGroup:'Group',customer:'Customer',reason:'Reason'};
+  const ALL_LABELS = {year:'All years',department:'All departments',product:'All products',productGroup:'All groups',customer:'All customers',reason:'All reasons'};
+  const QUALITY_ISSUES = ['Missing Date In','Completion date is before Date In','Missing due date','Missing hold end','Invoice date fallback'];
+  const state = window.cdaTatStateV6509 = window.cdaTatStateV6509 || {
+    loaded:false,loading:false,data:null,rows:[],charts:{},searches:{},modes:{},selected:{},distributionMode:'percent',
+    cross:{months:[],tatBuckets:[],lateBand:'',issue:''},collapsed:{customers:false,quality:false}
+  };
+  FILTER_TYPES.forEach(function(type){
+    if(!state.searches[type])state.searches[type]='';
+    if(!state.modes[type])state.modes[type]='ALL';
+    if(!(state.selected[type] instanceof Set))state.selected[type]=new Set(Array.isArray(state.selected[type])?state.selected[type]:[]);
+  });
+  if(!(state.cross.months instanceof Set))state.cross.months=new Set(Array.isArray(state.cross.months)?state.cross.months:[]);
+  if(!(state.cross.tatBuckets instanceof Set))state.cross.tatBuckets=new Set(Array.isArray(state.cross.tatBuckets)?state.cross.tatBuckets:[]);
+  if(!state.distributionMode)state.distributionMode='percent';
+  if(!state.collapsed)state.collapsed={customers:false,quality:false};
+
+  const cache = {dbName:'tatDashboardFastCacheDb',storeName:'payloads',key:'tat-dashboard-v3-reconciled-quality'};
+  const legacyIds = ['tabOneBtn','underConstructionBtn','underConstructionMenu','categoricalTabBtn','overviewOne','overviewTwo','categoricalPage','overviewNavActions','dropdownDebugOverlayV6199','dropdownDebugOverlayV6196','layoutEditButtonV6183','layoutEditPanelV6183','layoutCardEditorV6184'];
+  let previousSwitch = null;
+
+  function id(value){return document.getElementById(value);}
+  function esc(value){return String(value==null?'':value).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+  function escJs(value){return String(value==null?'':value).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/\r?\n/g,' ');}
+  function num(value){const parsed=Number(value);return Number.isFinite(parsed)?parsed:0;}
+  function fmtNum(value,digits){return num(value).toLocaleString(undefined,{maximumFractionDigits:digits==null?1:digits});}
+  function fmtPct(value){return Number.isFinite(Number(value))?(Number(value)*100).toFixed(1)+'%':'-';}
+  function avg(values){const clean=(values||[]).map(Number).filter(Number.isFinite);return clean.length?clean.reduce(function(total,value){return total+value;},0)/clean.length:0;}
+  function median(values){const clean=(values||[]).map(Number).filter(Number.isFinite).sort(function(a,b){return a-b;});if(!clean.length)return 0;const middle=Math.floor(clean.length/2);return clean.length%2?clean[middle]:(clean[middle-1]+clean[middle])/2;}
+  function fuzzy(text,term){
+    if(window.dashboardFuzzySearchV6412&&typeof window.dashboardFuzzySearchV6412.match==='function')return window.dashboardFuzzySearchV6412.match(text,term);
+    const prepared=String(text||'').toLowerCase().replace(/[^a-z0-9]+/g,' ');
+    return String(term||'').toLowerCase().trim().split(/\s+/).filter(Boolean).every(function(token){return prepared.indexOf(token)>=0;});
+  }
+  function hideElement(element){if(!element)return;element.style.setProperty('display','none','important');element.style.setProperty('visibility','hidden','important');element.style.setProperty('pointer-events','none','important');element.classList.remove('active');}
+  function showElement(element,display){if(!element)return;element.style.setProperty('display',display||'block','important');element.style.setProperty('visibility','visible','important');element.style.removeProperty('pointer-events');}
+  function hideLegacy(){legacyIds.forEach(function(name){hideElement(id(name));});document.querySelectorAll('.managerTabs > .tabGroup').forEach(hideElement);const banner=id('singleShellDebugBanner');if(banner)hideElement(banner);const error=id('singleShellClientError');if(error&&!String(error.textContent||'').trim())hideElement(error);}
+  function invoiceDateFromRow(row){return String(row.year||'')+'-'+String(row.monthNum||0).padStart(2,'0')+'-'+String(row.dayOfMonth||0).padStart(2,'0');}
+  function monthKey(row){return String(row.year||'')+'-'+String(row.monthNum||0).padStart(2,'0');}
+  function tatBucket(row){if(!row.tatEligible)return '';const days=Math.max(0,Math.round(num(row.businessTatDays)));return days>=31?'31+':String(days);}
+  function lateBand(row){if(!row.otpEligible)return '';const days=num(row.daysLate);if(days<=0)return 'On time';if(days<=2)return '1-2 days late';if(days<=5)return '3-5 days late';if(days<=10)return '6-10 days late';if(days<=30)return '11-30 days late';return '31+ days late';}
+  function issueMatches(row,issue){
+    if(!issue)return true;
+    if(issue==='Missing Date In')return row.tatIssue==='Missing Date In';
+    if(issue==='Completion date is before Date In')return row.tatIssue==='Completion date is before Date In';
+    if(issue==='Missing due date')return row.tatEligible&&!row.otpEligible;
+    if(issue==='Missing hold end')return num(row.missingHoldEndCount)>0;
+    if(issue==='Invoice date fallback')return row.usedInvoiceDateFallback===true;
+    return true;
+  }
+
+  let tatProductGroupLookupSignatureV6525='';
+  let tatProductGroupByIdV6525=new Map();
+  let tatProductGroupByNameV6525=new Map();
+  function cleanTatProductGroupV6525(value,department){
+    const clean=String(value==null?'':value).trim();
+    const lower=clean.toLowerCase();
+    const dept=String(department==null?'':department).trim().toLowerCase();
+    if(!clean||lower==='unassigned'||lower==='unknown'||lower==='not specified'||lower==='case level'||(dept&&lower===dept))return '';
+    return clean;
+  }
+  function rebuildTatProductGroupLookupV6525(){
+    const remakeState=window.remakeFactorState||{};
+    const source=Array.isArray(remakeState.normalizedRowsV6230)&&remakeState.normalizedRowsV6230.length
+      ? remakeState.normalizedRowsV6230
+      : (Array.isArray(remakeState.rows)?remakeState.rows:[]);
+    const signature=String(source.length)+'|'+String(remakeState.browserReadyBuiltAt||'')+'|'+String(remakeState.normalizedRowsSignatureV6230||'');
+    if(signature===tatProductGroupLookupSignatureV6525)return;
+    tatProductGroupLookupSignatureV6525=signature;
+    tatProductGroupByIdV6525=new Map();
+    tatProductGroupByNameV6525=new Map();
+    source.forEach(function(item){
+      const department=item&& (item.department||item.productsDepartment||item.Products_Department||'');
+      const group=cleanTatProductGroupV6525(item&&(item.productGroup||item.productsGroup||item.Products_Group||item.group||item.category||item.productsCategory||item.Products_Category),department);
+      if(!group)return;
+      const productId=String(item&&(item.productId||item.productID||item.CaseProducts_ProductID)||'').trim();
+      const productName=String(item&&(item.productName||item.productsDescription||item.Products_Description||item.productDescription)||'').trim().toLowerCase();
+      if(productId&&!tatProductGroupByIdV6525.has(productId))tatProductGroupByIdV6525.set(productId,group);
+      if(productName&&!tatProductGroupByNameV6525.has(productName))tatProductGroupByNameV6525.set(productName,group);
+    });
+  }
+  function resolvedTatProductGroupV6525(row){
+    const department=String(row&&row.productsDepartment||'').trim();
+    const existing=cleanTatProductGroupV6525(row&&row.productsGroup,department);
+    rebuildTatProductGroupLookupV6525();
+    const productId=String(row&&(row.productId||'')||'').trim();
+    const productName=String(row&&(row.productsDescription||'')||'').trim().toLowerCase();
+    const mapped=(productId&&tatProductGroupByIdV6525.get(productId))||(productName&&tatProductGroupByNameV6525.get(productName))||'';
+    return cleanTatProductGroupV6525(mapped,department)||existing||'Unassigned';
+  }
+  function applyTatProductGroupsV6525(rows){
+    let changed=false;
+    (rows||[]).forEach(function(row){
+      const resolved=resolvedTatProductGroupV6525(row);
+      if(String(row.productsGroup||'')!==resolved){row.productsGroup=resolved;changed=true;}
+    });
+    return changed;
+  }
+  function migrateTatProductGroupStateV6525(){
+    try{
+      if(localStorage.getItem('cdaTatProductGroupSource.v6525')==='remake-product-group')return;
+      selectedSet('productGroup').clear();
+      setMode('productGroup','ALL');
+      state.searches.productGroup='';
+      localStorage.setItem('cdaTatProductGroupSource.v6525','remake-product-group');
+    }catch(error){}
+  }
+
+  function filterKey(type,row){
+    if(type==='year')return String(row.year||'');
+    if(type==='department')return String(row.productsDepartment||'Unassigned');
+    if(type==='product')return String(row.productId||row.productsDescription||row.productsGroup||'')+'||'+String(row.productsDescription||row.productId||row.productsGroup||'');
+    if(type==='productGroup')return resolvedTatProductGroupV6525(row);
+    if(type==='customer')return String(row.customerId||row.customerName||'').trim();
+    if(type==='reason')return String(row.remakeReason||'Not a remake');
+    return '';
+  }
+  function filterLabel(type,row,key){
+    if(type==='year')return String(key);
+    if(type==='department'){const value=String(row.productsDepartment||key);return value==='Unassigned'?'Needs product mapping':value;}
+    if(type==='product')return String(row.productsDescription||row.productId||row.productsGroup||key);
+    if(type==='productGroup')return resolvedTatProductGroupV6525(row);
+    if(type==='customer')return String(row.customerName||row.customerId||key);
+    if(type==='reason')return String(row.remakeReason||key);
+    return String(key||'');
+  }
+  function optionList(type){
+    if(type==='year')return [{key:'2025',label:'2025'},{key:'2026',label:'2026'}];
+    const map=new Map();
+    (state.rows||[]).forEach(function(row){
+      const year=Number(row.year);if(year!==2025&&year!==2026)return;
+      const key=filterKey(type,row);if(!key)return;
+      if(!map.has(key))map.set(key,{key:key,label:filterLabel(type,row,key)});
+    });
+    return Array.from(map.values()).sort(function(a,b){return a.label.localeCompare(b.label,undefined,{numeric:true,sensitivity:'base'});});
+  }
+  function selectedSet(type){return state.selected[type];}
+  function mode(type){return state.modes[type]||'ALL';}
+  function setMode(type,value){state.modes[type]=value;}
+  function isSelected(type,key){return mode(type)==='ALL'||selectedSet(type).has(String(key));}
+  function ensureCustom(type){if(mode(type)==='ALL'){const set=selectedSet(type);set.clear();optionList(type).forEach(function(option){set.add(option.key);});setMode(type,'CUSTOM');}}
+  function normalizeMode(type){const options=optionList(type),set=selectedSet(type);if(options.length&&set.size>=options.length){set.clear();setMode(type,'ALL');}}
+  function selectionLabel(type){
+    if(mode(type)==='ALL')return ALL_LABELS[type];
+    const selected=optionList(type).filter(function(option){return selectedSet(type).has(option.key);});
+    if(!selected.length)return 'No '+LABELS[type].toLowerCase();
+    if(selected.length===1)return selected[0].label;
+    return selected.length+' '+LABELS[type].toLowerCase()+'s';
+  }
+  function saveViewState(){
+    try{
+      const payload={modes:state.modes,searches:state.searches,distributionMode:state.distributionMode,selected:{},cross:{months:Array.from(state.cross.months),tatBuckets:Array.from(state.cross.tatBuckets),lateBand:state.cross.lateBand||'',issue:state.cross.issue||''},collapsed:state.collapsed};
+      FILTER_TYPES.forEach(function(type){payload.selected[type]=Array.from(selectedSet(type));});
+      localStorage.setItem('cdaTatViewState.v6509',JSON.stringify(payload));
+    }catch(error){}
+  }
+  function restoreViewState(){
+    try{
+      const parsed=JSON.parse(localStorage.getItem('cdaTatViewState.v6509')||'null');if(!parsed)return;
+      FILTER_TYPES.forEach(function(type){
+        if(parsed.modes&&parsed.modes[type])state.modes[type]=parsed.modes[type];
+        if(parsed.searches&&parsed.searches[type])state.searches[type]=parsed.searches[type];
+        if(parsed.selected&&Array.isArray(parsed.selected[type]))state.selected[type]=new Set(parsed.selected[type].map(String));
+      });
+      state.distributionMode='percent';
+      if(parsed.cross){state.cross.months=new Set(parsed.cross.months||[]);state.cross.tatBuckets=new Set(parsed.cross.tatBuckets||[]);state.cross.lateBand=parsed.cross.lateBand||'';state.cross.issue=parsed.cross.issue||'';}
+      if(parsed.collapsed)state.collapsed={customers:!!parsed.collapsed.customers,quality:!!parsed.collapsed.quality};
+    }catch(error){}
+  }
+
+  function filterMarkup(type){
+    return '<div class="remakeFilter" data-filter-kind="'+esc(type)+'" data-tat-filter="'+esc(type)+'">'
+      +'<button id="tatFilterButton_'+esc(type)+'_V6509" class="remakeDropdownButtonV6245" type="button" aria-haspopup="listbox" aria-expanded="false" onclick="toggleTatDropdownV6509(\''+escJs(type)+'\',event)">'+esc(ALL_LABELS[type])+'</button>'
+      +'<div id="tatFilterPanel_'+esc(type)+'_V6509" class="remakeDropdownPanelV6245" onclick="event.stopPropagation()">'
+      +'<div class="remakeDropdownHeaderV6245"><label class="remakeVisibleToggleV6502"><input id="tatVisible_'+esc(type)+'_V6509" type="checkbox" onchange="toggleTatVisibleV6509(\''+escJs(type)+'\',this.checked)"> Visible</label><button type="button" onclick="resetTatFilterV6509(\''+escJs(type)+'\')">Reset</button><button type="button" onclick="noneTatFilterV6509(\''+escJs(type)+'\')">None</button><span id="tatCount_'+esc(type)+'_V6509" class="remakeDropdownCountV6245"></span></div>'
+      +'<input id="tatSearch_'+esc(type)+'_V6509" class="remakeDropdownSearchV6245" type="search" placeholder="Search '+esc(LABELS[type].toLowerCase())+'" oninput="searchTatFilterV6509(\''+escJs(type)+'\',this.value)">'
+      +'<div id="tatList_'+esc(type)+'_V6509" class="remakeDropdownListV6245" role="listbox" aria-multiselectable="true"></div></div></div>';
+  }
+  function bindTatFilterControlsV6524(){
+    FILTER_TYPES.forEach(function(type){
+      const button=id('tatFilterButton_'+type+'_V6509'),panel=id('tatFilterPanel_'+type+'_V6509');
+      if(button){
+        button.dataset.tatFilterType=type;
+        button.removeAttribute('onclick');
+        button.onclick=function(event){return window.toggleTatDropdownV6509(type,event);};
+      }
+      if(panel){
+        panel.dataset.tatFilterType=type;
+        panel.addEventListener('click',function(event){event.stopPropagation();});
+      }
+    });
+  }
+  function actionMarkup(component){
+    return '<div class="tatCardActionsV6509 remakeCardActionsV6230">'
+      +'<button class="tatMiniButtonV6509 remakeMiniButtonV6230" type="button" onclick="exportTatComponentV6509(\''+component+'\')">Export current</button>'
+      +'<button class="tatMiniButtonV6509 remakeMiniButtonV6230" type="button" onclick="exportTatAllDataV6509(\''+component+'\')">All data</button>'
+      +'<button class="tatMiniButtonV6509 remakeMiniButtonV6230" type="button" onclick="popoutTatComponentV6509(\''+component+'\')">Pop out</button>'
+      +'<button class="tatMiniButtonV6509 remakeMiniButtonV6230 backButtonV6266" type="button" title="Reset this selection" aria-label="Reset this selection" onclick="clearTatComponentV6509(\''+component+'\')">↺</button>'
+      +'</div>';
+  }
+  function buildUi(){
+    const tabs=document.querySelector('.managerTabs');const remakeButton=id('remakeFactorTabBtn');
+    if(tabs&&remakeButton&&!id('tatTabBtnV6509')){
+      const oldButton=id('tatTabBtnV6508');if(oldButton)oldButton.remove();
+      const button=document.createElement('button');button.id='tatTabBtnV6509';button.className='tabBtn';button.type='button';button.textContent='TAT';button.onclick=function(event){if(event)event.preventDefault();activateTat();return false;};remakeButton.insertAdjacentElement('afterend',button);
+      const oldHost=id('tatTabFilterHostV6508');if(oldHost)oldHost.remove();
+      const host=document.createElement('div');host.id='tatTabFilterHostV6509';host.hidden=true;host.setAttribute('aria-label','TAT dashboard filters and cache controls');
+      host.innerHTML='<div class="remakeFilterBarV6230">'+FILTER_TYPES.map(filterMarkup).join('')+'</div>'
+        +'<button id="tatTabSearchProxyV6509" class="remakeTabToolButtonV6337 remakeTabSearchProxyV6337" type="button" title="Search all filters" aria-label="Search all filters" aria-expanded="false" onclick="toggleTatGlobalSearchV6509(event)"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="6"></circle><path d="m16 16 4 4"></path></svg></button>'
+        +'<button id="tatSettingsButtonV6509" class="remakeTabToolButtonV6337 remakeTabSearchProxyV6337 tatSettingsButtonV6509" type="button" title="Settings" aria-label="Settings" aria-expanded="false" onclick="toggleTatSettingsV6509(event)"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"></circle><path d="M12 2.8v2.1M12 19.1v2.1M2.8 12h2.1M19.1 12h2.1M4.5 4.5 6 6M18 18l1.5 1.5M4.5 19.5 6 18M18 6l1.5-1.5"></path></svg></button>'
+        +'<button id="tatTabResetV6509" class="remakeTabToolButtonV6337 remakeTabResetV6337" type="button" title="Reset all TAT filters" onclick="resetTatAllV6509(event)">Reset</button>'
+        +'<div class="remakeCacheActionBarV6338"><button id="tatReloadButtonV6509" class="remakeButton secondary" type="button" title="Reload the saved Drive cache and replace this browser copy" onclick="reloadTatV6509(event)"><span class="remakeCacheActionIconV6338" aria-hidden="true">&#8595;</span><span class="remakeCacheActionLabelV6338">Reload</span></button><button id="tatRefreshButtonV6509" class="remakeButton" type="button" title="Build missing months first, then replace the current month" onclick="refreshTatV6509(event)"><span class="remakeCacheActionIconV6338" aria-hidden="true">&#8635;</span><span class="remakeCacheActionLabelV6338">Refresh</span></button></div>';
+      tabs.appendChild(host);
+      bindTatFilterControlsV6524();
+    } else {
+      bindTatFilterControlsV6524();
+    }
+    if(!id('tatGlobalSearchPanelV6509')){
+      const panel=document.createElement('div');panel.id='tatGlobalSearchPanelV6509';panel.className='tatFloatingPanelV6509';panel.innerHTML='<div class="tatGlobalSearchHeadV6509"><input id="tatGlobalSearchInputV6509" type="search" placeholder="Search TAT filters" oninput="renderTatGlobalSearchV6509(this.value)"><button type="button" onclick="closeTatFloatingPanelsV6509()">×</button></div><div id="tatGlobalSearchResultsV6509" class="tatGlobalSearchResultsV6509"></div>';document.body.appendChild(panel);
+    }
+    if(!id('tatSettingsPanelV6509')){
+      const panel=document.createElement('div');panel.id='tatSettingsPanelV6509';panel.className='tatFloatingPanelV6509';panel.innerHTML='<div class="tatGlobalSearchHeadV6509"><strong>TAT view</strong><button type="button" onclick="closeTatFloatingPanelsV6509()">×</button></div><div class="tatSettingsBodyV6509"><div class="tatSettingsNoteV6524">Distribution is shown as percent of eligible cases.</div></div>';document.body.appendChild(panel);
+    }
+    const oldPage=id('tatDashboardPageV6508');if(oldPage)oldPage.remove();
+    if(!id('tatDashboardPageV6509')){
+      const page=document.createElement('section');page.id='tatDashboardPageV6509';page.className='tabContent cleanRemakeV6230 tatMirrorRemakeV6512';page.innerHTML=''
+        +'<div class="tatKpiStageV6509"><div class="remakeKpiAreaV6406 tatKpiAreaV6528"><div class="remakeKpiToolbarV6403"><button id="tatKpiChooserButtonV6528" class="remakeKpiChooserButtonV6403" type="button" aria-label="Choose KPI cards" aria-haspopup="dialog" aria-expanded="false">⋮</button></div><div class="tatKpisV6509 remakeKpisV6230">'
+        +'<div class="tatKpiV6509 remakeKpi" data-tat-kpi-key-v6528="avgTat"><div class="label">Average TAT</div><div id="tatKpiAvgV6509" class="value">-</div><div id="tatKpiAvgSubV6509" class="sub">Eligible cases</div></div>'
+        +'<div class="tatKpiV6509 remakeKpi" data-tat-kpi-key-v6528="otp"><div class="label">On Time to Promise</div><div id="tatKpiOtpV6509" class="value">-</div><div id="tatKpiOtpSubV6509" class="sub">Due-date eligible</div></div>'
+        +'<div class="tatKpiV6509 remakeKpi" data-tat-kpi-key-v6528="avgLate"><div class="label">Average Days Late</div><div id="tatKpiLateV6509" class="value">-</div><div id="tatKpiLateSubV6509" class="sub">Late cases only</div></div>'
+        +'<div class="tatKpiV6509 remakeKpi" data-tat-kpi-key-v6528="soldUnits"><div class="label">Sold Units</div><div id="tatKpi31V6509" class="value">-</div><div id="tatKpi31SubV6509" class="sub">Included units</div></div>'
+        +'<div class="tatKpiV6509 remakeKpi" data-tat-kpi-key-v6528="remakePct"><div class="label">Remake %</div><div id="tatKpiRemakePctV6523" class="value">-</div><div id="tatKpiRemakePctSubV6523" class="sub">Remake units / sold units</div></div>'
+        +'</div></div><div id="tatStampV6509" class="tatStampV6509" aria-live="polite">Loading</div></div>'
+        +'<div class="tatShellV6509"><div id="tatNoticeV6509" class="tatNoticeV6509"></div>'
+        +'<div id="tatCoverageV6509" class="tatCoverageV6509" hidden><div class="tatCoverageMetricV6509"><span>Total Cases</span><strong id="tatCoverageCasesV6509">-</strong></div><div class="tatCoverageMetricV6509"><span>Total Units</span><strong id="tatCoverageUnitsV6509">-</strong></div><div class="tatCoverageMetricV6509"><span>TAT Eligible</span><strong id="tatCoverageEligibleV6509">-</strong></div><div class="tatCoverageMetricV6509"><span>Coverage</span><strong id="tatCoveragePctV6509">-</strong></div><div class="tatCoverageMetricV6509"><span>Excluded Cases</span><strong id="tatCoverageExcludedV6509">-</strong></div><div id="tatCoverageNoteV6509" class="tatCoverageNoteV6509">Base totals include the full invoice population. TAT calculations use the eligible subset.</div></div>'
+        +'<div id="tatPillsV6509" class="tatPillsV6509"></div><div class="tatGridV6509 remakeGridV6230">'
+        +'<article class="tatCardV6509 remakeCard"><div class="tatCardHeadV6509 remakeCardHeader"><div><div class="tatCardTitleV6509 remakeCardTitle">Monthly TAT Comparison</div></div>'+actionMarkup('monthly')+'</div><div class="tatChartV6509 remakeTrendCanvasWrapV6230"><canvas id="tatMonthlyChartV6509"></canvas></div></article>'
+        +'<article class="tatCardV6509 remakeCard"><div class="tatCardHeadV6509 remakeCardHeader"><div><div class="tatCardTitleV6509 remakeCardTitle">Department Summary</div></div>'+actionMarkup('department')+'</div><div class="tatSummaryTableV6509 remakeTableWrap"><table class="tatTableV6509 remakeTable"><thead><tr><th>Department / Product</th><th class="num">Sold Units</th><th class="num">Remake Units</th><th class="num">Remake %</th><th class="num">Avg TAT</th><th class="num">OTP</th><th class="num">Avg Days Late</th></tr></thead><tbody id="tatDepartmentTableV6509"></tbody></table></div></article>'
+        +'<article class="tatCardV6509 remakeCard"><div class="tatCardHeadV6509 remakeCardHeader"><div><div class="tatCardTitleV6509 remakeCardTitle">TAT Distribution</div><div id="tatDistributionSubV6509" class="tatCardSubV6509 tatSrOnlyV6513">Percent of eligible cases by business-day bucket</div></div>'+actionMarkup('distribution')+'</div><div class="tatChartV6509 remakeTrendCanvasWrapV6230"><canvas id="tatDistributionChartV6509"></canvas></div></article>'
+        +'<article class="tatCardV6509 remakeCard"><div class="tatCardHeadV6509 remakeCardHeader"><div><div class="tatCardTitleV6509 remakeCardTitle">Promise Performance</div></div>'+actionMarkup('late')+'</div><div class="tatSummaryTableV6509 remakeTableWrap"><table class="tatTableV6509 remakeTable"><thead><tr><th>Performance</th><th class="num">Cases</th><th class="num">Share</th></tr></thead><tbody id="tatLateTableV6509"></tbody></table></div></article>'
+        +'<article id="tatCustomerCardV6509" class="tatCardV6509 remakeCard tatWideV6509"><div class="tatCardHeadV6509 remakeCardHeader"><div><div class="tatCardTitleV6509 remakeCardTitle">Customers</div></div><div class="tatCardActionsV6509 remakeCardActionsV6230">'+actionMarkup('customer').replace('<div class="tatCardActionsV6509 remakeCardActionsV6230">','').replace(/<\/div>$/,'')+'<button id="tatCustomerCollapseV6509" class="tatMiniButtonV6509 remakeMiniButtonV6230 tatCollapseButtonV6509" type="button" onclick="toggleTatSectionV6509(\'customers\')">▾</button></div></div><div class="tatCollapsibleBodyV6509 tatCustomersWrapV6509 remakeTableWrap"><table class="tatTableV6509 remakeTable"><thead><tr><th>Customer</th><th class="num">Cases</th><th class="num">Sold Units</th><th class="num">Remake Units</th><th class="num">Remake %</th><th class="num">Avg TAT</th><th class="num">OTP</th><th class="num">Avg Days Late</th></tr></thead><tbody id="tatCustomerTableV6509"></tbody></table></div></article>'
+        +'<article id="tatQualityCardV6509" class="tatCardV6509 remakeCard tatWideV6509"><div class="tatCardHeadV6509 remakeCardHeader"><div><div class="tatQualityTitleRowV6513"><div class="tatCardTitleV6509 remakeCardTitle">Data Quality & Coverage</div><div id="tatQualityCoverageV6513" class="tatQualityCoverageV6513"></div></div></div><div class="tatCardActionsV6509 remakeCardActionsV6230">'+actionMarkup('quality').replace('<div class="tatCardActionsV6509 remakeCardActionsV6230">','').replace(/<\/div>$/,'')+'<button id="tatQualityCollapseV6509" class="tatMiniButtonV6509 remakeMiniButtonV6230 tatCollapseButtonV6509" type="button" onclick="toggleTatSectionV6509(\'quality\')">▾</button></div></div><div class="tatCollapsibleBodyV6509 tatQualityBodyV6509"><div id="tatIssueSummaryV6509" class="tatIssueSummaryV6509"></div><div class="tatQualityTableWrapV6509 remakeTableWrap"><table class="tatTableV6509 remakeTable"><thead><tr><th>Issue</th><th>Case</th><th>Customer</th><th>Departments</th><th>Invoice Date</th><th>Date In</th><th>TAT End</th><th class="num">TAT Days</th><th class="num">Units</th><th class="num">Remake Units</th></tr></thead><tbody id="tatQualityTableV6509"></tbody></table></div></div></article>'
+        +'</div></div>';
+      document.body.appendChild(page);
+    }
+    installRemakeCustomerCollapse();
+    applyCollapsedState();
+  }
+
+  function installRemakeCustomerCollapse(){
+    if(typeof window.applyRemakeSectionStatesV6402==='function')window.applyRemakeSectionStatesV6402();
+  }
+  function toggleRemakeCustomerCollapse(){
+    if(typeof window.toggleRemakeSectionV6402==='function')window.toggleRemakeSectionV6402('customer');
+  }
+  function applyCollapsedState(){
+    [['customers','tatCustomerCardV6509','tatCustomerCollapseV6509'],['quality','tatQualityCardV6509','tatQualityCollapseV6509']].forEach(function(entry){const collapsed=!!state.collapsed[entry[0]],card=id(entry[1]),button=id(entry[2]);if(card)card.classList.toggle('collapsed',collapsed);if(button){button.textContent=collapsed?'▸':'▾';button.setAttribute('aria-expanded',collapsed?'false':'true');}});
+  }
+
+  function openDb(){
+    return new Promise(function(resolve,reject){if(!window.indexedDB){resolve(null);return;}const request=indexedDB.open(cache.dbName,1);request.onupgradeneeded=function(){const db=request.result;if(!db.objectStoreNames.contains(cache.storeName))db.createObjectStore(cache.storeName);};request.onsuccess=function(){resolve(request.result);};request.onerror=function(){reject(request.error);};});
+  }
+  async function readLocalCache(){try{const db=await openDb();if(!db)return null;return await new Promise(function(resolve){const tx=db.transaction(cache.storeName,'readonly');const request=tx.objectStore(cache.storeName).get(cache.key);request.onsuccess=function(){resolve(request.result||null);};request.onerror=function(){resolve(null);};});}catch(error){return null;}}
+  async function writeLocalCache(value){try{const db=await openDb();if(!db)return;await new Promise(function(resolve){const tx=db.transaction(cache.storeName,'readwrite');tx.objectStore(cache.storeName).put(value,cache.key);tx.oncomplete=resolve;tx.onerror=resolve;});}catch(error){}}
+  function callServer(method){const args=Array.prototype.slice.call(arguments,1);return new Promise(function(resolve,reject){if(!(window.google&&google.script&&google.script.run)){reject(new Error('Apps Script runtime is unavailable.'));return;}let runner=google.script.run.withSuccessHandler(resolve).withFailureHandler(function(error){reject(error instanceof Error?error:new Error(error&&error.message?error.message:String(error)));});runner[method].apply(runner,args);});}
+  function base64Bytes(value){const binary=atob(String(value||'')),bytes=new Uint8Array(binary.length);for(let index=0;index<binary.length;index+=1)bytes[index]=binary.charCodeAt(index);return bytes;}
+  async function decodeGzip(payloadBase64){const bytes=base64Bytes(payloadBase64);if(typeof DecompressionStream==='function'){const stream=new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'));return JSON.parse(await new Response(stream).text());}if(window.pako&&typeof window.pako.ungzip==='function')return JSON.parse(window.pako.ungzip(bytes,{to:'string'}));throw new Error('This browser cannot decompress the TAT cache.');}
+  function dictValue(dicts,name,index){const list=dicts&&dicts[name]||[];return index>=0&&index<list.length?list[index]:'';}
+  function unpackPayload(payload){
+    const dicts=payload&&payload.dictionaries||{};const schema=String(payload&&payload.schema||'');const rows=[];
+    if(schema==='tat-browser-packed-v3'){
+      (payload.rows||[]).forEach(function(row){const year=Number(row[0]),monthNum=Number(row[1]),day=Number(row[2]);rows.push({
+        year:year,monthNum:monthNum,dayOfMonth:day,invoiceDate:String(year)+'-'+String(monthNum).padStart(2,'0')+'-'+String(day).padStart(2,'0'),
+        caseId:dictValue(dicts,'caseIds',row[3]),caseNumber:dictValue(dicts,'caseNumbers',row[4]),customerId:dictValue(dicts,'customerIds',row[5]),customerName:dictValue(dicts,'customerNames',row[6]),customerActive:Number(row[7])===1,
+        productsDepartment:dictValue(dicts,'departments',row[8])||'Unassigned',productsGroup:dictValue(dicts,'groups',row[9])||'Unassigned',productsDescription:dictValue(dicts,'descriptions',row[10]),productId:dictValue(dicts,'productIds',row[11]),
+        soldUnits:num(row[12]),remakeUnits:num(row[13]),tatEligible:Number(row[14])===1,businessTatDays:Number(row[15])<0?null:num(row[15]),otpEligible:Number(row[16])===1,onTimeToPromise:Number(row[17])<0?null:Number(row[17])===1,daysLate:num(row[18]),tatIssue:dictValue(dicts,'issues',row[19]),dateIn:dictValue(dicts,'dates',row[20]),completionDate:dictValue(dicts,'dates',row[21]),dueDate:dictValue(dicts,'dates',row[22]),usedInvoiceDateFallback:Number(row[23])===1,missingHoldEndCount:num(row[24]),holdBusinessDays:num(row[25]),rawBusinessTatDays:Number(row[26])<0?null:num(row[26]),remakeReason:dictValue(dicts,'reasons',row[27])
+      });});
+      return {rows:rows,dataQualityAvailable:true,schema:schema};
+    }
+    if(schema==='tat-browser-packed-v2'){
+      (payload.rows||[]).forEach(function(row){const year=Number(row[0]),monthNum=Number(row[1]);rows.push({year:year,monthNum:monthNum,dayOfMonth:1,invoiceDate:String(year)+'-'+String(monthNum).padStart(2,'0')+'-01',caseId:dictValue(dicts,'caseIds',row[2]),caseNumber:dictValue(dicts,'caseNumbers',row[3]),customerId:dictValue(dicts,'customerIds',row[4]),customerName:dictValue(dicts,'customerNames',row[5]),customerActive:Number(row[6])===1,productsDepartment:dictValue(dicts,'departments',row[7])||'Unassigned',productsGroup:dictValue(dicts,'groups',row[8])||'Unassigned',productsDescription:dictValue(dicts,'descriptions',row[9]),productId:dictValue(dicts,'productIds',row[10]),soldUnits:num(row[11]),remakeUnits:num(row[12]),tatEligible:true,businessTatDays:num(row[13]),otpEligible:Number(row[14])===1,onTimeToPromise:Number(row[15])<0?null:Number(row[15])===1,daysLate:num(row[16]),tatIssue:'',dateIn:'',completionDate:'',dueDate:'',usedInvoiceDateFallback:false,missingHoldEndCount:0,holdBusinessDays:0,rawBusinessTatDays:null,remakeReason:'Not specified'});});
+      return {rows:rows,dataQualityAvailable:false,schema:schema};
+    }
+    throw new Error('Unsupported TAT browser schema: '+(schema||'missing'));
+  }
+  function setNotice(message,isError){const node=id('tatNoticeV6509');if(!node)return;node.textContent=message||'';node.style.display=message?'block':'none';node.classList.toggle('error',!!isError);}
+  function setLoading(loading,message){state.loading=!!loading;['tatReloadButtonV6509','tatRefreshButtonV6509'].forEach(function(name){const button=id(name);if(button)button.disabled=!!loading;});const stamp=id('tatStampV6509');if(stamp){stamp.classList.toggle('loading',!!loading);if(message)stamp.textContent=message;}}
+  function handlePayload(payload,meta){const unpacked=unpackPayload(payload);applyTatProductGroupsV6525(unpacked.rows);state.data=payload;state.rows=unpacked.rows.filter(function(row){return Number(row.year)===2025||Number(row.year)===2026;});state.dataQualityAvailable=unpacked.dataQualityAvailable;state.schema=unpacked.schema;state.meta=meta||{};state.loaded=true;writeLocalCache({payload:payload,meta:meta||{},savedAt:Date.now()});renderAll();}
+  async function load(force){
+    if(state.loading)return;setLoading(true,'Loading TAT cache…');setNotice('',false);
+    try{
+      if(!force){const local=await readLocalCache();if(local&&local.payload){handlePayload(local.payload,local.meta||{});setLoading(false,'Cached TAT view');}}
+      const meta=await callServer('getTatDashboardBrowserReadyMeta');if(!meta||!meta.ok||!meta.servable)throw new Error(meta&&meta.message?meta.message:'TAT browser cache is unavailable.');
+      const local=await readLocalCache();if(!force&&local&&local.payload&&local.meta&&local.meta.cacheToken===meta.cacheToken){handlePayload(local.payload,meta);setLoading(false,meta.generatedAtDisplay||'TAT cache loaded');return;}
+      const response=await callServer('getTatDashboardBrowserReadyData');if(!response||!response.ok||!response.payloadBase64)throw new Error(response&&response.message?response.message:'TAT browser payload is empty.');
+      const payload=await decodeGzip(response.payloadBase64);handlePayload(payload,response);setLoading(false,response.generatedAtDisplay||'TAT cache loaded');
+    }catch(error){setLoading(false,'TAT cache unavailable');setNotice(error&&error.message?error.message:String(error),true);if(!state.loaded)renderAll();}
+  }
+
+  function topFilteredRows(){
+    return (state.rows||[]).filter(function(row){
+      if(Number(row.year)!==2025&&Number(row.year)!==2026)return false;
+      return FILTER_TYPES.every(function(type){return isSelected(type,filterKey(type,row));});
+    });
+  }
+  function applyTatCrossFiltersV6510(rows,options){
+    options=options||{};return (rows||[]).filter(function(row){
+      if(!options.ignoreMonth&&state.cross.months.size&&!state.cross.months.has(monthKey(row)))return false;
+      if(!options.ignoreBucket&&state.cross.tatBuckets.size&&!state.cross.tatBuckets.has(tatBucket(row)))return false;
+      if(!options.ignoreLate&&state.cross.lateBand&&lateBand(row)!==state.cross.lateBand)return false;
+      if(!options.ignoreIssue&&state.cross.issue&&!issueMatches(row,state.cross.issue))return false;
+      return true;
+    });
+  }
+  function filteredRows(options){return applyTatCrossFiltersV6510(topFilteredRows(),options);}
+  function selectedTatReportingYearV6510(){
+    const explicit=mode('year')==='CUSTOM'?Array.from(selectedSet('year')).map(Number).filter(function(year){return year===2025||year===2026;}):[];
+    if(explicit.length)return Math.max.apply(null,explicit);
+    const available=Array.from(new Set((state.rows||[]).map(function(row){return Number(row.year);}).filter(function(year){return year===2025||year===2026;}))).sort(function(a,b){return a-b;});
+    return available.length?available[available.length-1]:2026;
+  }
+  function tatRowsIgnoringYearFilterV6510(){
+    return (state.rows||[]).filter(function(row){
+      if(Number(row.year)!==2025&&Number(row.year)!==2026)return false;
+      return FILTER_TYPES.every(function(type){return type==='year'||isSelected(type,filterKey(type,row));});
+    });
+  }
+  function reportingRowsV6510(options){
+    const year=selectedTatReportingYearV6510();
+    return filteredRows(options).filter(function(row){return Number(row.year)===year;});
+  }
+  function comparisonRowsV6510(options){return applyTatCrossFiltersV6510(tatRowsIgnoringYearFilterV6510(),options);}
+  function aggregateCases(rows){
+    const map=new Map();(rows||[]).forEach(function(row){const key=String(row.caseId||row.caseNumber||'');if(!key)return;let item=map.get(key);if(!item){item={key:key,caseId:row.caseId,caseNumber:row.caseNumber,customerId:row.customerId,customerName:row.customerName,year:row.year,monthNum:row.monthNum,invoiceDate:row.invoiceDate,dateIn:row.dateIn,completionDate:row.completionDate,dueDate:row.dueDate,tatEligible:!!row.tatEligible,businessTatDays:row.businessTatDays,otpEligible:!!row.otpEligible,onTimeToPromise:row.onTimeToPromise,daysLate:num(row.daysLate),usedInvoiceDateFallback:!!row.usedInvoiceDateFallback,missingHoldEndCount:num(row.missingHoldEndCount),tatIssue:row.tatIssue||'',units:0,remakeUnits:0,departments:new Set(),products:new Set(),groups:new Set(),reasons:new Set()};map.set(key,item);}item.units+=num(row.soldUnits);item.remakeUnits+=num(row.remakeUnits);if(row.productsDepartment)item.departments.add(row.productsDepartment);if(row.productsDescription)item.products.add(row.productsDescription);if(row.productsGroup)item.groups.add(row.productsGroup);if(row.remakeReason)item.reasons.add(row.remakeReason);item.tatEligible=item.tatEligible||!!row.tatEligible;item.otpEligible=item.otpEligible||!!row.otpEligible;item.usedInvoiceDateFallback=item.usedInvoiceDateFallback||!!row.usedInvoiceDateFallback;item.missingHoldEndCount=Math.max(item.missingHoldEndCount,num(row.missingHoldEndCount));if(!item.tatIssue&&row.tatIssue)item.tatIssue=row.tatIssue;});return Array.from(map.values());
+  }
+  function metrics(rows){
+    const cases=aggregateCases(rows),eligible=cases.filter(function(row){return row.tatEligible&&Number.isFinite(Number(row.businessTatDays));}),otp=eligible.filter(function(row){return row.otpEligible;}),late=otp.filter(function(row){return num(row.daysLate)>0;});
+    return {cases:cases.length,units:cases.reduce(function(total,row){return total+num(row.units);},0),remakeUnits:cases.reduce(function(total,row){return total+num(row.remakeUnits);},0),eligibleCases:eligible.length,eligibleUnits:eligible.reduce(function(total,row){return total+num(row.units);},0),avgTat:avg(eligible.map(function(row){return row.businessTatDays;})),medianTat:median(eligible.map(function(row){return row.businessTatDays;})),otpPct:otp.length?otp.filter(function(row){return row.onTimeToPromise===true;}).length/otp.length:NaN,avgLate:late.length?avg(late.map(function(row){return row.daysLate;})):0,over31:eligible.filter(function(row){return num(row.businessTatDays)>=31;}).length,coverage:cases.length?eligible.length/cases.length:0};
+  }
+  function groupRows(rows,keyFn,labelFn){const map=new Map();(rows||[]).forEach(function(row){const key=String(keyFn(row)||'');if(!key)return;let group=map.get(key);if(!group){group={key:key,label:String(labelFn(row)||key),rows:[]};map.set(key,group);}group.rows.push(row);});return Array.from(map.values()).map(function(group){return Object.assign(group,metrics(group.rows));});}
+
+  function visibleOptions(type){const term=state.searches[type]||'';return optionList(type).filter(function(option){return !term||fuzzy(option.label+' '+option.key,term);});}
+  function renderFilter(type){
+    const button=id('tatFilterButton_'+type+'_V6509'),list=id('tatList_'+type+'_V6509'),count=id('tatCount_'+type+'_V6509'),search=id('tatSearch_'+type+'_V6509'),visible=id('tatVisible_'+type+'_V6509');if(!button||!list)return;
+    button.textContent=selectionLabel(type);button.classList.toggle('active',mode(type)!=='ALL');if(search&&search.value!==state.searches[type])search.value=state.searches[type]||'';
+    const options=visibleOptions(type);list.innerHTML=options.length?options.map(function(option){const checked=isSelected(type,option.key);return '<div class="remakeDropdownRowV6245 '+(checked?'active':'')+'" role="option" aria-selected="'+(checked?'true':'false')+'" onclick="toggleTatOptionV6509(\''+escJs(type)+'\',\''+escJs(option.key)+'\')"><input type="checkbox" '+(checked?'checked':'')+' tabindex="-1"><span class="remakeDropdownLabelV6245">'+esc(option.label)+'</span><button class="remakeDropdownOnlyV6245" type="button" onclick="event.stopPropagation();onlyTatOptionV6509(\''+escJs(type)+'\',\''+escJs(option.key)+'\')">Only</button></div>';}).join(''):'<div class="remakeDropdownEmptyV6245">No visible options.</div>';
+    const checkedCount=options.filter(function(option){return isSelected(type,option.key);}).length;if(count)count.textContent=checkedCount+' of '+options.length+' visible selected';if(visible){visible.checked=options.length>0&&checkedCount===options.length;visible.indeterminate=checkedCount>0&&checkedCount<options.length;}
+  }
+  function renderFilters(){state.distributionMode='percent';FILTER_TYPES.forEach(renderFilter);renderPills();}
+  function clearTopFilter(type){selectedSet(type).clear();setMode(type,'ALL');renderAll();}
+  function pill(label,clearCode){return '<span class="tatPillV6509 remakePillV6230">'+esc(label)+'<button type="button" aria-label="Clear '+esc(label)+'" onclick="'+clearCode+'">×</button></span>';}
+  function renderPills(){
+    const node=id('tatPillsV6509');if(!node)return;const parts=[];
+    FILTER_TYPES.forEach(function(type){if(mode(type)!=='ALL')parts.push(pill(LABELS[type]+': '+selectionLabel(type),'clearTatTopFilterV6509(\''+escJs(type)+'\')'));});
+    state.cross.months.forEach(function(value){parts.push(pill('Month: '+value,'clearTatCrossV6509(\'month\',\''+escJs(value)+'\')'));});
+    state.cross.tatBuckets.forEach(function(value){parts.push(pill('TAT: '+value+(value==='31+'?'':' days'),'clearTatCrossV6509(\'bucket\',\''+escJs(value)+'\')'));});
+    if(state.cross.lateBand)parts.push(pill('Promise: '+state.cross.lateBand,'clearTatCrossV6509(\'late\')'));
+    if(state.cross.issue)parts.push(pill('Issue: '+state.cross.issue,'clearTatCrossV6509(\'issue\')'));
+    node.innerHTML=parts.join('');node.style.display=parts.length?'flex':'none';
+  }
+  function comparison(rows){const current=selectedTatReportingYearV6510(),prior=current===2026?2025:null;return {currentYear:current,priorYear:prior,current:metrics((rows||[]).filter(function(row){return Number(row.year)===current;})),prior:prior?metrics((rows||[]).filter(function(row){return Number(row.year)===prior;})):metrics([])};}
+  function tatKpiDeltaHtmlV6528(currentValue,priorValue,priorYear,formatter,options){
+    options=options||{};
+    const prior=Number(priorValue),current=Number(currentValue);
+    if(!priorYear||!Number.isFinite(prior)||Math.abs(prior)<0.0000001||!Number.isFinite(current))return '';
+    const difference=current-prior,neutral=Math.abs(difference)<0.0000001,higherIsBad=!!options.higherIsBad;
+    const good=neutral?false:(higherIsBad?difference<0:difference>0),className=neutral?'neutral':(good?'good':'bad');
+    const sign=difference>0?'+':'';
+    const deltaText=options.rateMetric?sign+(difference*100).toFixed(1)+'%':sign+Math.round((difference/Math.abs(prior))*100)+'%';
+    return '<span class="priorV6281">'+esc(String(priorYear)+': '+formatter(prior))+'</span><span class="deltaV6281 '+className+'">'+esc(deltaText)+'</span>';
+  }
+  function setTatKpiV6528(valueId,value,subHtml,fallback){
+    const valueNode=id(valueId),subNode=id(valueId.replace('V6509','SubV6509'));
+    if(valueNode)valueNode.textContent=value;
+    if(subNode)subNode.innerHTML=subHtml||esc(fallback||'');
+  }
+  function renderKpis(){
+    const comp=comparison(comparisonRowsV6510()),cur=comp.current,prev=comp.prior;
+    const curRemakePct=cur.units?cur.remakeUnits/cur.units:NaN,prevRemakePct=prev.units?prev.remakeUnits/prev.units:NaN;
+    setTatKpiV6528('tatKpiAvgV6509',cur.eligibleCases?fmtNum(cur.avgTat,2):'-',tatKpiDeltaHtmlV6528(cur.avgTat,prev.avgTat,comp.priorYear,function(value){return fmtNum(value,2);},{higherIsBad:true}),'Eligible cases');
+    setTatKpiV6528('tatKpiOtpV6509',Number.isFinite(cur.otpPct)?fmtPct(cur.otpPct):'-',tatKpiDeltaHtmlV6528(cur.otpPct,prev.otpPct,comp.priorYear,fmtPct,{higherIsBad:false,rateMetric:true}),'Due-date eligible');
+    setTatKpiV6528('tatKpiLateV6509',fmtNum(cur.avgLate,2),tatKpiDeltaHtmlV6528(cur.avgLate,prev.avgLate,comp.priorYear,function(value){return fmtNum(value,2);},{higherIsBad:true}),'Late cases only');
+    setTatKpiV6528('tatKpi31V6509',fmtNum(cur.units,1),tatKpiDeltaHtmlV6528(cur.units,prev.units,comp.priorYear,function(value){return fmtNum(value,1);},{higherIsBad:false}),'Included units');
+    const remakeValue=id('tatKpiRemakePctV6523'),remakeSub=id('tatKpiRemakePctSubV6523');
+    if(remakeValue)remakeValue.textContent=Number.isFinite(curRemakePct)?fmtPct(curRemakePct):'-';
+    if(remakeSub)remakeSub.innerHTML=tatKpiDeltaHtmlV6528(curRemakePct,prevRemakePct,comp.priorYear,fmtPct,{higherIsBad:true,rateMetric:true})||esc('Remake units / sold units');
+  }
+  function renderCoverage(rows){
+    const m=metrics(rows),excluded=m.cases-m.eligibleCases;const setText=function(name,value){const node=id(name);if(node)node.textContent=value;};setText('tatCoverageCasesV6509',fmtNum(m.cases,0));setText('tatCoverageUnitsV6509',fmtNum(m.units,2));setText('tatCoverageEligibleV6509',fmtNum(m.eligibleCases,0));setText('tatCoveragePctV6509',fmtPct(m.coverage));setText('tatCoverageExcludedV6509',fmtNum(excluded,0));
+    const coverage=id('tatCoverageV6509'),note=id('tatCoverageNoteV6509'),qualityCoverage=id('tatQualityCoverageV6513');if(coverage)coverage.classList.toggle('warn',!state.dataQualityAvailable||excluded>0);if(note){const reportingYear=selectedTatReportingYearV6510();note.textContent=state.dataQualityAvailable?'Base totals show '+reportingYear+' only, matching Remake. '+(reportingYear===2026?'2025 is comparison-only. ':'')+'Average, median, distribution, and OTP use the eligible subset; review excluded and flagged cases below.':'This is an older TAT browser cache. Rebuild from the saved checkpoints to reconcile totals and display invalid cases.';}if(qualityCoverage){qualityCoverage.textContent=fmtNum(m.cases,0)+' cases · '+fmtNum(m.units,2)+' units · '+fmtPct(m.coverage)+' coverage · '+fmtNum(excluded,0)+' excluded';qualityCoverage.classList.toggle('warn',excluded>0);}
+  }
+  function destroyChart(name){if(state.charts[name]){try{state.charts[name].destroy();}catch(error){}delete state.charts[name];}}
+  function createChart(name,config){const canvas=id(name);if(!canvas||typeof Chart==='undefined')return null;const existing=state.charts[name];if(existing&&existing.config&&existing.config.type===config.type){existing.data=config.data;existing.options=config.options;existing.update('none');return existing;}destroyChart(name);state.charts[name]=new Chart(canvas,config);return state.charts[name];}
+  function chartDefaults(){return {responsive:true,maintainAspectRatio:false,animation:{duration:85,easing:'easeOutQuad'},transitions:{active:{animation:{duration:45,easing:'easeOutQuad'}},resize:{animation:{duration:70,easing:'easeOutQuad'}}},layout:{padding:{top:14,right:6,bottom:0,left:2}},events:['mousemove','mouseout','click','touchstart','touchmove'],interaction:{mode:'index',intersect:false},hover:{mode:'index',intersect:false,animationDuration:0},plugins:{legend:{display:false,position:'top',align:'start',labels:{boxWidth:18,boxHeight:2,color:'#475569',usePointStyle:false,font:{family:'Roboto, Arial, sans-serif',size:11,weight:'500'},padding:6}},tooltip:{enabled:true,position:'average',intersect:false,displayColors:true,caretPadding:8,backgroundColor:'rgba(17,24,39,.94)',titleColor:'#ffffff',bodyColor:'#ffffff',borderColor:'rgba(255,255,255,.14)',borderWidth:1,padding:10,cornerRadius:6,titleFont:{family:'Roboto, Arial, sans-serif',size:11,weight:'700'},bodyFont:{family:'Roboto, Arial, sans-serif',size:11,weight:'700'}}},scales:{x:{grid:{display:false},border:{display:true,color:'rgba(100,116,139,.42)',width:1.1},ticks:{color:'#334155',font:{family:'Roboto, Arial, sans-serif',size:11,weight:'700'},padding:5,maxRotation:0}},y:{beginAtZero:true,grid:{color:'rgba(148,163,184,.22)',borderDash:[2,8],lineWidth:.9,drawTicks:false},border:{display:false},ticks:{color:'#667085',font:{family:'Roboto, Arial, sans-serif',size:10},padding:6,maxTicksLimit:5}}}};}
+
+  function installTatMonthDragV6512(chart,years,monthCount){
+    if(!chart||!chart.canvas)return;
+    const canvas=chart.canvas;let dragging=false,startIndex=null,lastIndex=null,moved=false;
+    function pointerIndex(event){if(!chart.scales||!chart.scales.x)return null;const rect=canvas.getBoundingClientRect(),x=event.clientX-rect.left,index=Math.round(chart.scales.x.getValueForPixel(x));if(!Number.isFinite(index))return null;return Math.max(0,Math.min(monthCount-1,index));}
+    canvas.onpointerdown=function(event){if(event.button!==undefined&&event.button!==0)return;const index=pointerIndex(event);if(index===null)return;dragging=true;startIndex=index;lastIndex=index;moved=false;try{canvas.setPointerCapture(event.pointerId);}catch(error){}};
+    canvas.onpointermove=function(event){if(!dragging)return;const index=pointerIndex(event);if(index===null)return;if(index!==lastIndex)moved=true;lastIndex=index;};
+    canvas.onpointerup=function(event){if(!dragging)return;dragging=false;try{canvas.releasePointerCapture(event.pointerId);}catch(error){}if(!moved||startIndex===null||lastIndex===null)return;const from=Math.min(startIndex,lastIndex),to=Math.max(startIndex,lastIndex),additive=!!(event.ctrlKey||event.metaKey||event.shiftKey),next=additive?new Set(state.cross.months):new Set();years.forEach(function(year){for(let index=from;index<=to;index+=1)next.add(String(year)+'-'+String(index+1).padStart(2,'0'));});state.cross.months=next;chart.$tatSuppressNextClickV6512=true;renderAll();};
+    canvas.onpointercancel=function(){dragging=false;};
+  }
+  function renderMonthly(){
+    const rows=comparisonRowsV6510({ignoreMonth:true}),currentYear=selectedTatReportingYearV6510(),priorYear=currentYear===2026?2025:null,years=priorYear?[priorYear,currentYear]:[currentYear],baseMonthNames=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const currentEligible=aggregateCases(rows.filter(function(row){return Number(row.year)===currentYear;})).filter(function(row){return row.tatEligible&&Number.isFinite(Number(row.businessTatDays));});
+    const priorEligible=priorYear?aggregateCases(rows.filter(function(row){return Number(row.year)===priorYear;})).filter(function(row){return row.tatEligible&&Number.isFinite(Number(row.businessTatDays));}):[];
+    let latestMonth=currentEligible.reduce(function(max,row){return Math.max(max,Number(row.monthNum)||0);},0);
+    if(!latestMonth)latestMonth=priorEligible.reduce(function(max,row){return Math.max(max,Number(row.monthNum)||0);},0);
+    latestMonth=Math.max(1,Math.min(12,latestMonth||1));
+    const labels=baseMonthNames.slice(0,latestMonth),selectedIndexes=new Set();
+    labels.forEach(function(_,index){const mm=String(index+1).padStart(2,'0');if(years.some(function(year){return state.cross.months.has(String(year)+'-'+mm);}))selectedIndexes.add(index);});
+    const hasSelection=selectedIndexes.size>0,orange='#f59e0b',mutedPoint='rgba(100,116,139,.58)',mutedLine='rgba(100,116,139,.54)';
+    const palette={current:{border:'#2563eb'},prior:{border:'#8da2bd'}};
+    const datasets=years.map(function(year){
+      const isCurrent=Number(year)===Number(currentYear),color=isCurrent?palette.current:palette.prior,monthKeys=labels.map(function(_,index){return String(year)+'-'+String(index+1).padStart(2,'0');});
+      const values=monthKeys.map(function(key,index){const monthRows=rows.filter(function(row){return Number(row.year)===Number(year)&&Number(row.monthNum)===index+1;}),eligible=aggregateCases(monthRows).filter(function(row){return row.tatEligible&&Number.isFinite(Number(row.businessTatDays));});return eligible.length?Number(avg(eligible.map(function(row){return row.businessTatDays;})).toFixed(2)):null;});
+      const pointBackground=monthKeys.map(function(_,index){if(!hasSelection)return color.border;return selectedIndexes.has(index)?orange:mutedPoint;});
+      const pointRadius=monthKeys.map(function(_,index){if(!hasSelection)return isCurrent?2.8:2.2;return selectedIndexes.has(index)?(isCurrent?5.2:4.2):(isCurrent?2:1.5);});
+      const pointHoverRadius=monthKeys.map(function(_,index){return hasSelection&&selectedIndexes.has(index)?6.4:(isCurrent?4.4:3.6);});
+      return {label:String(year),monthKeys:monthKeys,data:values,borderColor:color.border,backgroundColor:'transparent',fill:false,tension:.38,borderWidth:isCurrent?3.4:2.2,borderDash:isCurrent?[]:[7,5],segment:hasSelection?{borderColor:function(context){const p0=Number(context.p0DataIndex),p1=Number(context.p1DataIndex);return selectedIndexes.has(p0)&&selectedIndexes.has(p1)?color.border:mutedLine;}}:undefined,pointRadius:pointRadius,pointHoverRadius:pointHoverRadius,pointHitRadius:18,pointBackgroundColor:pointBackground,pointBorderColor:'#fff',pointBorderWidth:2,spanGaps:false};
+    });
+    const options=chartDefaults();
+    options.plugins.executiveValueLabels={display:true,barLabelPlacement:'above'};
+    options.plugins.revenueGapBand={display:years.length>=2,currentYear:currentYear,priorYear:priorYear,higherIsBad:true,selectedMonthIndexesV6407:Array.from(selectedIndexes)};
+    options.plugins.revenueTrendCallouts={display:years.length>=2,currentYear:currentYear,priorYear:priorYear,higherIsBad:true,deltaAsPoints:false,selectedMonthIndexesV6407:Array.from(selectedIndexes)};
+    options.plugins.legend={display:true,position:'top',align:'start',labels:{boxWidth:18,boxHeight:2,color:'#475569',usePointStyle:false,font:{family:'Roboto, Arial, sans-serif',size:11,weight:'500'},padding:6}};
+    options.plugins.tooltip={enabled:true,position:'average',intersect:false,displayColors:true,caretPadding:8,backgroundColor:'rgba(17,24,39,.94)',titleColor:'#fff',bodyColor:'#fff',borderColor:'rgba(255,255,255,.14)',borderWidth:1,padding:10,callbacks:{title:function(items){if(!items||!items.length)return '';const item=items[0],dataset=item.dataset||{},key=dataset.monthKeys&&dataset.monthKeys[item.dataIndex];return key?labels[item.dataIndex]+' '+String(key).slice(0,4):String(item.label||'');},label:function(context){return String(context.dataset.label)+': '+fmtNum(context.raw,2)+' business days';},footer:function(items){if(!items||items.length<2)return '';const current=items.find(function(item){return Number(item.dataset&&item.dataset.label)===Number(currentYear);}),prior=items.find(function(item){return Number(item.dataset&&item.dataset.label)===Number(priorYear);});if(!current||!prior||!Number.isFinite(Number(current.raw))||!Number.isFinite(Number(prior.raw)))return '';const difference=Number(current.raw)-Number(prior.raw);return 'Change: '+(difference>0?'+':'')+fmtNum(difference,2)+' days';}}};
+    options.interaction={mode:'index',intersect:false};options.hover={mode:'index',intersect:false,animationDuration:0};
+    options.scales.x.ticks={color:'#334155',font:{family:'Roboto, Arial, sans-serif',size:11,weight:'700'},padding:5,maxRotation:0,autoSkip:false};
+    options.scales.y.title={display:true,text:'Business days',color:'#202124',font:{family:'Roboto, Arial, sans-serif',size:11,weight:'700'},padding:{bottom:0}};options.scales.y.afterFit=function(scale){scale.width+=16;};
+    options.onClick=function(event,elements,chart){if(chart&&chart.$tatSuppressNextClickV6512){chart.$tatSuppressNextClickV6512=false;return;}const points=elements&&elements.length?elements:chart.getElementsAtEventForMode(event,'nearest',{intersect:false,axis:'x'},true);if(!points||!points.length)return;const point=points[0],dataset=chart.data.datasets[point.datasetIndex],key=dataset&&dataset.monthKeys&&dataset.monthKeys[point.index];if(!key)return;if(state.cross.months.has(key))state.cross.months.delete(key);else state.cross.months.add(key);renderAll();};
+    const chart=createChart('tatMonthlyChartV6509',{type:'line',data:{labels:labels,datasets:datasets},options:options});installTatMonthDragV6512(chart,years,latestMonth);
+  }
+  function renderDistribution(){
+    const rows=reportingRowsV6510({ignoreBucket:true}),cases=aggregateCases(rows).filter(function(row){return row.tatEligible&&Number.isFinite(Number(row.businessTatDays));}),allCounts=Array.from({length:32},function(){return 0;});
+    cases.forEach(function(row){allCounts[Math.min(31,Math.max(0,Math.round(num(row.businessTatDays))))]+=1;});
+    let lastRegular=0;for(let index=30;index>=0;index-=1){if(allCounts[index]>0){lastRegular=index;break;}}
+    const labels=Array.from({length:lastRegular+1},function(_,index){return String(index);}),counts=allCounts.slice(0,lastRegular+1);if(allCounts[31]>0){labels.push('31+');counts.push(allCounts[31]);}
+    let values=counts.slice();if(state.distributionMode==='percent')values=counts.map(function(value){return cases.length?value/cases.length*100:0;});if(state.distributionMode==='cumulative'){let running=0;values=counts.map(function(value){running+=value;return cases.length?running/cases.length*100:0;});}
+    const sub=id('tatDistributionSubV6509');if(sub)sub.textContent=state.distributionMode==='cases'?'Eligible case count by business-day bucket':state.distributionMode==='cumulative'?'Cumulative share completed by each business-day bucket':'Percent of eligible cases by business-day bucket';
+    const cumulative=state.distributionMode==='cumulative',hasSelection=state.cross.tatBuckets.size>0;
+    const dataset={label:cumulative?'Cumulative completion':'Eligible cases',data:values,borderColor:cumulative?'#2563eb':function(context){const label=labels[context.dataIndex];if(state.cross.tatBuckets.has(label))return '#d97706';if(hasSelection)return 'rgba(148,163,184,.34)';return '#2f6fe4';},backgroundColor:cumulative?'transparent':function(context){const label=labels[context.dataIndex];if(state.cross.tatBuckets.has(label))return 'rgba(245,158,11,.78)';if(hasSelection)return 'rgba(148,163,184,.18)';return '#4285f4';},borderWidth:cumulative?3.4:1.2,borderDash:[],fill:false,borderRadius:0,borderSkipped:false,tension:cumulative?.38:0,pointRadius:cumulative?2.8:undefined,pointHoverRadius:cumulative?4.4:undefined,pointHitRadius:cumulative?18:undefined,pointBackgroundColor:cumulative?'#2563eb':undefined,pointBorderColor:'#fff',pointBorderWidth:cumulative?2:0,maxBarThickness:cumulative?undefined:34,categoryPercentage:cumulative?undefined:.72,barPercentage:cumulative?undefined:.82};
+    const options=chartDefaults();options.interaction={mode:'index',intersect:false};options.hover={mode:'index',intersect:false,animationDuration:0};
+    options.plugins.executiveValueLabels={display:!cumulative,barLabelPlacement:'insideTop'};
+    options.plugins.tooltip={enabled:true,position:'average',intersect:false,displayColors:true,caretPadding:8,backgroundColor:'rgba(17,24,39,.94)',titleColor:'#fff',bodyColor:'#fff',borderColor:'rgba(255,255,255,.14)',borderWidth:1,padding:10,callbacks:{title:function(items){return items&&items.length?(String(items[0].label)==='31+'?'31+ business days':String(items[0].label)+' business days'):'';},label:function(context){if(state.distributionMode==='cases')return fmtNum(context.raw,0)+' cases';return fmtNum(context.raw,1)+'%';}}};
+    options.scales.x.ticks={color:'#334155',font:{family:'Roboto, Arial, sans-serif',size:11,weight:'700'},padding:5,maxRotation:0,autoSkip:labels.length>18,maxTicksLimit:18};
+    options.scales.x.title={display:true,text:'Business TAT days',color:'#202124',font:{family:'Roboto, Arial, sans-serif',size:11,weight:'700'}};
+    options.scales.y.ticks.callback=function(value){return state.distributionMode==='cases'?fmtNum(value,0):fmtNum(value,0)+'%';};options.scales.y.title={display:true,text:state.distributionMode==='cases'?'Cases':'Percent of cases',color:'#202124',font:{family:'Roboto, Arial, sans-serif',size:11,weight:'700'}};options.scales.y.afterFit=function(scale){scale.width+=16;};
+    options.onClick=function(event,elements,chart){const points=elements&&elements.length?elements:chart.getElementsAtEventForMode(event,'nearest',{intersect:false,axis:'x'},true);if(!points||!points.length)return;const label=labels[points[0].index];if(state.cross.tatBuckets.has(label))state.cross.tatBuckets.delete(label);else state.cross.tatBuckets.add(label);renderAll();};
+    createChart('tatDistributionChartV6509',{type:cumulative?'line':'bar',data:{labels:labels,datasets:[dataset]},options:options});
+  }
+  function tatDepartmentDisplayV6523(value){return String(value||'Unassigned')==='Unassigned'?'Needs product mapping':String(value||'');}
+  function tatProductGroupsV6523(rows){
+    return groupRows(rows,function(row){return String(row.productId||row.productsDescription||'Unknown product')+'||'+String(row.productsDescription||'');},function(row){const idValue=String(row.productId||'').trim(),name=String(row.productsDescription||'Unknown product').trim();return idValue&&name?idValue+' - '+name:(name||idValue||'Unknown product');}).sort(function(a,b){return b.units-a.units||a.label.localeCompare(b.label,undefined,{numeric:true,sensitivity:'base'});});
+  }
+  function tatMetricCellsV6523(group){const remakePct=group.units?group.remakeUnits/group.units:NaN;return '<td class="num">'+fmtNum(group.units,1)+'</td><td class="num">'+fmtNum(group.remakeUnits,1)+'</td><td class="num">'+(Number.isFinite(remakePct)?fmtPct(remakePct):'-')+'</td><td class="num">'+(group.eligibleCases?fmtNum(group.avgTat,2):'-')+'</td><td class="num">'+(Number.isFinite(group.otpPct)?fmtPct(group.otpPct):'-')+'</td><td class="num">'+fmtNum(group.avgLate,2)+'</td>';}
+  function renderDepartmentTable(){
+    const rows=reportingRowsV6510(),groups=groupRows(rows,function(row){return row.productsDepartment||'Unassigned';},function(row){return tatDepartmentDisplayV6523(row.productsDepartment||'Unassigned');}).sort(function(a,b){if(a.key==='Unassigned')return 1;if(b.key==='Unassigned')return -1;return b.units-a.units;}),body=id('tatDepartmentTableV6509');if(!body)return;
+    const exclusive=mode('department')==='CUSTOM'&&selectedSet('department').size===1?Array.from(selectedSet('department'))[0]:'';
+    const html=[];
+    groups.forEach(function(group){const selected=exclusive===group.key;html.push('<tr class="clickable '+(selected?'selected selectedV6230':'')+'" onclick="onlyTatOptionV6509(\'department\',\''+escJs(group.key)+'\',event)"><td>'+esc(group.label)+'</td>'+tatMetricCellsV6523(group)+'</tr>');if(selected){tatProductGroupsV6523(group.rows).slice(0,100).forEach(function(product){html.push('<tr class="tatProductDetailRowV6523"><td><span class="tatProductIndentV6523">&rarr;</span>'+esc(product.label)+'</td>'+tatMetricCellsV6523(product)+'</tr>');});}});
+    body.innerHTML=html.length?html.join(''):'<tr><td colspan="7" class="tatEmptyV6509">No departments match the filters.</td></tr>';
+  }
+  const LATE_BANDS=[{label:'On time',test:function(days){return days<=0;}},{label:'1-2 days late',test:function(days){return days>=1&&days<=2;}},{label:'3-5 days late',test:function(days){return days>=3&&days<=5;}},{label:'6-10 days late',test:function(days){return days>=6&&days<=10;}},{label:'11-30 days late',test:function(days){return days>=11&&days<=30;}},{label:'31+ days late',test:function(days){return days>=31;}}];
+  function renderLateTable(){
+    const cases=aggregateCases(reportingRowsV6510({ignoreLate:true})).filter(function(row){return row.otpEligible;}),body=id('tatLateTableV6509');if(!body)return;
+    body.innerHTML=cases.length?LATE_BANDS.map(function(band){const count=cases.filter(function(row){return band.test(num(row.daysLate));}).length;return '<tr class="clickable '+(state.cross.lateBand===band.label?'selected selectedV6230':'')+'" onclick="selectTatLateBandV6509(\''+escJs(band.label)+'\')"><td>'+esc(band.label)+'</td><td class="num">'+fmtNum(count,0)+'</td><td class="num">'+fmtPct(count/cases.length)+'</td></tr>';}).join(''):'<tr><td colspan="3" class="tatEmptyV6509">No due-date eligible cases match the filters.</td></tr>';
+  }
+  function renderCustomerTable(){
+    const groups=groupRows(reportingRowsV6510(),function(row){return String(row.customerId||row.customerName||'Unknown');},function(row){return row.customerName||row.customerId||'Unknown customer';}).sort(function(a,b){return b.units-a.units;}).slice(0,500),body=id('tatCustomerTableV6509');if(!body)return;
+    const exclusive=mode('customer')==='CUSTOM'&&selectedSet('customer').size===1?Array.from(selectedSet('customer'))[0]:'';
+    body.innerHTML=groups.length?groups.map(function(group){const selected=exclusive===group.key,remakePct=group.units?group.remakeUnits/group.units:NaN;return '<tr class="clickable '+(selected?'selected selectedV6230':'')+'" onclick="onlyTatOptionV6509(\'customer\',\''+escJs(group.key)+'\',event)"><td>'+esc(group.label)+'</td><td class="num">'+fmtNum(group.cases,0)+'</td><td class="num">'+fmtNum(group.units,1)+'</td><td class="num">'+fmtNum(group.remakeUnits,1)+'</td><td class="num">'+(Number.isFinite(remakePct)?fmtPct(remakePct):'-')+'</td><td class="num">'+(group.eligibleCases?fmtNum(group.avgTat,2):'-')+'</td><td class="num">'+(Number.isFinite(group.otpPct)?fmtPct(group.otpPct):'-')+'</td><td class="num">'+fmtNum(group.avgLate,2)+'</td></tr>';}).join(''):'<tr><td colspan="8" class="tatEmptyV6509">No customers match the filters.</td></tr>';
+  }
+  function qualityIssueForCase(row){if(row.tatIssue)return row.tatIssue;if(row.tatEligible&&!row.otpEligible)return 'Missing due date';if(row.missingHoldEndCount>0)return 'Missing hold end';if(row.usedInvoiceDateFallback)return 'Invoice date fallback';return '';}
+  function issueCases(rows,issue){return aggregateCases(rows).filter(function(row){if(issue==='Missing Date In')return row.tatIssue==='Missing Date In';if(issue==='Completion date is before Date In')return row.tatIssue==='Completion date is before Date In';if(issue==='Missing due date')return row.tatEligible&&!row.otpEligible;if(issue==='Missing hold end')return row.missingHoldEndCount>0;if(issue==='Invoice date fallback')return row.usedInvoiceDateFallback;return false;});}
+  function renderQuality(){
+    const contextRows=reportingRowsV6510({ignoreIssue:true}),summary=id('tatIssueSummaryV6509'),body=id('tatQualityTableV6509');if(!summary||!body)return;
+    if(!state.dataQualityAvailable){summary.innerHTML='<div class="tatEmptyV6509" style="grid-column:1/-1">Run the v3 checkpoint rebuild to load excluded and review-needed cases.</div>';body.innerHTML='<tr><td colspan="10" class="tatEmptyV6509">Data-quality details are not present in the current browser cache.</td></tr>';return;}
+    summary.innerHTML=QUALITY_ISSUES.map(function(issue){const count=issueCases(contextRows,issue).length;return '<button class="tatIssueButtonV6509 '+(state.cross.issue===issue?'active':'')+'" type="button" onclick="selectTatIssueV6509(\''+escJs(issue)+'\')"><span>'+esc(issue)+'</span><strong>'+fmtNum(count,0)+'</strong></button>';}).join('');
+    let cases=[];if(state.cross.issue)cases=issueCases(contextRows,state.cross.issue);else{const map=new Map();QUALITY_ISSUES.forEach(function(issue){issueCases(contextRows,issue).forEach(function(row){const key=row.key+'||'+issue;if(!map.has(key))map.set(key,Object.assign({},row,{displayIssue:issue}));});});cases=Array.from(map.values());}
+    cases.sort(function(a,b){return String(b.invoiceDate||'').localeCompare(String(a.invoiceDate||''))||String(a.caseNumber||'').localeCompare(String(b.caseNumber||''),undefined,{numeric:true});});
+    body.innerHTML=cases.length?cases.slice(0,1000).map(function(row){const issue=row.displayIssue||state.cross.issue||qualityIssueForCase(row);return '<tr class="clickable" onclick="onlyTatOptionV6509(\'customer\',\''+escJs(String(row.customerId||row.customerName||''))+'\')"><td>'+esc(issue)+'</td><td>'+esc(row.caseNumber||row.caseId)+'</td><td>'+esc(row.customerName||row.customerId||'Unknown')+'</td><td>'+esc(Array.from(row.departments||[]).join(', '))+'</td><td>'+esc(row.invoiceDate||'')+'</td><td>'+esc(row.dateIn||'')+'</td><td>'+esc(row.completionDate||'')+'</td><td class="num">'+(row.tatEligible?fmtNum(row.businessTatDays,0):'-')+'</td><td class="num">'+fmtNum(row.units,2)+'</td><td class="num">'+fmtNum(row.remakeUnits,2)+'</td></tr>';}).join(''):'<tr><td colspan="10" class="tatEmptyV6509">No cases match this quality selection.</td></tr>';
+  }
+
+  const TAT_KPI_STORAGE_KEY_V6528='cdaTatKpiVisibility.v6528';
+  const TAT_KPI_DEFS_V6528=[
+    {key:'avgTat',valueId:'tatKpiAvgV6509',label:'Average TAT'},
+    {key:'otp',valueId:'tatKpiOtpV6509',label:'On Time to Promise'},
+    {key:'avgLate',valueId:'tatKpiLateV6509',label:'Average Days Late'},
+    {key:'soldUnits',valueId:'tatKpi31V6509',label:'Sold Units'},
+    {key:'remakePct',valueId:'tatKpiRemakePctV6523',label:'Remake %'}
+  ];
+  let tatKpiPopoverV6528=null;
+  function allTatKpiKeysV6528(){return TAT_KPI_DEFS_V6528.map(function(def){return def.key;});}
+  function readTatKpiVisibilityV6528(){
+    try{
+      const saved=JSON.parse(localStorage.getItem(TAT_KPI_STORAGE_KEY_V6528)||'null');
+      if(saved&&Array.isArray(saved.visible)){
+        const allowed=new Set(allTatKpiKeysV6528());
+        return new Set(saved.visible.filter(function(key){return allowed.has(key);}));
+      }
+    }catch(error){}
+    return new Set(allTatKpiKeysV6528());
+  }
+  function writeTatKpiVisibilityV6528(visible){try{localStorage.setItem(TAT_KPI_STORAGE_KEY_V6528,JSON.stringify({visible:Array.from(visible||[])}));}catch(error){}}
+  function closeTatKpiChooserV6528(){
+    if(tatKpiPopoverV6528&&tatKpiPopoverV6528.parentNode)tatKpiPopoverV6528.parentNode.removeChild(tatKpiPopoverV6528);
+    tatKpiPopoverV6528=null;
+    const button=id('tatKpiChooserButtonV6528');if(button)button.setAttribute('aria-expanded','false');
+  }
+  function positionTatKpiChooserV6528(){
+    const button=id('tatKpiChooserButtonV6528');if(!button||!tatKpiPopoverV6528)return;
+    const rect=button.getBoundingClientRect(),width=Math.min(238,Math.max(180,window.innerWidth-20));
+    tatKpiPopoverV6528.style.width=width+'px';
+    tatKpiPopoverV6528.style.left=Math.max(10,Math.min(window.innerWidth-width-10,rect.right-width))+'px';
+    const estimatedHeight=Math.min(330,window.innerHeight-20),below=rect.bottom+6;
+    tatKpiPopoverV6528.style.top=(below+estimatedHeight<=window.innerHeight-10?below:Math.max(10,rect.top-estimatedHeight-6))+'px';
+  }
+  function applyTatKpiVisibilityV6528(){
+    const strip=id('tatDashboardPageV6509')&&id('tatDashboardPageV6509').querySelector('.tatKpisV6509');if(!strip)return;
+    const visible=readTatKpiVisibilityV6528();let visibleCount=0;
+    TAT_KPI_DEFS_V6528.forEach(function(def){
+      const value=id(def.valueId),card=value&&value.closest?value.closest('.tatKpiV6509'):null;if(!card)return;
+      const show=visible.has(def.key);card.classList.toggle('remakeKpiHiddenV6403',!show);card.setAttribute('aria-hidden',show?'false':'true');if(show)visibleCount+=1;
+    });
+    strip.classList.toggle('remakeKpisAllHiddenV6403',visibleCount===0);
+    applyTatKpiSpacingV6513();
+    const button=id('tatKpiChooserButtonV6528');if(button){
+      const hiddenCount=TAT_KPI_DEFS_V6528.length-visibleCount;
+      button.classList.toggle('hasHiddenKpisV6403',hiddenCount>0);
+      const label=hiddenCount>0?'Choose KPI cards. '+hiddenCount+' KPI'+(hiddenCount===1?'':'s')+' hidden.':'Choose KPI cards';
+      button.title=label;button.setAttribute('aria-label',label);
+    }
+  }
+  function renderTatKpiChooserV6528(){
+    if(!tatKpiPopoverV6528)return;
+    const visible=readTatKpiVisibilityV6528();
+    const options=TAT_KPI_DEFS_V6528.map(function(def){return '<label class="remakeKpiChooserOptionV6403"><input type="checkbox" data-tat-kpi-choice-v6528="'+def.key+'"'+(visible.has(def.key)?' checked':'')+'><span>'+esc(def.label)+'</span></label>';}).join('');
+    tatKpiPopoverV6528.innerHTML='<div class="remakeKpiChooserHeaderV6403"><div class="remakeKpiChooserTitleV6403">KPI cards</div><button type="button" class="remakeKpiChooserCloseV6403" aria-label="Close">×</button></div><div class="remakeKpiChooserOptionsV6403">'+options+'</div><div class="remakeKpiChooserFooterV6403"><button type="button" data-tat-kpi-action-v6528="hide">Hide all</button><button type="button" data-tat-kpi-action-v6528="show">Show all</button></div>';
+    tatKpiPopoverV6528.querySelector('.remakeKpiChooserCloseV6403').addEventListener('click',closeTatKpiChooserV6528);
+    tatKpiPopoverV6528.querySelectorAll('[data-tat-kpi-choice-v6528]').forEach(function(input){input.addEventListener('change',function(){const next=readTatKpiVisibilityV6528(),key=input.getAttribute('data-tat-kpi-choice-v6528');if(input.checked)next.add(key);else next.delete(key);writeTatKpiVisibilityV6528(next);applyTatKpiVisibilityV6528();});});
+    tatKpiPopoverV6528.querySelector('[data-tat-kpi-action-v6528="hide"]').addEventListener('click',function(){writeTatKpiVisibilityV6528(new Set());applyTatKpiVisibilityV6528();renderTatKpiChooserV6528();});
+    tatKpiPopoverV6528.querySelector('[data-tat-kpi-action-v6528="show"]').addEventListener('click',function(){writeTatKpiVisibilityV6528(new Set(allTatKpiKeysV6528()));applyTatKpiVisibilityV6528();renderTatKpiChooserV6528();});
+  }
+  function toggleTatKpiChooserV6528(event){
+    if(event){event.preventDefault();event.stopPropagation();}
+    if(tatKpiPopoverV6528){closeTatKpiChooserV6528();return;}
+    const button=id('tatKpiChooserButtonV6528');if(!button)return;
+    tatKpiPopoverV6528=document.createElement('div');tatKpiPopoverV6528.className='remakeKpiChooserPopoverV6403';tatKpiPopoverV6528.setAttribute('role','dialog');tatKpiPopoverV6528.setAttribute('aria-label','Choose KPI cards');document.body.appendChild(tatKpiPopoverV6528);button.setAttribute('aria-expanded','true');renderTatKpiChooserV6528();positionTatKpiChooserV6528();
+  }
+  function bindTatKpiChooserV6528(){const button=id('tatKpiChooserButtonV6528');if(button&&!button.dataset.boundV6528){button.dataset.boundV6528='true';button.addEventListener('click',toggleTatKpiChooserV6528);}applyTatKpiVisibilityV6528();}
+
+  function applyTatKpiSpacingV6513(){
+    const strip=id('tatDashboardPageV6509')&&id('tatDashboardPageV6509').querySelector('.tatKpisV6509');
+    if(!strip)return;
+    const cards=Array.from(strip.querySelectorAll('.tatKpiV6509')).filter(function(card){return card&&getComputedStyle(card).display!=='none';});
+    const count=Math.max(1,cards.length||1),desktop=window.innerWidth>=1280;
+    if(!desktop){strip.style.removeProperty('grid-template-columns');strip.style.removeProperty('max-width');strip.style.removeProperty('width');strip.style.removeProperty('margin-left');strip.style.removeProperty('margin-right');return;}
+    const gap=12,available=Math.max(320,(strip.parentElement&&strip.parentElement.clientWidth)||strip.clientWidth||window.innerWidth),comfortableCardWidth=Math.max(160,Math.min(220,Math.floor((available-((count-1)*gap)-24)/count))),centeredWidth=Math.min(available,(count*comfortableCardWidth)+((count-1)*gap)+24);
+    strip.style.setProperty('grid-template-columns','repeat('+count+', minmax(0, 1fr))','important');
+    strip.style.setProperty('max-width',centeredWidth+'px','important');
+    strip.style.setProperty('width','100%','important');
+    strip.style.setProperty('margin-left','auto','important');
+    strip.style.setProperty('margin-right','auto','important');
+  }
+  function renderAll(){
+    applyTatProductGroupsV6525(state.rows);
+    migrateTatProductGroupStateV6525();
+    renderFilters();const rows=reportingRowsV6510();renderKpis();renderCoverage(rows);renderMonthly();renderDepartmentTable();renderDistribution();renderLateTable();renderCustomerTable();renderQuality();applyTatKpiVisibilityV6528();applyCollapsedState();saveViewState();const stamp=id('tatStampV6509');if(stamp&&!state.loading)stamp.textContent=state.meta&&state.meta.generatedAtDisplay?state.meta.generatedAtDisplay:(state.loaded?'TAT cache loaded':'TAT cache not loaded');
+  }
+
+  function closeDropdowns(){FILTER_TYPES.forEach(function(type){const panel=id('tatFilterPanel_'+type+'_V6509'),button=id('tatFilterButton_'+type+'_V6509');if(panel)panel.classList.remove('open');if(button){button.setAttribute('aria-expanded','false');button.classList.remove('active');if(mode(type)!=='ALL')button.classList.add('active');}});}
+  function positionPanel(button,panel,width){
+    if(!button||!panel)return;
+    const rect=button.getBoundingClientRect();
+    const viewportWidth=Math.max(320,document.documentElement.clientWidth||window.innerWidth||320);
+    const viewportHeight=Math.max(320,document.documentElement.clientHeight||window.innerHeight||320);
+    const desired=Math.max(280,Math.min(width||360,viewportWidth-16));
+    const left=Math.max(8,Math.min(rect.left,viewportWidth-desired-8));
+    const below=Math.max(0,viewportHeight-rect.bottom-8);
+    const above=Math.max(0,rect.top-8);
+    const openBelow=below>=Math.min(360,panel.scrollHeight||360)||below>=above;
+    panel.style.setProperty('position','fixed','important');
+    panel.style.setProperty('width',desired+'px','important');
+    panel.style.setProperty('left',left+'px','important');
+    panel.style.setProperty('right','auto','important');
+    if(openBelow){
+      panel.style.setProperty('top',(rect.bottom+5)+'px','important');
+      panel.style.setProperty('bottom','auto','important');
+      panel.style.setProperty('max-height',Math.max(210,Math.min(430,below))+'px','important');
+    }else{
+      panel.style.setProperty('top','auto','important');
+      panel.style.setProperty('bottom',(viewportHeight-rect.top+5)+'px','important');
+      panel.style.setProperty('max-height',Math.max(210,Math.min(430,above))+'px','important');
+    }
+  }
+  window.toggleTatDropdownV6509=function(type,event){if(event){event.preventDefault();event.stopPropagation();}const eventType=event&&event.currentTarget&&event.currentTarget.dataset?event.currentTarget.dataset.tatFilterType:'';const resolved=FILTER_TYPES.indexOf(eventType)>=0?eventType:type;if(FILTER_TYPES.indexOf(resolved)<0)return false;closeTatFloatingPanelsV6509();const panel=id('tatFilterPanel_'+resolved+'_V6509'),button=id('tatFilterButton_'+resolved+'_V6509'),wasOpen=panel&&panel.classList.contains('open');closeDropdowns();if(!wasOpen&&panel&&button){panel.dataset.tatFilterType=resolved;panel.classList.add('open');button.classList.add('active');button.setAttribute('aria-expanded','true');renderFilter(resolved);positionPanel(button,panel,resolved==='year'?300:380);}return false;};
+  window.searchTatFilterV6509=function(type,value){state.searches[type]=value||'';renderFilter(type);const panel=id('tatFilterPanel_'+type+'_V6509'),button=id('tatFilterButton_'+type+'_V6509');if(panel&&panel.classList.contains('open'))positionPanel(button,panel,type==='year'?300:380);};
+  window.toggleTatOptionV6509=function(type,key){ensureCustom(type);const set=selectedSet(type);if(set.has(String(key)))set.delete(String(key));else set.add(String(key));normalizeMode(type);renderAll();renderFilter(type);};
+  window.onlyTatOptionV6509=function(type,key,event){const normalized=String(key||'');if(!normalized||FILTER_TYPES.indexOf(type)<0)return;if(event){event.preventDefault();event.stopPropagation();}const set=selectedSet(type),alreadyExclusive=mode(type)==='CUSTOM'&&set.size===1&&set.has(normalized);if(alreadyExclusive){set.clear();setMode(type,'ALL');}else{set.clear();set.add(normalized);setMode(type,'CUSTOM');}closeDropdowns();window.requestAnimationFrame(renderAll);};
+  window.toggleTatVisibleV6509=function(type,checked){const options=visibleOptions(type);ensureCustom(type);const set=selectedSet(type);options.forEach(function(option){if(checked)set.add(option.key);else set.delete(option.key);});normalizeMode(type);renderAll();renderFilter(type);};
+  window.resetTatFilterV6509=function(type){selectedSet(type).clear();setMode(type,'ALL');state.searches[type]='';closeDropdowns();renderAll();};
+  window.noneTatFilterV6509=function(type){selectedSet(type).clear();setMode(type,'CUSTOM');renderAll();renderFilter(type);};
+  window.clearTatTopFilterV6509=function(type){clearTopFilter(type);};
+  window.clearTatCrossV6509=function(type,value){if(type==='month')state.cross.months.delete(value);if(type==='bucket')state.cross.tatBuckets.delete(value);if(type==='late')state.cross.lateBand='';if(type==='issue')state.cross.issue='';renderAll();};
+  window.selectTatLateBandV6509=function(value){state.cross.lateBand=state.cross.lateBand===value?'':value;renderAll();};
+  window.selectTatIssueV6509=function(value){state.cross.issue=state.cross.issue===value?'':value;renderAll();};
+  window.resetTatAllV6509=function(event){if(event){event.preventDefault();event.stopPropagation();}FILTER_TYPES.forEach(function(type){selectedSet(type).clear();setMode(type,'ALL');state.searches[type]='';});state.cross.months.clear();state.cross.tatBuckets.clear();state.cross.lateBand='';state.cross.issue='';closeDropdowns();closeTatFloatingPanelsV6509();renderAll();};
+  window.setTatDistributionModeV6509=function(){state.distributionMode='percent';renderAll();closeTatFloatingPanelsV6509();};
+  window.toggleTatSectionV6509=function(section){if(section!=='customers'&&section!=='quality')return;state.collapsed[section]=!state.collapsed[section];applyCollapsedState();saveViewState();};
+
+  function closeTatFloatingPanelsV6509(){['tatGlobalSearchPanelV6509','tatSettingsPanelV6509'].forEach(function(name){const panel=id(name);if(panel)panel.classList.remove('open');});['tatTabSearchProxyV6509','tatSettingsButtonV6509'].forEach(function(name){const button=id(name);if(button)button.setAttribute('aria-expanded','false');});}
+  window.closeTatFloatingPanelsV6509=closeTatFloatingPanelsV6509;
+  function toggleFloating(buttonId,panelId,event){if(event){event.preventDefault();event.stopPropagation();}closeDropdowns();const button=id(buttonId),panel=id(panelId),wasOpen=panel&&panel.classList.contains('open');closeTatFloatingPanelsV6509();if(!wasOpen&&button&&panel){panel.classList.add('open');button.setAttribute('aria-expanded','true');positionPanel(button,panel,430);}}
+  window.toggleTatGlobalSearchV6509=function(event){toggleFloating('tatTabSearchProxyV6509','tatGlobalSearchPanelV6509',event);window.setTimeout(function(){const input=id('tatGlobalSearchInputV6509');if(input)input.focus();renderTatGlobalSearchV6509(input&&input.value||'');},0);};
+  window.toggleTatSettingsV6509=function(event){toggleFloating('tatSettingsButtonV6509','tatSettingsPanelV6509',event);renderFilters();};
+  window.renderTatGlobalSearchV6509=function(value){const host=id('tatGlobalSearchResultsV6509');if(!host)return;const term=String(value||'').trim();if(!term){host.innerHTML='<div class="remakeDropdownEmptyV6245">Type to search departments, products, groups, customers, and reasons.</div>';return;}const results=[];['department','product','productGroup','customer','reason'].forEach(function(type){optionList(type).forEach(function(option){if(results.length<75&&fuzzy(option.label+' '+option.key,term))results.push({type:type,key:option.key,label:option.label});});});host.innerHTML=results.length?results.map(function(item){return '<div class="tatGlobalResultV6509" onclick="selectTatGlobalOptionV6509(\''+escJs(item.type)+'\',\''+escJs(item.key)+'\')"><span class="type">'+esc(LABELS[item.type])+'</span><span class="label">'+esc(item.label)+'</span><span>+</span></div>';}).join(''):'<div class="remakeDropdownEmptyV6245">No matching filters.</div>';};
+  window.selectTatGlobalOptionV6509=function(type,key){ensureCustom(type);selectedSet(type).add(String(key));normalizeMode(type);renderAll();const input=id('tatGlobalSearchInputV6509');renderTatGlobalSearchV6509(input&&input.value||'');};
+
+  function csvEscape(value){const text=String(value==null?'':value);return /[",\n]/.test(text)?'"'+text.replace(/"/g,'""')+'"':text;}
+  function downloadCsv(name,headers,rows){const text=[headers].concat(rows).map(function(row){return row.map(csvEscape).join(',');}).join('\n'),blob=new Blob([text],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download=name;document.body.appendChild(link);link.click();link.remove();window.setTimeout(function(){URL.revokeObjectURL(url);},500);}
+  function detailCsvRows(){return reportingRowsV6510().map(function(row){return [row.invoiceDate,row.caseNumber,row.customerId,row.customerName,row.productsDepartment,row.productsGroup,row.productId,row.productsDescription,row.soldUnits,row.remakeUnits,row.tatEligible,row.businessTatDays,row.otpEligible,row.onTimeToPromise,row.daysLate,row.tatIssue,row.dateIn,row.completionDate,row.dueDate,row.missingHoldEndCount,row.usedInvoiceDateFallback,row.remakeReason];});}
+  window.exportTatAllDataV6509=function(component){downloadCsv('tat_'+component+'_all_matching_data.csv',['Invoice Date','Case Number','Customer ID','Customer','Department','Product Group','Product ID','Product','Sold Units','Remake Units','TAT Eligible','Business TAT Days','OTP Eligible','On Time','Days Late','TAT Issue','Date In','TAT End','Due Date','Missing Hold Ends','Invoice Fallback','Remake Reason'],detailCsvRows());};
+  window.exportTatComponentV6509=function(component){
+    if(component==='department'){const groups=groupRows(reportingRowsV6510(),function(row){return row.productsDepartment||'Unassigned';},function(row){return row.productsDepartment||'Unassigned';});downloadCsv('tat_department_summary.csv',['Department','Cases','Units','Eligible Cases','Average TAT','Median TAT','OTP','31+ Cases'],groups.map(function(g){return [g.label,g.cases,g.units,g.eligibleCases,g.avgTat,g.medianTat,g.otpPct,g.over31];}));return;}
+    if(component==='customer'){const groups=groupRows(reportingRowsV6510(),function(row){return row.customerId||row.customerName;},function(row){return row.customerName||row.customerId;});downloadCsv('tat_customer_summary.csv',['Customer','Cases','Units','Eligible Cases','Average TAT','Median TAT','OTP','Average Days Late','31+ Cases','Remake %'],groups.map(function(g){return [g.label,g.cases,g.units,g.eligibleCases,g.avgTat,g.medianTat,g.otpPct,g.avgLate,g.over31,g.units?g.remakeUnits/g.units:''];}));return;}
+    if(component==='quality'){const rows=[];QUALITY_ISSUES.forEach(function(issue){issueCases(reportingRowsV6510({ignoreIssue:true}),issue).forEach(function(row){rows.push([issue,row.caseNumber,row.customerName,Array.from(row.departments).join(', '),row.invoiceDate,row.dateIn,row.completionDate,row.businessTatDays,row.units,row.remakeUnits]);});});downloadCsv('tat_data_quality.csv',['Issue','Case','Customer','Departments','Invoice Date','Date In','TAT End','Business TAT Days','Units','Remake Units'],rows);return;}
+    if(component==='late'){const cases=aggregateCases(reportingRowsV6510({ignoreLate:true})).filter(function(row){return row.otpEligible;});downloadCsv('tat_promise_performance.csv',['Performance','Cases','Share'],LATE_BANDS.map(function(band){const count=cases.filter(function(row){return band.test(num(row.daysLate));}).length;return [band.label,count,cases.length?count/cases.length:0];}));return;}
+    if(component==='distribution'){const cases=aggregateCases(reportingRowsV6510({ignoreBucket:true})).filter(function(row){return row.tatEligible;}),counts=Array.from({length:32},function(){return 0;});cases.forEach(function(row){counts[Math.min(31,Math.max(0,Math.round(num(row.businessTatDays))))]+=1;});downloadCsv('tat_distribution.csv',['TAT Bucket','Case Count','Case Share'],counts.map(function(count,index){return [index===31?'31+':index,count,cases.length?count/cases.length:0];}));return;}
+    const rows=[],currentYear=selectedTatReportingYearV6510(),years=currentYear===2026?[2025,2026]:[2025],source=comparisonRowsV6510({ignoreMonth:true});years.forEach(function(year){for(let month=1;month<=12;month+=1){const cases=aggregateCases(source.filter(function(row){return Number(row.year)===year&&Number(row.monthNum)===month&&row.tatEligible;}));rows.push([year,month,cases.length?avg(cases.map(function(row){return row.businessTatDays;})):'',cases.length]);}});downloadCsv('tat_monthly_summary.csv',['Year','Month','Average TAT','Eligible Cases'],rows);
+  };
+  window.popoutTatComponentV6509=function(component){const map={monthly:'tatMonthlyChartV6509',distribution:'tatDistributionChartV6509',department:'tatDepartmentTableV6509',late:'tatLateTableV6509',customer:'tatCustomerTableV6509',quality:'tatQualityCardV6509'},node=id(map[component]);if(!node)return;const win=window.open('','_blank','width=1200,height=760,noopener');if(!win)return;let content='';if(node.tagName==='CANVAS')content='<img style="max-width:100%;height:auto" src="'+node.toDataURL('image/png')+'">';else{const table=node.closest('table')||node;content=table.outerHTML;}win.document.write('<!doctype html><html><head><title>TAT '+esc(component)+'</title><style>body{font-family:Arial,sans-serif;padding:18px;color:#172033}table{border-collapse:collapse;width:100%}th,td{border:1px solid #d0d5dd;padding:7px;text-align:left}th{background:#203038;color:white}.num{text-align:right}</style></head><body><h2>TAT '+esc(component)+'</h2>'+content+'</body></html>');win.document.close();};
+  window.clearTatComponentV6509=function(component){if(component==='monthly')state.cross.months.clear();if(component==='distribution')state.cross.tatBuckets.clear();if(component==='late')state.cross.lateBand='';if(component==='quality')state.cross.issue='';if(component==='department')clearTopFilter('department');if(component==='customer')clearTopFilter('customer');renderAll();};
+
+  window.reloadTatV6509=function(event){if(event){event.preventDefault();event.stopPropagation();}load(true);};
+  window.refreshTatV6509=function(event){if(event){event.preventDefault();event.stopPropagation();}if(state.loading)return;setLoading(true,'Refreshing open month…');setNotice('',false);callServer('refreshTatDashboardCache',{incremental:true,openRefreshMonths:1}).then(function(){return callServer('ensureTatDashboardBrowserReadyCacheCurrent');}).then(function(meta){setLoading(false,meta&&meta.message||'Refresh requested');setNotice(meta&&meta.message||'The open month was refreshed. The optimized browser cache is rebuilding.',false);if(meta&&meta.fresh)load(true);else window.setTimeout(function(){load(true);},65000);}).catch(function(error){setLoading(false,'Refresh failed');setNotice(error&&error.message?error.message:String(error),true);});};
+
+  function deactivateTat(){const page=id('tatDashboardPageV6509');if(page){page.classList.remove('active');hideElement(page);}const button=id('tatTabBtnV6509');if(button)button.classList.remove('active');const tabs=document.querySelector('.managerTabs');if(tabs)tabs.classList.remove('cdaTatActiveV6509');const host=id('tatTabFilterHostV6509');if(host)host.hidden=true;closeDropdowns();closeTatFloatingPanelsV6509();}
+  function activateRemake(){
+    hideLegacy();deactivateTat();if(previousSwitch){try{previousSwitch.call(window,'remakeFactor');}catch(error){}}
+    const page=id('remakeFactorPage');if(page){showElement(page,'block');page.classList.add('active');}const button=id('remakeFactorTabBtn');if(button){showElement(button,'inline-flex');button.classList.add('active');}const host=id('remakeTabFilterHostV6337');if(host)host.hidden=false;if(window.state&&typeof window.state==='object')window.state.activeTab='remakeFactor';installRemakeCustomerCollapse();hideLegacy();if(typeof window.syncRemakeTabFiltersV6337==='function')window.syncRemakeTabFiltersV6337();if(typeof window.placeRemakePillsOutsideKpiAreaV6428==='function')window.placeRemakePillsOutsideKpiAreaV6428();try{localStorage.setItem('cdaExecutiveActiveTab.remakeTat.v6509','remakeFactor');}catch(error){}
+  }
+  function activateTat(){
+    hideLegacy();const remakePage=id('remakeFactorPage');if(remakePage){remakePage.classList.remove('active');hideElement(remakePage);}const remakeButton=id('remakeFactorTabBtn');if(remakeButton)remakeButton.classList.remove('active');const remakeHost=id('remakeTabFilterHostV6337');if(remakeHost)remakeHost.hidden=true;const page=id('tatDashboardPageV6509');if(page){showElement(page,'block');page.classList.add('active');}const button=id('tatTabBtnV6509');if(button){showElement(button,'inline-flex');button.classList.add('active');}const tabs=document.querySelector('.managerTabs');if(tabs)tabs.classList.add('cdaTatActiveV6509');const host=id('tatTabFilterHostV6509');if(host)host.hidden=false;if(window.state&&typeof window.state==='object')window.state.activeTab='tat';if(!state.loaded)load(false);else window.requestAnimationFrame(function(){Object.keys(state.charts||{}).forEach(function(name){const chart=state.charts[name];if(chart&&typeof chart.resize==='function'){try{chart.resize();}catch(error){}}});});try{localStorage.setItem('cdaExecutiveActiveTab.remakeTat.v6509','tat');}catch(error){}
+  }
+  window.activateTatDashboardV6509=activateTat;
+  function installSwitch(){const current=typeof window.switchTab==='function'?window.switchTab:null;if(current&&current.__cdaRemakeTatV6509)return;previousSwitch=current;const wrapped=function(tab){return String(tab||'').toLowerCase()==='tat'?activateTat():activateRemake();};wrapped.__cdaRemakeTatV6509=true;window.switchTab=wrapped;try{switchTab=wrapped;}catch(error){}}
+  function startup(){
+    try{
+      restoreViewState();migrateTatProductGroupStateV6525();buildUi();bindTatKpiChooserV6528();hideLegacy();installSwitch();
+      const remakeButton=id('remakeFactorTabBtn');if(remakeButton){showElement(remakeButton,'inline-flex');remakeButton.removeAttribute('onclick');remakeButton.onclick=function(event){if(event)event.preventDefault();activateRemake();return false;};}
+      const tatButton=id('tatTabBtnV6509');if(tatButton)showElement(tatButton,'inline-flex');
+      let saved='remakeFactor';try{saved=localStorage.getItem('cdaExecutiveActiveTab.remakeTat.v6509')||'remakeFactor';}catch(error){}
+      if(saved==='tat')activateTat();else activateRemake();
+    }finally{document.documentElement.classList.remove('cdaRemakeTatBootV6501');if(document.body)document.body.style.removeProperty('visibility');}
+  }
+
+  let tatDropdownRepositionFrameV6524=0;
+  function repositionOpenTatDropdownV6524(){
+    tatDropdownRepositionFrameV6524=0;
+    FILTER_TYPES.forEach(function(type){const panel=id('tatFilterPanel_'+type+'_V6509'),button=id('tatFilterButton_'+type+'_V6509');if(panel&&button&&panel.classList.contains('open'))positionPanel(button,panel,type==='year'?300:380);});
+  }
+  function scheduleTatDropdownRepositionV6524(){if(tatDropdownRepositionFrameV6524)return;tatDropdownRepositionFrameV6524=window.requestAnimationFrame(repositionOpenTatDropdownV6524);}
+  document.addEventListener('click',function(event){const target=event.target&&event.target.closest?event.target:null;if(!target||!target.closest('#tatTabFilterHostV6509 .remakeDropdownPanelV6245,#tatTabFilterHostV6509 .remakeDropdownButtonV6245'))closeDropdowns();if(!target||!target.closest('.tatFloatingPanelV6509,#tatTabSearchProxyV6509,#tatSettingsButtonV6509'))closeTatFloatingPanelsV6509();if(tatKpiPopoverV6528&&(!target||!target.closest('.remakeKpiChooserPopoverV6403,#tatKpiChooserButtonV6528')))closeTatKpiChooserV6528();});
+  document.addEventListener('keydown',function(event){if(event.key==='Escape'){closeDropdowns();closeTatFloatingPanelsV6509();closeTatKpiChooserV6528();}});
+  window.addEventListener('resize',function(){scheduleTatDropdownRepositionV6524();applyTatKpiVisibilityV6528();if(tatKpiPopoverV6528)positionTatKpiChooserV6528();},{passive:true});
+  window.addEventListener('scroll',scheduleTatDropdownRepositionV6524,{passive:true,capture:true});
+  window.__tatTestLoadV6509=function(payload){handlePayload(payload,{generatedAtDisplay:'Test payload'});activateTat();};
+  window.__tatDebugV6509={unpackPayload:unpackPayload,aggregateCases:aggregateCases,metrics:metrics,issueCases:issueCases,selectedReportingYear:selectedTatReportingYearV6510,reportingRows:reportingRowsV6510,comparisonRows:comparisonRowsV6510};
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',startup,{once:true});else startup();
+  window.addEventListener('load',function(){hideLegacy();installRemakeCustomerCollapse();},{once:true});
+  window.setTimeout(function(){document.documentElement.classList.remove('cdaRemakeTatBootV6501');},5000);
+})();
+</script>

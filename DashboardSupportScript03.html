@@ -1,0 +1,403 @@
+<script>
+(function installIndividualColumnChooserV6357(){
+  'use strict';
+
+  window.CDA_REMAKE_COLUMN_CHOOSER_VERSION = 'v6.357';
+  window.CDA_REMAKE_LOCAL_CLEAR_VERSION = 'v6.357';
+
+  /* Each circular arrow clears only the selection owned by that chart/card. */
+  window.clearRemakeComponentV6230 = function clearRemakeComponentV6357(component) {
+    const key = String(component || '');
+    if (key === 'trend') {
+      if (typeof window.clearRemakeFilterV6230 === 'function') window.clearRemakeFilterV6230('months');
+      return;
+    }
+    if (key === 'reason' || key === 'department' || key === 'customer') {
+      if (typeof window.clearRemakeFilterV6230 === 'function') window.clearRemakeFilterV6230(key);
+      return;
+    }
+    if (key === 'product') {
+      const groupButton = document.getElementById('remakeProductModeGroupBtnV6264');
+      const filterKind = groupButton && groupButton.classList.contains('active') ? 'productGroup' : 'product';
+      if (typeof window.clearRemakeFilterV6230 === 'function') window.clearRemakeFilterV6230(filterKind);
+      return;
+    }
+    if (key === 'ceramist' && typeof window.selectCeramistV6343 === 'function') {
+      window.selectCeramistV6343('');
+    }
+  };
+
+  const storageKey = 'cda.remake.columnVisibility.v6357';
+  const components = {
+    reason: {
+      cardId: 'remakeReasonCardV6230',
+      tables: [{ id: 'remakeReasonTable', title: 'Reason table' }]
+    },
+    department: {
+      cardId: 'remakeDepartmentCardV6230',
+      tables: [{ id: 'remakeDepartmentTable', title: 'Department table' }]
+    },
+    product: {
+      cardId: 'remakeProductCardV6230',
+      tables: [{ id: 'remakeProductTable', title: 'Product / group table' }]
+    },
+    customer: {
+      cardId: 'remakeCustomerCardV6230',
+      tables: [{ id: 'remakeCustomerTable', title: 'Customer table' }]
+    },
+    ceramist: {
+      cardId: 'remakeCeramistCardV6342',
+      tables: [
+        { id: 'remakeCeramistTableV6342', title: 'Worker table' },
+        { id: 'remakeCeramistDetailTableV6343', title: 'Breakdown table' }
+      ]
+    }
+  };
+
+  let openPopover = null;
+  let openButton = null;
+  let renderTimer = 0;
+
+  function readState(){
+    try {
+      const value = JSON.parse(localStorage.getItem(storageKey) || '{}');
+      return value && typeof value === 'object' ? value : {};
+    } catch (error) {
+      return {};
+    }
+  }
+
+  function writeState(state){
+    try { localStorage.setItem(storageKey, JSON.stringify(state || {})); }
+    catch (error) {}
+  }
+
+  function cleanHeaderText(value){
+    return String(value || '')
+      .replace(/[▲▼▴▾]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim() || 'Column';
+  }
+
+  function getColumnModel(table){
+    if (!table || !table.tHead || !table.tHead.rows.length) return [];
+    const headers = Array.from(table.tHead.rows[0].cells || []);
+    const occurrences = Object.create(null);
+    return headers.map(function(header, index){
+      const label = cleanHeaderText(header.textContent);
+      const base = label.toLowerCase();
+      occurrences[base] = (occurrences[base] || 0) + 1;
+      return {
+        index: index,
+        label: label,
+        key: base + '#' + occurrences[base],
+        locked: false
+      };
+    });
+  }
+
+  function getHiddenKeys(tableId){
+    const state = readState();
+    const item = state[tableId];
+    return new Set(item && Array.isArray(item.hidden) ? item.hidden : []);
+  }
+
+  function setHiddenKeys(tableId, hiddenSet){
+    const state = readState();
+    state[tableId] = { hidden: Array.from(hiddenSet || []) };
+    writeState(state);
+  }
+
+  function applyTableVisibility(tableId){
+    const table = document.getElementById(tableId);
+    if (!table) return;
+    const model = getColumnModel(table);
+    if (!model.length) return;
+    const hidden = getHiddenKeys(tableId);
+    const rows = Array.from(table.rows || []);
+    rows.forEach(function(row){
+      Array.from(row.cells || []).forEach(function(cell, index){
+        const column = model[index];
+        const shouldHide = !!(column && hidden.has(column.key));
+        cell.classList.toggle('columnHiddenV6357', shouldHide);
+      });
+    });
+    Array.from(table.querySelectorAll('col')).forEach(function(col, index){
+      const column = model[index];
+      const shouldHide = !!(column && !column.locked && hidden.has(column.key));
+      col.classList.toggle('columnHiddenV6357', shouldHide);
+    });
+  }
+
+  function hiddenCountForComponent(component){
+    const config = components[component];
+    if (!config) return 0;
+    return config.tables.reduce(function(total, tableConfig){
+      const table = document.getElementById(tableConfig.id);
+      if (!table) return total;
+      const validKeys = new Set(getColumnModel(table).map(function(column){ return column.key; }));
+      let count = 0;
+      getHiddenKeys(tableConfig.id).forEach(function(key){ if (validKeys.has(key)) count += 1; });
+      return total + count;
+    }, 0);
+  }
+
+  function updateButton(component){
+    const button = document.querySelector('[data-column-chooser-v6357="' + component + '"]');
+    if (!button) return;
+    const count = hiddenCountForComponent(component);
+    button.textContent = count ? 'Columns (' + count + ')' : 'Columns';
+    button.classList.toggle('hasHiddenColumnsV6357', count > 0);
+    button.title = count
+      ? count + ' hidden column' + (count === 1 ? '' : 's') + '. Click to change.'
+      : 'Choose which columns are visible';
+  }
+
+  function applyComponent(component){
+    const config = components[component];
+    if (!config) return;
+    config.tables.forEach(function(tableConfig){ applyTableVisibility(tableConfig.id); });
+    updateButton(component);
+  }
+
+  function applyAll(){
+    Object.keys(components).forEach(applyComponent);
+  }
+
+  function closePopover(){
+    if (openPopover && openPopover.parentNode) openPopover.parentNode.removeChild(openPopover);
+    openPopover = null;
+    openButton = null;
+  }
+
+  function positionPopover(popover, button){
+    if (!popover || !button) return;
+    const rect = button.getBoundingClientRect();
+    const viewportWidth = Math.max(320, window.innerWidth || document.documentElement.clientWidth || 0);
+    const viewportHeight = Math.max(320, window.innerHeight || document.documentElement.clientHeight || 0);
+    const gap = 7;
+    const edge = 10;
+    const width = Math.min(280, viewportWidth - edge * 2);
+    popover.style.setProperty('position', 'fixed', 'important');
+    popover.style.setProperty('width', width + 'px', 'important');
+    let left = rect.right - width;
+    left = Math.max(edge, Math.min(left, viewportWidth - width - edge));
+    const below = Math.max(0, viewportHeight - rect.bottom - gap - edge);
+    const above = Math.max(0, rect.top - gap - edge);
+    const naturalHeight = Math.max(120, Math.min(popover.scrollHeight || 420, 520));
+    const openBelow = below >= Math.min(260, naturalHeight) || below >= above;
+    const available = Math.max(100, openBelow ? below : above);
+    const maxHeight = Math.max(100, Math.min(naturalHeight, available));
+    popover.style.setProperty('max-height', maxHeight + 'px', 'important');
+    const actualHeight = Math.min(popover.scrollHeight || maxHeight, maxHeight);
+    let top = openBelow ? rect.bottom + gap : rect.top - actualHeight - gap;
+    top = Math.max(edge, Math.min(top, viewportHeight - actualHeight - edge));
+    popover.style.setProperty('left', left + 'px', 'important');
+    popover.style.setProperty('top', top + 'px', 'important');
+  }
+
+  function createOption(tableId, column){
+    const label = document.createElement('label');
+    label.className = 'remakeColumnChooserOptionV6357' + (column.locked ? ' isLockedV6357' : '');
+
+    const input = document.createElement('input');
+    input.type = 'checkbox';
+    input.checked = !getHiddenKeys(tableId).has(column.key);
+    input.disabled = false;
+    input.setAttribute('aria-label', (input.checked ? 'Hide ' : 'Show ') + column.label);
+
+    const text = document.createElement('span');
+    text.textContent = column.label;
+
+    label.appendChild(input);
+    label.appendChild(text);
+
+    input.addEventListener('change', function(){
+      const table = document.getElementById(tableId);
+      const model = getColumnModel(table);
+      const hidden = getHiddenKeys(tableId);
+      if (input.checked) {
+        hidden.delete(column.key);
+      } else {
+        const currentlyVisible = model.filter(function(item){ return !hidden.has(item.key); }).length;
+        if (currentlyVisible <= 1) {
+          input.checked = true;
+          input.title = 'At least one column must remain visible';
+          return;
+        }
+        hidden.add(column.key);
+      }
+      setHiddenKeys(tableId, hidden);
+      applyAll();
+      if (openPopover && openButton) positionPopover(openPopover, openButton);
+    });
+
+    return label;
+  }
+
+  function openChooser(component, button){
+    closePopover();
+    const config = components[component];
+    if (!config) return;
+
+    const popover = document.createElement('div');
+    popover.className = 'remakeColumnChooserPopoverV6357';
+    popover.setAttribute('role', 'dialog');
+    popover.setAttribute('aria-label', 'Choose visible columns');
+
+    const header = document.createElement('div');
+    header.className = 'remakeColumnChooserHeaderV6357';
+    const headingWrap = document.createElement('div');
+    const title = document.createElement('div');
+    title.className = 'remakeColumnChooserTitleV6357';
+    title.textContent = 'Show columns';
+    const hint = document.createElement('div');
+    hint.className = 'remakeColumnChooserHintV6357';
+    hint.textContent = 'Uncheck only the columns you do not need right now.';
+    headingWrap.appendChild(title);
+    headingWrap.appendChild(hint);
+    const close = document.createElement('button');
+    close.type = 'button';
+    close.className = 'remakeColumnChooserCloseV6357';
+    close.textContent = '×';
+    close.setAttribute('aria-label', 'Close column chooser');
+    close.addEventListener('click', closePopover);
+    header.appendChild(headingWrap);
+    header.appendChild(close);
+    popover.appendChild(header);
+
+    config.tables.forEach(function(tableConfig){
+      const table = document.getElementById(tableConfig.id);
+      const model = getColumnModel(table);
+      if (!model.length) return;
+      const section = document.createElement('div');
+      section.className = 'remakeColumnChooserSectionV6357';
+      if (config.tables.length > 1) {
+        const sectionTitle = document.createElement('div');
+        sectionTitle.className = 'remakeColumnChooserSectionTitleV6357';
+        sectionTitle.textContent = tableConfig.title;
+        section.appendChild(sectionTitle);
+      }
+      model.forEach(function(column){ section.appendChild(createOption(tableConfig.id, column)); });
+      popover.appendChild(section);
+    });
+
+    const footer = document.createElement('div');
+    footer.className = 'remakeColumnChooserFooterV6357';
+    const showAll = document.createElement('button');
+    showAll.type = 'button';
+    showAll.textContent = 'Show all';
+    showAll.addEventListener('click', function(){
+      config.tables.forEach(function(tableConfig){ setHiddenKeys(tableConfig.id, new Set()); });
+      applyAll();
+      openChooser(component, button);
+    });
+    const done = document.createElement('button');
+    done.type = 'button';
+    done.className = 'primaryV6357';
+    done.textContent = 'Done';
+    done.addEventListener('click', closePopover);
+    footer.appendChild(showAll);
+    footer.appendChild(done);
+    popover.appendChild(footer);
+
+    document.body.appendChild(popover);
+    openPopover = popover;
+    openButton = button;
+    positionPopover(popover, button);
+    window.setTimeout(function(){ close.focus(); }, 0);
+  }
+
+  function ensureButtons(){
+    Object.keys(components).forEach(function(component){
+      const config = components[component];
+      const card = document.getElementById(config.cardId);
+      const actions = card && card.querySelector('.remakeCardActionsV6230');
+      if (!actions) return;
+      let button = actions.querySelector('[data-column-chooser-v6357="' + component + '"]');
+      if (!button) {
+        button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'remakeMiniButtonV6230 remakeColumnChooserButtonV6357';
+        button.setAttribute('data-column-chooser-v6357', component);
+        button.setAttribute('aria-haspopup', 'dialog');
+        button.addEventListener('click', function(event){
+          event.stopPropagation();
+          if (openButton === button) closePopover();
+          else openChooser(component, button);
+        });
+        actions.insertBefore(button, actions.firstChild);
+      }
+      updateButton(component);
+    });
+  }
+
+  function scheduleRender(){
+    if (renderTimer) return;
+    renderTimer = 1;
+    const run = function(){
+      renderTimer = 0;
+      ensureButtons();
+      applyAll();
+    };
+    if (typeof queueMicrotask === 'function') queueMicrotask(run);
+    else Promise.resolve().then(run);
+  }
+
+  document.addEventListener('click', function(event){
+    if (!openPopover) return;
+    if (openPopover.contains(event.target) || (openButton && openButton.contains(event.target))) return;
+    closePopover();
+  }, true);
+
+  document.addEventListener('keydown', function(event){
+    if (event.key === 'Escape') closePopover();
+  });
+
+  let popoverRepositionFrameV6502 = 0;
+  function schedulePopoverRepositionV6502(event){
+    if (!openPopover || !openButton) return;
+    const target = event && event.target;
+    if (target && (target === openPopover || (openPopover.contains && openPopover.contains(target)))) return;
+    if (popoverRepositionFrameV6502) cancelAnimationFrame(popoverRepositionFrameV6502);
+    popoverRepositionFrameV6502 = requestAnimationFrame(function(){
+      popoverRepositionFrameV6502 = 0;
+      if (openPopover && openButton) positionPopover(openPopover, openButton);
+    });
+  }
+  window.addEventListener('resize', schedulePopoverRepositionV6502);
+  window.addEventListener('scroll', schedulePopoverRepositionV6502, true);
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', scheduleRender, { once:true });
+  } else {
+    scheduleRender();
+  }
+
+  const observer = new MutationObserver(function(mutations){
+    const structuralSelector = [
+      '#remakeReasonCardV6230',
+      '#remakeDepartmentCardV6230',
+      '#remakeProductCardV6230',
+      '#remakeCustomerCardV6230',
+      '.remakeCardActionsV6230',
+      '#remakeReasonTable',
+      '#remakeDepartmentTable',
+      '#remakeProductTable',
+      '#remakeCustomerTable'
+    ].join(',');
+    const relevant = (mutations || []).some(function(mutation){
+      const target = mutation && mutation.target;
+      if (target && target.nodeType === 1 && target.matches && target.matches('.remakeCardActionsV6230')) return true;
+      const changed = Array.from(mutation.addedNodes || []).concat(Array.from(mutation.removedNodes || []));
+      return changed.some(function(node){
+        if (!node || node.nodeType !== 1) return false;
+        if (node.matches && node.matches(structuralSelector)) return true;
+        return !!(node.querySelector && node.querySelector(structuralSelector));
+      });
+    });
+    if (relevant) scheduleRender();
+  });
+  observer.observe(document.body, { childList:true, subtree:true });
+})();
+</script>

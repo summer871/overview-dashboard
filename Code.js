@@ -25,6 +25,26 @@ function doGet(e) {
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
+
+/**
+ * Evaluates an HTML partial and returns its rendered content.
+ * Context is copied onto the child template so existing Apps Script
+ * template expressions continue to work after modularization.
+ */
+function includeDashboardFile(filename, context) {
+  const safeFilename = String(filename || '').trim();
+  if (!safeFilename || !/^[A-Za-z0-9_-]+$/.test(safeFilename)) {
+    throw new Error('Invalid dashboard include filename: ' + safeFilename);
+  }
+
+  const template = HtmlService.createTemplateFromFile(safeFilename);
+  const values = context && typeof context === 'object' ? context : {};
+  Object.keys(values).forEach(function(key) {
+    template[key] = values[key];
+  });
+  return template.evaluate().getContent();
+}
+
 function getDashboardPresentationMode(e) {
   const params = e && e.parameter ? e.parameter : {};
   const rawPresentation = params.presentation || params.view || params.mode || '';
