@@ -1,0 +1,136 @@
+'use strict';
+
+const crypto = require('crypto');
+const fs = require('fs');
+
+const basePath = 'DashboardBaseStyles.html';
+const indexPath = 'Index.html';
+const targetPath = 'RemakeTailStyles.html';
+
+const expectedBaseSha256 = 'a72de1213e81b8154fff7a0d13a8dc1e97ab6f5fa2a548413a3bf806d93dcf03';
+const startMarker = '    .remakeTrendList {';
+const baseInclude = "  <?!= includeDashboardFile('DashboardBaseStyles') ?>";
+const tailInclude = "  <?!= includeDashboardFile('RemakeTailStyles') ?>";
+const requiredSelectors = [
+  '.remakeTrendList',
+  '.remakeTrendRow',
+  '.remakeTrendMonth',
+  '.remakeTrendBarTrack',
+  '.remakeTrendBar',
+  '.remakeTrendValue',
+  '.remakeDirectionalNote',
+  '.remakeFilterBar',
+  '.remakeKpis',
+  '.remakeGrid',
+  '.remakeHeader',
+  '.remakeActions',
+  '.remakeRefreshStamp'
+];
+
+function fail(message) {
+  throw new Error(message);
+}
+
+function read(filePath) {
+  if (!fs.existsSync(filePath)) fail(`Missing required file: ${filePath}`);
+  return fs.readFileSync(filePath, 'utf8');
+}
+
+function sha256(value) {
+  return crypto.createHash('sha256').update(value, 'utf8').digest('hex');
+}
+
+function count(value, needle) {
+  return value.split(needle).length - 1;
+}
+
+const originalBase = read(basePath);
+const originalIndex = read(indexPath);
+
+if (sha256(originalBase) !== expectedBaseSha256) {
+  fail(`Unexpected ${basePath} baseline. Refusing extraction.`);
+}
+if (fs.existsSync(targetPath)) fail(`${targetPath} already exists.`);
+if (count(originalBase, startMarker) !== 1) fail(`Expected one ${startMarker} marker.`);
+if (count(originalIndex, baseInclude) !== 1) fail('Expected one DashboardBaseStyles include.');
+if (originalIndex.includes(tailInclude)) fail('RemakeTailStyles include already exists.');
+if (!/<\/style>\s*$/.test(originalBase)) fail(`${basePath} must end with </style>.`);
+
+const start = originalBase.indexOf(startMarker);
+const end = originalBase.lastIndexOf('\n</style>');
+if (start < 0 || end <= start) fail('Could not isolate the Remake tail CSS.');
+
+// Preserve every original CSS byte. Do not trim or reformat either side of the split.
+const baseBeforeTail = originalBase.slice(0, start);
+const tailCss = originalBase.slice(start, end);
+const selectorCounts = {};
+
+requiredSelectors.forEach((selector) => {
+  const originalCount = count(originalBase, selector);
+  const extractedCount = count(tailCss, selector);
+  if (extractedCount < 1) fail(`Tail is missing expected selector: ${selector}`);
+  if (originalCount < extractedCount) fail(`Invalid selector count for ${selector}.`);
+  selectorCounts[selector] = { originalCount, extractedCount };
+});
+if (!tailCss.includes('@media (max-width: 1100px)')) {
+  fail('Tail is missing the final responsive media block.');
+}
+
+const nextBase = `${baseBeforeTail}\n</style>\n`;
+const nextTail = `<style id="cdaRemakeTailStylesV6529">${tailCss}</style>\n`;
+const nextIndex = originalIndex.replace(baseInclude, `${baseInclude}\n${tailInclude}`);
+
+if (count(nextIndex, baseInclude) !== 1 || count(nextIndex, tailInclude) !== 1) {
+  fail('Include insertion validation failed.');
+}
+if (nextIndex.indexOf(tailInclude) !== nextIndex.indexOf(baseInclude) + baseInclude.length + 1) {
+  fail('RemakeTailStyles must load immediately after DashboardBaseStyles.');
+}
+
+requiredSelectors.forEach((selector) => {
+  const counts = selectorCounts[selector];
+  const expectedRemainingCount = counts.originalCount - counts.extractedCount;
+  const actualRemainingCount = count(nextBase, selector);
+  const actualExtractedCount = count(nextTail, selector);
+
+  if (actualRemainingCount !== expectedRemainingCount) {
+    fail(
+      `Unexpected remaining count for ${selector}: ` +
+      `expected ${expectedRemainingCount}, found ${actualRemainingCount}.`
+    );
+  }
+  if (actualExtractedCount !== counts.extractedCount) {
+    fail(
+      `Unexpected extracted count for ${selector}: ` +
+      `expected ${counts.extractedCount}, found ${actualExtractedCount}.`
+    );
+  }
+  if (actualRemainingCount + actualExtractedCount !== counts.originalCount) {
+    fail(`Total selector count changed for ${selector}.`);
+  }
+});
+
+// Rejoin the two style payloads and require an exact byte-for-byte match.
+const basePayload = nextBase.slice(0, nextBase.lastIndexOf('\n</style>'));
+const tailPayload = nextTail
+  .replace(/^<style[^>]*>/, '')
+  .replace(/<\/style>\n$/, '');
+const reconstructedCss = `${basePayload}${tailPayload}`;
+const originalCss = originalBase.slice(0, end);
+if (reconstructedCss !== originalCss) {
+  fail('The reconstructed CSS payload is not byte-for-byte identical to the original payload.');
+}
+
+fs.writeFileSync(basePath, nextBase, 'utf8');
+fs.writeFileSync(targetPath, nextTail, 'utf8');
+fs.writeFileSync(indexPath, nextIndex, 'utf8');
+
+console.log(JSON.stringify({
+  status: 'prepared',
+  changedFiles: [basePath, indexPath, targetPath],
+  extractedBytes: Buffer.byteLength(tailCss, 'utf8'),
+  selectorCounts,
+  cssPayloadOrderPreserved: true,
+  cssPayloadByteForBytePreserved: true,
+  javascriptChanged: false
+}, null, 2));

@@ -1,0 +1,241 @@
+<!-- SharedFooter.html v6.532
+One shared body-level footer for Remake and TAT.
+Owns visible cache/build identity only; existing status elements remain hidden data sources.
+-->
+<style id="cdaSharedFooterStylesV6531">
+  #remakeLastRefresh,
+  #tatStampV6509,
+  .remakePageFooterV6338 {
+    display:none !important;
+    visibility:hidden !important;
+  }
+
+  #cdaSharedAppFooterV6531 {
+    width:100%;
+    box-sizing:border-box;
+    display:flex;
+    justify-content:flex-end;
+    align-items:center;
+    flex-wrap:wrap;
+    gap:0;
+    padding:4px 12px 6px;
+    color:#98a2b3;
+    background:transparent;
+    font:500 8px/1.2 Roboto,Arial,sans-serif;
+    text-align:right;
+    opacity:.78;
+  }
+
+  #cdaSharedAppFooterV6531 [data-footer-item] {
+    display:inline-flex;
+    align-items:center;
+    white-space:nowrap;
+  }
+
+  #cdaSharedAppFooterV6531 [data-footer-item] + [data-footer-item]::before {
+    content:'•';
+    display:inline-block;
+    margin:0 5px;
+    color:#d0d5dd;
+  }
+
+  #cdaSharedAppFooterV6531 .cdaSharedFooterIdentityV6531 {
+    color:inherit;
+    font-weight:600;
+  }
+
+  @media(max-width:760px) {
+    #cdaSharedAppFooterV6531 {
+      padding:4px 8px 6px;
+      font-size:8px;
+    }
+
+    #cdaSharedAppFooterV6531 [data-footer-item] + [data-footer-item]::before {
+      margin:0 4px;
+    }
+  }
+</style>
+<script id="cdaSharedFooterControllerV6531">
+(function installCdaSharedFooterV6531(){
+  'use strict';
+
+  const UI_VERSION_V6531 = 'v6.532';
+  const BUILD_LABEL_V6531 = 'SHARED-FOOTER-02';
+  const BASE_COMMIT_V6531 = '7b9c2a0';
+  const FOOTER_ID_V6531 = 'cdaSharedAppFooterV6531';
+  const SOURCE_SELECTOR_V6531 = '.remakePageFooterV6338,#remakeLastRefresh,#tatStampV6509';
+  let renderFrameV6531 = 0;
+
+  window.CDA_CURRENT_FRONTEND_VERSION = UI_VERSION_V6531;
+  window.CDA_SHARED_FOOTER_VERSION = UI_VERSION_V6531;
+  window.CDA_SHARED_FOOTER_BUILD = BUILD_LABEL_V6531;
+  window.CDA_SHARED_FOOTER_BASE = BASE_COMMIT_V6531;
+
+  function byIdV6531(id){
+    return document.getElementById(id);
+  }
+
+  function cleanV6531(value){
+    return String(value == null ? '' : value).replace(/\s+/g, ' ').trim();
+  }
+
+  function stripPrefixV6531(value, patterns){
+    let text = cleanV6531(value);
+    patterns.forEach(function(pattern){ text = text.replace(pattern, ''); });
+    return cleanV6531(text);
+  }
+
+  function simpleWorkerV6531(value){
+    const raw = cleanV6531(value);
+    if (!raw) return 'Not loaded';
+    if (/loading|waiting|updating/i.test(raw)) return 'Loading';
+    if (/failed|unavailable/i.test(raw)) return 'Unavailable';
+    const text = stripPrefixV6531(raw, [
+      /^Worker cache updated:\s*/i,
+      /^Worker cache:\s*/i,
+      /^Worker:\s*/i
+    ]);
+    return text || 'Not loaded';
+  }
+
+  function simpleCacheV6531(value){
+    const raw = cleanV6531(value);
+    if (!raw) return 'Not loaded';
+    if (/loading|waiting|updating/i.test(raw)) return 'Loading';
+    if (/failed|unavailable/i.test(raw)) return 'Unavailable';
+    let text = stripPrefixV6531(raw, [
+      /^Browser cache current:\s*/i,
+      /^Browser cache:\s*/i,
+      /^Saved browser cache:\s*/i,
+      /^Last refreshed:\s*/i,
+      /^Using saved data:\s*/i,
+      /^Cache:\s*/i
+    ]);
+    text = text.replace(/\s*[·•]\s*optimized cache rebuilding.*$/i, '');
+    return cleanV6531(text) || 'Not loaded';
+  }
+
+  function readRemakeStatusV6531(){
+    const legacyFooter = document.querySelector('.remakePageFooterV6338');
+    const rawFooter = cleanV6531(legacyFooter && legacyFooter.textContent);
+    const refreshNode = byIdV6531('remakeLastRefresh');
+    const refreshFallback = cleanV6531(refreshNode && refreshNode.textContent);
+    const workerMatch = rawFooter.match(/Worker cache updated:\s*([^·•]+)/i);
+    const cacheMatch = rawFooter.match(/Browser cache current:\s*([^·•]+)/i);
+    const savedCurrent = /saved (?:browser )?copy is current/i.test(rawFooter);
+
+    return {
+      worker: simpleWorkerV6531(workerMatch ? workerMatch[0] : ''),
+      cache: simpleCacheV6531(cacheMatch ? cacheMatch[0] : refreshFallback),
+      saved: savedCurrent ? 'current' : ''
+    };
+  }
+
+  function routerLabelV6531(){
+    const presentation = window.CDA_SERVER_PRESENTATION || {};
+    const source = cleanV6531(presentation.source || '');
+    const match = source.match(/Code\.gs\s+v[0-9.]+/i);
+    return match ? match[0] : 'Router unknown';
+  }
+
+  function isTatActiveV6531(){
+    const button = byIdV6531('tatTabBtnV6509');
+    const page = byIdV6531('tatDashboardPageV6509');
+    if (button && button.classList.contains('active')) return true;
+    if (!page || !window.getComputedStyle) return false;
+    const style = window.getComputedStyle(page);
+    return style.display !== 'none' && style.visibility !== 'hidden';
+  }
+
+  function ensureFooterV6531(){
+    let footer = byIdV6531(FOOTER_ID_V6531);
+    if (!footer) {
+      footer = document.createElement('footer');
+      footer.id = FOOTER_ID_V6531;
+      footer.setAttribute('aria-label', 'Dashboard status and build identity');
+      footer.setAttribute('aria-live', 'polite');
+    }
+    if (footer.parentNode !== document.body || footer !== document.body.lastElementChild) {
+      document.body.appendChild(footer);
+    }
+    return footer;
+  }
+
+  function appendItemV6531(footer, label, value, className){
+    const item = document.createElement('span');
+    item.setAttribute('data-footer-item', '');
+    if (className) item.className = className;
+    item.textContent = label + ': ' + value;
+    footer.appendChild(item);
+  }
+
+  function renderV6531(){
+    renderFrameV6531 = 0;
+    if (!document.body) return;
+
+    const footer = ensureFooterV6531();
+    footer.replaceChildren();
+
+    if (isTatActiveV6531()) {
+      const tat = byIdV6531('tatStampV6509');
+      appendItemV6531(footer, 'Cache', simpleCacheV6531(tat && tat.textContent));
+    } else {
+      const remakeStatus = readRemakeStatusV6531();
+      appendItemV6531(footer, 'Worker', remakeStatus.worker);
+      appendItemV6531(footer, 'Cache', remakeStatus.cache);
+      if (remakeStatus.saved) appendItemV6531(footer, 'Saved copy', remakeStatus.saved);
+    }
+
+    appendItemV6531(footer, 'UI', UI_VERSION_V6531, 'cdaSharedFooterIdentityV6531');
+    appendItemV6531(footer, 'Router', routerLabelV6531(), 'cdaSharedFooterIdentityV6531');
+    appendItemV6531(footer, 'Build', BUILD_LABEL_V6531, 'cdaSharedFooterIdentityV6531');
+    appendItemV6531(footer, 'Base', BASE_COMMIT_V6531, 'cdaSharedFooterIdentityV6531');
+  }
+
+  function scheduleRenderV6531(){
+    if (renderFrameV6531) return;
+    renderFrameV6531 = window.requestAnimationFrame(renderV6531);
+  }
+
+  function mutationTouchesSourcesV6531(mutation){
+    const target = mutation.target && mutation.target.nodeType === 3
+      ? mutation.target.parentElement
+      : mutation.target;
+    if (target && target.closest && target.closest(SOURCE_SELECTOR_V6531)) return true;
+
+    return Array.from(mutation.addedNodes || []).some(function(node){
+      if (!node || node.nodeType !== 1) return false;
+      if (node.matches && node.matches(SOURCE_SELECTOR_V6531)) return true;
+      return !!(node.querySelector && node.querySelector(SOURCE_SELECTOR_V6531));
+    });
+  }
+
+  function startV6531(){
+    renderV6531();
+
+    if (window.MutationObserver) {
+      const observer = new MutationObserver(function(mutations){
+        if (mutations.some(mutationTouchesSourcesV6531)) scheduleRenderV6531();
+      });
+      observer.observe(document.body, {childList:true, subtree:true, characterData:true});
+    }
+
+    document.addEventListener('click', function(event){
+      const target = event.target && event.target.closest
+        ? event.target.closest('#remakeFactorTabBtn,#tatTabBtnV6509')
+        : null;
+      if (target) window.setTimeout(scheduleRenderV6531, 0);
+    }, true);
+
+    window.addEventListener('pageshow', scheduleRenderV6531);
+    window.addEventListener('resize', scheduleRenderV6531, {passive:true});
+  }
+
+  window.renderCdaSharedFooterV6531 = renderV6531;
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', startV6531, {once:true});
+  } else {
+    startV6531();
+  }
+})();
+</script>
