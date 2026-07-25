@@ -1,7 +1,7 @@
-<style id="cdaSharedTableStandardV6530">
+<style id="cdaSharedTableStandardV6533">
   /*
    * SharedTableStyles.html
-   * Version: v6.530 - single table standard
+   * Version: v6.533 - single table standard
    * Purpose: Own table typography, header presentation, and cell padding for every
    *          dashboard tab in ONE place. Before this file there were five divergent
    *          table designs (Overview 1.0, Overview 1.0 movers, Overview 2.0,
@@ -19,9 +19,9 @@
    *
    * SAFETY NOTES - read before editing:
    *
-   * 1. Include position. This file MUST be included last, immediately after
-   *    SharedTopParityStyles. It wins by cascade position plus specificity.
-   *    Rolling the change back is deleting the single include line.
+   * 1. Include position. This file MUST be included last among the stylesheets,
+   *    immediately after SharedTopParityStyles. It wins by cascade position plus
+   *    specificity. Rolling the change back is deleting the single include line.
    *
    * 2. Media scope. Everything is inside @media (min-width: 1280px). That
    *    boundary is the exact complement of RemakeResponsiveStyles, which owns
@@ -33,7 +33,13 @@
    *    the earlier :not(.compareColumnsV6301) rules in Index.html without those
    *    rules being edited or moved. Do not "clean up" the duplication.
    *
-   * 4. Deliberately NOT declared here, because other files own them:
+   * 4. .tatTableV6509 is listed separately on purpose. The TAT tables do not
+   *    carry the .remakeTable class, so the v6.354 and v6.357 typography rules
+   *    never applied to them and they fell through to the global table/th/td
+   *    base. That is why TAT rows render noticeably roomier than Remake rows
+   *    today. Both are pulled into the same standard here.
+   *
+   * 5. Deliberately NOT declared here, because other files own them:
    *      text-align            per-column alignment rules
    *      width / min-width     column geometry and table minimum widths
    *      position / top / z-index   sticky headers and frozen first columns
@@ -42,7 +48,7 @@
    *      .negative / .positive colour, excluded explicitly below
    *    Adding any of these here will break behaviour that currently works.
    *
-   * 5. Row striping is intentionally left alone. Overview stripes #fafafa and
+   * 6. Row striping is intentionally left alone. Overview stripes #fafafa and
    *    Remake stripes #f9fafb. Unifying them requires excluding every row-state
    *    class and belongs in a separate reviewed change.
    */
