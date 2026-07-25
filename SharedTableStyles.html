@@ -1,0 +1,153 @@
+<style id="cdaSharedTableStandardV6530">
+  /*
+   * SharedTableStyles.html
+   * Version: v6.530 - single table standard
+   * Purpose: Own table typography, header presentation, and cell padding for every
+   *          dashboard tab in ONE place. Before this file there were five divergent
+   *          table designs (Overview 1.0, Overview 1.0 movers, Overview 2.0,
+   *          Remake Factor, TAT) and the v6.357 typography pass never rendered
+   *          because v6.354 outranked it on specificity.
+   *
+   * Owner:   Shared. This file is the authoritative source for table type scale,
+   *          header colour, header weight, and cell padding.
+   *
+   * Approved standard:
+   *   header  background #172033, colour #ffffff, weight 900, 10.5px/1.2, padding 6px 8px
+   *   cell    11px/1.25, padding 6px 8px, colour #172033
+   *   borders header #2a3a4f, cell #e4e7ec
+   *   family  Roboto, Arial, sans-serif
+   *
+   * SAFETY NOTES - read before editing:
+   *
+   * 1. Include position. This file MUST be included last, immediately after
+   *    SharedTopParityStyles. It wins by cascade position plus specificity.
+   *    Rolling the change back is deleting the single include line.
+   *
+   * 2. Media scope. Everything is inside @media (min-width: 1280px). That
+   *    boundary is the exact complement of RemakeResponsiveStyles, which owns
+   *    @media (max-width: 1279px). Mobile and compact layouts are therefore
+   *    untouched by this file. Do not remove the media query.
+   *
+   * 3. Doubled class selectors (.remakeTable.remakeTable) are intentional. They
+   *    raise specificity without changing what is matched, so this file can beat
+   *    the earlier :not(.compareColumnsV6301) rules in Index.html without those
+   *    rules being edited or moved. Do not "clean up" the duplication.
+   *
+   * 4. Deliberately NOT declared here, because other files own them:
+   *      text-align            per-column alignment rules
+   *      width / min-width     column geometry and table minimum widths
+   *      position / top / z-index   sticky headers and frozen first columns
+   *      overflow / text-overflow / white-space
+   *      row-state background  hover, selected, pinned, dimmed, section rows
+   *      .negative / .positive colour, excluded explicitly below
+   *    Adding any of these here will break behaviour that currently works.
+   *
+   * 5. Row striping is intentionally left alone. Overview stripes #fafafa and
+   *    Remake stripes #f9fafb. Unifying them requires excluding every row-state
+   *    class and belongs in a separate reviewed change.
+   */
+
+  @media (min-width: 1280px) {
+
+    /* ---------------------------------------------------------------
+       1. Table typography baseline
+       --------------------------------------------------------------- */
+    html body #overviewOne table,
+    html body #overviewOne .moverArea.moverArea table,
+    html body #overviewTwo table,
+    html body #remakeFactorPage.cleanRemakeV6230 .remakeTable.remakeTable,
+    html body #tatDashboardPageV6509.cleanRemakeV6230 .remakeTable.remakeTable,
+    html body #tatDashboardPageV6509.cleanRemakeV6230 .tatTableV6509.tatTableV6509,
+    html body #remakeFactorPage.cleanRemakeV6230 #remakeCeramistTableV6342,
+    html body #remakeFactorPage.cleanRemakeV6230 #remakeCeramistDetailTableV6343,
+    html body #tatDashboardPageV6509.cleanRemakeV6230 #remakeCeramistTableV6342,
+    html body #tatDashboardPageV6509.cleanRemakeV6230 #remakeCeramistDetailTableV6343 {
+      font-family: Roboto, Arial, sans-serif !important;
+      font-size: 11px !important;
+      line-height: 1.25 !important;
+    }
+
+    /* ---------------------------------------------------------------
+       2. Header cells
+       --------------------------------------------------------------- */
+    html body #overviewOne th,
+    html body #overviewOne .moverArea.moverArea th,
+    html body #overviewTwo th,
+    html body #remakeFactorPage.cleanRemakeV6230 .remakeTable.remakeTable th,
+    html body #tatDashboardPageV6509.cleanRemakeV6230 .remakeTable.remakeTable th,
+    html body #tatDashboardPageV6509.cleanRemakeV6230 .tatTableV6509.tatTableV6509 th,
+    html body #remakeFactorPage.cleanRemakeV6230 #remakeCeramistTableV6342 th,
+    html body #remakeFactorPage.cleanRemakeV6230 #remakeCeramistDetailTableV6343 th,
+    html body #tatDashboardPageV6509.cleanRemakeV6230 #remakeCeramistTableV6342 th,
+    html body #tatDashboardPageV6509.cleanRemakeV6230 #remakeCeramistDetailTableV6343 th {
+      background: #172033 !important;
+      color: #ffffff !important;
+      font-family: Roboto, Arial, sans-serif !important;
+      font-size: 10.5px !important;
+      font-weight: 900 !important;
+      line-height: 1.2 !important;
+      padding: 6px 8px !important;
+      border-color: #2a3a4f !important;
+    }
+
+    /* ---------------------------------------------------------------
+       3. Data cells - geometry and type only, never background
+       --------------------------------------------------------------- */
+    html body #overviewOne td,
+    html body #overviewOne .moverArea.moverArea td,
+    html body #overviewTwo td,
+    html body #remakeFactorPage.cleanRemakeV6230 .remakeTable.remakeTable td,
+    html body #tatDashboardPageV6509.cleanRemakeV6230 .remakeTable.remakeTable td,
+    html body #tatDashboardPageV6509.cleanRemakeV6230 .tatTableV6509.tatTableV6509 td,
+    html body #remakeFactorPage.cleanRemakeV6230 #remakeCeramistTableV6342 td,
+    html body #remakeFactorPage.cleanRemakeV6230 #remakeCeramistDetailTableV6343 td,
+    html body #tatDashboardPageV6509.cleanRemakeV6230 #remakeCeramistTableV6342 td,
+    html body #tatDashboardPageV6509.cleanRemakeV6230 #remakeCeramistDetailTableV6343 td {
+      font-family: Roboto, Arial, sans-serif !important;
+      font-size: 11px !important;
+      line-height: 1.25 !important;
+      padding: 6px 8px !important;
+      border-color: #e4e7ec !important;
+    }
+
+    /* ---------------------------------------------------------------
+       4. Data cell colour
+       .negative and .positive are excluded so red/green figures survive.
+       Section-row cells keep their own colour because those selectors
+       carry two IDs and therefore outrank this rule.
+       --------------------------------------------------------------- */
+    html body #overviewOne td:not(.negative):not(.positive),
+    html body #overviewOne .moverArea.moverArea td:not(.negative):not(.positive),
+    html body #overviewTwo td:not(.negative):not(.positive),
+    html body #remakeFactorPage.cleanRemakeV6230 .remakeTable.remakeTable td:not(.negative):not(.positive),
+    html body #tatDashboardPageV6509.cleanRemakeV6230 .remakeTable.remakeTable td:not(.negative):not(.positive),
+    html body #tatDashboardPageV6509.cleanRemakeV6230 .tatTableV6509.tatTableV6509 td:not(.negative):not(.positive) {
+      color: #172033 !important;
+    }
+
+    /* ---------------------------------------------------------------
+       5. In-cell name text matches the cell scale
+       --------------------------------------------------------------- */
+    html body #remakeFactorPage.cleanRemakeV6230 .remakeTable.remakeTable .customerNameText,
+    html body #remakeFactorPage.cleanRemakeV6230 .remakeTable.remakeTable .remakeNameText,
+    html body #remakeFactorPage.cleanRemakeV6230 .remakeTable.remakeTable .productNameText,
+    html body #tatDashboardPageV6509.cleanRemakeV6230 .remakeTable.remakeTable .customerNameText,
+    html body #tatDashboardPageV6509.cleanRemakeV6230 .remakeTable.remakeTable .remakeNameText,
+    html body #tatDashboardPageV6509.cleanRemakeV6230 .remakeTable.remakeTable .productNameText {
+      font-size: 11px !important;
+      line-height: 1.25 !important;
+    }
+
+    /* ---------------------------------------------------------------
+       6. In-cell badges stay small but consistent
+       --------------------------------------------------------------- */
+    html body #remakeFactorPage.cleanRemakeV6230 .remakeTable.remakeTable .inactiveBadge,
+    html body #remakeFactorPage.cleanRemakeV6230 .remakeTable.remakeTable .ceramistNoteBadgeV6343,
+    html body #tatDashboardPageV6509.cleanRemakeV6230 .remakeTable.remakeTable .inactiveBadge,
+    html body #tatDashboardPageV6509.cleanRemakeV6230 .remakeTable.remakeTable .ceramistNoteBadgeV6343 {
+      font-size: 9px !important;
+      line-height: 1 !important;
+    }
+
+  }
+</style>
