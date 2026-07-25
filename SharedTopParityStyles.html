@@ -301,6 +301,61 @@
   #tatDashboardPageV6509.cleanRemakeV6230 .tatKpiV6509 .sub .deltaV6281.neutral{color:#667085!important;}
   #tatDashboardPageV6509.cleanRemakeV6230 .tatStampV6509{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important;}
 
+  /* v6.530: one table visual component for current-year Remake and TAT tables. */
+  #remakeFactorPage.cleanRemakeV6230 .remakeTable:not(.compareColumnsV6301),
+  #tatDashboardPageV6509.cleanRemakeV6230 .remakeTable:not(.compareColumnsV6301){
+    border-collapse:collapse!important;
+    color:#172033!important;
+    font:12px/1.2 Arial,sans-serif!important;
+  }
+  #remakeFactorPage.cleanRemakeV6230 .remakeTable:not(.compareColumnsV6301) thead th,
+  #tatDashboardPageV6509.cleanRemakeV6230 .remakeTable:not(.compareColumnsV6301) thead th{
+    position:sticky!important;
+    top:0!important;
+    z-index:1!important;
+    height:auto!important;
+    padding:8px 9px!important;
+    background:#3b556e!important;
+    border-color:#3b556e!important;
+    color:#fff!important;
+    font:900 12px/1.2 Arial,sans-serif!important;
+    text-align:left!important;
+    white-space:nowrap!important;
+    overflow:hidden!important;
+    text-overflow:ellipsis!important;
+  }
+  #remakeFactorPage.cleanRemakeV6230 .remakeTable:not(.compareColumnsV6301) tbody td,
+  #tatDashboardPageV6509.cleanRemakeV6230 .remakeTable:not(.compareColumnsV6301) tbody td{
+    padding:7px 9px!important;
+    border-top:1px solid #e8edf4!important;
+    background:#fff!important;
+    color:#172033!important;
+    font:400 12px/1.2 Arial,sans-serif!important;
+    white-space:nowrap!important;
+    vertical-align:middle!important;
+    overflow:hidden!important;
+    text-overflow:ellipsis!important;
+  }
+  #remakeFactorPage.cleanRemakeV6230 .remakeTable:not(.compareColumnsV6301) tbody tr:nth-child(even) td,
+  #tatDashboardPageV6509.cleanRemakeV6230 .remakeTable:not(.compareColumnsV6301) tbody tr:nth-child(even) td{
+    background:#f9fafb!important;
+  }
+  #remakeFactorPage.cleanRemakeV6230 .remakeTable:not(.compareColumnsV6301) th.num,
+  #remakeFactorPage.cleanRemakeV6230 .remakeTable:not(.compareColumnsV6301) td.num,
+  #tatDashboardPageV6509.cleanRemakeV6230 .remakeTable:not(.compareColumnsV6301) th.num,
+  #tatDashboardPageV6509.cleanRemakeV6230 .remakeTable:not(.compareColumnsV6301) td.num{
+    text-align:right!important;
+  }
+  #remakeFactorPage.cleanRemakeV6230 .remakeTable:not(.compareColumnsV6301) tbody tr.clickable:hover td,
+  #tatDashboardPageV6509.cleanRemakeV6230 .remakeTable:not(.compareColumnsV6301) tbody tr.clickable:hover td{
+    background:#eef4ff!important;
+  }
+  #remakeFactorPage.cleanRemakeV6230 .remakeTable:not(.compareColumnsV6301) tbody tr.selectedV6230 td,
+  #remakeFactorPage.cleanRemakeV6230 .remakeTable:not(.compareColumnsV6301) tbody tr.selectedPinnedV6311 td,
+  #tatDashboardPageV6509.cleanRemakeV6230 .remakeTable:not(.compareColumnsV6301) tbody tr.selected td{
+    background:#fff7d6!important;
+  }
+
   /* Binary responsive mode: complete labels or icons; never squeezed text. */
   #remakeTabFilterHostV6337.cdaIconToolbarV6527 .remakeFilter,
   #tatTabFilterHostV6509.cdaIconToolbarV6527 .remakeFilter{width:32px!important;min-width:32px!important;max-width:32px!important;}
