@@ -463,32 +463,165 @@
     return groupRows(rows,function(row){return String(row.productId||row.productsDescription||'Unknown product')+'||'+String(row.productsDescription||'');},function(row){const idValue=String(row.productId||'').trim(),name=String(row.productsDescription||'Unknown product').trim();return idValue&&name?idValue+' - '+name:(name||idValue||'Unknown product');}).sort(function(a,b){return b.units-a.units||a.label.localeCompare(b.label,undefined,{numeric:true,sensitivity:'base'});});
   }
   function tatMetricCellsV6523(group){const remakePct=group.units?group.remakeUnits/group.units:NaN;return '<td class="num">'+fmtNum(group.units,1)+'</td><td class="num">'+fmtNum(group.remakeUnits,1)+'</td><td class="num">'+(Number.isFinite(remakePct)?fmtPct(remakePct):'-')+'</td><td class="num">'+(group.eligibleCases?fmtNum(group.avgTat,2):'-')+'</td><td class="num">'+(Number.isFinite(group.otpPct)?fmtPct(group.otpPct):'-')+'</td><td class="num">'+fmtNum(group.avgLate,2)+'</td>';}
+  /* v6.540: TAT tables are declared, not hand-rendered. Column definitions and
+     row objects go to SharedTableModule, which owns the header, sorting, the
+     column chooser, cross-filter clicks and selected-row pinning. This is the
+     same code path Remake uses, which is why the two tabs can no longer drift. */
+  function cdaTatPctV6540(value){return Number.isFinite(Number(value))?fmtPct(value):'-';}
+  function cdaTatDeptColumnsV6540(){
+    return [
+      {field:'label',label:'Department / Product',title:'Department / Product',hideable:false},
+      {field:'units',label:'Sold Units',title:'Sold Units',type:'decimal',decimals:1,format:function(v){return fmtNum(v,1);}},
+      {field:'remakeUnits',label:'Remake Units',title:'Remake Units',type:'decimal',decimals:1,format:function(v){return fmtNum(v,1);}},
+      {field:'remakePct',label:'Remake %',title:'Remake %',type:'percent',value:function(row){return row.units?row.remakeUnits/row.units:NaN;},format:function(v){return cdaTatPctV6540(v);}},
+      {field:'avgTat',label:'Avg TAT',title:'Average TAT',type:'decimal',decimals:2,format:function(v,row){return row&&!row.eligibleCases?'-':fmtNum(v,2);}},
+      {field:'otpPct',label:'OTP',title:'On Time to Promise',type:'percent',format:function(v){return cdaTatPctV6540(v);}},
+      {field:'avgLate',label:'Avg Days Late',title:'Average Days Late',type:'decimal',decimals:2,format:function(v){return fmtNum(v,2);}}
+    ];
+  }
+  function cdaTatExclusiveV6540(type){
+    return mode(type)==='CUSTOM'&&selectedSet(type).size===1?Array.from(selectedSet(type))[0]:'';
+  }
+  /* Cross-filter parity with Remake: plain click selects exclusively (or clears
+     if it was the only selection), ctrl/cmd/shift click adds and removes.
+     Both delegate to TAT's existing filter state, which stays the single
+     source of truth. The module never owns TAT selection. */
+  function cdaTatRowClickV6540(type){
+    return function(row,key,event,additive){
+      if(!key)return false;
+      if(additive)toggleTatOptionV6509(type,key);
+      else onlyTatOptionV6509(type,key,event);
+      return false;
+    };
+  }
+  function cdaTatRegisterTablesV6540(){
+    if(!window.cdaTable||cdaTatRegisterTablesV6540.done)return;
+    cdaTatRegisterTablesV6540.done=true;
+
+    cdaTable.register({
+      key:'tatDepartment',tableId:'tatDepartmentTableV6509',
+      columns:cdaTatDeptColumnsV6540(),
+      rowKey:function(row){return row.key;},
+      defaultSort:{field:'units',dir:'desc'},
+      limit:500,filterKind:'department',manageSelection:false,
+      emptyText:'No departments match the filters.',
+      childRowClass:'tatProductDetailRowV6523',
+      childRows:function(row,selected){
+        if(!selected)return [];
+        return tatProductGroupsV6523(row.rows||[]).slice(0,100).map(function(product){
+          return Object.assign({},product,{label:'\u2192 '+product.label});
+        });
+      },
+      onRowClick:cdaTatRowClickV6540('department')
+    });
+
+    cdaTable.register({
+      key:'tatLate',tableId:'tatLateTableV6509',
+      columns:[
+        {field:'label',label:'Performance',title:'Performance',hideable:false,sortable:true},
+        {field:'count',label:'Cases',title:'Cases',type:'count',format:function(v){return fmtNum(v,0);}},
+        {field:'share',label:'Share',title:'Share of eligible cases',type:'percent',format:function(v){return cdaTatPctV6540(v);}}
+      ],
+      rowKey:function(row){return row.key;},
+      defaultSort:{field:'order',dir:'asc'},
+      limit:50,filterKind:'lateBand',manageSelection:false,
+      emptyText:'No due-date eligible cases match the filters.',
+      onRowClick:function(row,key){selectTatLateBandV6509(key);return false;}
+    });
+
+    cdaTable.register({
+      key:'tatCustomer',tableId:'tatCustomerTableV6509',
+      columns:[
+        {field:'label',label:'Customer',title:'Customer',hideable:false},
+        {field:'cases',label:'Cases',title:'Cases',type:'count',format:function(v){return fmtNum(v,0);}},
+        {field:'units',label:'Sold Units',title:'Sold Units',type:'decimal',decimals:1,format:function(v){return fmtNum(v,1);}},
+        {field:'remakeUnits',label:'Remake Units',title:'Remake Units',type:'decimal',decimals:1,format:function(v){return fmtNum(v,1);}},
+        {field:'remakePct',label:'Remake %',title:'Remake %',type:'percent',value:function(row){return row.units?row.remakeUnits/row.units:NaN;},format:function(v){return cdaTatPctV6540(v);}},
+        {field:'avgTat',label:'Avg TAT',title:'Average TAT',type:'decimal',decimals:2,format:function(v,row){return row&&!row.eligibleCases?'-':fmtNum(v,2);}},
+        {field:'otpPct',label:'OTP',title:'On Time to Promise',type:'percent',format:function(v){return cdaTatPctV6540(v);}},
+        {field:'avgLate',label:'Avg Days Late',title:'Average Days Late',type:'decimal',decimals:2,format:function(v){return fmtNum(v,2);}}
+      ],
+      rowKey:function(row){return row.key;},
+      defaultSort:{field:'units',dir:'desc'},
+      limit:500,filterKind:'customer',manageSelection:false,
+      emptyText:'No customers match the filters.',
+      onRowClick:cdaTatRowClickV6540('customer')
+    });
+
+    cdaTable.register({
+      key:'tatQuality',tableId:'tatQualityTableV6509',
+      columns:[
+        {field:'issue',label:'Issue',title:'Issue',hideable:false},
+        {field:'caseNumber',label:'Case',title:'Case'},
+        {field:'customerLabel',label:'Customer',title:'Customer'},
+        {field:'departmentsLabel',label:'Departments',title:'Departments'},
+        {field:'invoiceDate',label:'Invoice Date',title:'Invoice Date'},
+        {field:'dateIn',label:'Date In',title:'Date In'},
+        {field:'completionDate',label:'TAT End',title:'TAT End'},
+        {field:'businessTatDays',label:'TAT Days',title:'TAT Days',type:'count',format:function(v,row){return row&&row.tatEligible?fmtNum(v,0):'-';}},
+        {field:'units',label:'Units',title:'Units',type:'decimal',decimals:2,format:function(v){return fmtNum(v,2);}},
+        {field:'remakeUnits',label:'Remake Units',title:'Remake Units',type:'decimal',decimals:2,format:function(v){return fmtNum(v,2);}}
+      ],
+      rowKey:function(row){return row.rowKeyV6540;},
+      defaultSort:{field:'invoiceDate',dir:'desc'},
+      limit:1000,filterKind:'customer',manageSelection:false,
+      emptyText:'No cases match this quality selection.',
+      onRowClick:function(row){if(row)onlyTatOptionV6509('customer',String(row.customerId||row.customerName||''));return false;}
+    });
+  }
+
   function renderDepartmentTable(){
-    const rows=reportingRowsV6510(),groups=groupRows(rows,function(row){return row.productsDepartment||'Unassigned';},function(row){return tatDepartmentDisplayV6523(row.productsDepartment||'Unassigned');}).sort(function(a,b){if(a.key==='Unassigned')return 1;if(b.key==='Unassigned')return -1;return b.units-a.units;}),body=id('tatDepartmentTableV6509');if(!body)return;
-    const exclusive=mode('department')==='CUSTOM'&&selectedSet('department').size===1?Array.from(selectedSet('department'))[0]:'';
-    const html=[];
-    groups.forEach(function(group){const selected=exclusive===group.key;html.push('<tr class="clickable '+(selected?'selected selectedV6230':'')+'" onclick="onlyTatOptionV6509(\'department\',\''+escJs(group.key)+'\',event)"><td>'+esc(group.label)+'</td>'+tatMetricCellsV6523(group)+'</tr>');if(selected){tatProductGroupsV6523(group.rows).slice(0,100).forEach(function(product){html.push('<tr class="tatProductDetailRowV6523"><td><span class="tatProductIndentV6523">&rarr;</span>'+esc(product.label)+'</td>'+tatMetricCellsV6523(product)+'</tr>');});}});
-    body.innerHTML=html.length?html.join(''):'<tr><td colspan="7" class="tatEmptyV6509">No departments match the filters.</td></tr>';
+    cdaTatRegisterTablesV6540();
+    if(!window.cdaTable||!cdaTable.registered('tatDepartment'))return;
+    const groups=groupRows(reportingRowsV6510(),function(row){return row.productsDepartment||'Unassigned';},function(row){return tatDepartmentDisplayV6523(row.productsDepartment||'Unassigned');});
+    const exclusive=cdaTatExclusiveV6540('department');
+    cdaTable.setSelection('tatDepartment',exclusive?[exclusive]:[],{render:false});
+    cdaTable.setRows('tatDepartment',groups);
   }
   const LATE_BANDS=[{label:'On time',test:function(days){return days<=0;}},{label:'1-2 days late',test:function(days){return days>=1&&days<=2;}},{label:'3-5 days late',test:function(days){return days>=3&&days<=5;}},{label:'6-10 days late',test:function(days){return days>=6&&days<=10;}},{label:'11-30 days late',test:function(days){return days>=11&&days<=30;}},{label:'31+ days late',test:function(days){return days>=31;}}];
   function renderLateTable(){
-    const cases=aggregateCases(reportingRowsV6510({ignoreLate:true})).filter(function(row){return row.otpEligible;}),body=id('tatLateTableV6509');if(!body)return;
-    body.innerHTML=cases.length?LATE_BANDS.map(function(band){const count=cases.filter(function(row){return band.test(num(row.daysLate));}).length;return '<tr class="clickable '+(state.cross.lateBand===band.label?'selected selectedV6230':'')+'" onclick="selectTatLateBandV6509(\''+escJs(band.label)+'\')"><td>'+esc(band.label)+'</td><td class="num">'+fmtNum(count,0)+'</td><td class="num">'+fmtPct(count/cases.length)+'</td></tr>';}).join(''):'<tr><td colspan="3" class="tatEmptyV6509">No due-date eligible cases match the filters.</td></tr>';
+    cdaTatRegisterTablesV6540();
+    if(!window.cdaTable||!cdaTable.registered('tatLate'))return;
+    const cases=aggregateCases(reportingRowsV6510({ignoreLate:true})).filter(function(row){return row.otpEligible;});
+    const rows=cases.length?LATE_BANDS.map(function(band,index){
+      const count=cases.filter(function(row){return band.test(num(row.daysLate));}).length;
+      return {key:band.label,label:band.label,order:index,count:count,share:count/cases.length};
+    }):[];
+    cdaTable.setSelection('tatLate',state.cross.lateBand?[state.cross.lateBand]:[],{render:false});
+    cdaTable.setRows('tatLate',rows);
   }
   function renderCustomerTable(){
-    const groups=groupRows(reportingRowsV6510(),function(row){return String(row.customerId||row.customerName||'Unknown');},function(row){return row.customerName||row.customerId||'Unknown customer';}).sort(function(a,b){return b.units-a.units;}).slice(0,500),body=id('tatCustomerTableV6509');if(!body)return;
-    const exclusive=mode('customer')==='CUSTOM'&&selectedSet('customer').size===1?Array.from(selectedSet('customer'))[0]:'';
-    body.innerHTML=groups.length?groups.map(function(group){const selected=exclusive===group.key,remakePct=group.units?group.remakeUnits/group.units:NaN;return '<tr class="clickable '+(selected?'selected selectedV6230':'')+'" onclick="onlyTatOptionV6509(\'customer\',\''+escJs(group.key)+'\',event)"><td>'+esc(group.label)+'</td><td class="num">'+fmtNum(group.cases,0)+'</td><td class="num">'+fmtNum(group.units,1)+'</td><td class="num">'+fmtNum(group.remakeUnits,1)+'</td><td class="num">'+(Number.isFinite(remakePct)?fmtPct(remakePct):'-')+'</td><td class="num">'+(group.eligibleCases?fmtNum(group.avgTat,2):'-')+'</td><td class="num">'+(Number.isFinite(group.otpPct)?fmtPct(group.otpPct):'-')+'</td><td class="num">'+fmtNum(group.avgLate,2)+'</td></tr>';}).join(''):'<tr><td colspan="8" class="tatEmptyV6509">No customers match the filters.</td></tr>';
+    cdaTatRegisterTablesV6540();
+    if(!window.cdaTable||!cdaTable.registered('tatCustomer'))return;
+    const groups=groupRows(reportingRowsV6510(),function(row){return String(row.customerId||row.customerName||'Unknown');},function(row){return row.customerName||row.customerId||'Unknown customer';});
+    const exclusive=cdaTatExclusiveV6540('customer');
+    cdaTable.setSelection('tatCustomer',exclusive?[exclusive]:[],{render:false});
+    cdaTable.setRows('tatCustomer',groups);
   }
   function qualityIssueForCase(row){if(row.tatIssue)return row.tatIssue;if(row.tatEligible&&!row.otpEligible)return 'Missing due date';if(row.missingHoldEndCount>0)return 'Missing hold end';if(row.usedInvoiceDateFallback)return 'Invoice date fallback';return '';}
   function issueCases(rows,issue){return aggregateCases(rows).filter(function(row){if(issue==='Missing Date In')return row.tatIssue==='Missing Date In';if(issue==='Completion date is before Date In')return row.tatIssue==='Completion date is before Date In';if(issue==='Missing due date')return row.tatEligible&&!row.otpEligible;if(issue==='Missing hold end')return row.missingHoldEndCount>0;if(issue==='Invoice date fallback')return row.usedInvoiceDateFallback;return false;});}
   function renderQuality(){
-    const contextRows=reportingRowsV6510({ignoreIssue:true}),summary=id('tatIssueSummaryV6509'),body=id('tatQualityTableV6509');if(!summary||!body)return;
-    if(!state.dataQualityAvailable){summary.innerHTML='<div class="tatEmptyV6509" style="grid-column:1/-1">Run the v3 checkpoint rebuild to load excluded and review-needed cases.</div>';body.innerHTML='<tr><td colspan="10" class="tatEmptyV6509">Data-quality details are not present in the current browser cache.</td></tr>';return;}
+    cdaTatRegisterTablesV6540();
+    const contextRows=reportingRowsV6510({ignoreIssue:true}),summary=id('tatIssueSummaryV6509');
+    if(!summary||!window.cdaTable||!cdaTable.registered('tatQuality'))return;
+    if(!state.dataQualityAvailable){
+      summary.innerHTML='<div class="tatEmptyV6509" style="grid-column:1/-1">Run the v3 checkpoint rebuild to load excluded and review-needed cases.</div>';
+      cdaTable.setRows('tatQuality',[]);
+      return;
+    }
     summary.innerHTML=QUALITY_ISSUES.map(function(issue){const count=issueCases(contextRows,issue).length;return '<button class="tatIssueButtonV6509 '+(state.cross.issue===issue?'active':'')+'" type="button" onclick="selectTatIssueV6509(\''+escJs(issue)+'\')"><span>'+esc(issue)+'</span><strong>'+fmtNum(count,0)+'</strong></button>';}).join('');
-    let cases=[];if(state.cross.issue)cases=issueCases(contextRows,state.cross.issue);else{const map=new Map();QUALITY_ISSUES.forEach(function(issue){issueCases(contextRows,issue).forEach(function(row){const key=row.key+'||'+issue;if(!map.has(key))map.set(key,Object.assign({},row,{displayIssue:issue}));});});cases=Array.from(map.values());}
-    cases.sort(function(a,b){return String(b.invoiceDate||'').localeCompare(String(a.invoiceDate||''))||String(a.caseNumber||'').localeCompare(String(b.caseNumber||''),undefined,{numeric:true});});
-    body.innerHTML=cases.length?cases.slice(0,1000).map(function(row){const issue=row.displayIssue||state.cross.issue||qualityIssueForCase(row);return '<tr class="clickable" onclick="onlyTatOptionV6509(\'customer\',\''+escJs(String(row.customerId||row.customerName||''))+'\')"><td>'+esc(issue)+'</td><td>'+esc(row.caseNumber||row.caseId)+'</td><td>'+esc(row.customerName||row.customerId||'Unknown')+'</td><td>'+esc(Array.from(row.departments||[]).join(', '))+'</td><td>'+esc(row.invoiceDate||'')+'</td><td>'+esc(row.dateIn||'')+'</td><td>'+esc(row.completionDate||'')+'</td><td class="num">'+(row.tatEligible?fmtNum(row.businessTatDays,0):'-')+'</td><td class="num">'+fmtNum(row.units,2)+'</td><td class="num">'+fmtNum(row.remakeUnits,2)+'</td></tr>';}).join(''):'<tr><td colspan="10" class="tatEmptyV6509">No cases match this quality selection.</td></tr>';
+    let cases=[];
+    if(state.cross.issue)cases=issueCases(contextRows,state.cross.issue);
+    else{const map=new Map();QUALITY_ISSUES.forEach(function(issue){issueCases(contextRows,issue).forEach(function(row){const key=row.key+'||'+issue;if(!map.has(key))map.set(key,Object.assign({},row,{displayIssue:issue}));});});cases=Array.from(map.values());}
+    const rows=cases.map(function(row){
+      return Object.assign({},row,{
+        rowKeyV6540:String(row.key)+'||'+String(row.displayIssue||state.cross.issue||''),
+        issue:row.displayIssue||state.cross.issue||qualityIssueForCase(row),
+        customerLabel:row.customerName||row.customerId||'Unknown',
+        departmentsLabel:Array.from(row.departments||[]).join(', ')
+      });
+    });
+    cdaTable.setRows('tatQuality',rows);
   }
 
   const TAT_KPI_STORAGE_KEY_V6528='cdaTatKpiVisibility.v6528';
