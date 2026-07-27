@@ -1,0 +1,486 @@
+<!-- SharedTableEngine.html v6.536
+Universal table behaviour engine. Phase 1: sorting.
+Must be included last, immediately after SharedTableStyles.
+
+EVERY BEHAVIOUR IS OVERRIDABLE PER TABLE VIA data- ATTRIBUTES.
+See the PER-TABLE OVERRIDES block below for the full list.
+-->
+<style id="cdaSharedTableEngineStylesV6536">
+  /* Sort affordance. Only applied to headers the engine actually owns, so
+     Remake's existing .sortableV6230 headers are visually untouched. */
+  html body th.cdaSortV6536 {
+    cursor: pointer !important;
+    user-select: none !important;
+    position: relative !important;
+  }
+  html body th.cdaSortV6536:hover {
+    background: #24344d !important;
+  }
+  html body th.cdaSortV6536 .cdaSortGlyphV6536 {
+    display: inline-block;
+    width: 9px;
+    margin-left: 4px;
+    font-size: 8px;
+    line-height: 1;
+    opacity: .95;
+  }
+  html body th.cdaSortV6536[data-cda-sort-active="1"] {
+    background: #24344d !important;
+  }
+</style>
+<script id="cdaSharedTableEngineV6536">
+(function installCdaSharedTableEngineV6536(){
+  'use strict';
+
+  /* ==================================================================
+   * SharedTableEngine v6.536
+   *
+   * WHY THIS EXISTS
+   *   Remake tables have sorting, a column chooser, year comparison and row
+   *   pinning. TAT tables have none of those. Remake's implementation cannot be
+   *   reused because it builds its own <thead> in JavaScript and sorts data
+   *   objects held in uiV6230.lastTables. TAT hard-codes its <thead> as an HTML
+   *   string and discards its row objects after render.
+   *
+   *   This engine therefore sorts the RENDERED DOM. It reorders existing <tr>
+   *   nodes by reading cell text. That makes it genuinely universal: any table
+   *   that is <table class="remakeTable"> gets sorting with zero renderer
+   *   changes, including tabs that do not exist yet.
+   *
+   * WHAT IT DOES NOT TOUCH
+   *   Remake's own sort engine. Any <th> that already carries .sortableV6230 is
+   *   skipped entirely, so Remake behaviour is unchanged by this file.
+   *
+   * ==================================================================
+   * PER-TABLE OVERRIDES - put these on the <table> element
+   * ==================================================================
+   *
+   *   data-cda-sortable="0"
+   *       Opt this table out of sorting completely.
+   *
+   *   data-cda-row-limit="500"
+   *       Informational for now. Phase 5 will enforce it.
+   *
+   *   data-cda-default-sort="3:desc"
+   *       Apply this sort on first load. Column index is zero-based, or use a
+   *       data-cda-col name, for example data-cda-default-sort="cases:desc".
+   *
+   *   data-cda-sort-skip-rows="tatProductDetailRowV6523,ceramistSectionRowV6348"
+   *       Comma separated class names. Rows carrying any of these are treated as
+   *       attached children: they stay immediately beneath the row they follow
+   *       instead of being sorted independently. Defaults already cover the
+   *       known detail and section row classes.
+   *
+   *   data-cda-sort-pin-rows="selectedV6230"
+   *       Comma separated class names. Rows carrying any of these are pinned to
+   *       the top regardless of sort order. Defaults to selectedV6230.
+   *
+   *   data-cda-persist="0"
+   *       Do not remember this table's sort between sessions.
+   *
+   * ==================================================================
+   * PER-COLUMN OVERRIDES - put these on the <th> element
+   * ==================================================================
+   *
+   *   data-cda-col="cases"
+   *       Stable column name. Recommended for every column. Used for persistence
+   *       so remembered sorts survive column reordering.
+   *
+   *   data-cda-type="text|number|percent|currency|date"
+   *       Explicit value type. When absent the engine sniffs the column's cell
+   *       text, which is why TAT's existing hard-coded headers work untouched.
+   *
+   *   data-cda-sortable="0"
+   *       Make this one column unsortable.
+   *
+   *   data-cda-sort-dir="asc"
+   *       First click on this column sorts ascending instead of descending.
+   *       Useful for name columns.
+   *
+   * ==================================================================
+   * TAB HOOK
+   *   After a tab rewrites a tbody it should fire:
+   *     document.dispatchEvent(new CustomEvent('cda:table-rendered',
+   *       { detail: { tableId: 'tatCustomerTableV6509' } }))
+   *   The engine reapplies the active sort. A MutationObserver is also present
+   *   as a safety net for tabs that do not fire the event, which is currently
+   *   all of them.
+   * ================================================================== */
+
+  var VERSION = 'v6.536';
+  var STORE_KEY = 'cdaSharedTableSort.v6536';
+  var TABLE_SELECTOR = 'table.remakeTable, table[data-cda-table]';
+
+  var DEFAULT_SKIP_ROW_CLASSES = [
+    'tatProductDetailRowV6523',
+    'ceramistSectionRowV6348',
+    'ceramistDetailRowV6368',
+    'cdaAttachedRowV6536'
+  ];
+  var DEFAULT_PIN_ROW_CLASSES = ['selectedV6230', 'selectedPinnedV6311', 'ceramistPinnedWorkerV6361'];
+
+  var state = window.cdaSharedTableEngineStateV6536 = window.cdaSharedTableEngineStateV6536 || { sorts: {}, wired: new WeakSet(), observing: false };
+
+  function readStore(){
+    try { return JSON.parse(localStorage.getItem(STORE_KEY) || '{}') || {}; } catch (e) { return {}; }
+  }
+  function writeStore(value){
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(value || {})); } catch (e) {}
+  }
+  if (!state.loadedStore) { state.sorts = readStore(); state.loadedStore = true; }
+
+  function attr(el, name, fallback){
+    if (!el) return fallback;
+    var value = el.getAttribute(name);
+    return value === null || value === '' ? fallback : value;
+  }
+  function tableKey(table){
+    return attr(table, 'data-cda-table', '') || table.id || '';
+  }
+  function classList(value){
+    return String(value || '').split(',').map(function(s){ return s.trim(); }).filter(Boolean);
+  }
+
+  /* ---- value parsing -------------------------------------------------- */
+
+  function cellText(row, index){
+    var cells = row.children;
+    var cell = cells && cells[index];
+    return cell ? String(cell.textContent || '').trim() : '';
+  }
+
+  var NUMERIC_RE = /^[\s$\u00a3\u20ac(]*-?[\d,]+(?:\.\d+)?\)?%?\s*$/;
+
+  function parseNumeric(text){
+    if (text === '' || text === '-' || text === '\u2013' || text === 'n/a' || text === 'N/A') return null;
+    var clean = String(text).replace(/[\s,$\u00a3\u20ac%]/g, '');
+    var negative = false;
+    if (/^\(.*\)$/.test(clean)) { negative = true; clean = clean.slice(1, -1); }
+    if (clean.charAt(0) === '-') { negative = true; clean = clean.slice(1); }
+    if (clean === '' || !/^\d*\.?\d+$/.test(clean)) return null;
+    var value = parseFloat(clean);
+    if (!isFinite(value)) return null;
+    return negative ? -value : value;
+  }
+
+  function parseDate(text){
+    if (!text) return null;
+    var ms = Date.parse(text);
+    return isFinite(ms) ? ms : null;
+  }
+
+  /* Sniff a column's type from its own rendered cells. This is what lets the
+     engine work on TAT's untouched hard-coded headers. */
+  function sniffType(rows, index){
+    var numeric = 0, dated = 0, seen = 0;
+    for (var i = 0; i < rows.length && seen < 12; i++) {
+      var text = cellText(rows[i], index);
+      if (!text || text === '-') continue;
+      seen++;
+      if (NUMERIC_RE.test(text)) numeric++;
+      else if (parseDate(text) !== null && /\d{4}|\d\/\d/.test(text)) dated++;
+    }
+    if (!seen) return 'text';
+    if (numeric / seen >= 0.6) return 'number';
+    if (dated / seen >= 0.6) return 'date';
+    return 'text';
+  }
+
+  function valueFor(row, index, type){
+    var text = cellText(row, index);
+    if (type === 'number' || type === 'percent' || type === 'currency') return parseNumeric(text);
+    if (type === 'date') return parseDate(text);
+    return String(text).toLowerCase();
+  }
+
+  /* ---- row grouping ---------------------------------------------------- */
+
+  /* Detail and section rows must travel with the row above them, otherwise
+     sorting scatters a department's product breakdown across the table. */
+  function buildGroups(rows, skipClasses){
+    var groups = [];
+    rows.forEach(function(row){
+      var attached = skipClasses.some(function(name){ return row.classList.contains(name); });
+      if (attached && groups.length) { groups[groups.length - 1].extras.push(row); return; }
+      groups.push({ lead: row, extras: [] });
+    });
+    return groups;
+  }
+
+  /* ---- sorting --------------------------------------------------------- */
+
+  function headerCells(table){
+    var head = table.tHead;
+    if (!head || !head.rows.length) return [];
+    return Array.prototype.slice.call(head.rows[head.rows.length - 1].cells);
+  }
+
+  function bodyRows(table){
+    var body = table.tBodies && table.tBodies[0];
+    if (!body) return [];
+    return Array.prototype.slice.call(body.rows);
+  }
+
+  function columnName(th, index){
+    return attr(th, 'data-cda-col', '') || ('col' + index);
+  }
+
+  function applySort(table, spec, persist){
+    if (!table || !spec) return;
+    var body = table.tBodies && table.tBodies[0];
+    if (!body) return;
+
+    var rows = bodyRows(table);
+    if (rows.length < 2) { paintGlyphs(table, spec); return; }
+
+    /* An empty-state row such as "No customers match the filters" has one cell
+       with a colspan. Never sort those. */
+    if (rows.length === 1 || (rows.length && rows[0].cells.length === 1 && rows[0].cells[0].hasAttribute('colspan'))) {
+      paintGlyphs(table, spec);
+      return;
+    }
+
+    var headers = headerCells(table);
+    var th = headers[spec.index];
+    var type = attr(th, 'data-cda-type', '') || sniffType(rows, spec.index);
+
+    var skipClasses = classList(attr(table, 'data-cda-sort-skip-rows', DEFAULT_SKIP_ROW_CLASSES.join(',')));
+    var pinClasses = classList(attr(table, 'data-cda-sort-pin-rows', DEFAULT_PIN_ROW_CLASSES.join(',')));
+
+    var groups = buildGroups(rows, skipClasses);
+    var direction = spec.dir === 'asc' ? 1 : -1;
+
+    var decorated = groups.map(function(group, position){
+      return {
+        group: group,
+        position: position,
+        pinned: pinClasses.some(function(name){ return group.lead.classList.contains(name); }),
+        value: valueFor(group.lead, spec.index, type)
+      };
+    });
+
+    decorated.sort(function(a, b){
+      if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+      var av = a.value, bv = b.value;
+      var aEmpty = av === null || av === undefined || av === '';
+      var bEmpty = bv === null || bv === undefined || bv === '';
+      if (aEmpty && bEmpty) return a.position - b.position;
+      if (aEmpty) return 1;   /* blanks always last, both directions */
+      if (bEmpty) return -1;
+      if (typeof av === 'string' || typeof bv === 'string') {
+        var compared = String(av).localeCompare(String(bv), undefined, { numeric: true, sensitivity: 'base' });
+        return compared * direction || (a.position - b.position);
+      }
+      if (av === bv) return a.position - b.position;
+      return (av - bv) * direction;
+    });
+
+    var fragment = document.createDocumentFragment();
+    decorated.forEach(function(item){
+      fragment.appendChild(item.group.lead);
+      item.group.extras.forEach(function(extra){ fragment.appendChild(extra); });
+    });
+    body.appendChild(fragment);
+
+    paintGlyphs(table, spec);
+
+    if (persist && attr(table, 'data-cda-persist', '1') !== '0') {
+      var key = tableKey(table);
+      if (key) {
+        state.sorts[key] = { col: spec.col, index: spec.index, dir: spec.dir };
+        writeStore(state.sorts);
+      }
+    }
+  }
+
+  function paintGlyphs(table, spec){
+    headerCells(table).forEach(function(th, index){
+      if (!th.classList.contains('cdaSortV6536')) return;
+      var glyph = th.querySelector('.cdaSortGlyphV6536');
+      if (!glyph) return;
+      if (spec && index === spec.index) {
+        glyph.innerHTML = spec.dir === 'asc' ? '&#9650;' : '&#9660;';
+        th.setAttribute('data-cda-sort-active', '1');
+        th.setAttribute('aria-sort', spec.dir === 'asc' ? 'ascending' : 'descending');
+      } else {
+        glyph.innerHTML = '';
+        th.removeAttribute('data-cda-sort-active');
+        th.removeAttribute('aria-sort');
+      }
+    });
+  }
+
+  function resolveDefault(table, headers){
+    var raw = attr(table, 'data-cda-default-sort', '');
+    if (!raw) return null;
+    var parts = String(raw).split(':');
+    var target = parts[0].trim();
+    var dir = (parts[1] || 'desc').trim() === 'asc' ? 'asc' : 'desc';
+    var index = -1;
+    if (/^\d+$/.test(target)) index = Number(target);
+    else headers.forEach(function(th, i){ if (attr(th, 'data-cda-col', '') === target) index = i; });
+    if (index < 0 || index >= headers.length) return null;
+    return { index: index, dir: dir, col: columnName(headers[index], index) };
+  }
+
+  function wire(table){
+    if (!table || state.wired.has(table)) return;
+    if (attr(table, 'data-cda-sortable', '1') === '0') return;
+
+    var headers = headerCells(table);
+    if (!headers.length) return;
+
+    /* Never fight Remake's own sort engine. */
+    var remakeOwned = headers.some(function(th){ return th.classList.contains('sortableV6230'); });
+    if (remakeOwned) { state.wired.add(table); return; }
+
+    state.wired.add(table);
+
+    headers.forEach(function(th, index){
+      if (attr(th, 'data-cda-sortable', '1') === '0') return;
+      th.classList.add('cdaSortV6536');
+      if (!th.querySelector('.cdaSortGlyphV6536')) {
+        var glyph = document.createElement('span');
+        glyph.className = 'cdaSortGlyphV6536';
+        glyph.setAttribute('aria-hidden', 'true');
+        th.appendChild(glyph);
+      }
+      var label = String(th.textContent || '').trim() || ('column ' + (index + 1));
+      th.setAttribute('title', 'Sort by ' + label);
+      th.addEventListener('click', function(){
+        var key = tableKey(table);
+        var current = state.sorts[key];
+        var firstDir = attr(th, 'data-cda-sort-dir', '') === 'asc' ? 'asc' : 'desc';
+        var dir = firstDir;
+        if (current && Number(current.index) === index) dir = current.dir === 'desc' ? 'asc' : 'desc';
+        applySort(table, { index: index, dir: dir, col: columnName(th, index) }, true);
+      });
+    });
+
+    var key = tableKey(table);
+    var remembered = key ? state.sorts[key] : null;
+    if (remembered) {
+      var index = Number(remembered.index);
+      if (remembered.col) {
+        headers.forEach(function(th, i){ if (attr(th, 'data-cda-col', '') === remembered.col) index = i; });
+      }
+      if (index >= 0 && index < headers.length) {
+        applySort(table, { index: index, dir: remembered.dir, col: remembered.col || columnName(headers[index], index) }, false);
+        return;
+      }
+    }
+    var fallback = resolveDefault(table, headers);
+    if (fallback) applySort(table, fallback, false);
+  }
+
+  function reapply(table){
+    var key = tableKey(table);
+    var remembered = key ? state.sorts[key] : null;
+    if (!remembered) return;
+    var headers = headerCells(table);
+    if (!headers.length) return;
+    if (headers.some(function(th){ return th.classList.contains('sortableV6230'); })) return;
+    var index = Number(remembered.index);
+    if (remembered.col) headers.forEach(function(th, i){ if (attr(th, 'data-cda-col', '') === remembered.col) index = i; });
+    if (index < 0 || index >= headers.length) return;
+    applySort(table, { index: index, dir: remembered.dir, col: remembered.col || columnName(headers[index], index) }, false);
+  }
+
+  function scan(){
+    var tables = document.querySelectorAll(TABLE_SELECTOR);
+    Array.prototype.forEach.call(tables, function(table){
+      wire(table);
+      if (state.wired.has(table)) reapply(table);
+    });
+  }
+
+  /* ---- lifecycle ------------------------------------------------------- */
+
+  var scanFrame = 0;
+  function scheduleScan(){
+    if (scanFrame) return;
+    scanFrame = window.requestAnimationFrame(function(){ scanFrame = 0; scan(); });
+  }
+
+  document.addEventListener('cda:table-rendered', function(event){
+    var id = event && event.detail && event.detail.tableId;
+    if (!id) { scheduleScan(); return; }
+    var element = document.getElementById(id);
+    var table = element ? (element.tagName === 'TABLE' ? element : element.closest('table')) : null;
+    if (!table) { scheduleScan(); return; }
+    wire(table);
+    reapply(table);
+  });
+
+  /* Safety net. No tab fires the event yet, so watch for tbody rewrites.
+     Guarded by a flag so the engine's own reordering does not retrigger. */
+  var reordering = false;
+  var originalApply = applySort;
+  applySort = function(table, spec, persist){
+    reordering = true;
+    try { originalApply(table, spec, persist); } finally {
+      window.setTimeout(function(){ reordering = false; }, 0);
+    }
+  };
+
+  function startObserver(){
+    if (state.observing || !window.MutationObserver || !document.body) return;
+    state.observing = true;
+    var observer = new MutationObserver(function(mutations){
+      if (reordering) return;
+      var touched = false;
+      for (var i = 0; i < mutations.length; i++) {
+        var target = mutations[i].target;
+        if (target && target.closest && target.closest(TABLE_SELECTOR)) { touched = true; break; }
+        if (mutations[i].addedNodes && mutations[i].addedNodes.length) {
+          for (var j = 0; j < mutations[i].addedNodes.length; j++) {
+            var node = mutations[i].addedNodes[j];
+            if (node && node.nodeType === 1 && (node.matches && node.matches(TABLE_SELECTOR) || node.querySelector && node.querySelector(TABLE_SELECTOR))) { touched = true; break; }
+          }
+        }
+        if (touched) break;
+      }
+      if (touched) scheduleScan();
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+  }
+
+  function start(){
+    window.CDA_SHARED_TABLE_ENGINE_VERSION = VERSION;
+    scan();
+    startObserver();
+    document.addEventListener('click', function(event){
+      var tab = event.target && event.target.closest ? event.target.closest('.tabBtn') : null;
+      if (tab) window.setTimeout(scheduleScan, 60);
+    }, true);
+  }
+
+  /* Public API. Lets a tab, or you from the console, drive the engine. */
+  window.cdaSharedTableEngineV6536 = {
+    version: VERSION,
+    scan: scan,
+    sort: function(tableIdOrKey, columnNameOrIndex, dir){
+      var table = document.getElementById(tableIdOrKey) || document.querySelector('[data-cda-table="' + tableIdOrKey + '"]');
+      if (!table) return false;
+      if (table.tagName !== 'TABLE') table = table.closest('table') || table.querySelector('table');
+      if (!table) return false;
+      var headers = headerCells(table);
+      var index = -1;
+      if (/^\d+$/.test(String(columnNameOrIndex))) index = Number(columnNameOrIndex);
+      else headers.forEach(function(th, i){ if (attr(th, 'data-cda-col', '') === columnNameOrIndex) index = i; });
+      if (index < 0 || index >= headers.length) return false;
+      applySort(table, { index: index, dir: dir === 'asc' ? 'asc' : 'desc', col: columnName(headers[index], index) }, true);
+      return true;
+    },
+    clear: function(tableIdOrKey){
+      if (tableIdOrKey) delete state.sorts[tableIdOrKey];
+      else state.sorts = {};
+      writeStore(state.sorts);
+    },
+    state: state
+  };
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, { once: true });
+  else start();
+})();
+</script>
