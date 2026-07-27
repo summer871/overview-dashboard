@@ -1,0 +1,663 @@
+<!-- SharedTableModule.html v6.539
+
+THE TAB TEMPLATE. Read this before building any new dashboard tab.
+
+This module owns table rendering for every tab. A tab declares its columns and
+hands over rows. The module builds the header, the body, sorting, column
+visibility, row-click cross-filtering, selected-row pinning and CSV export.
+
+A new tab does NOT write table HTML. It calls cdaTable.register() once per
+table and cdaTable.setRows() whenever its data changes. Everything else is
+inherited.
+
+Markup contract produced here is byte-for-byte the same shape Remake produces
+(sortableV6230 headers, sortGlyphV6230 glyphs, clickable / selectedV6230 /
+dimmedV6266 rows, num cells), so every existing stylesheet rule applies with no
+new CSS and a converted tab looks identical to Remake rather than merely
+similar.
+
+Include order matters. Must load after SharedTableStyles and after
+SharedTableEngine.
+
+v6.539 is ADDITIVE. No table is registered yet, so this release cannot change
+anything on screen except the footer stamp. v6.540 converts TAT onto it.
+-->
+<style id="cdaSharedTableModuleStylesV6539">
+  /* Remake scopes its sortable-header affordance inside #remakeFactorPage.
+     Module-rendered tables live in other tabs, so re-assert the identical
+     treatment for anything the module manages. Two-attribute + element
+     selectors keep specificity above the runtime style injectors. */
+  html body table[data-cda-managed="v6539"] th.sortableV6230 {
+    cursor: pointer !important;
+    user-select: none !important;
+    position: relative !important;
+    white-space: nowrap !important;
+  }
+  html body table[data-cda-managed="v6539"] th.sortableV6230:hover {
+    background: #2b424d !important;
+  }
+  html body table[data-cda-managed="v6539"] th.sortableV6230 .sortGlyphV6230 {
+    display: inline-block;
+    width: 9px;
+    margin-left: 4px;
+    font-size: 8px;
+    line-height: 1;
+  }
+  html body table[data-cda-managed="v6539"] tbody tr.clickable {
+    cursor: pointer;
+  }
+  html body table[data-cda-managed="v6539"] td.cdaEmptyV6539 {
+    text-align: center !important;
+    opacity: .7;
+  }
+
+  /* Column chooser button and popover already ship in SharedTableEngine
+     v6.538. This module only supplies the column metadata it reads. */
+</style>
+<script id="cdaSharedTableModuleControllerV6539">
+(function installCdaSharedTableModuleV6539(){
+  'use strict';
+
+  var MODULE_VERSION_V6539 = '6.539';
+  if (window.cdaTable && window.cdaTable.version === MODULE_VERSION_V6539) return;
+
+  var SORT_STORE_V6539 = 'cdaTableSortsV6539';
+  var COLS_STORE_V6539 = 'cdaTableHiddenColumnsV6539';
+  var MANAGED_ATTR_V6539 = 'data-cda-managed';
+
+  var registryV6539 = {};
+  var sortsV6539 = readJsonV6539(SORT_STORE_V6539, {});
+  var hiddenV6539 = readJsonV6539(COLS_STORE_V6539, {});
+
+  /* ---------- storage ---------- */
+
+  function readJsonV6539(key, fallback){
+    try {
+      var raw = window.localStorage.getItem(key);
+      if (!raw) return fallback;
+      var parsed = JSON.parse(raw);
+      return parsed && typeof parsed === 'object' ? parsed : fallback;
+    } catch (error) { return fallback; }
+  }
+
+  function writeJsonV6539(key, value){
+    try { window.localStorage.setItem(key, JSON.stringify(value)); } catch (error) {}
+  }
+
+  /* ---------- escaping ---------- */
+
+  function escV6539(value){
+    return String(value == null ? '' : value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function escJsV6539(value){
+    return String(value == null ? '' : value)
+      .replace(/\\/g, '\\\\')
+      .replace(/'/g, "\\'")
+      .replace(/"/g, '&quot;')
+      .replace(/\r?\n/g, ' ');
+  }
+
+  /* ---------- value coercion and formatting ---------- */
+
+  function numV6539(value){
+    var n = Number(value);
+    return isFinite(n) ? n : 0;
+  }
+
+  function fixedV6539(value, decimals){
+    var n = numV6539(value);
+    var d = decimals == null ? 0 : Number(decimals);
+    return n.toLocaleString(undefined, { minimumFractionDigits: d, maximumFractionDigits: d });
+  }
+
+  var FORMATTERS_V6539 = {
+    text: function(value){ return value == null ? '' : String(value); },
+    count: function(value){ return fixedV6539(value, 0); },
+    number: function(value, row, column){ return fixedV6539(value, column && column.decimals != null ? column.decimals : 0); },
+    decimal: function(value, row, column){ return fixedV6539(value, column && column.decimals != null ? column.decimals : 1); },
+    days: function(value, row, column){ return fixedV6539(value, column && column.decimals != null ? column.decimals : 1); },
+    /* percent expects a fraction. 0.0734 renders as 7.3% */
+    percent: function(value, row, column){
+      var d = column && column.decimals != null ? column.decimals : 1;
+      return fixedV6539(numV6539(value) * 100, d) + '%';
+    },
+    /* percent100 expects an already-scaled number. 7.34 renders as 7.3% */
+    percent100: function(value, row, column){
+      var d = column && column.decimals != null ? column.decimals : 1;
+      return fixedV6539(value, d) + '%';
+    },
+    currency: function(value, row, column){
+      var d = column && column.decimals != null ? column.decimals : 0;
+      var n = numV6539(value);
+      return (n < 0 ? '-$' : '$') + fixedV6539(Math.abs(n), d);
+    }
+  };
+
+  var NUMERIC_TYPES_V6539 = {
+    count: true, number: true, decimal: true, days: true,
+    percent: true, percent100: true, currency: true
+  };
+
+  function columnTypeV6539(column){
+    return column && column.type ? String(column.type) : 'text';
+  }
+
+  function isNumericV6539(column){
+    if (column && column.numeric != null) return !!column.numeric;
+    return !!NUMERIC_TYPES_V6539[columnTypeV6539(column)];
+  }
+
+  function rawValueV6539(row, column){
+    if (!column) return '';
+    if (typeof column.value === 'function') return column.value(row, column);
+    return row ? row[column.field] : '';
+  }
+
+  function formatCellV6539(row, column){
+    var value = rawValueV6539(row, column);
+    if (typeof column.format === 'function') return column.format(value, row, column);
+    var formatter = FORMATTERS_V6539[columnTypeV6539(column)] || FORMATTERS_V6539.text;
+    return formatter(value, row, column);
+  }
+
+  /* ---------- configuration ---------- */
+
+  function normalizeColumnV6539(column, index){
+    var copy = Object.assign({}, column);
+    copy.field = String(copy.field != null ? copy.field : ('col' + index));
+    copy.label = copy.label != null ? copy.label : copy.field;
+    copy.title = copy.title || copy.label;
+    copy.sortable = copy.sortable !== false;
+    copy.hideable = copy.hideable !== false;
+    copy.numeric = isNumericV6539(copy);
+    return copy;
+  }
+
+  function normalizeConfigV6539(config){
+    var cfg = Object.assign({}, config);
+    cfg.key = String(cfg.key);
+    cfg.tableId = String(cfg.tableId || '');
+    cfg.columns = (cfg.columns || []).map(normalizeColumnV6539);
+    cfg.limit = cfg.limit == null ? 500 : Number(cfg.limit);
+    cfg.emptyText = cfg.emptyText || 'No matching rows.';
+    cfg.rowKey = typeof cfg.rowKey === 'function' ? cfg.rowKey : function(row){
+      return row && row.key != null ? row.key : (row && row.label);
+    };
+    cfg.selectable = cfg.selectable !== false;
+    cfg.multiSelect = cfg.multiSelect !== false;
+    cfg.totalsRow = cfg.totalsRow === true;
+    cfg.totalsLabel = cfg.totalsLabel || 'Total';
+    cfg.rows = cfg.rows || [];
+    cfg.viewRows = [];
+    cfg.selection = new Set();
+    cfg.bound = false;
+    if (cfg.defaultSort && !sortsV6539[cfg.key]) {
+      sortsV6539[cfg.key] = { field: cfg.defaultSort.field, dir: cfg.defaultSort.dir || 'desc' };
+    }
+    return cfg;
+  }
+
+  /* ---------- element resolution ---------- */
+
+  function resolveTableV6539(cfg){
+    if (!cfg || !cfg.tableId) return null;
+    var node = document.getElementById(cfg.tableId);
+    if (!node) return null;
+    if (node.tagName === 'TABLE') return node;
+    return node.closest ? node.closest('table') : null;
+  }
+
+  /* ---------- sorting ---------- */
+
+  function activeSortV6539(cfg){
+    var stored = sortsV6539[cfg.key];
+    if (stored && stored.field) return stored;
+    if (cfg.defaultSort) return cfg.defaultSort;
+    var first = cfg.columns.filter(function(column){ return column.sortable; })[0];
+    return first ? { field: first.field, dir: first.numeric ? 'desc' : 'asc' } : null;
+  }
+
+  function columnByFieldV6539(cfg, field){
+    for (var i = 0; i < cfg.columns.length; i += 1) {
+      if (cfg.columns[i].field === field) return cfg.columns[i];
+    }
+    return null;
+  }
+
+  function sortValueV6539(row, column){
+    if (!column) return '';
+    if (typeof column.sortValue === 'function') return column.sortValue(row, column);
+    var value = rawValueV6539(row, column);
+    if (column.numeric) return numV6539(value);
+    return String(value == null ? '' : value).toLowerCase();
+  }
+
+  function labelValueV6539(cfg, row){
+    var first = cfg.columns[0];
+    var value = first ? rawValueV6539(row, first) : '';
+    return String(value == null ? cfg.rowKey(row) : value);
+  }
+
+  function sortRowsV6539(cfg, rows){
+    var sort = activeSortV6539(cfg);
+    if (!sort) return (rows || []).slice();
+    var column = columnByFieldV6539(cfg, sort.field);
+    if (!column) return (rows || []).slice();
+    var dir = sort.dir === 'asc' ? 1 : -1;
+    return (rows || []).slice().sort(function(a, b){
+      var av = sortValueV6539(a, column);
+      var bv = sortValueV6539(b, column);
+      if (typeof av === 'string' || typeof bv === 'string') {
+        return String(av).localeCompare(String(bv), undefined, { numeric: true, sensitivity: 'base' }) * dir;
+      }
+      if (av !== bv) return (av - bv) * dir;
+      return labelValueV6539(cfg, a).localeCompare(labelValueV6539(cfg, b), undefined, { numeric: true, sensitivity: 'base' });
+    });
+  }
+
+  /* ---------- selected-row pinning (mirrors v6.311) ---------- */
+
+  function pinSelectedFirstV6539(cfg, rows){
+    var source = (rows || []).slice();
+    var order = Array.from(cfg.selection).map(String);
+    var limit = cfg.limit || source.length;
+    if (!order.length) return source.slice(0, limit);
+    var rank = new Map(order.map(function(value, index){ return [value, index]; }));
+    var pinned = [];
+    var rest = [];
+    source.forEach(function(row){
+      if (rank.has(String(cfg.rowKey(row)))) pinned.push(row);
+      else rest.push(row);
+    });
+    pinned.sort(function(a, b){
+      return Number(rank.get(String(cfg.rowKey(a)))) - Number(rank.get(String(cfg.rowKey(b))));
+    });
+    return pinned.concat(rest).slice(0, Math.max(limit, pinned.length));
+  }
+
+  function applyPinningV6539(table){
+    if (!table) return;
+    var selectedRows = Array.prototype.slice.call(table.querySelectorAll('tbody tr.selectedV6230'));
+    selectedRows.forEach(function(row){ row.classList.add('selectedPinnedV6311'); });
+    if (!selectedRows.length) return;
+    var measure = function(){
+      var header = table.querySelector('thead');
+      var top = header ? Math.max(0, header.getBoundingClientRect().height) : 34;
+      selectedRows.forEach(function(row){
+        row.style.setProperty('--remake-selected-pin-top-v6311', top + 'px');
+        top += Math.max(1, row.getBoundingClientRect().height);
+      });
+    };
+    if (window.requestAnimationFrame) window.requestAnimationFrame(measure);
+    else measure();
+  }
+
+  /* ---------- column visibility ---------- */
+
+  function hiddenSetV6539(cfg){
+    var list = hiddenV6539[cfg.key] || [];
+    return new Set(list.map(String));
+  }
+
+  function visibleColumnsV6539(cfg){
+    var hidden = hiddenSetV6539(cfg);
+    return cfg.columns.filter(function(column, index){
+      if (index === 0) return true;
+      if (!column.hideable) return true;
+      if (hidden.has(column.field)) return false;
+      if (column.defaultHidden && !hiddenV6539[cfg.key]) return false;
+      return true;
+    });
+  }
+
+  /* ---------- rendering ---------- */
+
+  function headerHtmlV6539(cfg, columns){
+    var sort = activeSortV6539(cfg) || {};
+    var cells = columns.map(function(column){
+      var classes = [];
+      if (column.sortable) classes.push('sortableV6230');
+      if (column.numeric) classes.push('num');
+      if (column.headerClass) classes.push(column.headerClass);
+      var style = column.width ? ' style="width:' + escV6539(column.width) + '"' : '';
+      var glyph = '';
+      if (column.sortable && sort.field === column.field) {
+        glyph = sort.dir === 'asc' ? '&#9650;' : '&#9660;';
+      }
+      var click = column.sortable
+        ? ' onclick="cdaTableSortV6539(&quot;' + escJsV6539(cfg.key) + '&quot;,&quot;' + escJsV6539(column.field) + '&quot;)"'
+        : '';
+      var title = column.sortable ? 'Sort by ' + column.title : column.title;
+      return '<th class="' + escV6539(classes.join(' ')) + '"'
+        + ' data-cda-field="' + escV6539(column.field) + '"'
+        + ' title="' + escV6539(title) + '"'
+        + ' aria-label="' + escV6539(title) + '"'
+        + style + click + '>'
+        + escV6539(column.label)
+        + (column.sortable ? '<span class="sortGlyphV6230">' + glyph + '</span>' : '')
+        + '</th>';
+    });
+    return '<thead><tr>' + cells.join('') + '</tr></thead>';
+  }
+
+  function bodyHtmlV6539(cfg, columns, rows){
+    if (!rows.length) {
+      return '<tbody><tr><td class="cdaEmptyV6539" colspan="' + columns.length + '">'
+        + escV6539(cfg.emptyText) + '</td></tr></tbody>';
+    }
+    var anySelected = cfg.selection.size > 0;
+    var html = rows.map(function(row){
+      var key = String(cfg.rowKey(row));
+      var selected = cfg.selection.has(key);
+      var classes = [];
+      if (cfg.selectable) classes.push('clickable');
+      if (selected) classes.push('selectedV6230');
+      if (anySelected && !selected) classes.push('dimmedV6266');
+      if (typeof cfg.rowClass === 'function') {
+        var extra = cfg.rowClass(row);
+        if (extra) classes.push(extra);
+      }
+      var cells = columns.map(function(column){
+        var cellClasses = [];
+        if (column.numeric) cellClasses.push('num');
+        if (column.cellClass) cellClasses.push(column.cellClass);
+        var attr = cellClasses.length ? ' class="' + escV6539(cellClasses.join(' ')) + '"' : '';
+        var content = typeof column.html === 'function'
+          ? column.html(rawValueV6539(row, column), row, column)
+          : escV6539(formatCellV6539(row, column));
+        return '<td' + attr + '>' + content + '</td>';
+      });
+      return '<tr class="' + escV6539(classes.join(' ')) + '" data-cda-key="' + escV6539(key) + '">'
+        + cells.join('') + '</tr>';
+    });
+    return '<tbody>' + html.join('') + '</tbody>';
+  }
+
+  function bindV6539(cfg, table){
+    if (cfg.bound || !table) return;
+    cfg.bound = true;
+    table.addEventListener('click', function(event){
+      var tr = event.target && event.target.closest ? event.target.closest('tbody tr') : null;
+      if (!tr || !tr.hasAttribute('data-cda-key')) return;
+      handleRowClickV6539(cfg, tr.getAttribute('data-cda-key'), event);
+    });
+  }
+
+  function handleRowClickV6539(cfg, key, event){
+    var row = null;
+    for (var i = 0; i < cfg.viewRows.length; i += 1) {
+      if (String(cfg.rowKey(cfg.viewRows[i])) === String(key)) { row = cfg.viewRows[i]; break; }
+    }
+    if (typeof cfg.onRowClick === 'function' && cfg.onRowClick(row, key, event) === false) return;
+    if (!cfg.selectable) return;
+
+    var additive = cfg.multiSelect && !!(event && (event.metaKey || event.ctrlKey || event.shiftKey));
+    if (additive) {
+      if (cfg.selection.has(key)) cfg.selection.delete(key);
+      else cfg.selection.add(key);
+    } else if (cfg.selection.size === 1 && cfg.selection.has(key)) {
+      cfg.selection.clear();
+    } else {
+      cfg.selection.clear();
+      cfg.selection.add(key);
+    }
+
+    renderV6539(cfg.key);
+    if (typeof cfg.onSelectionChange === 'function') {
+      cfg.onSelectionChange(Array.from(cfg.selection), cfg.filterKind || cfg.key, cfg);
+    }
+    emitV6539('cdaTableSelectionChanged', { key: cfg.key, selected: Array.from(cfg.selection) });
+  }
+
+  function emitV6539(name, detail){
+    try { document.dispatchEvent(new CustomEvent(name, { detail: detail })); } catch (error) {}
+  }
+
+  function renderV6539(key){
+    var cfg = registryV6539[key];
+    if (!cfg) return;
+    var table = resolveTableV6539(cfg);
+    if (!table) return;
+
+    /* Tell SharedTableEngine's DOM-level sorter to keep its hands off. The
+       module sorts the data objects, so a second DOM sorter would fight it. */
+    table.setAttribute(MANAGED_ATTR_V6539, 'v6539');
+    table.setAttribute('data-cda-sort', 'skip');
+
+    var columns = visibleColumnsV6539(cfg);
+    var rows = pinSelectedFirstV6539(cfg, sortRowsV6539(cfg, cfg.rows));
+
+    /* Escape hatch 1. Anything the declarative schema cannot express, a table
+       can still do by hand here, and it runs on every re-render. */
+    if (typeof cfg.beforeRender === 'function') {
+      var context = { cfg: cfg, rows: rows, columns: columns };
+      cfg.beforeRender(context);
+      rows = context.rows || rows;
+      columns = context.columns || columns;
+    }
+    cfg.viewRows = rows;
+
+    table.innerHTML = headerHtmlV6539(cfg, columns)
+      + bodyHtmlV6539(cfg, columns, rows)
+      + footHtmlV6539(cfg, columns, rows);
+    bindV6539(cfg, table);
+    applyPinningV6539(table);
+
+    /* Escape hatch 2. Last word on the rendered DOM. */
+    if (typeof cfg.afterRender === 'function') cfg.afterRender(table, cfg);
+    emitV6539('cdaTableRendered', { key: cfg.key, tableId: cfg.tableId, rows: rows.length });
+  }
+
+  /* ---------- totals row ---------- */
+
+  function totalValueV6539(cfg, column, rows){
+    var rule = column.total;
+    if (!rule) return null;
+    if (typeof rule === 'function') return rule(rows, column, cfg);
+    var values = rows.map(function(row){ return numV6539(rawValueV6539(row, column)); });
+    if (rule === 'sum') {
+      return values.reduce(function(a, b){ return a + b; }, 0);
+    }
+    if (rule === 'avg') {
+      return values.length ? values.reduce(function(a, b){ return a + b; }, 0) / values.length : 0;
+    }
+    if (rule === 'weightedAvg') {
+      var weightField = column.weightBy;
+      var top = 0;
+      var bottom = 0;
+      rows.forEach(function(row){
+        var weight = weightField ? numV6539(row[weightField]) : 1;
+        top += numV6539(rawValueV6539(row, column)) * weight;
+        bottom += weight;
+      });
+      return bottom ? top / bottom : 0;
+    }
+    if (rule === 'ratio') {
+      /* numerator / denominator recomputed across all rows, which is the only
+         correct way to total a percentage column. */
+      var num = 0;
+      var den = 0;
+      rows.forEach(function(row){
+        num += numV6539(row[column.ratioNumerator]);
+        den += numV6539(row[column.ratioDenominator]);
+      });
+      return den ? num / den : 0;
+    }
+    return null;
+  }
+
+  function footHtmlV6539(cfg, columns, rows){
+    if (!cfg.totalsRow || !rows.length) return '';
+    var cells = columns.map(function(column, index){
+      var classes = [];
+      if (column.numeric) classes.push('num');
+      if (column.cellClass) classes.push(column.cellClass);
+      var attr = classes.length ? ' class="' + escV6539(classes.join(' ')) + '"' : '';
+      if (index === 0) return '<td' + attr + '>' + escV6539(cfg.totalsLabel) + '</td>';
+      var value = totalValueV6539(cfg, column, rows);
+      if (value == null) return '<td' + attr + '></td>';
+      var formatter = FORMATTERS_V6539[columnTypeV6539(column)] || FORMATTERS_V6539.text;
+      var text = typeof column.format === 'function'
+        ? column.format(value, null, column)
+        : formatter(value, null, column);
+      return '<td' + attr + '>' + escV6539(text) + '</td>';
+    });
+    return '<tfoot data-cda-totals="1"><tr>' + cells.join('') + '</tr></tfoot>';
+  }
+
+  /* ---------- CSV export ---------- */
+
+  function csvCellV6539(value){
+    var text = String(value == null ? '' : value);
+    var needsQuotes = text.indexOf('"') >= 0 || text.indexOf(',') >= 0 || text.indexOf('\n') >= 0 || text.indexOf('\r') >= 0;
+    if (!needsQuotes) return text;
+    return '"' + text.split('"').join('""') + '"';
+  }
+
+  function exportCsvV6539(key, filename){
+    var cfg = registryV6539[key];
+    if (!cfg) return '';
+    var columns = visibleColumnsV6539(cfg);
+    var lines = [columns.map(function(column){ return csvCellV6539(column.title || column.label); }).join(',')];
+    cfg.viewRows.forEach(function(row){
+      lines.push(columns.map(function(column){ return csvCellV6539(formatCellV6539(row, column)); }).join(','));
+    });
+    var csv = lines.join('\r\n');
+    try {
+      var blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+      var url = URL.createObjectURL(blob);
+      var link = document.createElement('a');
+      link.href = url;
+      link.download = filename || (cfg.key + '.csv');
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+    } catch (error) {}
+    return csv;
+  }
+
+  /* ---------- public API ---------- */
+
+  var api = {
+    version: MODULE_VERSION_V6539,
+
+    register: function(config){
+      if (!config || !config.key) return null;
+      var cfg = normalizeConfigV6539(config);
+      registryV6539[cfg.key] = cfg;
+      if (cfg.rows && cfg.rows.length) renderV6539(cfg.key);
+      return cfg.key;
+    },
+
+    setRows: function(key, rows, options){
+      var cfg = registryV6539[key];
+      if (!cfg) return;
+      cfg.rows = rows || [];
+      if (options && options.clearSelection) cfg.selection.clear();
+      if (!options || options.render !== false) renderV6539(key);
+    },
+
+    getRows: function(key){ var cfg = registryV6539[key]; return cfg ? cfg.rows.slice() : []; },
+    getViewRows: function(key){ var cfg = registryV6539[key]; return cfg ? cfg.viewRows.slice() : []; },
+    render: renderV6539,
+    renderAll: function(){ Object.keys(registryV6539).forEach(renderV6539); },
+
+    setSort: function(key, field, dir){
+      var cfg = registryV6539[key];
+      if (!cfg) return;
+      sortsV6539[key] = { field: field, dir: dir === 'asc' ? 'asc' : 'desc' };
+      writeJsonV6539(SORT_STORE_V6539, sortsV6539);
+      renderV6539(key);
+    },
+
+    toggleSort: function(key, field){
+      var cfg = registryV6539[key];
+      if (!cfg) return;
+      var column = columnByFieldV6539(cfg, field);
+      var current = activeSortV6539(cfg) || {};
+      var nextDir;
+      if (current.field === field) nextDir = current.dir === 'desc' ? 'asc' : 'desc';
+      else nextDir = column && column.numeric ? 'desc' : 'asc';
+      api.setSort(key, field, nextDir);
+    },
+
+    getSort: function(key){
+      var cfg = registryV6539[key];
+      return cfg ? Object.assign({}, activeSortV6539(cfg)) : null;
+    },
+
+    columns: function(key){
+      var cfg = registryV6539[key];
+      if (!cfg) return [];
+      var hidden = hiddenSetV6539(cfg);
+      return cfg.columns.map(function(column, index){
+        return {
+          field: column.field,
+          label: column.label,
+          title: column.title,
+          numeric: column.numeric,
+          hideable: column.hideable && index > 0,
+          visible: !hidden.has(column.field)
+        };
+      });
+    },
+
+    toggleColumn: function(key, field, visible){
+      var cfg = registryV6539[key];
+      if (!cfg) return;
+      var list = new Set((hiddenV6539[key] || []).map(String));
+      var shouldHide = visible == null ? !list.has(field) : !visible;
+      if (shouldHide) list.add(field);
+      else list.delete(field);
+      hiddenV6539[key] = Array.from(list);
+      writeJsonV6539(COLS_STORE_V6539, hiddenV6539);
+      renderV6539(key);
+    },
+
+    resetColumns: function(key){
+      delete hiddenV6539[key];
+      writeJsonV6539(COLS_STORE_V6539, hiddenV6539);
+      renderV6539(key);
+    },
+
+    setLimit: function(key, limit){
+      var cfg = registryV6539[key];
+      if (!cfg) return;
+      cfg.limit = Number(limit) || cfg.limit;
+      renderV6539(key);
+    },
+
+    getSelection: function(key){
+      var cfg = registryV6539[key];
+      return cfg ? Array.from(cfg.selection) : [];
+    },
+
+    setSelection: function(key, values){
+      var cfg = registryV6539[key];
+      if (!cfg) return;
+      cfg.selection = new Set((values || []).map(String));
+      renderV6539(key);
+    },
+
+    clearSelection: function(key){
+      if (key) { api.setSelection(key, []); return; }
+      Object.keys(registryV6539).forEach(function(k){ api.setSelection(k, []); });
+    },
+
+    exportCsv: exportCsvV6539,
+    formatters: FORMATTERS_V6539,
+    config: function(key){ return registryV6539[key] || null; },
+    keys: function(){ return Object.keys(registryV6539); }
+  };
+
+  window.cdaTable = api;
+  window.cdaTableSortV6539 = function(key, field){ api.toggleSort(key, field); };
+  window.CDA_TABLE_MODULE_VERSION = MODULE_VERSION_V6539;
+})();
+</script>

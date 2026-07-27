@@ -1,0 +1,291 @@
+================================================================================
+CDA EXECUTIVE OVERVIEW DASHBOARD
+SHARED TABLE SPEC v1.1   (shipped in v6.539 as SharedTableModule.html)
+Written so a Colab Python generator can emit new tab controllers without a
+human hand-writing table HTML ever again.
+================================================================================
+
+0. WHY THIS EXISTS
+--------------------------------------------------------------------------------
+Remake and TAT build tables two different ways:
+
+  REMAKE  renderStandardTableV6230()
+          - <thead> is GENERATED in JS from a column list (thV6230 +
+            metricHeaderCellsV6301)
+          - the row OBJECTS are kept alive in uiV6230.lastTables
+          - because the objects survive it can sort (sortedRowsV6230 /
+            sortValueV6230), pin selected rows (selectedRowsFirstV6311 /
+            applySelectedRowPinningV6311), rebuild on a column-chooser change
+            and cross-filter on row click (applyRemakeTableFilterV6230)
+
+  TAT     renderDepartmentTable / renderLateTable / renderCustomerTable /
+          renderQuality
+          - <thead> is a hardcoded HTML STRING
+          - row objects are thrown away the moment the string is built
+          - therefore NOTHING above can be reused. Not "hard to reuse".
+            Impossible. There is no data left to sort.
+
+That is the root cause of every "why do the tabs behave differently" question.
+Fixing styling did not fix it and never could.
+
+RULE GOING FORWARD: no tab renders a <table> by hand. Every table is declared
+as data and rendered by the shared module. Tabs 3 and 4 are built this way from
+day one.
+
+
+1. COLUMN DEFINITION SCHEMA
+--------------------------------------------------------------------------------
+A column is a plain object. A table is an array of them. Order in the array is
+the left-to-right order on screen. Index 0 is the label column and is never
+hideable.
+
+  {
+    field:      'remakeRate',   // REQUIRED. property on the row object.
+                                // also emitted as data-cda-field.
+    label:      'Remake %',     // REQUIRED. header text (compact).
+    title:      'Remake Rate',  // optional. tooltip + CSV header. defaults
+                                // to label.
+    type:       'percent',      // drives formatting AND numeric alignment:
+                                //   text        raw string, left aligned
+                                //   count       0 decimals, thousands sep
+                                //   number      decimals option, default 0
+                                //   decimal     decimals option, default 1
+                                //   days        decimals option, default 1
+                                //   percent     FRACTION in, .0734 -> 7.3%
+                                //   percent100  ALREADY SCALED, 7.34 -> 7.3%
+                                //   currency    $ with sign handling
+                                // default 'text'
+    decimals:   1,              // optional override for the numeric types
+    numeric:    true,           // optional. inferred from type. controls the
+                                // 'num' cell class (right alignment).
+    value:      function(row){ return row.a / row.b; },  // optional computed
+                                // value. wins over field.
+    format:     function(v,row,col){ return v + ' d'; }, // optional. wins over
+                                // type formatting.
+    html:       function(v,row,col){ return '<b>'+v+'</b>'; }, // optional RAW
+                                // cell html. you own escaping.
+    sortable:   true,           // default true
+    sortValue:  function(row){ return row.sortHint; },  // optional. wins over
+                                // value/field for sorting only.
+    hideable:   true,           // default true. index 0 is forced false.
+    defaultHidden: false,       // starts hidden until the user shows it
+    width:      '18%',          // optional inline width
+    headerClass:'',             // optional extra <th> class
+    cellClass:  '',             // optional extra <td> class
+    total:      'sum'           // optional footer rollup. see section 4.
+  }
+
+SORT SEMANTICS (identical to Remake):
+  - numeric columns compare Number(); non-finite becomes 0
+  - text columns compare lowercased localeCompare(undefined,
+    {numeric:true, sensitivity:'base'})
+  - ties break on the label column, same comparator
+  - clicking a new column sorts DESC if numeric, ASC if text
+  - clicking the active column flips direction
+  - only the active header shows a glyph, and it is Remake's exact glyph
+    (&#9650; up / &#9660; down) in a <span class="sortGlyphV6230">
+  - the chosen sort is written to localStorage 'cdaTableSortsV6539' so a reload
+    comes back the same
+
+
+2. TABLE REGISTRATION SCHEMA
+--------------------------------------------------------------------------------
+  cdaTable.register({
+    key:        'tatDepartment',            // REQUIRED. unique. the handle
+                                            // used by every other API call and
+                                            // the localStorage namespace.
+    tableId:    'tatDepartmentTableV6509',  // REQUIRED. DOM id of the <table>
+                                            // OR of its <tbody>. TAT puts the
+                                            // id on the tbody, so both resolve.
+    columns:    [ ...column defs ],         // REQUIRED
+    rows:       [],                         // optional seed. usually supplied
+                                            // later via setRows().
+    rowKey:     function(row){ return row.department; },  // default row.key,
+                                            // falling back to row.label
+    defaultSort:{ field:'soldUnits', dir:'desc' },
+    limit:      500,                        // default 500. pinned selections
+                                            // are never cut off by it.
+    emptyText:  'No matching rows.',
+
+    selectable: true,       // default true. adds the 'clickable' row class.
+    multiSelect:true,       // default true. ctrl/cmd/shift-click adds.
+    totalsRow:  false,      // default false. see section 4.
+    totalsLabel:'Total',
+    filterKind: 'department',  // optional label passed to onSelectionChange
+                               // so a tab knows which bucket changed.
+
+    onSelectionChange: function(selectedKeys, filterKind, cfg){ },
+    onRowClick:        function(row, key, event){ },  // return false to stop
+                                                      // the default select
+    rowClass:          function(row){ return row.flagged ? 'warnRow' : ''; },
+    beforeRender:      function(ctx){ /* ctx.rows, ctx.columns, ctx.cfg */ },
+    afterRender:       function(tableEl, cfg){ }
+  });
+
+beforeRender / afterRender / rowClass are the answer to "will it stay open for
+per-table changes". Anything the schema cannot express, a table can still do by
+hand, and the hooks run on EVERY re-render (sort, column toggle, selection) so
+customisations never get wiped.
+
+
+3. MARKUP CONTRACT
+--------------------------------------------------------------------------------
+The module deliberately emits REMAKE'S OWN class names, not new ones. That is
+why a converted tab looks identical rather than merely similar: every existing
+stylesheet rule already targets these, so zero new CSS is needed and there is
+nothing left to drift.
+
+  <table data-cda-managed="v6539" data-cda-sort="skip">
+    <thead>
+      <tr>
+        <th class="sortableV6230" data-cda-field="department"
+            title="Sort by Department">Department<span class="sortGlyphV6230"></span></th>
+        <th class="sortableV6230 num" data-cda-field="soldUnits"
+            title="Sort by Sold Units">Units<span class="sortGlyphV6230">&#9660;</span></th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr class="clickable selectedV6230" data-cda-key="Crown &amp; Bridge">
+        <td>Crown &amp; Bridge</td>
+        <td class="num">1,204</td>
+      </tr>
+      <tr class="clickable dimmedV6266" data-cda-key="Removable"> ... </tr>
+    </tbody>
+    <tfoot data-cda-totals="1"> ... </tfoot>
+  </table>
+
+Hidden columns are REMOVED from the DOM, not display:none, so colspan math and
+CSV export stay honest.
+
+data-cda-managed="v6539" plus data-cda-sort="skip" tell SharedTableEngine's
+DOM-level sorter to keep its hands off. The module sorts data objects; two
+sorters fighting over one table is exactly the bug we are removing.
+
+
+4. TOTALS ROW
+--------------------------------------------------------------------------------
+Set totalsRow:true on the table, then give each column a total rule:
+
+  'sum'          straight sum of the column
+  'avg'          arithmetic mean of the column
+  'weightedAvg'  needs weightBy:'soldUnits' on the column
+  'ratio'        needs ratioNumerator + ratioDenominator field names. This is
+                 the ONLY correct way to total a percentage column: recompute
+                 numerator/denominator across all rows instead of averaging
+                 the percentages.
+  function(rows, column, cfg)   anything else
+  null / omitted                blank cell
+
+Column 0 of the footer shows totalsLabel.
+
+
+5. MODULE API  (SharedTableModule.html, window.cdaTable)
+--------------------------------------------------------------------------------
+  cdaTable.register(config)              declare once at tab install time
+  cdaTable.setRows(key, rows, opts)      opts: {render:false, clearSelection:true}
+  cdaTable.getRows(key)                  the source rows
+  cdaTable.getViewRows(key)              sorted + pinned + limited, as rendered
+  cdaTable.render(key)                   rebuild one table
+  cdaTable.renderAll()                   rebuild everything registered
+  cdaTable.setSort(key, field, dir)
+  cdaTable.toggleSort(key, field)        what a header click calls
+  cdaTable.getSort(key)
+  cdaTable.columns(key)                  metadata the column chooser reads
+  cdaTable.toggleColumn(key, field, visible)
+  cdaTable.resetColumns(key)
+  cdaTable.setLimit(key, n)
+  cdaTable.getSelection(key)
+  cdaTable.setSelection(key, values)
+  cdaTable.clearSelection(key?)          omit key to clear every table
+  cdaTable.exportCsv(key, filename)      respects visible columns + sort order
+  cdaTable.config(key) / cdaTable.keys() / cdaTable.formatters
+
+  window.cdaTableSortV6539(key, field)   inline onclick target on every <th>
+
+EVENTS on document:
+  'cdaTableRendered'          detail {key, tableId, rows}
+  'cdaTableSelectionChanged'  detail {key, selected}
+
+PERSISTENCE:
+  localStorage 'cdaTableSortsV6539'            { key: {field, dir} }
+  localStorage 'cdaTableHiddenColumnsV6539'    { key: [hidden field names] }
+
+
+6. CROSS-FILTER CONTRACT
+--------------------------------------------------------------------------------
+Remake cross-filters through applyRemakeTableFilterV6230, which is welded to
+Remake's own uiV6230 filter state. That function is not reusable by another
+tab, so the module does NOT call it.
+
+Instead the module owns the selection and tells the tab:
+
+  1. user clicks a row
+  2. plain click  = select that row, or clear it if it was the only selection
+     ctrl/cmd/shift click = add or remove from the selection
+  3. the module re-renders: selected rows get selectedV6230 and float to the
+     top under the sticky header, everything else gets dimmedV6266
+  4. onSelectionChange(selectedKeys, filterKind, cfg) fires
+  5. the TAB re-filters its own data and calls setRows() on its other tables
+
+Step 5 is the only part a tab writes, and it is a few lines. That is the whole
+cross-filter story for tabs 3 and 4.
+
+
+7. CURRENT TABLE INVENTORY MAPPED TO REGISTRATIONS
+--------------------------------------------------------------------------------
+TAT tab (4 tables, converted in v6.540):
+
+  tatDepartmentTableV6509   Department / Product | Sold Units | Remake Units |
+                            Remake % | Avg TAT | OTP | Avg Days Late
+                            filterKind department, totalsRow true
+
+  tatLateTableV6509         Performance | Cases | Share
+                            filterKind lateBand, no totals
+
+  tatCustomerTableV6509     Customer | Cases | Sold Units | Remake Units |
+                            Remake % | Avg TAT | OTP | Avg Days Late
+                            filterKind customer, totalsRow true
+
+  tatQualityTableV6509      Issue | Case | Customer | Departments |
+                            Invoice Date | Date In | TAT End | TAT Days |
+                            Units | Remake Units
+                            filterKind issue, detail-grain rows, no totals
+
+Remake tab (6 tables) is already object-driven and keeps its own renderer until
+v6.541, so the working tab is never the guinea pig.
+
+Dormant Overview tables (customerTable, productTable, o2DriverTable) get
+converted only if that tab is revived.
+
+
+8. THE COLAB GENERATOR
+--------------------------------------------------------------------------------
+Once the module has survived TAT and Remake, the Python step is small, because
+all that is left is emitting column definitions.
+
+  input:   a Sheet / CSV with one row per column:
+           tab | table_key | table_id | field | label | title | type |
+           decimals | total | default_hidden | width | filter_kind
+
+  output:  <TabName>TableDefs.html, a single <script> that calls
+           cdaTable.register(...) once per table
+
+  the tab controller then only supplies its rows and any hook.
+
+That is the payoff: a new tab is a set of spreadsheet rows plus a data
+function. No HTML written by hand, no styling drift, no missing sort.
+
+
+9. BUILD ORDER
+--------------------------------------------------------------------------------
+  v6.539  SharedTableModule.html + this spec. ADDITIVE ONLY. Nothing is
+          registered yet, so there is zero visual change. The footer bump is
+          the proof it deployed.
+  v6.540  TAT's four tables converted onto the module. Sorting, column chooser,
+          cross-filter, pinning, totals identical to Remake.
+  v6.541  Remake converted onto the module. Both tabs on one code path, and
+          the three superseded renderRemakeTable generations get deleted.
+  v6.542  Year comparison chip (needs prior-year figures in TatDashboardCache.js).
+  then    Colab generator, then tabs 3 and 4.
+
+================================================================================
