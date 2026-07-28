@@ -1,0 +1,205 @@
+<!-- SharedChartStyles.html v6.544
+Visual contract for charts registered with SharedChartModule.
+This file is intentionally inert for legacy charts: only data-cda-chart-managed
+and cdaChart* classes are styled.
+-->
+<style id="cdaSharedChartStylesV6544">
+  :root {
+    --cda-chart-font-family-v6544: Roboto, Arial, sans-serif;
+    --cda-chart-title-color-v6544: #172033;
+    --cda-chart-muted-color-v6544: #667085;
+    --cda-chart-card-background-v6544: #ffffff;
+    --cda-chart-card-border-v6544: #d7dce2;
+    --cda-chart-grid-color-v6544: rgba(71, 84, 103, .14);
+    --cda-chart-axis-color-v6544: #667085;
+    --cda-chart-tooltip-background-v6544: #172033;
+    --cda-chart-tooltip-color-v6544: #ffffff;
+    --cda-chart-selection-v6544: #fff7d6;
+    --cda-chart-selection-border-v6544: #f2c94c;
+    --cda-chart-button-height-v6544: 32px;
+    --cda-chart-button-radius-v6544: 7px;
+  }
+
+  .cdaChartFrameV6544 {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    min-width: 0;
+    height: 100%;
+    min-height: 0;
+    box-sizing: border-box;
+    border: 1px solid var(--cda-chart-card-border-v6544);
+    border-radius: 10px;
+    background: var(--cda-chart-card-background-v6544);
+    overflow: hidden;
+  }
+
+  .cdaChartFrameV6544[data-cda-chart-selected="1"] {
+    border-color: var(--cda-chart-selection-border-v6544);
+    box-shadow: inset 0 0 0 1px rgba(242, 201, 76, .28);
+  }
+
+  .cdaChartHeaderV6544 {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+    min-height: 42px;
+    padding: 9px 10px 7px;
+    box-sizing: border-box;
+  }
+
+  .cdaChartHeadingV6544 {
+    min-width: 0;
+  }
+
+  .cdaChartTitleV6544 {
+    margin: 0;
+    color: var(--cda-chart-title-color-v6544);
+    font: 900 12.5px/1.25 var(--cda-chart-font-family-v6544);
+  }
+
+  .cdaChartSubtitleV6544 {
+    margin-top: 2px;
+    color: var(--cda-chart-muted-color-v6544);
+    font: 700 10px/1.3 var(--cda-chart-font-family-v6544);
+  }
+
+  .cdaChartToolsV6544 {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 5px;
+    min-height: var(--cda-chart-button-height-v6544);
+  }
+
+  .cdaChartToolsV6544[hidden] {
+    display: none !important;
+  }
+
+  .cdaChartButtonV6544 {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-height: var(--cda-chart-button-height-v6544) !important;
+    box-sizing: border-box !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: var(--cda-chart-button-radius-v6544) !important;
+    background: #ffffff !important;
+    color: #334155 !important;
+    padding: 0 10px !important;
+    font: 800 11px/1 var(--cda-chart-font-family-v6544) !important;
+    white-space: nowrap !important;
+    cursor: pointer !important;
+    box-shadow: none !important;
+  }
+
+  .cdaChartButtonV6544:hover,
+  .cdaChartButtonV6544:focus-visible,
+  .cdaChartButtonV6544[aria-pressed="true"],
+  .cdaChartButtonV6544[aria-expanded="true"] {
+    border-color: var(--cda-chart-selection-border-v6544) !important;
+    background: var(--cda-chart-selection-v6544) !important;
+    color: #7a4a00 !important;
+  }
+
+  .cdaChartButtonV6544:focus-visible {
+    outline: 2px solid rgba(37, 99, 235, .25) !important;
+    outline-offset: 2px !important;
+  }
+
+  .cdaChartButtonIconV6544 {
+    width: var(--cda-chart-button-height-v6544) !important;
+    min-width: var(--cda-chart-button-height-v6544) !important;
+    padding: 0 !important;
+    font-size: 15px !important;
+  }
+
+  .cdaChartCanvasWrapV6544 {
+    position: relative;
+    flex: 1 1 auto;
+    width: 100%;
+    min-width: 0;
+    min-height: 220px;
+    padding: 4px 8px 9px;
+    box-sizing: border-box;
+  }
+
+  .cdaChartCanvasWrapV6544 > canvas[data-cda-chart-managed] {
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: 100% !important;
+    max-height: 100% !important;
+    font-family: var(--cda-chart-font-family-v6544) !important;
+  }
+
+  .cdaChartStateV6544 {
+    position: absolute;
+    inset: 4px 8px 9px;
+    z-index: 4;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 18px;
+    box-sizing: border-box;
+    border-radius: 7px;
+    background: rgba(255, 255, 255, .94);
+    color: var(--cda-chart-muted-color-v6544);
+    text-align: center;
+    font: 800 11px/1.4 var(--cda-chart-font-family-v6544);
+  }
+
+  .cdaChartStateV6544[hidden] {
+    display: none !important;
+  }
+
+  .cdaChartStateV6544[data-state="error"] {
+    color: #b42318;
+  }
+
+  .cdaChartStateV6544[data-state="loading"]::before {
+    content: '';
+    width: 14px;
+    height: 14px;
+    margin-right: 8px;
+    border: 2px solid #d0d5dd;
+    border-top-color: #475467;
+    border-radius: 50%;
+    animation: cdaChartSpinV6544 .7s linear infinite;
+  }
+
+  @keyframes cdaChartSpinV6544 {
+    to { transform: rotate(360deg); }
+  }
+
+  @media (max-width: 760px) {
+    .cdaChartHeaderV6544 {
+      padding: 8px 8px 6px;
+    }
+
+    .cdaChartCanvasWrapV6544 {
+      min-height: 260px;
+      padding-left: 5px;
+      padding-right: 5px;
+    }
+
+    .cdaChartToolsV6544 {
+      gap: 4px;
+    }
+
+    .cdaChartButtonV6544:not(.cdaChartButtonIconV6544) {
+      min-height: 34px !important;
+      padding-left: 8px !important;
+      padding-right: 8px !important;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .cdaChartStateV6544[data-state="loading"]::before {
+      animation: none;
+    }
+  }
+</style>
