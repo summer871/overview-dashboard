@@ -1,0 +1,154 @@
+<!-- SharedTableRegistryV6544.html
+Tracks every shared table instance by both unique DOM id and logical key.
+The registry owns instance lookup and lifecycle state so other modules do not search the DOM.
+-->
+<script id="cdaSharedTableRegistryV6544">
+(function installSharedTableRegistryV6544(){
+  'use strict';
+
+  if (window.cdaSharedTablesV6544) return;
+
+  var VERSION_V6544 = 'v6544';
+  var byIdV6544 = Object.create(null);
+  var byKeyV6544 = Object.create(null);
+
+  function requireTextV6544(value, label){
+    var normalized = String(value == null ? '' : value).trim();
+    if (!normalized) throw new Error('Shared table instance requires ' + label + '.');
+    return normalized;
+  }
+
+  function normalizeContextV6544(context){
+    if (!context || typeof context !== 'object') {
+      throw new Error('Shared table registration requires a context object.');
+    }
+    if (!context.config || typeof context.config !== 'object') {
+      throw new Error('Shared table registration requires a normalized config.');
+    }
+
+    var id = requireTextV6544(context.config.id, 'config.id');
+    var key = requireTextV6544(context.config.key, 'config.key');
+
+    return {
+      id:id,
+      key:key,
+      version:VERSION_V6544,
+      config:context.config,
+      root:context.root || null,
+      table:context.table || null,
+      body:context.body || null,
+      toolbar:context.toolbar || null,
+      state:context.state && typeof context.state === 'object' ? context.state : {},
+      data:context.data == null ? null : context.data,
+      attachedFeatures:Array.isArray(context.attachedFeatures) ? context.attachedFeatures.slice() : [],
+      createdAt:context.createdAt || new Date().toISOString(),
+      updatedAt:new Date().toISOString()
+    };
+  }
+
+  function registerV6544(context){
+    var instance = normalizeContextV6544(context);
+
+    if (byIdV6544[instance.id]) {
+      throw new Error('Shared table id "' + instance.id + '" is already registered.');
+    }
+    if (byKeyV6544[instance.key]) {
+      throw new Error('Shared table key "' + instance.key + '" is already registered.');
+    }
+
+    byIdV6544[instance.id] = instance;
+    byKeyV6544[instance.key] = instance;
+    return instance;
+  }
+
+  function upsertV6544(context){
+    var instance = normalizeContextV6544(context);
+    var existingById = byIdV6544[instance.id] || null;
+    var existingByKey = byKeyV6544[instance.key] || null;
+
+    if (existingById && existingById.key !== instance.key) {
+      throw new Error('Shared table id "' + instance.id + '" is already assigned to key "' + existingById.key + '".');
+    }
+    if (existingByKey && existingByKey.id !== instance.id) {
+      throw new Error('Shared table key "' + instance.key + '" is already assigned to id "' + existingByKey.id + '".');
+    }
+
+    var createdAt = existingById && existingById.createdAt || existingByKey && existingByKey.createdAt;
+    if (createdAt) instance.createdAt = createdAt;
+
+    byIdV6544[instance.id] = instance;
+    byKeyV6544[instance.key] = instance;
+    return instance;
+  }
+
+  function getByIdV6544(id){
+    return byIdV6544[String(id == null ? '' : id).trim()] || null;
+  }
+
+  function getByKeyV6544(key){
+    return byKeyV6544[String(key == null ? '' : key).trim()] || null;
+  }
+
+  function getV6544(idOrKey){
+    return getByIdV6544(idOrKey) || getByKeyV6544(idOrKey);
+  }
+
+  function updateV6544(idOrKey, patch){
+    var existing = getV6544(idOrKey);
+    if (!existing) throw new Error('Shared table instance "' + idOrKey + '" is not registered.');
+    if (!patch || typeof patch !== 'object') return existing;
+
+    var next = {};
+    Object.keys(existing).forEach(function(name){ next[name] = existing[name]; });
+    Object.keys(patch).forEach(function(name){ next[name] = patch[name]; });
+    next.config = patch.config || existing.config;
+    next.createdAt = existing.createdAt;
+    next.updatedAt = new Date().toISOString();
+
+    return upsertV6544(next);
+  }
+
+  function unregisterV6544(idOrKey){
+    var existing = getV6544(idOrKey);
+    if (!existing) return null;
+    delete byIdV6544[existing.id];
+    delete byKeyV6544[existing.key];
+    return existing;
+  }
+
+  function listV6544(){
+    return Object.keys(byKeyV6544).sort().map(function(key){ return byKeyV6544[key]; });
+  }
+
+  function clearV6544(){
+    Object.keys(byIdV6544).forEach(function(id){ delete byIdV6544[id]; });
+    Object.keys(byKeyV6544).forEach(function(key){ delete byKeyV6544[key]; });
+  }
+
+  function auditV6544(){
+    var instances = listV6544();
+    return {
+      version:VERSION_V6544,
+      total:instances.length,
+      ids:instances.map(function(instance){ return instance.id; }),
+      keys:instances.map(function(instance){ return instance.key; }),
+      missingRoots:instances.filter(function(instance){ return !instance.root; }).map(function(instance){ return instance.key; }),
+      missingTables:instances.filter(function(instance){ return !instance.table; }).map(function(instance){ return instance.key; })
+    };
+  }
+
+  window.cdaSharedTablesV6544 = Object.freeze({
+    version:VERSION_V6544,
+    register:registerV6544,
+    upsert:upsertV6544,
+    get:getV6544,
+    getById:getByIdV6544,
+    getByKey:getByKeyV6544,
+    update:updateV6544,
+    unregister:unregisterV6544,
+    list:listV6544,
+    clear:clearV6544,
+    audit:auditV6544
+  });
+})();
+</script>
