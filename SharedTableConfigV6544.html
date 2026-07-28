@@ -1,5 +1,7 @@
 <!-- SharedTableConfigV6544.html
-Defines and validates the configuration contract for every shared table instance.
+Defines the repository-aware configuration contract for shared table definitions.
+Static definitions identify existing dashboard DOM and may provide a resolver that
+builds the renderer's runtime configuration after dynamic markup exists.
 -->
 <script id="cdaSharedTableConfigV6544">
 (function installSharedTableConfigV6544(){
@@ -7,7 +9,7 @@ Defines and validates the configuration contract for every shared table instance
 
   if (window.cdaSharedTableConfigV6544) return;
 
-  var VERSION_V6544 = 'v6544';
+  var VERSION_V6544 = 'v6.544';
   var DEFAULT_FEATURES_V6544 = Object.freeze({
     sorting:false,
     columnChooser:false,
@@ -28,18 +30,8 @@ Defines and validates the configuration contract for every shared table instance
 
   function copyObjectV6544(source){
     var output = {};
-    Object.keys(source || {}).forEach(function(key){
-      output[key] = source[key];
-    });
+    Object.keys(source || {}).forEach(function(key){ output[key] = source[key]; });
     return output;
-  }
-
-  function normalizeFeaturesV6544(features){
-    var normalized = copyObjectV6544(DEFAULT_FEATURES_V6544);
-    Object.keys(features || {}).forEach(function(name){
-      normalized[name] = features[name] !== false && features[name] != null;
-    });
-    return normalized;
   }
 
   function requireTextV6544(config, field){
@@ -48,21 +40,41 @@ Defines and validates the configuration contract for every shared table instance
     return value;
   }
 
+  function normalizeFeaturesV6544(features){
+    var normalized = copyObjectV6544(DEFAULT_FEATURES_V6544);
+    Object.keys(features || {}).forEach(function(name){
+      normalized[name] = features[name] === true;
+    });
+    return normalized;
+  }
+
   function normalizeV6544(input){
     if (!input || typeof input !== 'object') {
       throw new Error('Shared table config must be an object.');
     }
 
     var config = copyObjectV6544(input);
-    config.id = requireTextV6544(config, 'id');
     config.key = requireTextV6544(config, 'key');
     config.title = requireTextV6544(config, 'title');
-    config.page = String(config.page || 'shared').trim();
+    config.page = requireTextV6544(config, 'page');
     config.size = String(config.size || 'standard').trim();
     config.features = normalizeFeaturesV6544(config.features);
     config.columns = Array.isArray(config.columns) ? config.columns.slice() : [];
     config.metadata = copyObjectV6544(config.metadata);
     config.version = VERSION_V6544;
+
+    if (config.resolve != null && typeof config.resolve !== 'function') {
+      throw new Error('Shared table config "' + config.key + '" resolve must be a function.');
+    }
+    if (config.renderer != null && typeof config.renderer !== 'function') {
+      throw new Error('Shared table config "' + config.key + '" renderer must be a function.');
+    }
+
+    var hasExistingTableTarget = !!String(config.tableId || config.bodyId || '').trim();
+    if (!hasExistingTableTarget && typeof config.resolve !== 'function') {
+      throw new Error('Shared table config "' + config.key + '" requires tableId, bodyId, or resolve.');
+    }
+
     return config;
   }
 
@@ -70,11 +82,7 @@ Defines and validates the configuration contract for every shared table instance
     try {
       return { valid:true, config:normalizeV6544(input), errors:[] };
     } catch (error) {
-      return {
-        valid:false,
-        config:null,
-        errors:[String(error && error.message || error)]
-      };
+      return { valid:false, config:null, errors:[String(error && error.message || error)] };
     }
   }
 
