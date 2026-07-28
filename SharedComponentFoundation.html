@@ -1,11 +1,14 @@
 <!-- SharedComponentFoundation.html v6.544
-Loads the new-from-scratch shared component primitives and explicitly migrated
-components. Legacy components remain untouched until their replacement is listed
-here.
+Loads the shared dashboard component primitives once. Page-specific controllers
+provide data and configuration; the shared component files own presentation and
+interaction behavior.
 -->
 <?!= includeDashboardFile('SharedCardStyles') ?>
 <?!= includeDashboardFile('SharedCardModule') ?>
+<?!= includeDashboardFile('SharedTableStyles') ?>
+<?!= includeDashboardFile('SharedTableModule') ?>
+<?!= includeDashboardFile('SharedRemakeTableShellV6544') ?>
+<?!= includeDashboardFile('SharedRemakeTableBootstrapV6544') ?>
 <?!= includeDashboardFile('SharedChartStyles') ?>
 <?!= includeDashboardFile('SharedChartModule') ?>
-<?!= includeDashboardFile('TatDepartmentComponentV6544') ?>
 <?!= includeDashboardFile('TatDistributionComponentV6544') ?>
