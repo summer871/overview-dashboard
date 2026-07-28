@@ -1,0 +1,247 @@
+<!-- DashboardComponentMigrationV6544.html
+First controlled v6.544 migration:
+- TAT Department Summary receives the shared table visual contract.
+- TAT Distribution is adopted by SharedChartModule without replacing TAT data,
+  tooltip, filter, export, pop-out, or click behavior.
+-->
+<style id="cdaDashboardComponentMigrationStylesV6544">
+  /* Department Summary is already rendered by SharedTableModule. These rules
+     neutralize remaining TAT-only geometry so the shared tokens are decisive. */
+  #tatDashboardPageV6509 table.cdaReferenceTableV6544 {
+    width: 100% !important;
+    min-width: 100% !important;
+    max-width: none !important;
+    table-layout: auto !important;
+    border-collapse: separate !important;
+    border-spacing: 0 !important;
+    font-family: var(--cda-table-font-family-v6542, Roboto, Arial, sans-serif) !important;
+    font-size: var(--cda-table-cell-font-size-v6542, 11px) !important;
+    line-height: var(--cda-table-cell-line-height-v6542, 1.25) !important;
+  }
+
+  #tatDashboardPageV6509 table.cdaReferenceTableV6544 thead th {
+    height: auto !important;
+    min-height: 0 !important;
+    padding: 6px 8px !important;
+    background: var(--cda-table-header-background-v6542, #172033) !important;
+    color: #fff !important;
+    border-color: var(--cda-table-header-border-v6542, #2a3a4f) !important;
+    font-family: var(--cda-table-font-family-v6542, Roboto, Arial, sans-serif) !important;
+    font-size: var(--cda-table-header-font-size-v6542, 10.5px) !important;
+    font-weight: 900 !important;
+    line-height: var(--cda-table-header-line-height-v6542, 1.2) !important;
+    white-space: nowrap !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+  }
+
+  #tatDashboardPageV6509 table.cdaReferenceTableV6544 tbody td {
+    height: auto !important;
+    min-height: 0 !important;
+    padding: 6px 8px !important;
+    border-color: var(--cda-table-cell-border-v6542, #e4e7ec) !important;
+    color: var(--cda-table-text-v6542, #172033) !important;
+    font-family: var(--cda-table-font-family-v6542, Roboto, Arial, sans-serif) !important;
+    font-size: var(--cda-table-cell-font-size-v6542, 11px) !important;
+    line-height: var(--cda-table-cell-line-height-v6542, 1.25) !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+  }
+
+  #tatDashboardPageV6509 table.cdaReferenceTableV6544 tbody tr.clickable:hover > td {
+    background: #eef4ff !important;
+  }
+
+  #tatDashboardPageV6509 table.cdaReferenceTableV6544 tbody tr.selected > td,
+  #tatDashboardPageV6509 table.cdaReferenceTableV6544 tbody tr.selectedPinnedV6311 > td {
+    background: #fff7d6 !important;
+  }
+
+  #tatDashboardPageV6509 table.cdaReferenceTableV6544 tbody tr.tatProductDetailRowV6523 > td {
+    background: #fffdf3 !important;
+    color: #475467 !important;
+    font-weight: 700 !important;
+  }
+
+  /* The existing TAT card remains the card frame and owns its existing action
+     buttons. The shared chart frame therefore becomes the standard canvas
+     surface inside that card rather than adding a second visible card/header. */
+  #tatDashboardPageV6509 .cdaChartFrameV6544[data-cda-chart-key="tat.distribution"] {
+    height: 100% !important;
+    min-height: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+  }
+
+  #tatDashboardPageV6509 .cdaChartFrameV6544[data-cda-chart-key="tat.distribution"] > .cdaChartHeaderV6544 {
+    display: none !important;
+  }
+
+  #tatDashboardPageV6509 .cdaChartFrameV6544[data-cda-chart-key="tat.distribution"] > .cdaChartCanvasWrapV6544 {
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 220px !important;
+    padding: 0 !important;
+  }
+
+  #tatDashboardPageV6509 .cdaChartFrameV6544[data-cda-chart-key="tat.distribution"] canvas[data-cda-chart-managed] {
+    width: 100% !important;
+    height: 100% !important;
+  }
+</style>
+<script id="cdaDashboardComponentMigrationControllerV6544">
+(function installDashboardComponentMigrationV6544(){
+  'use strict';
+
+  if (window.__cdaDashboardComponentMigrationV6544) return;
+  window.__cdaDashboardComponentMigrationV6544 = true;
+
+  var CHART_KEY_V6544 = 'tat.distribution';
+  var CHART_ID_V6544 = 'tatDistributionChartV6509';
+  var TABLE_BODY_ID_V6544 = 'tatDepartmentTableV6509';
+  var originalChartV6544 = window.Chart;
+  var proxyInstalledV6544 = false;
+  var lastAdoptedChartV6544 = null;
+  var observerV6544 = null;
+  var adoptTimerV6544 = 0;
+
+  function markDepartmentTableV6544(){
+    var body = document.getElementById(TABLE_BODY_ID_V6544);
+    var table = body && body.closest ? body.closest('table') : null;
+    if (!table) return false;
+    table.classList.add('cdaReferenceTableV6544');
+    table.setAttribute('data-cda-managed', table.getAttribute('data-cda-managed') || 'v6544');
+    table.setAttribute('data-cda-component-key', 'tat.department');
+    var wrap = table.closest ? table.closest('.remakeTableWrap,.tatSummaryTableV6509') : null;
+    if (wrap) wrap.setAttribute('data-cda-table-frame', 'shared-v6544');
+    return true;
+  }
+
+  function nativeChartForCanvasV6544(canvas){
+    var ChartCtor = originalChartV6544 || window.Chart;
+    if (!canvas || !ChartCtor) return null;
+    if (typeof ChartCtor.getChart === 'function') {
+      try { return ChartCtor.getChart(canvas) || null; } catch (error) {}
+    }
+    if (canvas.__chartist) return canvas.__chartist;
+    return null;
+  }
+
+  function chartPluginsV6544(chart){
+    var plugins = chart && chart.config && chart.config.plugins;
+    return Array.isArray(plugins) ? plugins.slice() : [];
+  }
+
+  function adoptDistributionChartV6544(chart){
+    if (!chart || !chart.canvas || chart.canvas.id !== CHART_ID_V6544) return false;
+    if (!window.cdaChart || typeof window.cdaChart.register !== 'function') return false;
+    if (chart === lastAdoptedChartV6544 && window.cdaChart.instance(CHART_KEY_V6544) === chart) {
+      markDepartmentTableV6544();
+      return true;
+    }
+
+    lastAdoptedChartV6544 = chart;
+    window.cdaChart.register({
+      key: CHART_KEY_V6544,
+      canvas: chart.canvas,
+      title: '',
+      subtitle: '',
+      actions: false,
+      type: chart.config && chart.config.type ? chart.config.type : 'bar',
+      data: function(){ return chart.data || { labels: [], datasets: [] }; },
+      options: function(){ return chart.options || {}; },
+      plugins: chartPluginsV6544(chart),
+      autoRender: true,
+      createChart: function(){ return chart; },
+      afterRender: function(){
+        chart.$cdaSharedChartKeyV6544 = CHART_KEY_V6544;
+        chart.canvas.setAttribute('data-cda-chart-source', 'tat-controller');
+        chart.canvas.setAttribute('data-cda-chart-adapter', 'v6544');
+        try { chart.resize(); } catch (error) {}
+      }
+    });
+    document.dispatchEvent(new CustomEvent('cdaComponentMigratedV6544', {
+      detail: { key: CHART_KEY_V6544, kind: 'chart', strategy: 'adopt-existing-instance' }
+    }));
+    return true;
+  }
+
+  function inspectDistributionV6544(){
+    adoptTimerV6544 = 0;
+    markDepartmentTableV6544();
+    var canvas = document.getElementById(CHART_ID_V6544);
+    var chart = nativeChartForCanvasV6544(canvas);
+    if (chart) adoptDistributionChartV6544(chart);
+  }
+
+  function scheduleInspectV6544(){
+    if (adoptTimerV6544) return;
+    adoptTimerV6544 = window.requestAnimationFrame(inspectDistributionV6544);
+  }
+
+  function installChartProxyV6544(){
+    if (proxyInstalledV6544 || !originalChartV6544 || typeof Proxy === 'undefined') return;
+    try {
+      window.Chart = new Proxy(originalChartV6544, {
+        construct: function(target, args){
+          var instance = Reflect.construct(target, args, target);
+          if (instance && instance.canvas && instance.canvas.id === CHART_ID_V6544) {
+            window.setTimeout(function(){ adoptDistributionChartV6544(instance); }, 0);
+          }
+          return instance;
+        },
+        apply: function(target, thisArg, args){ return Reflect.apply(target, thisArg, args); }
+      });
+      proxyInstalledV6544 = true;
+    } catch (error) {
+      window.Chart = originalChartV6544;
+    }
+  }
+
+  function startV6544(){
+    installChartProxyV6544();
+    inspectDistributionV6544();
+    if (window.MutationObserver && document.body) {
+      observerV6544 = new MutationObserver(function(mutations){
+        var relevant = mutations.some(function(mutation){
+          var target = mutation.target && mutation.target.nodeType === 1 ? mutation.target : mutation.target && mutation.target.parentElement;
+          if (target && target.closest && target.closest('#tatDashboardPageV6509')) return true;
+          return Array.from(mutation.addedNodes || []).some(function(node){
+            return node && node.nodeType === 1 && ((node.id === CHART_ID_V6544 || node.id === TABLE_BODY_ID_V6544) || (node.querySelector && node.querySelector('#' + CHART_ID_V6544 + ',#' + TABLE_BODY_ID_V6544))));
+          });
+        });
+        if (relevant) scheduleInspectV6544();
+      });
+      observerV6544.observe(document.body, { childList: true, subtree: true });
+    }
+    document.addEventListener('click', function(event){
+      var target = event.target && event.target.closest ? event.target.closest('#tatTabBtnV6509,[data-tat-action],[data-component="distribution"]') : null;
+      if (target) window.setTimeout(scheduleInspectV6544, 0);
+    }, true);
+    window.addEventListener('resize', scheduleInspectV6544, { passive: true });
+  }
+
+  window.auditCdaReferenceMigrationV6544 = function(){
+    var body = document.getElementById(TABLE_BODY_ID_V6544);
+    var table = body && body.closest ? body.closest('table') : null;
+    var canvas = document.getElementById(CHART_ID_V6544);
+    var chart = nativeChartForCanvasV6544(canvas);
+    return {
+      version: 'v6.544',
+      tableManaged: !!(table && table.classList.contains('cdaReferenceTableV6544') && table.hasAttribute('data-cda-managed')),
+      chartManaged: !!(canvas && canvas.getAttribute('data-cda-chart-managed') === 'v6544'),
+      chartRegistered: !!(window.cdaChart && window.cdaChart.instance(CHART_KEY_V6544) === chart),
+      chartInstancePresent: !!chart,
+      chartClickHandlerPresent: !!(chart && chart.options && typeof chart.options.onClick === 'function'),
+      chartTooltipPresent: !!(chart && chart.options && chart.options.plugins && chart.options.plugins.tooltip),
+      tableRows: body ? body.querySelectorAll('tr').length : 0
+    };
+  };
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', startV6544, { once: true });
+  else startV6544();
+})();
+</script>
