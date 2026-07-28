@@ -19,8 +19,12 @@ function doGet(e) {
   template.dashboardPresentationVersion = 'v6.247';
   template.dashboardPresentationSource = 'Code.gs v6.40 staleWhileRevalidate';
 
-  return template
-    .evaluate()
+  const renderedDashboard = template.evaluate();
+  const dashboardHtml = renderedDashboard.getContent();
+  const sharedComponentFoundation = includeDashboardFile('SharedComponentFoundation');
+
+  return HtmlService
+    .createHtmlOutput(dashboardHtml + '\n' + sharedComponentFoundation)
     .setTitle('Overview Dashboard')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
