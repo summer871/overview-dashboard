@@ -1,0 +1,287 @@
+<!-- SharedCardModule.html v6.544
+Creates new dashboard card DOM. It does not adopt, wrap, restyle, or inspect
+legacy cards. Nothing renders until a caller explicitly invokes cdaCard.render.
+-->
+<script id="cdaSharedCardModuleV6544">
+(function installCdaSharedCardModuleV6544(){
+  'use strict';
+
+  if (window.cdaCard && window.cdaCard.version === '6.544') return;
+
+  var VERSION_V6544 = '6.544';
+  var registryV6544 = Object.create(null);
+  var instancesV6544 = Object.create(null);
+
+  function isElementV6544(value){
+    return !!(value && value.nodeType === 1);
+  }
+
+  function resolveElementV6544(value){
+    if (isElementV6544(value)) return value;
+    if (typeof value !== 'string' || !value) return null;
+    return document.getElementById(value) || document.querySelector(value);
+  }
+
+  function cleanTextV6544(value){
+    return String(value == null ? '' : value).replace(/\s+/g, ' ').trim();
+  }
+
+  function normalizeStateV6544(value){
+    var state = cleanTextV6544(value).toLowerCase();
+    return ['loading','ready','empty','error'].indexOf(state) >= 0 ? state : 'ready';
+  }
+
+  function emitV6544(name, detail){
+    try {
+      document.dispatchEvent(new CustomEvent(name, { detail: detail }));
+    } catch (error) {}
+  }
+
+  function clearNodeV6544(node){
+    while (node && node.firstChild) node.removeChild(node.firstChild);
+  }
+
+  function appendContentV6544(host, content, context){
+    if (!host || content == null) return;
+    var value = typeof content === 'function' ? content(context) : content;
+    if (value == null) return;
+    if (isElementV6544(value)) {
+      host.appendChild(value);
+      return;
+    }
+    if (value instanceof DocumentFragment) {
+      host.appendChild(value);
+      return;
+    }
+    if (Array.isArray(value)) {
+      value.forEach(function(item){ appendContentV6544(host, item, context); });
+      return;
+    }
+    host.textContent = String(value);
+  }
+
+  function createActionV6544(action, cfg){
+    action = action || {};
+    var button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'cdaCardActionV6544';
+    button.setAttribute('data-cda-card-action', cleanTextV6544(action.key || action.label || 'action'));
+    if (action.iconOnly) button.setAttribute('data-icon-only', '1');
+    if (action.title) button.title = cleanTextV6544(action.title);
+    if (action.ariaLabel || action.title || action.label) {
+      button.setAttribute('aria-label', cleanTextV6544(action.ariaLabel || action.title || action.label));
+    }
+    if (action.pressed != null) button.setAttribute('aria-pressed', action.pressed ? 'true' : 'false');
+    if (action.expanded != null) button.setAttribute('aria-expanded', action.expanded ? 'true' : 'false');
+    button.disabled = !!action.disabled;
+    button.textContent = cleanTextV6544(action.icon || action.label || '');
+    button.addEventListener('click', function(event){
+      if (button.disabled) return;
+      if (typeof action.onClick === 'function') action.onClick(event, cfg, button);
+      emitV6544('cdaCardAction', {
+        key: cfg.key,
+        action: button.getAttribute('data-cda-card-action')
+      });
+    });
+    return button;
+  }
+
+  function createStructureV6544(cfg){
+    var card = document.createElement('article');
+    card.className = 'cdaCardV6544';
+    card.setAttribute('data-cda-card-managed', 'v6544');
+    card.setAttribute('data-cda-card-key', cfg.key);
+    card.setAttribute('data-cda-wide', cfg.wide ? '1' : '0');
+    card.setAttribute('data-cda-selected', cfg.selected ? '1' : '0');
+    card.setAttribute('data-cda-collapsed', cfg.collapsed ? '1' : '0');
+    card.setAttribute('data-cda-header-divider', cfg.headerDivider ? '1' : '0');
+
+    var header = document.createElement('header');
+    header.className = 'cdaCardHeaderV6544';
+
+    var heading = document.createElement('div');
+    heading.className = 'cdaCardHeadingV6544';
+
+    var title = document.createElement('h3');
+    title.className = 'cdaCardTitleV6544';
+    title.id = 'cdaCardTitle-' + cfg.key.replace(/[^a-zA-Z0-9_-]+/g, '-');
+    title.textContent = cleanTextV6544(cfg.title);
+    heading.appendChild(title);
+
+    var subtitle = document.createElement('div');
+    subtitle.className = 'cdaCardSubtitleV6544';
+    subtitle.textContent = cleanTextV6544(cfg.subtitle);
+    subtitle.hidden = !subtitle.textContent;
+    heading.appendChild(subtitle);
+
+    var actions = document.createElement('div');
+    actions.className = 'cdaCardActionsV6544';
+    (cfg.actions || []).forEach(function(action){
+      actions.appendChild(createActionV6544(action, cfg));
+    });
+
+    if (cfg.collapsible) {
+      var collapse = document.createElement('button');
+      collapse.type = 'button';
+      collapse.className = 'cdaCardCollapseV6544';
+      collapse.setAttribute('aria-label', cfg.collapsed ? 'Expand ' + cleanTextV6544(cfg.title) : 'Collapse ' + cleanTextV6544(cfg.title));
+      collapse.setAttribute('aria-expanded', cfg.collapsed ? 'false' : 'true');
+      collapse.textContent = cfg.collapsed ? '▸' : '▾';
+      collapse.addEventListener('click', function(event){
+        event.preventDefault();
+        apiV6544.setCollapsed(cfg.key, card.getAttribute('data-cda-collapsed') !== '1');
+      });
+      actions.appendChild(collapse);
+    }
+
+    header.appendChild(heading);
+    header.appendChild(actions);
+
+    var body = document.createElement('div');
+    body.className = 'cdaCardBodyV6544';
+    body.setAttribute('data-cda-card-body', cfg.key);
+
+    var state = document.createElement('div');
+    state.className = 'cdaCardStateV6544';
+    state.setAttribute('role', 'status');
+    state.setAttribute('aria-live', 'polite');
+
+    card.setAttribute('aria-labelledby', title.id);
+    card.appendChild(header);
+    card.appendChild(body);
+    card.appendChild(state);
+
+    return {
+      card: card,
+      header: header,
+      heading: heading,
+      title: title,
+      subtitle: subtitle,
+      actions: actions,
+      body: body,
+      state: state
+    };
+  }
+
+  function stateMessageV6544(cfg){
+    var state = normalizeStateV6544(cfg.state);
+    if (state === 'loading') return cleanTextV6544(cfg.loadingText || 'Loading...');
+    if (state === 'empty') return cleanTextV6544(cfg.emptyText || 'No data available.');
+    if (state === 'error') return cleanTextV6544(cfg.errorText || 'Unable to load this component.');
+    return '';
+  }
+
+  function applyStateV6544(instance, cfg){
+    var state = normalizeStateV6544(cfg.state);
+    var message = stateMessageV6544(cfg);
+    instance.card.setAttribute('data-cda-state', state);
+    instance.state.setAttribute('data-state', state);
+    instance.state.textContent = message;
+    instance.state.hidden = state === 'ready';
+    instance.body.setAttribute('aria-busy', state === 'loading' ? 'true' : 'false');
+  }
+
+  function normalizeConfigV6544(config){
+    var cfg = Object.assign({}, config || {});
+    cfg.key = cleanTextV6544(cfg.key);
+    if (!cfg.key) throw new Error('cdaCard.render requires a key.');
+    cfg.host = resolveElementV6544(cfg.host);
+    if (!cfg.host) throw new Error('cdaCard.render could not resolve host for ' + cfg.key + '.');
+    cfg.title = cleanTextV6544(cfg.title);
+    cfg.subtitle = cleanTextV6544(cfg.subtitle);
+    cfg.actions = Array.isArray(cfg.actions) ? cfg.actions.slice() : [];
+    cfg.state = normalizeStateV6544(cfg.state);
+    cfg.wide = !!cfg.wide;
+    cfg.selected = !!cfg.selected;
+    cfg.collapsible = !!cfg.collapsible;
+    cfg.collapsed = !!cfg.collapsed;
+    cfg.headerDivider = !!cfg.headerDivider;
+    return cfg;
+  }
+
+  function renderV6544(config){
+    var cfg = normalizeConfigV6544(config);
+    var previous = instancesV6544[cfg.key];
+    if (previous && previous.card && previous.card.parentNode) previous.card.parentNode.removeChild(previous.card);
+
+    var instance = createStructureV6544(cfg);
+    instance.config = cfg;
+    clearNodeV6544(cfg.host);
+    cfg.host.appendChild(instance.card);
+    appendContentV6544(instance.body, cfg.body, {
+      key: cfg.key,
+      config: cfg,
+      card: instance.card,
+      body: instance.body
+    });
+    applyStateV6544(instance, cfg);
+
+    registryV6544[cfg.key] = cfg;
+    instancesV6544[cfg.key] = instance;
+
+    if (typeof cfg.afterRender === 'function') cfg.afterRender(instance, cfg);
+    emitV6544('cdaCardRendered', { key: cfg.key, state: cfg.state });
+    return instance;
+  }
+
+  function updateV6544(key, patch){
+    var cfg = registryV6544[key];
+    if (!cfg) return null;
+    return renderV6544(Object.assign({}, cfg, patch || {}));
+  }
+
+  function setStateV6544(key, state, message){
+    var cfg = registryV6544[key];
+    var instance = instancesV6544[key];
+    if (!cfg || !instance) return null;
+    cfg.state = normalizeStateV6544(state);
+    if (cfg.state === 'loading' && message != null) cfg.loadingText = message;
+    if (cfg.state === 'empty' && message != null) cfg.emptyText = message;
+    if (cfg.state === 'error' && message != null) cfg.errorText = message;
+    applyStateV6544(instance, cfg);
+    emitV6544('cdaCardStateChanged', { key: key, state: cfg.state });
+    return instance;
+  }
+
+  function setCollapsedV6544(key, collapsed){
+    var cfg = registryV6544[key];
+    var instance = instancesV6544[key];
+    if (!cfg || !instance || !cfg.collapsible) return null;
+    cfg.collapsed = !!collapsed;
+    instance.card.setAttribute('data-cda-collapsed', cfg.collapsed ? '1' : '0');
+    var button = instance.actions.querySelector('.cdaCardCollapseV6544');
+    if (button) {
+      button.textContent = cfg.collapsed ? '▸' : '▾';
+      button.setAttribute('aria-expanded', cfg.collapsed ? 'false' : 'true');
+      button.setAttribute('aria-label', cfg.collapsed ? 'Expand ' + cfg.title : 'Collapse ' + cfg.title);
+    }
+    if (typeof cfg.onCollapseChange === 'function') cfg.onCollapseChange(cfg.collapsed, cfg, instance);
+    emitV6544('cdaCardCollapseChanged', { key: key, collapsed: cfg.collapsed });
+    return instance;
+  }
+
+  function destroyV6544(key){
+    var instance = instancesV6544[key];
+    if (instance && instance.card && instance.card.parentNode) instance.card.parentNode.removeChild(instance.card);
+    delete instancesV6544[key];
+    delete registryV6544[key];
+    emitV6544('cdaCardDestroyed', { key: key });
+  }
+
+  var apiV6544 = {
+    version: VERSION_V6544,
+    render: renderV6544,
+    update: updateV6544,
+    setState: setStateV6544,
+    setCollapsed: setCollapsedV6544,
+    destroy: destroyV6544,
+    instance: function(key){ return instancesV6544[key] || null; },
+    config: function(key){ return registryV6544[key] || null; },
+    keys: function(){ return Object.keys(registryV6544); }
+  };
+
+  window.cdaCard = apiV6544;
+  window.CdaSharedCardModule = apiV6544;
+  window.CDA_CARD_MODULE_VERSION = VERSION_V6544;
+})();
+</script>
