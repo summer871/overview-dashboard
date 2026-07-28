@@ -18,6 +18,8 @@ not replace cards, move tables, create controls, or change page geometry.
 
   var VERSION_V6544 = 'v6.544';
   var ATTACHER_V6544 = 'attachExistingTableV6544';
+  var registrationTimerV6544 = null;
+  var registrationAttemptsV6544 = 0;
 
   function tableForRuntimeV6544(runtimeConfig){
     if (!runtimeConfig) return null;
@@ -44,7 +46,6 @@ not replace cards, move tables, create controls, or change page geometry.
     sourceCard.setAttribute('data-cda-table-instance', runtimeConfig.key || '');
     sourceCard.setAttribute('data-cda-table-page', runtimeConfig.page || '');
     sourceCard.setAttribute('data-cda-table-attacher', ATTACHER_V6544);
-
     table.setAttribute('data-cda-shared-table-attached', VERSION_V6544);
     table.setAttribute('data-cda-table-instance', runtimeConfig.key || '');
 
@@ -70,7 +71,6 @@ not replace cards, move tables, create controls, or change page geometry.
     var table = document.getElementById(definition.tableId);
     var sourceCard = table && table.closest ? table.closest('.remakeCard,article') : null;
     if (!table || !sourceCard || renderedV6544(sourceCard)) return null;
-
     return {
       key:definition.key,
       page:'remake',
@@ -87,7 +87,6 @@ not replace cards, move tables, create controls, or change page geometry.
     var table = body && body.closest ? body.closest('table') : null;
     var sourceCard = body && body.closest ? body.closest('article,.remakeCard') : null;
     if (!body || !table || !sourceCard || renderedV6544(sourceCard)) return null;
-
     return {
       key:definition.key,
       page:'tat',
@@ -101,83 +100,48 @@ not replace cards, move tables, create controls, or change page geometry.
   }
 
   var definitionsV6544 = [
-    {
-      key:'remakeDepartment', page:'remake', title:'Remakes by Department',
-      tableId:'remakeDepartmentTable', size:'standard',
-      features:{ sorting:true, columnChooser:true, totals:true, csv:true },
-      resolve:remakeResolverV6544, renderer:renderResolvedV6544
-    },
-    {
-      key:'remakeReason', page:'remake', title:'Remakes by Reason',
-      tableId:'remakeReasonTable', size:'standard',
-      features:{ sorting:true, columnChooser:true, totals:true, csv:true },
-      resolve:remakeResolverV6544, renderer:renderResolvedV6544
-    },
-    {
-      key:'remakeProduct', page:'remake', title:'Remakes by Product',
-      tableId:'remakeProductTable', size:'standard',
-      features:{ sorting:true, columnChooser:true, totals:true, csv:true },
-      resolve:remakeResolverV6544, renderer:renderResolvedV6544
-    },
-    {
-      key:'remakeCustomer', page:'remake', title:'Remakes by Customer',
-      tableId:'remakeCustomerTable', size:'wide',
-      features:{ sorting:true, columnChooser:true, totals:true, selection:true, collapse:true, csv:true },
-      resolve:remakeResolverV6544, renderer:renderResolvedV6544
-    },
-    {
-      key:'remakeCeramist', page:'remake', title:'Remakes by Technician',
-      tableId:'remakeCeramistTableV6342', size:'wide',
-      features:{ sorting:true, columnChooser:true, totals:true, selection:true, collapse:true, csv:true },
-      resolve:remakeResolverV6544, renderer:renderResolvedV6544
-    },
-    {
-      key:'remakeCeramistDetail', page:'remake', title:'Technician Remake Detail',
-      tableId:'remakeCeramistDetailTableV6343', size:'wide',
-      features:{ sorting:true, columnChooser:true, totals:true, selection:true, csv:true },
-      resolve:remakeResolverV6544, renderer:renderResolvedV6544
-    },
-    {
-      key:'tatDepartment', page:'tat', component:'department', title:'Department Summary',
-      bodyId:'tatDepartmentTableV6509', size:'standard',
-      features:{ sorting:true, columnChooser:true, exportCurrent:true, exportAll:true, popout:true, reset:true, totals:true, csv:true },
-      resolve:tatResolverV6544, renderer:renderResolvedV6544
-    },
-    {
-      key:'tatLate', page:'tat', component:'late', title:'Promise Performance',
-      bodyId:'tatLateTableV6509', size:'standard',
-      features:{ sorting:true, columnChooser:true, exportCurrent:true, exportAll:true, popout:true, reset:true, totals:true, csv:true },
-      resolve:tatResolverV6544, renderer:renderResolvedV6544
-    },
-    {
-      key:'tatCustomer', page:'tat', component:'customer', title:'Customers',
-      bodyId:'tatCustomerTableV6509', cardId:'tatCustomerCardV6509', collapseKey:'customers',
-      collapseButtonId:'tatCustomerCollapseV6509', size:'wide', extraCardClass:'tatWideV6509',
-      features:{ sorting:true, columnChooser:true, exportCurrent:true, exportAll:true, popout:true, reset:true, totals:true, selection:true, childRows:true, collapse:true, csv:true },
-      resolve:tatResolverV6544, renderer:renderResolvedV6544
-    },
-    {
-      key:'tatQuality', page:'tat', component:'quality', title:'Data Quality & Coverage',
-      bodyId:'tatQualityTableV6509', cardId:'tatQualityCardV6509', collapseKey:'quality',
-      collapseButtonId:'tatQualityCollapseV6509', size:'wide', extraCardClass:'tatWideV6509',
-      preserveSummaryId:'tatIssueSummaryV6509', preserveCoverageId:'tatQualityCoverageV6513',
-      bodyClass:'tatQualityBodyV6509',
-      features:{ sorting:true, columnChooser:true, exportCurrent:true, exportAll:true, popout:true, reset:true, totals:true, collapse:true, csv:true },
-      resolve:tatResolverV6544, renderer:renderResolvedV6544
-    }
+    { key:'remakeDepartment', page:'remake', title:'Remakes by Department', tableId:'remakeDepartmentTable', size:'standard', features:{ sorting:true, columnChooser:true, totals:true, csv:true }, resolve:remakeResolverV6544, renderer:renderResolvedV6544 },
+    { key:'remakeReason', page:'remake', title:'Remakes by Reason', tableId:'remakeReasonTable', size:'standard', features:{ sorting:true, columnChooser:true, totals:true, csv:true }, resolve:remakeResolverV6544, renderer:renderResolvedV6544 },
+    { key:'remakeProduct', page:'remake', title:'Remakes by Product', tableId:'remakeProductTable', size:'standard', features:{ sorting:true, columnChooser:true, totals:true, csv:true }, resolve:remakeResolverV6544, renderer:renderResolvedV6544 },
+    { key:'remakeCustomer', page:'remake', title:'Remakes by Customer', tableId:'remakeCustomerTable', size:'wide', features:{ sorting:true, columnChooser:true, totals:true, selection:true, collapse:true, csv:true }, resolve:remakeResolverV6544, renderer:renderResolvedV6544 },
+    { key:'remakeCeramist', page:'remake', title:'Remakes by Technician', tableId:'remakeCeramistTableV6342', size:'wide', features:{ sorting:true, columnChooser:true, totals:true, selection:true, collapse:true, csv:true }, resolve:remakeResolverV6544, renderer:renderResolvedV6544 },
+    { key:'remakeCeramistDetail', page:'remake', title:'Technician Remake Detail', tableId:'remakeCeramistDetailTableV6343', size:'wide', features:{ sorting:true, columnChooser:true, totals:true, selection:true, csv:true }, resolve:remakeResolverV6544, renderer:renderResolvedV6544 },
+    { key:'tatDepartment', page:'tat', component:'department', title:'Department Summary', bodyId:'tatDepartmentTableV6509', size:'standard', features:{ sorting:true, columnChooser:true, exportCurrent:true, exportAll:true, popout:true, reset:true, totals:true, csv:true }, resolve:tatResolverV6544, renderer:renderResolvedV6544 },
+    { key:'tatLate', page:'tat', component:'late', title:'Promise Performance', bodyId:'tatLateTableV6509', size:'standard', features:{ sorting:true, columnChooser:true, exportCurrent:true, exportAll:true, popout:true, reset:true, totals:true, csv:true }, resolve:tatResolverV6544, renderer:renderResolvedV6544 },
+    { key:'tatCustomer', page:'tat', component:'customer', title:'Customers', bodyId:'tatCustomerTableV6509', cardId:'tatCustomerCardV6509', collapseKey:'customers', collapseButtonId:'tatCustomerCollapseV6509', size:'wide', extraCardClass:'tatWideV6509', features:{ sorting:true, columnChooser:true, exportCurrent:true, exportAll:true, popout:true, reset:true, totals:true, selection:true, childRows:true, collapse:true, csv:true }, resolve:tatResolverV6544, renderer:renderResolvedV6544 },
+    { key:'tatQuality', page:'tat', component:'quality', title:'Data Quality & Coverage', bodyId:'tatQualityTableV6509', cardId:'tatQualityCardV6509', collapseKey:'quality', collapseButtonId:'tatQualityCollapseV6509', size:'wide', extraCardClass:'tatWideV6509', preserveSummaryId:'tatIssueSummaryV6509', preserveCoverageId:'tatQualityCoverageV6513', bodyClass:'tatQualityBodyV6509', features:{ sorting:true, columnChooser:true, exportCurrent:true, exportAll:true, popout:true, reset:true, totals:true, collapse:true, csv:true }, resolve:tatResolverV6544, renderer:renderResolvedV6544 }
   ];
 
   function registerV6544(){
     var registry = window.cdaSharedTableRegistryV6544;
-    if (!registry || typeof registry.registerMany !== 'function') {
-      throw new Error('Shared table registry is unavailable.');
-    }
+    if (!registry || typeof registry.registerMany !== 'function') return [];
     registry.registerMany(definitionsV6544);
     return registry.list();
   }
 
+  function scheduleRegistrationV6544(){
+    if (registerV6544().length) {
+      if (registrationTimerV6544) window.clearTimeout(registrationTimerV6544);
+      registrationTimerV6544 = null;
+      document.dispatchEvent(new CustomEvent('cdaSharedTableDefinitionsReadyV6544'));
+      if (typeof window.refreshSharedRemakeTablesV6544 === 'function') {
+        window.refreshSharedRemakeTablesV6544();
+      }
+      return true;
+    }
+    registrationAttemptsV6544 += 1;
+    if (registrationAttemptsV6544 < 40 && !registrationTimerV6544) {
+      registrationTimerV6544 = window.setTimeout(function(){
+        registrationTimerV6544 = null;
+        scheduleRegistrationV6544();
+      }, 50);
+    }
+    return false;
+  }
+
   function functionStatusV6544(){
     return {
+      registry:!!(window.cdaSharedTableRegistryV6544 && typeof window.cdaSharedTableRegistryV6544.registerMany === 'function'),
       cdaTableRender:!!(window.cdaTable && typeof window.cdaTable.render === 'function'),
       cdaTableToggleChooser:!!(window.cdaTable && typeof window.cdaTable.toggleChooser === 'function'),
       cdaTableHiddenCount:!!(window.cdaTable && typeof window.cdaTable.hiddenCount === 'function'),
@@ -193,9 +157,7 @@ not replace cards, move tables, create controls, or change page geometry.
     var registry = window.cdaSharedTableRegistryV6544;
     var dom = definitionsV6544.map(function(definition){
       var target = document.getElementById(definition.tableId || definition.bodyId);
-      var table = target && target.tagName === 'TABLE'
-        ? target
-        : (target && target.closest ? target.closest('table') : null);
+      var table = target && target.tagName === 'TABLE' ? target : (target && target.closest ? target.closest('table') : null);
       var card = target && target.closest ? target.closest('article,.remakeCard') : null;
       var attachedCards = document.querySelectorAll('[data-cda-table-instance="' + definition.key + '"]');
       return {
@@ -214,10 +176,9 @@ not replace cards, move tables, create controls, or change page geometry.
     return {
       version:VERSION_V6544,
       mode:'attach-existing-markup',
+      registrationAttempts:registrationAttemptsV6544,
       definitions:definitionsV6544.map(function(definition){ return definition.key; }),
-      registered:registry
-        ? definitionsV6544.filter(function(definition){ return !!registry.get(definition.key); }).map(function(definition){ return definition.key; })
-        : [],
+      registered:registry ? definitionsV6544.filter(function(definition){ return !!registry.get(definition.key); }).map(function(definition){ return definition.key; }) : [],
       dom:dom,
       functions:functions,
       allFunctionsPresent:Object.keys(functions).every(function(name){ return functions[name] === true; }),
@@ -227,18 +188,20 @@ not replace cards, move tables, create controls, or change page geometry.
     };
   }
 
-  registerV6544();
-
   window.cdaSharedTableDefinitionsV6544 = Object.freeze({
     version:VERSION_V6544,
     mode:'attach-existing-markup',
     list:function(){ return definitionsV6544.slice(); },
     register:registerV6544,
+    scheduleRegistration:scheduleRegistrationV6544,
     resolveRemake:remakeResolverV6544,
     resolveTat:tatResolverV6544,
     renderResolved:renderResolvedV6544,
     functionStatus:functionStatusV6544,
     audit:auditV6544
   });
+
+  document.addEventListener('cdaSharedTableRegisteredV6544', scheduleRegistrationV6544, { once:true });
+  scheduleRegistrationV6544();
 })();
 </script>
