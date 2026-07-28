@@ -1,0 +1,81 @@
+<!-- SharedTableConfigV6544.html
+Defines and validates the configuration contract for every shared table instance.
+Unique table IDs identify instances; reusable features are enabled through configuration.
+-->
+<script id="cdaSharedTableConfigV6544">
+(function installSharedTableConfigV6544(){
+  'use strict';
+
+  if (window.cdaSharedTableConfigV6544) return;
+
+  var VERSION_V6544 = 'v6544';
+  var DEFAULT_FEATURES_V6544 = Object.freeze({
+    sorting:false,
+    columnChooser:false,
+    exportCurrent:false,
+    exportAll:false,
+    popout:false,
+    collapse:false,
+    totals:false,
+    selection:false,
+    childRows:false,
+    conditionalFormatting:false,
+    cumulative:false,
+    miniChart:false,
+    search:false,
+    filtering:false,
+    reset:false
+  });
+
+  function copyObjectV6544(source){
+    var output = {};
+    Object.keys(source || {}).forEach(function(key){ output[key] = source[key]; });
+    return output;
+  }
+
+  function normalizeFeaturesV6544(features){
+    var normalized = copyObjectV6544(DEFAULT_FEATURES_V6544);
+    Object.keys(features || {}).forEach(function(name){
+      normalized[name] = features[name] !== false && features[name] != null;
+    });
+    return normalized;
+  }
+
+  function requireTextV6544(config, field){
+    var value = String(config[field] == null ? '' : config[field]).trim();
+    if (!value) throw new Error('Shared table config requires "' + field + '".');
+    return value;
+  }
+
+  function normalizeV6544(input){
+    if (!input || typeof input !== 'object') throw new Error('Shared table config must be an object.');
+
+    var config = copyObjectV6544(input);
+    config.id = requireTextV6544(config, 'id');
+    config.key = requireTextV6544(config, 'key');
+    config.title = requireTextV6544(config, 'title');
+    config.page = String(config.page || 'shared').trim();
+    config.size = String(config.size || 'standard').trim();
+    config.features = normalizeFeaturesV6544(config.features);
+    config.columns = Array.isArray(config.columns) ? config.columns.slice() : [];
+    config.metadata = copyObjectV6544(config.metadata);
+    config.version = VERSION_V6544;
+    return config;
+  }
+
+  function validateV6544(input){
+    try {
+      return { valid:true, config:normalizeV6544(input), errors:[] };
+    } catch (error) {
+      return { valid:false, config:null, errors:[String(error && error.message || error)] };
+    }
+  }
+
+  window.cdaSharedTableConfigV6544 = Object.freeze({
+    version:VERSION_V6544,
+    defaultFeatures:DEFAULT_FEATURES_V6544,
+    normalize:normalizeV6544,
+    validate:validateV6544
+  });
+})();
+</script>
