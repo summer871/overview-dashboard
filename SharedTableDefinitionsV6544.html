@@ -159,7 +159,7 @@ not replace cards, move tables, create controls, or change page geometry.
       var target = document.getElementById(definition.tableId || definition.bodyId);
       var table = target && target.tagName === 'TABLE' ? target : (target && target.closest ? target.closest('table') : null);
       var card = target && target.closest ? target.closest('article,.remakeCard') : null;
-      var attachedCards = document.querySelectorAll('[data-cda-table-instance="' + definition.key + '"]');
+      var attachedCards = document.querySelectorAll('article[data-cda-table-instance="' + definition.key + '"],.remakeCard[data-cda-table-instance="' + definition.key + '"]');
       return {
         key:definition.key,
         targetExists:!!target,
