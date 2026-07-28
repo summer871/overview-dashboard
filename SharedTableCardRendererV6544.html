@@ -1,6 +1,6 @@
 <!-- SharedTableCardRendererV6544.html
-One renderer creates every shared Remake and TAT table card.
-Page code supplies only identity, title, actions, preserved content, and table data.
+Presentation-only renderer for resolved shared table runtime configurations.
+Table identity, DOM resolution, registration, and lifecycle are owned elsewhere.
 -->
 <style id="cdaSharedTableCardRendererStylesV6544">
   [data-cda-table-card="v6544"] {
@@ -179,28 +179,12 @@ Page code supplies only identity, title, actions, preserved content, and table d
 <script id="cdaSharedTableCardRendererControllerV6544">
 (function installSharedTableCardRendererV6544(){
   'use strict';
-  if (window.__cdaSharedTableCardRendererV6544) return;
-  window.__cdaSharedTableCardRendererV6544 = true;
+
+  if (window.cdaSharedTableCardRendererV6544) return;
 
   var VERSION_V6544 = 'v6.544';
   var RENDERER_V6544 = 'renderSharedTableCardV6544';
   var COLLAPSE_STORE_V6544 = 'cdaSharedTableCollapsed.v6544';
-
-  var REMAKE_TABLES_V6544 = [
-    { key:'remakeDepartment', tableId:'remakeDepartmentTable', size:'standard' },
-    { key:'remakeReason', tableId:'remakeReasonTable', size:'standard' },
-    { key:'remakeProduct', tableId:'remakeProductTable', size:'standard' },
-    { key:'remakeCustomer', tableId:'remakeCustomerTable', size:'wide' },
-    { key:'remakeCeramist', tableId:'remakeCeramistTableV6342', size:'wide' },
-    { key:'remakeCeramistDetail', tableId:'remakeCeramistDetailTableV6343', size:'wide' }
-  ];
-
-  var TAT_TABLES_V6544 = [
-    { key:'tatDepartment', component:'department', title:'Department Summary', bodyId:'tatDepartmentTableV6509', size:'standard' },
-    { key:'tatLate', component:'late', title:'Promise Performance', bodyId:'tatLateTableV6509', size:'standard' },
-    { key:'tatCustomer', component:'customer', title:'Customers', bodyId:'tatCustomerTableV6509', cardId:'tatCustomerCardV6509', collapseKey:'customers', collapseButtonId:'tatCustomerCollapseV6509', size:'wide', extraCardClass:'tatWideV6509' },
-    { key:'tatQuality', component:'quality', title:'Data Quality & Coverage', bodyId:'tatQualityTableV6509', cardId:'tatQualityCardV6509', collapseKey:'quality', collapseButtonId:'tatQualityCollapseV6509', size:'wide', extraCardClass:'tatWideV6509', preserveSummaryId:'tatIssueSummaryV6509', preserveCoverageId:'tatQualityCoverageV6513', bodyClass:'tatQualityBodyV6509' }
-  ];
 
   function nodeV6544(tag, className, text){
     var node = document.createElement(tag);
@@ -213,11 +197,15 @@ Page code supplies only identity, title, actions, preserved content, and table d
     try {
       var parsed = JSON.parse(localStorage.getItem(COLLAPSE_STORE_V6544) || '{}');
       return parsed && typeof parsed === 'object' ? parsed : {};
-    } catch (error) { return {}; }
+    } catch (error) {
+      return {};
+    }
   }
 
   function writeCollapsedV6544(state){
-    try { localStorage.setItem(COLLAPSE_STORE_V6544, JSON.stringify(state || {})); } catch (error) {}
+    try {
+      localStorage.setItem(COLLAPSE_STORE_V6544, JSON.stringify(state || {}));
+    } catch (error) {}
   }
 
   function selectedYearLabelV6544(){
@@ -227,7 +215,10 @@ Page code supplies only identity, title, actions, preserved content, and table d
   }
 
   function openYearV6544(event){
-    if (event) { event.preventDefault(); event.stopPropagation(); }
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
     if (typeof window.toggleTatDropdownV6509 === 'function') {
       window.toggleTatDropdownV6509('year', event || null);
       return;
@@ -247,69 +238,73 @@ Page code supplies only identity, title, actions, preserved content, and table d
     return button;
   }
 
-  function updateColumnsButtonV6544(cfg, button){
+  function updateColumnsButtonV6544(config, button){
     if (!button || !window.cdaTable) return;
-    var hidden = typeof window.cdaTable.hiddenCount === 'function' ? window.cdaTable.hiddenCount(cfg.key) : 0;
+    var hidden = typeof window.cdaTable.hiddenCount === 'function'
+      ? window.cdaTable.hiddenCount(config.key)
+      : 0;
     button.classList.toggle('hasHiddenColumnsV6357', hidden > 0);
     button.title = hidden > 0 ? 'Choose columns. ' + hidden + ' hidden.' : 'Choose columns';
     button.setAttribute('aria-label', button.title);
   }
 
-  function tatActionsV6544(cfg){
+  function createTatActionsV6544(config){
     var actions = [];
     var year = buttonV6544(selectedYearLabelV6544(), 'remakeMiniButtonV6230', openYearV6544, 'Choose reporting year');
-    year.setAttribute('data-cda-table-year', cfg.key);
+    year.setAttribute('data-cda-table-year', config.key);
     actions.push(year);
 
     var columns = buttonV6544('Columns', 'remakeColumnChooserButtonV6357', function(event){
       if (window.cdaTable && typeof window.cdaTable.toggleChooser === 'function') {
-        window.cdaTable.toggleChooser(cfg.key, event);
-        updateColumnsButtonV6544(cfg, columns);
+        window.cdaTable.toggleChooser(config.key, event);
+        updateColumnsButtonV6544(config, columns);
       }
     }, 'Choose columns');
-    columns.setAttribute('data-cda-table-columns', cfg.key);
+    columns.setAttribute('data-cda-table-columns', config.key);
     actions.push(columns);
 
     actions.push(buttonV6544('Export current', 'remakeMiniButtonV6230', function(){
-      if (typeof window.exportTatComponentV6509 === 'function') window.exportTatComponentV6509(cfg.component);
+      if (typeof window.exportTatComponentV6509 === 'function') window.exportTatComponentV6509(config.component);
     }));
     actions.push(buttonV6544('All data', 'remakeMiniButtonV6230', function(){
-      if (typeof window.exportTatAllDataV6509 === 'function') window.exportTatAllDataV6509(cfg.component);
+      if (typeof window.exportTatAllDataV6509 === 'function') window.exportTatAllDataV6509(config.component);
     }));
     actions.push(buttonV6544('Pop out', 'remakeMiniButtonV6230', function(){
-      if (typeof window.popoutTatComponentV6509 === 'function') window.popoutTatComponentV6509(cfg.component);
+      if (typeof window.popoutTatComponentV6509 === 'function') window.popoutTatComponentV6509(config.component);
     }));
     actions.push(buttonV6544('↺', 'remakeMiniButtonV6230 backButtonV6266', function(){
-      if (typeof window.clearTatComponentV6509 === 'function') window.clearTatComponentV6509(cfg.component);
+      if (typeof window.clearTatComponentV6509 === 'function') window.clearTatComponentV6509(config.component);
     }, 'Reset this selection'));
     return actions;
   }
 
-  function collapseButtonV6544(cfg){
-    if (!cfg.collapseKey) return null;
+  function toggleCollapsedV6544(config, force){
+    var card = document.querySelector('[data-cda-table-instance="' + config.key + '"]');
+    if (!card) return;
+    var collapsed = force == null
+      ? !card.classList.contains('remakeSectionCollapsedV6402')
+      : !!force;
+    card.classList.toggle('remakeSectionCollapsedV6402', collapsed);
+    var button = card.querySelector('.remakeSectionToggleV6402');
+    if (button) button.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+    if (config.collapseKey) {
+      var state = readCollapsedV6544();
+      state[config.collapseKey] = collapsed;
+      writeCollapsedV6544(state);
+    }
+  }
+
+  function collapseButtonV6544(config){
+    if (!config.collapseKey) return null;
     var button = buttonV6544('', 'remakeMiniButtonV6230 remakeSectionToggleV6402', function(){
-      toggleCollapsedV6544(cfg);
-    }, 'Collapse or expand ' + cfg.title);
-    if (cfg.collapseButtonId) button.id = cfg.collapseButtonId;
+      toggleCollapsedV6544(config);
+    }, 'Collapse or expand ' + config.title);
+    if (config.collapseButtonId) button.id = config.collapseButtonId;
     button.setAttribute('aria-expanded', 'true');
     var chevron = nodeV6544('span', 'remakeSectionChevronV6402', '▾');
     chevron.setAttribute('aria-hidden', 'true');
     button.appendChild(chevron);
     return button;
-  }
-
-  function toggleCollapsedV6544(cfg, force){
-    var card = document.querySelector('[data-cda-table-instance="' + cfg.key + '"]');
-    if (!card) return;
-    var collapsed = force == null ? !card.classList.contains('remakeSectionCollapsedV6402') : !!force;
-    card.classList.toggle('remakeSectionCollapsedV6402', collapsed);
-    var button = card.querySelector('.remakeSectionToggleV6402');
-    if (button) button.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
-    if (cfg.collapseKey) {
-      var state = readCollapsedV6544();
-      state[cfg.collapseKey] = collapsed;
-      writeCollapsedV6544(state);
-    }
   }
 
   function tableFromBodyV6544(bodyId, title){
@@ -322,8 +317,8 @@ Page code supplies only identity, title, actions, preserved content, and table d
     return table;
   }
 
-  function renderSharedTableCardV6544(cfg){
-    var sourceCard = cfg.sourceCard;
+  function renderSharedTableCardV6544(config){
+    var sourceCard = config && config.sourceCard;
     if (!sourceCard || !sourceCard.parentNode) return null;
     if (sourceCard.getAttribute('data-cda-renderer') === RENDERER_V6544) return sourceCard;
 
@@ -331,185 +326,104 @@ Page code supplies only identity, title, actions, preserved content, and table d
     var oldId = sourceCard.id || '';
     var parent = sourceCard.parentNode;
     var nextSibling = sourceCard.nextSibling;
-
     var card = nodeV6544('article', 'remakeCard');
-    card.className = ('remakeCard ' + (cfg.extraCardClass || '') + ' ' + (cfg.preserveClasses ? oldClassName : '')).replace(/\s+/g, ' ').trim();
-    if (cfg.cardId || oldId) card.id = cfg.cardId || oldId;
+
+    card.className = ('remakeCard ' + (config.extraCardClass || '') + ' ' + (config.preserveClasses ? oldClassName : ''))
+      .replace(/\s+/g, ' ')
+      .trim();
+    if (config.cardId || oldId) card.id = config.cardId || oldId;
     card.setAttribute('data-cda-table-card', VERSION_V6544);
-    card.setAttribute('data-cda-table-instance', cfg.key);
+    card.setAttribute('data-cda-table-instance', config.key);
     card.setAttribute('data-cda-renderer', RENDERER_V6544);
-    card.setAttribute('data-cda-table-size', cfg.size || 'standard');
-    card.setAttribute('data-cda-table-page', cfg.page);
+    card.setAttribute('data-cda-table-size', config.size || 'standard');
+    card.setAttribute('data-cda-table-page', config.page || '');
 
     var header = nodeV6544('div', 'remakeCardHeader');
     var heading = nodeV6544('div', 'cdaSharedTableHeadingV6544');
-    var title = nodeV6544('div', 'remakeCardTitle', cfg.title || '');
+    var title = nodeV6544('div', 'remakeCardTitle', config.title || '');
     heading.appendChild(title);
-    (cfg.headingNodes || []).forEach(function(item){ if (item) heading.appendChild(item); });
+    (config.headingNodes || []).forEach(function(item){ if (item) heading.appendChild(item); });
     header.appendChild(heading);
 
     var actions = nodeV6544('div', 'remakeCardActionsV6230');
-    (cfg.actionNodes || []).forEach(function(item){ if (item) actions.appendChild(item); });
-    var collapse = collapseButtonV6544(cfg);
+    (config.actionNodes || []).forEach(function(item){ if (item) actions.appendChild(item); });
+    var collapse = collapseButtonV6544(config);
     if (collapse) actions.appendChild(collapse);
     header.appendChild(actions);
     card.appendChild(header);
 
-    if (cfg.collapseKey) {
+    if (config.collapseKey) {
       title.setAttribute('role', 'button');
       title.setAttribute('tabindex', '0');
-      title.setAttribute('data-remake-section-title-v6408', cfg.collapseKey);
-      title.addEventListener('click', function(){ toggleCollapsedV6544(cfg); });
+      title.setAttribute('data-remake-section-title-v6408', config.collapseKey);
+      title.addEventListener('click', function(){ toggleCollapsedV6544(config); });
       title.addEventListener('keydown', function(event){
         if (event.key === 'Enter' || event.key === ' ') {
           event.preventDefault();
-          toggleCollapsedV6544(cfg);
+          toggleCollapsedV6544(config);
         }
       });
     }
 
-    var bodyHost = cfg.bodyClass ? nodeV6544('div', cfg.bodyClass) : card;
+    var bodyHost = config.bodyClass ? nodeV6544('div', config.bodyClass) : card;
     if (bodyHost !== card) {
       bodyHost.setAttribute('data-cda-shared-table-body', VERSION_V6544);
       card.appendChild(bodyHost);
     }
-    (cfg.beforeTableNodes || []).forEach(function(item){ if (item) bodyHost.appendChild(item); });
+    (config.beforeTableNodes || []).forEach(function(item){ if (item) bodyHost.appendChild(item); });
 
     var wrap = nodeV6544('div', 'remakeTableWrap');
     wrap.setAttribute('data-cda-shared-table-body', VERSION_V6544);
-    var table = cfg.tableNode || tableFromBodyV6544(cfg.bodyId, cfg.title);
+    var table = config.tableNode || tableFromBodyV6544(config.bodyId, config.title);
     table.classList.add('remakeTable');
     table.setAttribute('data-cda-shared-table', VERSION_V6544);
     wrap.appendChild(table);
     bodyHost.appendChild(wrap);
-    (cfg.afterTableNodes || []).forEach(function(item){ if (item) bodyHost.appendChild(item); });
+    (config.afterTableNodes || []).forEach(function(item){ if (item) bodyHost.appendChild(item); });
 
     parent.insertBefore(card, nextSibling);
     parent.removeChild(sourceCard);
 
-    if (cfg.collapseKey) {
+    if (config.collapseKey) {
       var state = readCollapsedV6544();
-      var collapsed = state[cfg.collapseKey] != null ? !!state[cfg.collapseKey] : !!cfg.wasCollapsed;
-      toggleCollapsedV6544(cfg, collapsed);
+      var collapsed = state[config.collapseKey] != null
+        ? !!state[config.collapseKey]
+        : !!config.wasCollapsed;
+      toggleCollapsedV6544(config, collapsed);
     }
-    if (cfg.key.indexOf('tat') === 0 && window.cdaTable && typeof window.cdaTable.render === 'function') {
-      window.cdaTable.render(cfg.key);
+    if (config.key.indexOf('tat') === 0 && window.cdaTable && typeof window.cdaTable.render === 'function') {
+      window.cdaTable.render(config.key);
     }
     return card;
   }
 
-  function collectRemakeConfigV6544(def){
-    var table = document.getElementById(def.tableId);
-    var sourceCard = table && table.closest ? table.closest('.remakeCard,article') : null;
-    if (!table || !sourceCard) return null;
-    if (sourceCard.getAttribute('data-cda-renderer') === RENDERER_V6544) return null;
-
-    var oldHeader = sourceCard.querySelector(':scope > .remakeCardHeader') || sourceCard.querySelector('.remakeCardHeader');
-    var oldTitle = oldHeader && oldHeader.querySelector('.remakeCardTitle');
-    var oldActions = oldHeader && oldHeader.querySelector('.remakeCardActionsV6230');
-    var headingNodes = [];
-    if (oldTitle && oldTitle.parentNode) {
-      Array.prototype.slice.call(oldTitle.parentNode.children).forEach(function(node){
-        if (node !== oldTitle) headingNodes.push(node);
-      });
-    }
-    var actionNodes = oldActions ? Array.prototype.slice.call(oldActions.children) : [];
-    var before = [];
-    var after = [];
-    var tableWrap = table.closest('.remakeTableWrap');
-    Array.prototype.slice.call(sourceCard.children).forEach(function(node){
-      if (node === oldHeader || node === tableWrap || node === table) return;
-      if (tableWrap && node.compareDocumentPosition(tableWrap) & Node.DOCUMENT_POSITION_FOLLOWING) before.push(node);
-      else after.push(node);
-    });
-
-    return {
-      key:def.key,
-      page:'remake',
-      title:oldTitle ? String(oldTitle.textContent || '').trim() : def.key,
-      sourceCard:sourceCard,
-      tableNode:table,
-      actionNodes:actionNodes,
-      headingNodes:headingNodes,
-      beforeTableNodes:before,
-      afterTableNodes:after,
-      size:def.size,
-      preserveClasses:true,
-      collapseKey:sourceCard.id === 'remakeCustomerCardV6230' ? 'remakeCustomer' : (sourceCard.id === 'remakeCeramistCardV6342' ? 'remakeTechnician' : ''),
-      wasCollapsed:sourceCard.classList.contains('remakeSectionCollapsedV6402')
-    };
-  }
-
-  function collectTatConfigV6544(def){
-    var oldBody = document.getElementById(def.bodyId);
-    var sourceCard = oldBody && oldBody.closest ? oldBody.closest('article,.remakeCard') : null;
-    if (!oldBody || !sourceCard) return null;
-    if (sourceCard.getAttribute('data-cda-renderer') === RENDERER_V6544) return null;
-    var headingNodes = [];
-    var before = [];
-    var coverage = def.preserveCoverageId ? document.getElementById(def.preserveCoverageId) : null;
-    var summary = def.preserveSummaryId ? document.getElementById(def.preserveSummaryId) : null;
-    if (coverage) headingNodes.push(coverage);
-    if (summary) before.push(summary);
-    return {
-      key:def.key,
-      page:'tat',
-      component:def.component,
-      title:def.title,
-      sourceCard:sourceCard,
-      bodyId:def.bodyId,
-      cardId:def.cardId,
-      size:def.size,
-      extraCardClass:def.extraCardClass,
-      collapseKey:def.collapseKey,
-      collapseButtonId:def.collapseButtonId,
-      bodyClass:def.bodyClass,
-      headingNodes:headingNodes,
-      beforeTableNodes:before,
-      actionNodes:tatActionsV6544(def),
-      wasCollapsed:sourceCard.classList.contains('collapsed') || sourceCard.classList.contains('remakeSectionCollapsedV6402')
-    };
-  }
-
   function syncToolbarV6544(){
-    TAT_TABLES_V6544.forEach(function(cfg){
-      var year = document.querySelector('[data-cda-table-year="' + cfg.key + '"]');
-      if (year) year.textContent = selectedYearLabelV6544();
-      updateColumnsButtonV6544(cfg, document.querySelector('[data-cda-table-columns="' + cfg.key + '"]'));
+    Array.prototype.slice.call(document.querySelectorAll('[data-cda-table-year]')).forEach(function(year){
+      year.textContent = selectedYearLabelV6544();
+    });
+    Array.prototype.slice.call(document.querySelectorAll('[data-cda-table-columns]')).forEach(function(button){
+      updateColumnsButtonV6544({ key:button.getAttribute('data-cda-table-columns') }, button);
     });
   }
 
-  function installV6544(){
-    REMAKE_TABLES_V6544.forEach(function(def){
-      var cfg = collectRemakeConfigV6544(def);
-      if (cfg) renderSharedTableCardV6544(cfg);
-    });
-    TAT_TABLES_V6544.forEach(function(def){
-      var cfg = collectTatConfigV6544(def);
-      if (cfg) renderSharedTableCardV6544(cfg);
-    });
-    syncToolbarV6544();
-    window.CDA_SHARED_REMAKE_TABLE_SHELL_VERSION = VERSION_V6544;
-    window.CDA_SHARED_TABLE_CARD_RENDERER_VERSION = VERSION_V6544;
-  }
-
-  document.addEventListener('cdaTableRendered', function(){ setTimeout(syncToolbarV6544, 0); });
-  document.addEventListener('click', function(event){
-    if (event.target && event.target.closest && event.target.closest('#tatFilterPanel_year_V6509,#tatFilterButton_year_V6509')) setTimeout(syncToolbarV6544, 0);
-  }, true);
-
-  window.renderSharedTableCardV6544 = renderSharedTableCardV6544;
-  window.renderSharedRemakeTableShellV6544 = installV6544;
-  window.auditSharedRemakeTableShellV6544 = function(){
+  function auditV6544(){
     var instances = Array.prototype.slice.call(document.querySelectorAll('[data-cda-table-card="v6544"]'));
     return {
       version:VERSION_V6544,
       renderer:RENDERER_V6544,
       total:instances.length,
-      remake:instances.filter(function(card){ return card.getAttribute('data-cda-table-page') === 'remake'; }).map(function(card){ return card.getAttribute('data-cda-table-instance'); }),
-      tat:instances.filter(function(card){ return card.getAttribute('data-cda-table-page') === 'tat'; }).map(function(card){ return card.getAttribute('data-cda-table-instance'); }),
-      allUseOneRenderer:instances.length > 0 && instances.every(function(card){ return card.getAttribute('data-cda-renderer') === RENDERER_V6544; }),
-      uniqueRenderers:Array.from(new Set(instances.map(function(card){ return card.getAttribute('data-cda-renderer'); }))),
+      remake:instances.filter(function(card){
+        return card.getAttribute('data-cda-table-page') === 'remake';
+      }).map(function(card){ return card.getAttribute('data-cda-table-instance'); }),
+      tat:instances.filter(function(card){
+        return card.getAttribute('data-cda-table-page') === 'tat';
+      }).map(function(card){ return card.getAttribute('data-cda-table-instance'); }),
+      allUseOneRenderer:instances.length > 0 && instances.every(function(card){
+        return card.getAttribute('data-cda-renderer') === RENDERER_V6544;
+      }),
+      uniqueRenderers:Array.from(new Set(instances.map(function(card){
+        return card.getAttribute('data-cda-renderer');
+      }))),
       structureMatches:instances.every(function(card){
         return !!card.querySelector(':scope > .remakeCardHeader')
           && !!card.querySelector(':scope > .remakeCardHeader > .cdaSharedTableHeadingV6544')
@@ -517,10 +431,28 @@ Page code supplies only identity, title, actions, preserved content, and table d
           && !!card.querySelector('.remakeTableWrap > table.remakeTable');
       })
     };
-  };
+  }
 
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', installV6544, { once:true });
-  else installV6544();
-  setTimeout(installV6544, 0);
+  document.addEventListener('cdaTableRendered', function(){
+    setTimeout(syncToolbarV6544, 0);
+  });
+  document.addEventListener('click', function(event){
+    if (event.target && event.target.closest && event.target.closest('#tatFilterPanel_year_V6509,#tatFilterButton_year_V6509')) {
+      setTimeout(syncToolbarV6544, 0);
+    }
+  }, true);
+
+  window.renderSharedTableCardV6544 = renderSharedTableCardV6544;
+  window.auditSharedRemakeTableShellV6544 = auditV6544;
+  window.CDA_SHARED_TABLE_CARD_RENDERER_VERSION = VERSION_V6544;
+  window.cdaSharedTableCardRendererV6544 = Object.freeze({
+    version:VERSION_V6544,
+    name:RENDERER_V6544,
+    render:renderSharedTableCardV6544,
+    createTatActions:createTatActionsV6544,
+    syncToolbar:syncToolbarV6544,
+    toggleCollapsed:toggleCollapsedV6544,
+    audit:auditV6544
+  });
 })();
 </script>
