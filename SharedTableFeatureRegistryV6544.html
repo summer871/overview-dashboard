@@ -1,0 +1,135 @@
+<!-- SharedTableFeatureRegistryV6544.html
+Registers reusable table capabilities once and applies them to any configured table instance.
+Features own behavior; the renderer only creates structure and requests enabled features.
+-->
+<script id="cdaSharedTableFeatureRegistryV6544">
+(function installSharedTableFeatureRegistryV6544(){
+  'use strict';
+
+  if (window.cdaSharedTableFeaturesV6544) return;
+
+  var VERSION_V6544 = 'v6544';
+  var featuresV6544 = Object.create(null);
+
+  function normalizeNameV6544(name){
+    var normalized = String(name == null ? '' : name).trim();
+    if (!normalized) throw new Error('Shared table feature requires a name.');
+    return normalized;
+  }
+
+  function normalizeFeatureV6544(name, feature){
+    if (!feature || typeof feature !== 'object') {
+      throw new Error('Shared table feature "' + name + '" must be an object.');
+    }
+    if (typeof feature.attach !== 'function') {
+      throw new Error('Shared table feature "' + name + '" requires attach(context).');
+    }
+    return Object.freeze({
+      name:name,
+      version:String(feature.version || VERSION_V6544),
+      attach:feature.attach,
+      detach:typeof feature.detach === 'function' ? feature.detach : null,
+      refresh:typeof feature.refresh === 'function' ? feature.refresh : null,
+      audit:typeof feature.audit === 'function' ? feature.audit : null
+    });
+  }
+
+  function registerV6544(name, feature){
+    var normalizedName = normalizeNameV6544(name);
+    if (featuresV6544[normalizedName]) {
+      throw new Error('Shared table feature "' + normalizedName + '" is already registered.');
+    }
+    featuresV6544[normalizedName] = normalizeFeatureV6544(normalizedName, feature);
+    return featuresV6544[normalizedName];
+  }
+
+  function replaceV6544(name, feature){
+    var normalizedName = normalizeNameV6544(name);
+    featuresV6544[normalizedName] = normalizeFeatureV6544(normalizedName, feature);
+    return featuresV6544[normalizedName];
+  }
+
+  function unregisterV6544(name){
+    var normalizedName = normalizeNameV6544(name);
+    var existing = featuresV6544[normalizedName] || null;
+    delete featuresV6544[normalizedName];
+    return existing;
+  }
+
+  function getV6544(name){
+    return featuresV6544[String(name == null ? '' : name).trim()] || null;
+  }
+
+  function listV6544(){
+    return Object.keys(featuresV6544).sort().map(function(name){ return featuresV6544[name]; });
+  }
+
+  function enabledNamesV6544(config){
+    var enabled = config && config.features || {};
+    return Object.keys(enabled).filter(function(name){ return enabled[name] === true; });
+  }
+
+  function attachEnabledV6544(context){
+    if (!context || !context.config) throw new Error('Feature attachment requires a table context.');
+    var attached = [];
+    var missing = [];
+    enabledNamesV6544(context.config).forEach(function(name){
+      var feature = getV6544(name);
+      if (!feature) {
+        missing.push(name);
+        return;
+      }
+      feature.attach(context);
+      attached.push(name);
+    });
+    return { attached:attached, missing:missing };
+  }
+
+  function detachEnabledV6544(context){
+    if (!context || !context.config) return [];
+    var detached = [];
+    enabledNamesV6544(context.config).slice().reverse().forEach(function(name){
+      var feature = getV6544(name);
+      if (feature && feature.detach) {
+        feature.detach(context);
+        detached.push(name);
+      }
+    });
+    return detached;
+  }
+
+  function refreshEnabledV6544(context){
+    if (!context || !context.config) return [];
+    var refreshed = [];
+    enabledNamesV6544(context.config).forEach(function(name){
+      var feature = getV6544(name);
+      if (feature && feature.refresh) {
+        feature.refresh(context);
+        refreshed.push(name);
+      }
+    });
+    return refreshed;
+  }
+
+  function auditV6544(){
+    return {
+      version:VERSION_V6544,
+      registered:listV6544().map(function(feature){ return feature.name; }),
+      total:listV6544().length
+    };
+  }
+
+  window.cdaSharedTableFeaturesV6544 = Object.freeze({
+    version:VERSION_V6544,
+    register:registerV6544,
+    replace:replaceV6544,
+    unregister:unregisterV6544,
+    get:getV6544,
+    list:listV6544,
+    attachEnabled:attachEnabledV6544,
+    detachEnabled:detachEnabledV6544,
+    refreshEnabled:refreshEnabledV6544,
+    audit:auditV6544
+  });
+})();
+</script>
