@@ -8,7 +8,8 @@
     "audit:components": "node scripts/audit-dashboard-components.js",
     "audit:matrix": "node scripts/build-component-migration-matrix.js",
     "audit:dashboard": "npm run audit:components && npm run audit:matrix",
-    "validate:reference": "node scripts/validate-reference-rebuild.js"
+    "validate:reference": "node scripts/validate-reference-rebuild.js",
+    "validate:syntax": "node scripts/validate-reference-syntax.js"
   },
   "engines": {
     "node": ">=18"
