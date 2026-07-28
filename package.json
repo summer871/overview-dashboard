@@ -4,7 +4,8 @@
   "version": "0.1.0",
   "description": "Google Apps Script dashboard with a safe local preview mode.",
   "scripts": {
-    "preview": "node preview/server.js"
+    "preview": "node preview/server.js",
+    "audit:components": "node scripts/audit-dashboard-components.js"
   },
   "engines": {
     "node": ">=18"
