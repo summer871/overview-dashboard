@@ -1,0 +1,52 @@
+<!-- SharedRemakeTableBootstrapV6544.html
+Runs the shared Remake/TAT table shell after dynamic tab markup is created.
+-->
+<script id="cdaSharedRemakeTableBootstrapV6544">
+(function bootstrapSharedRemakeTablesV6544(){
+  'use strict';
+
+  if (window.__cdaSharedRemakeTableBootstrapV6544) return;
+  window.__cdaSharedRemakeTableBootstrapV6544 = true;
+
+  var scheduledV6544 = false;
+  var observerV6544 = null;
+
+  function runV6544(){
+    scheduledV6544 = false;
+    if (typeof window.renderSharedRemakeTableShellV6544 === 'function') {
+      window.renderSharedRemakeTableShellV6544();
+    }
+  }
+
+  function scheduleV6544(){
+    if (scheduledV6544) return;
+    scheduledV6544 = true;
+    if (window.requestAnimationFrame) window.requestAnimationFrame(runV6544);
+    else window.setTimeout(runV6544, 0);
+  }
+
+  function watchV6544(){
+    scheduleV6544();
+    if (!window.MutationObserver || !document.documentElement) return;
+    observerV6544 = new MutationObserver(function(records){
+      var relevant = records.some(function(record){
+        return Array.prototype.some.call(record.addedNodes || [], function(node){
+          if (!node || node.nodeType !== 1) return false;
+          if (node.id === 'tatDashboardPageV6509' || node.id === 'remakeFactorPage') return true;
+          return !!(node.querySelector && node.querySelector('#tatDepartmentTableV6509,#tatLateTableV6509,#tatCustomerTableV6509,#tatQualityTableV6509,#remakeDepartmentTable,#remakeReasonTable,#remakeProductTable,#remakeCustomerTable'));
+        });
+      });
+      if (relevant) scheduleV6544();
+    });
+    observerV6544.observe(document.documentElement, { childList: true, subtree: true });
+  }
+
+  window.refreshSharedRemakeTablesV6544 = scheduleV6544;
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', watchV6544, { once: true });
+  } else {
+    watchV6544();
+  }
+})();
+</script>
