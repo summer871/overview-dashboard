@@ -1,7 +1,3 @@
-<!-- SharedFooter.html v6.540
-One shared body-level footer for Remake and TAT.
-Owns visible cache/build identity only; existing status elements remain hidden data sources.
--->
 <style id="cdaSharedFooterStylesV6531">
   #remakeLastRefresh,
   #tatStampV6509,
@@ -33,7 +29,7 @@ Owns visible cache/build identity only; existing status elements remain hidden d
   }
 
   #cdaSharedAppFooterV6531 [data-footer-item] + [data-footer-item]::before {
-    content:'•';
+    content:'\2022';
     display:inline-block;
     margin:0 5px;
     color:#d0d5dd;
@@ -59,7 +55,7 @@ Owns visible cache/build identity only; existing status elements remain hidden d
 (function installCdaSharedFooterV6531(){
   'use strict';
 
-  const UI_VERSION_V6531 = 'v6.540';
+  const UI_VERSION_V6531 = 'v6.541';
   const BUILD_LABEL_V6531 = 'SHARED-FOOTER-02';
   const BASE_COMMIT_V6531 = '7b9c2a0';
   const FOOTER_ID_V6531 = 'cdaSharedAppFooterV6531';
@@ -71,14 +67,8 @@ Owns visible cache/build identity only; existing status elements remain hidden d
   window.CDA_SHARED_FOOTER_BUILD = BUILD_LABEL_V6531;
   window.CDA_SHARED_FOOTER_BASE = BASE_COMMIT_V6531;
 
-  function byIdV6531(id){
-    return document.getElementById(id);
-  }
-
-  function cleanV6531(value){
-    return String(value == null ? '' : value).replace(/\s+/g, ' ').trim();
-  }
-
+  function byIdV6531(id){ return document.getElementById(id); }
+  function cleanV6531(value){ return String(value == null ? '' : value).replace(/\s+/g, ' ').trim(); }
   function stripPrefixV6531(value, patterns){
     let text = cleanV6531(value);
     patterns.forEach(function(pattern){ text = text.replace(pattern, ''); });
@@ -90,11 +80,7 @@ Owns visible cache/build identity only; existing status elements remain hidden d
     if (!raw) return 'Not loaded';
     if (/loading|waiting|updating/i.test(raw)) return 'Loading';
     if (/failed|unavailable/i.test(raw)) return 'Unavailable';
-    const text = stripPrefixV6531(raw, [
-      /^Worker cache updated:\s*/i,
-      /^Worker cache:\s*/i,
-      /^Worker:\s*/i
-    ]);
+    const text = stripPrefixV6531(raw, [/^Worker cache updated:\s*/i, /^Worker cache:\s*/i, /^Worker:\s*/i]);
     return text || 'Not loaded';
   }
 
@@ -103,15 +89,8 @@ Owns visible cache/build identity only; existing status elements remain hidden d
     if (!raw) return 'Not loaded';
     if (/loading|waiting|updating/i.test(raw)) return 'Loading';
     if (/failed|unavailable/i.test(raw)) return 'Unavailable';
-    let text = stripPrefixV6531(raw, [
-      /^Browser cache current:\s*/i,
-      /^Browser cache:\s*/i,
-      /^Saved browser cache:\s*/i,
-      /^Last refreshed:\s*/i,
-      /^Using saved data:\s*/i,
-      /^Cache:\s*/i
-    ]);
-    text = text.replace(/\s*[·•]\s*optimized cache rebuilding.*$/i, '');
+    let text = stripPrefixV6531(raw, [/^Browser cache current:\s*/i, /^Browser cache:\s*/i, /^Saved browser cache:\s*/i, /^Last refreshed:\s*/i, /^Using saved data:\s*/i, /^Cache:\s*/i]);
+    text = text.replace(/\s*[\u00b7\u2022]\s*optimized cache rebuilding.*$/i, '');
     return cleanV6531(text) || 'Not loaded';
   }
 
@@ -120,10 +99,9 @@ Owns visible cache/build identity only; existing status elements remain hidden d
     const rawFooter = cleanV6531(legacyFooter && legacyFooter.textContent);
     const refreshNode = byIdV6531('remakeLastRefresh');
     const refreshFallback = cleanV6531(refreshNode && refreshNode.textContent);
-    const workerMatch = rawFooter.match(/Worker cache updated:\s*([^·•]+)/i);
-    const cacheMatch = rawFooter.match(/Browser cache current:\s*([^·•]+)/i);
+    const workerMatch = rawFooter.match(/Worker cache updated:\s*([^\u00b7\u2022]+)/i);
+    const cacheMatch = rawFooter.match(/Browser cache current:\s*([^\u00b7\u2022]+)/i);
     const savedCurrent = /saved (?:browser )?copy is current/i.test(rawFooter);
-
     return {
       worker: simpleWorkerV6531(workerMatch ? workerMatch[0] : ''),
       cache: simpleCacheV6531(cacheMatch ? cacheMatch[0] : refreshFallback),
@@ -172,10 +150,8 @@ Owns visible cache/build identity only; existing status elements remain hidden d
   function renderV6531(){
     renderFrameV6531 = 0;
     if (!document.body) return;
-
     const footer = ensureFooterV6531();
     footer.replaceChildren();
-
     if (isTatActiveV6531()) {
       const tat = byIdV6531('tatStampV6509');
       appendItemV6531(footer, 'Cache', simpleCacheV6531(tat && tat.textContent));
@@ -185,7 +161,6 @@ Owns visible cache/build identity only; existing status elements remain hidden d
       appendItemV6531(footer, 'Cache', remakeStatus.cache);
       if (remakeStatus.saved) appendItemV6531(footer, 'Saved copy', remakeStatus.saved);
     }
-
     appendItemV6531(footer, 'UI', UI_VERSION_V6531, 'cdaSharedFooterIdentityV6531');
     appendItemV6531(footer, 'Router', routerLabelV6531(), 'cdaSharedFooterIdentityV6531');
     appendItemV6531(footer, 'Build', BUILD_LABEL_V6531, 'cdaSharedFooterIdentityV6531');
@@ -198,11 +173,8 @@ Owns visible cache/build identity only; existing status elements remain hidden d
   }
 
   function mutationTouchesSourcesV6531(mutation){
-    const target = mutation.target && mutation.target.nodeType === 3
-      ? mutation.target.parentElement
-      : mutation.target;
+    const target = mutation.target && mutation.target.nodeType === 3 ? mutation.target.parentElement : mutation.target;
     if (target && target.closest && target.closest(SOURCE_SELECTOR_V6531)) return true;
-
     return Array.from(mutation.addedNodes || []).some(function(node){
       if (!node || node.nodeType !== 1) return false;
       if (node.matches && node.matches(SOURCE_SELECTOR_V6531)) return true;
@@ -212,21 +184,16 @@ Owns visible cache/build identity only; existing status elements remain hidden d
 
   function startV6531(){
     renderV6531();
-
     if (window.MutationObserver) {
       const observer = new MutationObserver(function(mutations){
         if (mutations.some(mutationTouchesSourcesV6531)) scheduleRenderV6531();
       });
       observer.observe(document.body, {childList:true, subtree:true, characterData:true});
     }
-
     document.addEventListener('click', function(event){
-      const target = event.target && event.target.closest
-        ? event.target.closest('#remakeFactorTabBtn,#tatTabBtnV6509')
-        : null;
+      const target = event.target && event.target.closest ? event.target.closest('#remakeFactorTabBtn,#tatTabBtnV6509') : null;
       if (target) window.setTimeout(scheduleRenderV6531, 0);
     }, true);
-
     window.addEventListener('pageshow', scheduleRenderV6531);
     window.addEventListener('resize', scheduleRenderV6531, {passive:true});
   }

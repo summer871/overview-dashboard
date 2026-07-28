@@ -518,9 +518,9 @@
     cdaTable.register({
       key:'tatLate',tableId:'tatLateTableV6509',
       columns:[
-        {field:'label',label:'Performance',title:'Performance',hideable:false,sortable:true},
-        {field:'count',label:'Cases',title:'Cases',type:'count',format:function(v){return fmtNum(v,0);}},
-        {field:'share',label:'Share',title:'Share of eligible cases',type:'percent',format:function(v){return cdaTatPctV6540(v);}}
+        {field:'label',label:'Performance',title:'Performance',hideable:false,sortable:true,width:'55%'},
+        {field:'count',label:'Cases',title:'Cases',type:'count',width:'22%',format:function(v){return fmtNum(v,0);}},
+        {field:'share',label:'Share',title:'Share of eligible cases',type:'percent',width:'23%',format:function(v){return cdaTatPctV6540(v);}}
       ],
       rowKey:function(row){return row.key;},
       defaultSort:{field:'order',dir:'asc'},
@@ -593,7 +593,7 @@
   function renderCustomerTable(){
     cdaTatRegisterTablesV6540();
     if(!window.cdaTable||!cdaTable.registered('tatCustomer'))return;
-    const groups=groupRows(reportingRowsV6510(),function(row){return String(row.customerId||row.customerName||'Unknown');},function(row){return row.customerName||row.customerId||'Unknown customer';});
+    const groups=groupRows(reportingRowsV6510(),function(row){return String(row.customerId||row.customerName||'Unknown');},function(row){var n=row.customerName||'Unknown customer',c=row.customerId||'';return c?n+' ('+c+')':n;});
     const exclusive=cdaTatExclusiveV6540('customer');
     cdaTable.setSelection('tatCustomer',exclusive?[exclusive]:[],{render:false});
     cdaTable.setRows('tatCustomer',groups);
