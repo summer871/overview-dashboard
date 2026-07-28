@@ -19,6 +19,17 @@ Definitions register once; the registry owns rendering and lifecycle.
     return !!sourceCard && sourceCard.getAttribute('data-cda-renderer') === RENDERER_V6544;
   }
 
+  function renderResolvedV6544(runtimeConfig){
+    var renderer = rendererApiV6544();
+    if (!renderer || typeof renderer.render !== 'function') {
+      throw new Error('Shared table renderer is unavailable.');
+    }
+    if (runtimeConfig && runtimeConfig.outputCardId) {
+      runtimeConfig.cardId = runtimeConfig.outputCardId;
+    }
+    return renderer.render(runtimeConfig);
+  }
+
   function remakeResolverV6544(definition){
     var table = document.getElementById(definition.tableId);
     var sourceCard = table && table.closest ? table.closest('.remakeCard,article') : null;
@@ -99,7 +110,7 @@ Definitions register once; the registry owns rendering and lifecycle.
       title:definition.title,
       sourceCard:sourceCard,
       bodyId:definition.bodyId,
-      cardId:definition.cardId,
+      outputCardId:definition.cardId,
       size:definition.size,
       extraCardClass:definition.extraCardClass,
       collapseKey:definition.collapseKey,
@@ -121,7 +132,8 @@ Definitions register once; the registry owns rendering and lifecycle.
       tableId:'remakeDepartmentTable',
       size:'standard',
       features:{ sorting:true, columnChooser:true, totals:true, csv:true },
-      resolve:remakeResolverV6544
+      resolve:remakeResolverV6544,
+      renderer:renderResolvedV6544
     },
     {
       key:'remakeReason',
@@ -130,7 +142,8 @@ Definitions register once; the registry owns rendering and lifecycle.
       tableId:'remakeReasonTable',
       size:'standard',
       features:{ sorting:true, columnChooser:true, totals:true, csv:true },
-      resolve:remakeResolverV6544
+      resolve:remakeResolverV6544,
+      renderer:renderResolvedV6544
     },
     {
       key:'remakeProduct',
@@ -139,7 +152,8 @@ Definitions register once; the registry owns rendering and lifecycle.
       tableId:'remakeProductTable',
       size:'standard',
       features:{ sorting:true, columnChooser:true, totals:true, csv:true },
-      resolve:remakeResolverV6544
+      resolve:remakeResolverV6544,
+      renderer:renderResolvedV6544
     },
     {
       key:'remakeCustomer',
@@ -148,7 +162,8 @@ Definitions register once; the registry owns rendering and lifecycle.
       tableId:'remakeCustomerTable',
       size:'wide',
       features:{ sorting:true, columnChooser:true, totals:true, selection:true, collapse:true, csv:true },
-      resolve:remakeResolverV6544
+      resolve:remakeResolverV6544,
+      renderer:renderResolvedV6544
     },
     {
       key:'remakeCeramist',
@@ -157,7 +172,8 @@ Definitions register once; the registry owns rendering and lifecycle.
       tableId:'remakeCeramistTableV6342',
       size:'wide',
       features:{ sorting:true, columnChooser:true, totals:true, selection:true, collapse:true, csv:true },
-      resolve:remakeResolverV6544
+      resolve:remakeResolverV6544,
+      renderer:renderResolvedV6544
     },
     {
       key:'remakeCeramistDetail',
@@ -166,7 +182,8 @@ Definitions register once; the registry owns rendering and lifecycle.
       tableId:'remakeCeramistDetailTableV6343',
       size:'wide',
       features:{ sorting:true, columnChooser:true, totals:true, selection:true, csv:true },
-      resolve:remakeResolverV6544
+      resolve:remakeResolverV6544,
+      renderer:renderResolvedV6544
     },
     {
       key:'tatDepartment',
@@ -176,7 +193,8 @@ Definitions register once; the registry owns rendering and lifecycle.
       bodyId:'tatDepartmentTableV6509',
       size:'standard',
       features:{ sorting:true, columnChooser:true, exportCurrent:true, exportAll:true, popout:true, reset:true, totals:true, csv:true },
-      resolve:tatResolverV6544
+      resolve:tatResolverV6544,
+      renderer:renderResolvedV6544
     },
     {
       key:'tatLate',
@@ -186,7 +204,8 @@ Definitions register once; the registry owns rendering and lifecycle.
       bodyId:'tatLateTableV6509',
       size:'standard',
       features:{ sorting:true, columnChooser:true, exportCurrent:true, exportAll:true, popout:true, reset:true, totals:true, csv:true },
-      resolve:tatResolverV6544
+      resolve:tatResolverV6544,
+      renderer:renderResolvedV6544
     },
     {
       key:'tatCustomer',
@@ -200,7 +219,8 @@ Definitions register once; the registry owns rendering and lifecycle.
       size:'wide',
       extraCardClass:'tatWideV6509',
       features:{ sorting:true, columnChooser:true, exportCurrent:true, exportAll:true, popout:true, reset:true, totals:true, selection:true, childRows:true, collapse:true, csv:true },
-      resolve:tatResolverV6544
+      resolve:tatResolverV6544,
+      renderer:renderResolvedV6544
     },
     {
       key:'tatQuality',
@@ -217,7 +237,8 @@ Definitions register once; the registry owns rendering and lifecycle.
       preserveCoverageId:'tatQualityCoverageV6513',
       bodyClass:'tatQualityBodyV6509',
       features:{ sorting:true, columnChooser:true, exportCurrent:true, exportAll:true, popout:true, reset:true, totals:true, collapse:true, csv:true },
-      resolve:tatResolverV6544
+      resolve:tatResolverV6544,
+      renderer:renderResolvedV6544
     }
   ];
 
@@ -249,6 +270,7 @@ Definitions register once; the registry owns rendering and lifecycle.
     register:registerV6544,
     resolveRemake:remakeResolverV6544,
     resolveTat:tatResolverV6544,
+    renderResolved:renderResolvedV6544,
     audit:auditV6544
   });
 })();
