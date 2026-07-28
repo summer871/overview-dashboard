@@ -1,0 +1,558 @@
+<!-- SharedRemakeTableShellV6544.html
+One table-card system for Remake and TAT.
+
+Remake cards are marked as reference instances. TAT table cards are rebuilt with
+the same card, header, actions, table wrapper, table classes, controls, and row
+states. Existing TAT data calculations stay in TatDashboardControllerScript;
+SharedTableModule continues to own sorting, columns, selection, child rows, and
+CSV rendering.
+-->
+<style id="cdaSharedRemakeTableShellStylesV6544">
+  [data-cda-table-card="v6544"] {
+    position: relative !important;
+    display: flex !important;
+    flex-direction: column !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+    border: 1px solid #d7dce2 !important;
+    border-radius: 8px !important;
+    background: #fff !important;
+    box-shadow: 0 1px 3px rgba(20,32,42,.08) !important;
+  }
+
+  [data-cda-table-card="v6544"] > .remakeCardHeader {
+    display: flex !important;
+    flex: 0 0 auto !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 8px !important;
+    min-height: 38px !important;
+    padding: 6px 8px !important;
+    box-sizing: border-box !important;
+    border-bottom: 1px solid #e4e7ec !important;
+    background: #fff !important;
+  }
+
+  [data-cda-table-card="v6544"] .remakeCardTitle {
+    margin: 0 !important;
+    color: #172033 !important;
+    font: 900 12px/1.2 Roboto,Arial,sans-serif !important;
+    white-space: nowrap !important;
+  }
+
+  [data-cda-table-card="v6544"] .remakeCardActionsV6230 {
+    display: inline-flex !important;
+    flex: 0 0 auto !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    flex-wrap: wrap !important;
+    gap: 5px !important;
+    min-width: 0 !important;
+  }
+
+  [data-cda-table-card="v6544"] .remakeMiniButtonV6230,
+  [data-cda-table-card="v6544"] .remakeColumnChooserButtonV6357 {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    height: 27px !important;
+    min-height: 27px !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+    margin: 0 !important;
+    padding: 0 8px !important;
+    border: 1px solid #cfd6df !important;
+    border-radius: 999px !important;
+    background: #fff !important;
+    color: #344054 !important;
+    box-shadow: none !important;
+    font: 900 9.5px/1 Roboto,Arial,sans-serif !important;
+    white-space: nowrap !important;
+    cursor: pointer !important;
+  }
+
+  [data-cda-table-card="v6544"] .remakeMiniButtonV6230:hover,
+  [data-cda-table-card="v6544"] .remakeMiniButtonV6230:focus-visible,
+  [data-cda-table-card="v6544"] .remakeColumnChooserButtonV6357:hover,
+  [data-cda-table-card="v6544"] .remakeColumnChooserButtonV6357:focus-visible,
+  [data-cda-table-card="v6544"] .remakeColumnChooserButtonV6357.hasHiddenColumnsV6357 {
+    border-color: #f2c94c !important;
+    background: #fff7d6 !important;
+    color: #7a4a00 !important;
+    outline: none !important;
+  }
+
+  [data-cda-table-card="v6544"] .backButtonV6266,
+  [data-cda-table-card="v6544"] .remakeSectionToggleV6402 {
+    width: 27px !important;
+    min-width: 27px !important;
+    padding: 0 !important;
+  }
+
+  [data-cda-table-card="v6544"] .remakeTableWrap,
+  [data-cda-table-card="v6544"] [data-cda-shared-table-body="v6544"] {
+    position: relative !important;
+    display: block !important;
+    flex: 1 1 auto !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    overflow: auto !important;
+    scrollbar-gutter: stable !important;
+  }
+
+  [data-cda-table-card="v6544"][data-cda-table-size="standard"] .remakeTableWrap {
+    max-height: 330px !important;
+  }
+
+  [data-cda-table-card="v6544"][data-cda-table-size="wide"] .remakeTableWrap {
+    max-height: 430px !important;
+  }
+
+  [data-cda-table-card="v6544"] .cdaTableFrameV6542 {
+    display: block !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  [data-cda-table-card="v6544"] .cdaTableToolsV6542 {
+    display: none !important;
+  }
+
+  [data-cda-table-card="v6544"] table.remakeTable,
+  [data-cda-table-card="v6544"] table[data-cda-managed] {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    table-layout: fixed !important;
+    border-collapse: separate !important;
+    border-spacing: 0 !important;
+    font-family: Roboto,Arial,sans-serif !important;
+    font-size: 11px !important;
+    line-height: 1.25 !important;
+  }
+
+  [data-cda-table-card="v6544"] table.remakeTable th,
+  [data-cda-table-card="v6544"] table[data-cda-managed] th {
+    height: 30px !important;
+    padding: 6px 8px !important;
+    background: #172033 !important;
+    color: #fff !important;
+    border-color: #2a3a4f !important;
+    font: 900 10.5px/1.2 Roboto,Arial,sans-serif !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  [data-cda-table-card="v6544"] table.remakeTable td,
+  [data-cda-table-card="v6544"] table[data-cda-managed] td {
+    padding: 6px 8px !important;
+    color: #172033 !important;
+    border-color: #e4e7ec !important;
+    font: 400 11px/1.25 Roboto,Arial,sans-serif !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  [data-cda-table-card="v6544"] table tbody tr.clickable:hover > td {
+    background: #eef5ff !important;
+  }
+
+  [data-cda-table-card="v6544"] table tbody tr.selected > td,
+  [data-cda-table-card="v6544"] table tbody tr.selectedPinnedV6311 > td,
+  [data-cda-table-card="v6544"] table tbody tr.ceramistSelectedV6343 > td {
+    background: #fff7d6 !important;
+    border-color: #f2c94c !important;
+  }
+
+  [data-cda-table-card="v6544"] .tatProductDetailRowV6523 > td {
+    background: #fffdf3 !important;
+    color: #475467 !important;
+    font-weight: 700 !important;
+  }
+
+  [data-cda-table-card="v6544"].remakeSectionCollapsedV6402 > :not(.remakeCardHeader) {
+    display: none !important;
+  }
+
+  [data-cda-table-card="v6544"].remakeSectionCollapsedV6402 > .remakeCardHeader {
+    border-bottom: 0 !important;
+  }
+
+  [data-cda-table-card="v6544"].remakeSectionCollapsedV6402 .remakeSectionChevronV6402 {
+    transform: rotate(-90deg) !important;
+  }
+
+  [data-cda-table-card="v6544"] .remakeSectionChevronV6402 {
+    display: inline-block !important;
+    transform: rotate(0deg);
+    transform-origin: center !important;
+  }
+
+  @media (max-width: 760px) {
+    [data-cda-table-card="v6544"] > .remakeCardHeader {
+      align-items: flex-start !important;
+      padding: 7px !important;
+    }
+
+    [data-cda-table-card="v6544"] .remakeCardActionsV6230 {
+      gap: 4px !important;
+    }
+
+    [data-cda-table-card="v6544"] .remakeMiniButtonV6230,
+    [data-cda-table-card="v6544"] .remakeColumnChooserButtonV6357 {
+      height: 29px !important;
+      min-height: 29px !important;
+      padding-left: 7px !important;
+      padding-right: 7px !important;
+    }
+
+    [data-cda-table-card="v6544"] .remakeTableWrap {
+      overflow-x: auto !important;
+    }
+
+    [data-cda-table-card="v6544"] table.remakeTable,
+    [data-cda-table-card="v6544"] table[data-cda-managed] {
+      min-width: 760px !important;
+    }
+  }
+</style>
+<script id="cdaSharedRemakeTableShellControllerV6544">
+(function installSharedRemakeTableShellV6544(){
+  'use strict';
+
+  if (window.__cdaSharedRemakeTableShellV6544) return;
+  window.__cdaSharedRemakeTableShellV6544 = true;
+
+  var VERSION_V6544 = 'v6.544';
+  var COLLAPSE_STORE_V6544 = 'cdaSharedTableCollapsed.v6544';
+  var REMAKE_TABLE_IDS_V6544 = [
+    'remakeDepartmentTable',
+    'remakeReasonTable',
+    'remakeProductTable',
+    'remakeCustomerTable',
+    'remakeCeramistTableV6342',
+    'remakeCeramistDetailTableV6343'
+  ];
+  var TAT_TABLES_V6544 = [
+    {
+      key: 'tatDepartment',
+      component: 'department',
+      title: 'Department Summary',
+      bodyId: 'tatDepartmentTableV6509',
+      size: 'standard'
+    },
+    {
+      key: 'tatLate',
+      component: 'late',
+      title: 'Promise Performance',
+      bodyId: 'tatLateTableV6509',
+      size: 'standard'
+    },
+    {
+      key: 'tatCustomer',
+      component: 'customer',
+      title: 'Customers',
+      bodyId: 'tatCustomerTableV6509',
+      cardId: 'tatCustomerCardV6509',
+      collapseKey: 'customers',
+      collapseButtonId: 'tatCustomerCollapseV6509',
+      wide: true,
+      size: 'wide'
+    },
+    {
+      key: 'tatQuality',
+      component: 'quality',
+      title: 'Data Quality & Coverage',
+      bodyId: 'tatQualityTableV6509',
+      cardId: 'tatQualityCardV6509',
+      collapseKey: 'quality',
+      collapseButtonId: 'tatQualityCollapseV6509',
+      wide: true,
+      size: 'wide',
+      preserveSummaryId: 'tatIssueSummaryV6509',
+      preserveCoverageId: 'tatQualityCoverageV6513'
+    }
+  ];
+
+  function readCollapsedV6544(){
+    try {
+      var parsed = JSON.parse(window.localStorage.getItem(COLLAPSE_STORE_V6544) || '{}');
+      return parsed && typeof parsed === 'object' ? parsed : {};
+    } catch (error) {
+      return {};
+    }
+  }
+
+  function writeCollapsedV6544(state){
+    try { window.localStorage.setItem(COLLAPSE_STORE_V6544, JSON.stringify(state || {})); } catch (error) {}
+  }
+
+  function nodeV6544(tag, className, text){
+    var element = document.createElement(tag);
+    if (className) element.className = className;
+    if (text != null) element.textContent = String(text);
+    return element;
+  }
+
+  function buttonV6544(label, className, onClick, title){
+    var button = nodeV6544('button', className || 'remakeMiniButtonV6230', label);
+    button.type = 'button';
+    if (title) {
+      button.title = title;
+      button.setAttribute('aria-label', title);
+    }
+    button.addEventListener('click', onClick);
+    return button;
+  }
+
+  function selectedYearLabelV6544(){
+    var source = document.getElementById('tatFilterButton_year_V6509');
+    var label = source ? String(source.textContent || '').trim() : '';
+    if (!label || /^all years$/i.test(label)) return String(new Date().getFullYear());
+    return label;
+  }
+
+  function openYearV6544(event){
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    if (typeof window.toggleTatDropdownV6509 === 'function') {
+      window.toggleTatDropdownV6509('year', event || null);
+      return;
+    }
+    var button = document.getElementById('tatFilterButton_year_V6509');
+    if (button) button.click();
+  }
+
+  function updateColumnsButtonV6544(cfg, button){
+    if (!button || !window.cdaTable) return;
+    var hidden = typeof window.cdaTable.hiddenCount === 'function'
+      ? window.cdaTable.hiddenCount(cfg.key)
+      : 0;
+    button.classList.toggle('hasHiddenColumnsV6357', hidden > 0);
+    button.title = hidden > 0
+      ? 'Choose columns. ' + hidden + ' hidden.'
+      : 'Choose columns';
+    button.setAttribute('aria-label', button.title);
+  }
+
+  function actionBarV6544(cfg){
+    var actions = nodeV6544('div', 'remakeCardActionsV6230');
+
+    var year = buttonV6544(selectedYearLabelV6544(), 'remakeMiniButtonV6230', openYearV6544, 'Choose reporting year');
+    year.setAttribute('data-cda-table-year', cfg.key);
+    actions.appendChild(year);
+
+    var columns = buttonV6544('Columns', 'remakeColumnChooserButtonV6357', function(event){
+      if (window.cdaTable && typeof window.cdaTable.toggleChooser === 'function') {
+        window.cdaTable.toggleChooser(cfg.key, event);
+        updateColumnsButtonV6544(cfg, columns);
+      }
+    }, 'Choose columns');
+    columns.setAttribute('data-cda-table-columns', cfg.key);
+    actions.appendChild(columns);
+
+    actions.appendChild(buttonV6544('Export current', 'remakeMiniButtonV6230', function(){
+      if (typeof window.exportTatComponentV6509 === 'function') window.exportTatComponentV6509(cfg.component);
+    }));
+    actions.appendChild(buttonV6544('All data', 'remakeMiniButtonV6230', function(){
+      if (typeof window.exportTatAllDataV6509 === 'function') window.exportTatAllDataV6509(cfg.component);
+    }));
+    actions.appendChild(buttonV6544('Pop out', 'remakeMiniButtonV6230', function(){
+      if (typeof window.popoutTatComponentV6509 === 'function') window.popoutTatComponentV6509(cfg.component);
+    }));
+    actions.appendChild(buttonV6544('↺', 'remakeMiniButtonV6230 backButtonV6266', function(){
+      if (typeof window.clearTatComponentV6509 === 'function') window.clearTatComponentV6509(cfg.component);
+    }, 'Reset this selection'));
+
+    if (cfg.collapseKey) {
+      var collapse = buttonV6544('', 'remakeMiniButtonV6230 remakeSectionToggleV6402', function(){
+        toggleCollapsedV6544(cfg);
+      }, 'Collapse or expand ' + cfg.title);
+      collapse.id = cfg.collapseButtonId;
+      collapse.setAttribute('aria-expanded', 'true');
+      var chevron = nodeV6544('span', 'remakeSectionChevronV6402', '▾');
+      chevron.setAttribute('aria-hidden', 'true');
+      collapse.appendChild(chevron);
+      actions.appendChild(collapse);
+    }
+
+    window.setTimeout(function(){ updateColumnsButtonV6544(cfg, columns); }, 0);
+    return actions;
+  }
+
+  function toggleCollapsedV6544(cfg, force){
+    var card = cfg.cardId ? document.getElementById(cfg.cardId) : document.querySelector('[data-cda-tat-table-key="' + cfg.key + '"]');
+    if (!card) return;
+    var next = force == null
+      ? !card.classList.contains('remakeSectionCollapsedV6402')
+      : !!force;
+    card.classList.toggle('remakeSectionCollapsedV6402', next);
+    var button = cfg.collapseButtonId ? document.getElementById(cfg.collapseButtonId) : null;
+    if (button) button.setAttribute('aria-expanded', next ? 'false' : 'true');
+    var state = readCollapsedV6544();
+    state[cfg.collapseKey] = next;
+    writeCollapsedV6544(state);
+  }
+
+  function createTableV6544(cfg){
+    var table = nodeV6544('table', 'remakeTable');
+    table.setAttribute('data-cda-shared-table', VERSION_V6544);
+    table.setAttribute('aria-label', cfg.title);
+    var body = document.createElement('tbody');
+    body.id = cfg.bodyId;
+    table.appendChild(body);
+    return table;
+  }
+
+  function markRemakeCardsV6544(){
+    REMAKE_TABLE_IDS_V6544.forEach(function(id){
+      var target = document.getElementById(id);
+      var table = target && target.tagName === 'TABLE' ? target : target && target.closest ? target.closest('table') : null;
+      var card = table && table.closest ? table.closest('.remakeCard,article') : null;
+      if (!card) return;
+      card.setAttribute('data-cda-table-card', VERSION_V6544);
+      card.setAttribute('data-cda-table-size', id.indexOf('Customer') >= 0 || id.indexOf('Ceramist') >= 0 ? 'wide' : 'standard');
+      table.classList.add('remakeTable');
+      var wrap = table.closest('.remakeTableWrap');
+      if (wrap) wrap.setAttribute('data-cda-shared-table-body', VERSION_V6544);
+    });
+  }
+
+  function rebuildTatTableV6544(cfg){
+    var oldBody = document.getElementById(cfg.bodyId);
+    if (!oldBody || !oldBody.closest) return false;
+    var oldCard = oldBody.closest('article,.remakeCard');
+    if (!oldCard || !oldCard.parentNode) return false;
+    if (oldCard.getAttribute('data-cda-tat-table-key') === cfg.key) return true;
+
+    var wasCollapsed = oldCard.classList.contains('collapsed')
+      || oldCard.classList.contains('remakeSectionCollapsedV6402');
+    var preservedSummary = cfg.preserveSummaryId ? document.getElementById(cfg.preserveSummaryId) : null;
+    var preservedCoverage = cfg.preserveCoverageId ? document.getElementById(cfg.preserveCoverageId) : null;
+
+    var card = nodeV6544('article', 'remakeCard' + (cfg.wide ? ' tatWideV6509' : ''));
+    if (cfg.cardId) card.id = cfg.cardId;
+    card.setAttribute('data-cda-table-card', VERSION_V6544);
+    card.setAttribute('data-cda-tat-table-key', cfg.key);
+    card.setAttribute('data-cda-table-size', cfg.size || 'standard');
+
+    var header = nodeV6544('div', 'remakeCardHeader');
+    var heading = nodeV6544('div', 'cdaSharedTableHeadingV6544');
+    var title = nodeV6544('div', 'remakeCardTitle', cfg.title);
+    heading.appendChild(title);
+    if (preservedCoverage) heading.appendChild(preservedCoverage);
+    if (cfg.collapseKey) {
+      title.setAttribute('role', 'button');
+      title.setAttribute('tabindex', '0');
+      title.setAttribute('data-remake-section-title-v6408', cfg.collapseKey);
+      title.addEventListener('click', function(){ toggleCollapsedV6544(cfg); });
+      title.addEventListener('keydown', function(event){
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          toggleCollapsedV6544(cfg);
+        }
+      });
+    }
+    header.appendChild(heading);
+    header.appendChild(actionBarV6544(cfg));
+    card.appendChild(header);
+
+    if (cfg.preserveSummaryId) {
+      var body = nodeV6544('div', 'tatQualityBodyV6509');
+      body.setAttribute('data-cda-shared-table-body', VERSION_V6544);
+      if (preservedSummary) body.appendChild(preservedSummary);
+      var qualityWrap = nodeV6544('div', 'remakeTableWrap');
+      qualityWrap.setAttribute('data-cda-shared-table-body', VERSION_V6544);
+      qualityWrap.appendChild(createTableV6544(cfg));
+      body.appendChild(qualityWrap);
+      card.appendChild(body);
+    } else {
+      var wrap = nodeV6544('div', 'remakeTableWrap');
+      wrap.setAttribute('data-cda-shared-table-body', VERSION_V6544);
+      wrap.appendChild(createTableV6544(cfg));
+      card.appendChild(wrap);
+    }
+
+    oldCard.parentNode.insertBefore(card, oldCard);
+    oldCard.parentNode.removeChild(oldCard);
+
+    var collapsedState = readCollapsedV6544();
+    var shouldCollapse = cfg.collapseKey && (collapsedState[cfg.collapseKey] != null
+      ? !!collapsedState[cfg.collapseKey]
+      : wasCollapsed);
+    if (cfg.collapseKey) toggleCollapsedV6544(cfg, shouldCollapse);
+
+    if (window.cdaTable && typeof window.cdaTable.render === 'function') {
+      window.cdaTable.render(cfg.key);
+    }
+    return true;
+  }
+
+  function syncToolbarV6544(){
+    TAT_TABLES_V6544.forEach(function(cfg){
+      var year = document.querySelector('[data-cda-table-year="' + cfg.key + '"]');
+      if (year) year.textContent = selectedYearLabelV6544();
+      var columns = document.querySelector('[data-cda-table-columns="' + cfg.key + '"]');
+      updateColumnsButtonV6544(cfg, columns);
+    });
+  }
+
+  function installV6544(){
+    markRemakeCardsV6544();
+    TAT_TABLES_V6544.forEach(rebuildTatTableV6544);
+    syncToolbarV6544();
+    window.CDA_SHARED_REMAKE_TABLE_SHELL_VERSION = VERSION_V6544;
+  }
+
+  document.addEventListener('cdaTableRendered', function(){
+    window.setTimeout(syncToolbarV6544, 0);
+  });
+  document.addEventListener('click', function(event){
+    if (event.target && event.target.closest && event.target.closest('#tatFilterPanel_year_V6509,#tatFilterButton_year_V6509')) {
+      window.setTimeout(syncToolbarV6544, 0);
+    }
+  }, true);
+
+  window.renderSharedRemakeTableShellV6544 = installV6544;
+  window.auditSharedRemakeTableShellV6544 = function(){
+    return {
+      version: VERSION_V6544,
+      remakeCards: REMAKE_TABLE_IDS_V6544.map(function(id){
+        var target = document.getElementById(id);
+        var card = target && target.closest ? target.closest('[data-cda-table-card="v6544"]') : null;
+        return { id: id, shared: !!card };
+      }),
+      tatCards: TAT_TABLES_V6544.map(function(cfg){
+        var body = document.getElementById(cfg.bodyId);
+        var card = body && body.closest ? body.closest('[data-cda-table-card="v6544"]') : null;
+        return {
+          key: cfg.key,
+          shared: !!card,
+          remakeCard: !!(card && card.classList.contains('remakeCard')),
+          remakeHeader: !!(card && card.querySelector(':scope > .remakeCardHeader')),
+          remakeActions: !!(card && card.querySelector('.remakeCardActionsV6230')),
+          columns: !!(card && card.querySelector('[data-cda-table-columns="' + cfg.key + '"]')),
+          rows: body ? body.querySelectorAll('tr').length : 0
+        };
+      })
+    };
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', installV6544, { once: true });
+  } else {
+    installV6544();
+  }
+  window.setTimeout(installV6544, 0);
+})();
+</script>
