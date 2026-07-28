@@ -1,0 +1,170 @@
+<!-- TatDepartmentComponentV6544.html
+From-scratch TAT Department Summary component.
+
+This component creates new card and table DOM through the shared component
+system. It removes the legacy Department Summary article before TAT data renders.
+The TAT controller remains the owner of prepared rows and filter behavior.
+-->
+<style id="cdaTatDepartmentComponentStylesV6544">
+  .cdaTatDepartmentHostV6544 {
+    display: flex;
+    min-width: 0;
+    min-height: 0;
+  }
+
+  .cdaTatDepartmentHostV6544 > .cdaCardV6544 {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .cdaTatDepartmentBodyV6544 {
+    position: relative;
+    min-width: 0;
+    min-height: 220px;
+    max-height: 410px;
+    overflow: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+  }
+
+  .cdaTatDepartmentTableV6544 {
+    width: 100%;
+    min-width: 760px;
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+
+  @media (max-width: 760px) {
+    .cdaTatDepartmentBodyV6544 {
+      min-height: 260px;
+      max-height: 480px;
+    }
+  }
+</style>
+<script id="cdaTatDepartmentComponentControllerV6544">
+(function installTatDepartmentComponentV6544(){
+  'use strict';
+
+  var COMPONENT_KEY_V6544 = 'tat.department';
+  var TABLE_BODY_ID_V6544 = 'tatDepartmentTableV6509';
+  var HOST_ID_V6544 = 'tatDepartmentCardHostV6544';
+  var installedV6544 = false;
+
+  function actionV6544(key, label, handler, options){
+    options = options || {};
+    return {
+      key: key,
+      label: label,
+      icon: options.icon || '',
+      iconOnly: !!options.iconOnly,
+      title: options.title || label,
+      ariaLabel: options.ariaLabel || options.title || label,
+      onClick: handler
+    };
+  }
+
+  function createTableBodyV6544(){
+    var scroll = document.createElement('div');
+    scroll.className = 'cdaTatDepartmentBodyV6544';
+    scroll.setAttribute('data-cda-component-body', COMPONENT_KEY_V6544);
+
+    var table = document.createElement('table');
+    table.className = 'cdaTatDepartmentTableV6544';
+    table.id = 'tatDepartmentTableElementV6544';
+    table.setAttribute('aria-label', 'TAT Department Summary');
+    table.setAttribute('data-cda-component-key', COMPONENT_KEY_V6544);
+
+    var body = document.createElement('tbody');
+    body.id = TABLE_BODY_ID_V6544;
+    table.appendChild(body);
+    scroll.appendChild(table);
+    return scroll;
+  }
+
+  function findLegacyCardV6544(){
+    var legacyBody = document.getElementById(TABLE_BODY_ID_V6544);
+    if (!legacyBody || !legacyBody.closest) return null;
+    var card = legacyBody.closest('article');
+    if (!card || card.classList.contains('cdaCardV6544')) return null;
+    return card;
+  }
+
+  function renderV6544(){
+    if (installedV6544) return true;
+    if (!window.cdaCard || window.cdaCard.version !== '6.544') return false;
+
+    var legacyCard = findLegacyCardV6544();
+    if (!legacyCard || !legacyCard.parentNode) return false;
+
+    var host = document.createElement('div');
+    host.id = HOST_ID_V6544;
+    host.className = 'cdaTatDepartmentHostV6544';
+    host.setAttribute('data-cda-component-host', COMPONENT_KEY_V6544);
+
+    legacyCard.parentNode.insertBefore(host, legacyCard);
+    legacyCard.parentNode.removeChild(legacyCard);
+
+    window.cdaCard.render({
+      key: COMPONENT_KEY_V6544,
+      host: host,
+      title: 'Department Summary',
+      subtitle: '',
+      headerDivider: false,
+      state: 'ready',
+      actions: [
+        actionV6544('export-current', 'Export current', function(){
+          if (typeof window.exportTatComponentV6509 === 'function') window.exportTatComponentV6509('department');
+        }),
+        actionV6544('export-all', 'All data', function(){
+          if (typeof window.exportTatAllDataV6509 === 'function') window.exportTatAllDataV6509('department');
+        }),
+        actionV6544('popout', 'Pop out', function(){
+          if (typeof window.popoutTatComponentV6509 === 'function') window.popoutTatComponentV6509('department');
+        }),
+        actionV6544('reset', '', function(){
+          if (typeof window.clearTatComponentV6509 === 'function') window.clearTatComponentV6509('department');
+        }, {
+          icon: '↺',
+          iconOnly: true,
+          title: 'Reset Department Summary selection',
+          ariaLabel: 'Reset Department Summary selection'
+        })
+      ],
+      body: createTableBodyV6544
+    });
+
+    installedV6544 = true;
+    window.CDA_TAT_DEPARTMENT_COMPONENT_VERSION = 'v6.544';
+    try {
+      document.dispatchEvent(new CustomEvent('cdaReferenceComponentInstalledV6544', {
+        detail: { key: COMPONENT_KEY_V6544, kind: 'table', source: 'new-dom' }
+      }));
+    } catch (error) {}
+    return true;
+  }
+
+  window.renderTatDepartmentComponentV6544 = renderV6544;
+  window.auditTatDepartmentComponentV6544 = function(){
+    var host = document.getElementById(HOST_ID_V6544);
+    var card = window.cdaCard && window.cdaCard.instance(COMPONENT_KEY_V6544);
+    var body = document.getElementById(TABLE_BODY_ID_V6544);
+    var table = body && body.closest ? body.closest('table') : null;
+    return {
+      version: 'v6.544',
+      installed: installedV6544,
+      sharedCard: !!(card && card.card && card.card.getAttribute('data-cda-card-managed') === 'v6544'),
+      newTableDom: !!(table && table.id === 'tatDepartmentTableElementV6544'),
+      sharedTable: !!(table && table.hasAttribute('data-cda-managed')),
+      legacyCardPresent: !!findLegacyCardV6544(),
+      rows: body ? body.querySelectorAll('tr').length : 0,
+      hostPresent: !!host
+    };
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', renderV6544, { once: true });
+  } else {
+    renderV6544();
+  }
+})();
+</script>
