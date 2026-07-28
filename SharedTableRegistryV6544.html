@@ -1,0 +1,139 @@
+<!-- SharedTableRegistryV6544.html
+Central registry and lifecycle manager for shared table instances.
+-->
+<script id="cdaSharedTableRegistryV6544">
+(function installSharedTableRegistryV6544(){
+  'use strict';
+
+  if (window.cdaSharedTableRegistryV6544) return;
+
+  var definitionsV6544 = Object.create(null);
+  var instancesV6544 = Object.create(null);
+
+  function normalizeV6544(input){
+    if (window.cdaSharedTableConfigV6544 && typeof window.cdaSharedTableConfigV6544.normalize === 'function') {
+      return window.cdaSharedTableConfigV6544.normalize(input);
+    }
+    if (!input || typeof input !== 'object') throw new Error('Shared table definition must be an object.');
+    if (!String(input.key || '').trim()) throw new Error('Shared table definition requires a key.');
+    return input;
+  }
+
+  function registerV6544(input){
+    var config = normalizeV6544(input);
+    definitionsV6544[config.key] = config;
+    document.dispatchEvent(new CustomEvent('cdaSharedTableRegisteredV6544', { detail:{ key:config.key, config:config } }));
+    return config;
+  }
+
+  function registerManyV6544(items){
+    return (Array.isArray(items) ? items : []).map(registerV6544);
+  }
+
+  function unregisterV6544(key){
+    var normalized = String(key == null ? '' : key).trim();
+    if (!normalized) return null;
+    destroyV6544(normalized);
+    var previous = definitionsV6544[normalized] || null;
+    delete definitionsV6544[normalized];
+    return previous;
+  }
+
+  function getV6544(key){
+    return definitionsV6544[String(key == null ? '' : key).trim()] || null;
+  }
+
+  function listV6544(filter){
+    return Object.keys(definitionsV6544).sort().map(function(key){ return definitionsV6544[key]; }).filter(function(config){
+      if (!filter) return true;
+      if (typeof filter === 'function') return !!filter(config);
+      if (typeof filter === 'string') return config.page === filter;
+      return true;
+    });
+  }
+
+  function contextV6544(config, rendered){
+    var card = rendered && rendered.nodeType === 1 ? rendered : document.querySelector('[data-cda-table-instance="' + config.key + '"]');
+    return {
+      key:config.key,
+      config:config,
+      card:card || null,
+      table:card && card.querySelector ? card.querySelector('table') : null,
+      body:card && card.querySelector ? card.querySelector('tbody') : null
+    };
+  }
+
+  function renderV6544(key, renderer){
+    var config = typeof key === 'object' ? normalizeV6544(key) : getV6544(key);
+    if (!config) return null;
+    var renderFunction = renderer || config.renderer || window.renderSharedTableCardV6544;
+    if (typeof renderFunction !== 'function') throw new Error('No shared table renderer is available for "' + config.key + '".');
+
+    var rendered = renderFunction(config);
+    var tableContext = contextV6544(config, rendered);
+    instancesV6544[config.key] = tableContext;
+
+    if (window.cdaSharedTableFeatureRegistryV6544) {
+      window.cdaSharedTableFeatureRegistryV6544.enable(tableContext);
+    }
+
+    document.dispatchEvent(new CustomEvent('cdaSharedTableRenderedV6544', { detail:tableContext }));
+    return tableContext;
+  }
+
+  function renderAllV6544(filter, renderer){
+    return listV6544(filter).map(function(config){ return renderV6544(config, renderer); }).filter(Boolean);
+  }
+
+  function refreshV6544(key){
+    var normalized = String(key == null ? '' : key).trim();
+    var tableContext = instancesV6544[normalized];
+    if (!tableContext) return renderV6544(normalized);
+    tableContext = contextV6544(tableContext.config, tableContext.card);
+    instancesV6544[normalized] = tableContext;
+    if (window.cdaSharedTableFeatureRegistryV6544) {
+      window.cdaSharedTableFeatureRegistryV6544.refresh(tableContext);
+    }
+    document.dispatchEvent(new CustomEvent('cdaSharedTableRefreshedV6544', { detail:tableContext }));
+    return tableContext;
+  }
+
+  function destroyV6544(key){
+    var normalized = String(key == null ? '' : key).trim();
+    var tableContext = instancesV6544[normalized] || null;
+    if (tableContext && window.cdaSharedTableFeatureRegistryV6544) {
+      window.cdaSharedTableFeatureRegistryV6544.disable(normalized, tableContext);
+    }
+    delete instancesV6544[normalized];
+    document.dispatchEvent(new CustomEvent('cdaSharedTableDestroyedV6544', { detail:{ key:normalized } }));
+    return tableContext;
+  }
+
+  function instanceV6544(key){
+    return instancesV6544[String(key == null ? '' : key).trim()] || null;
+  }
+
+  function auditV6544(){
+    return {
+      version:'v6544',
+      definitions:listV6544().map(function(config){ return config.key; }),
+      instances:Object.keys(instancesV6544).sort(),
+      features:window.cdaSharedTableFeatureRegistryV6544 ? window.cdaSharedTableFeatureRegistryV6544.audit() : null
+    };
+  }
+
+  window.cdaSharedTableRegistryV6544 = Object.freeze({
+    register:registerV6544,
+    registerMany:registerManyV6544,
+    unregister:unregisterV6544,
+    get:getV6544,
+    list:listV6544,
+    render:renderV6544,
+    renderAll:renderAllV6544,
+    refresh:refreshV6544,
+    destroy:destroyV6544,
+    instance:instanceV6544,
+    audit:auditV6544
+  });
+})();
+</script>
