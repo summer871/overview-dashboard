@@ -1,21 +1,15 @@
-<!-- SharedTableModule.html v6.542
+<!-- SharedTableModule.html v6.543
 
 THE TAB TEMPLATE. Read this before building any new dashboard tab.
 
-This module owns table rendering and behavior for every tab. A tab declares its
-columns and hands over rows. The module builds the header, body, sorting, column
-visibility, column chooser, row-click cross-filtering, selected-row pinning,
-child detail rows, totals and CSV export.
+This module owns table rendering and behavior for every dashboard table. A tab
+registers columns once and supplies rows whenever data changes. The module owns
+headers, bodies, sorting, column visibility, selection, selected-row pinning,
+child rows, totals, CSV export, and the shared column chooser.
 
-A new tab does NOT write table HTML. It calls cdaTable.register() once per table
-and cdaTable.setRows() whenever its data changes.
-
-SharedTableStyles owns the visual contract for managed tables and their controls.
-This module stamps data-cda-managed, creates the table frame and tools row, and
-preserves the complete v6.540 public interface.
-
-Include order: after SharedTableStyles. SharedTableEngine is deleted as of
-v6.540; this module replaces it.
+The functional base is the complete v6.540 module. v6.543 adds a stable table
+frame/tools row and retains the complete public API and compatibility aliases.
+SharedTableStyles.html remains the visual owner.
 -->
 <style id="cdaSharedTableModuleStylesV6540">
   /* Structural and visual rules are owned by SharedTableStyles.html. */
@@ -24,8 +18,7 @@ v6.540; this module replaces it.
 (function installCdaSharedTableModuleV6540(){
   'use strict';
 
-  var MODULE_VERSION_V6540 = '6.542';
-
+  var MODULE_VERSION_V6540 = '6.543';
   var SORT_STORE_V6540 = 'cdaTableSortsV6539';
   var COLS_STORE_V6540 = 'cdaTableHiddenColumnsV6539';
 
@@ -39,11 +32,15 @@ v6.540; this module replaces it.
       if (!raw) return fallback;
       var parsed = JSON.parse(raw);
       return parsed && typeof parsed === 'object' ? parsed : fallback;
-    } catch (error) { return fallback; }
+    } catch (error) {
+      return fallback;
+    }
   }
 
   function writeJsonV6540(key, value){
-    try { window.localStorage.setItem(key, JSON.stringify(value)); } catch (error) {}
+    try {
+      window.localStorage.setItem(key, JSON.stringify(value));
+    } catch (error) {}
   }
 
   function escV6540(value){
@@ -55,15 +52,15 @@ v6.540; this module replaces it.
   }
 
   function numV6540(value){
-    var n = Number(value);
-    return isFinite(n) ? n : 0;
+    var number = Number(value);
+    return isFinite(number) ? number : 0;
   }
 
   function fixedV6540(value, decimals){
-    var d = decimals == null ? 0 : Number(decimals);
+    var places = decimals == null ? 0 : Number(decimals);
     return numV6540(value).toLocaleString(undefined, {
-      minimumFractionDigits: d,
-      maximumFractionDigits: d
+      minimumFractionDigits: places,
+      maximumFractionDigits: places
     });
   }
 
@@ -80,17 +77,17 @@ v6.540; this module replaces it.
       return fixedV6540(value, column && column.decimals != null ? column.decimals : 1);
     },
     percent: function(value, row, column){
-      var d = column && column.decimals != null ? column.decimals : 1;
-      return fixedV6540(numV6540(value) * 100, d) + '%';
+      var places = column && column.decimals != null ? column.decimals : 1;
+      return fixedV6540(numV6540(value) * 100, places) + '%';
     },
     percent100: function(value, row, column){
-      var d = column && column.decimals != null ? column.decimals : 1;
-      return fixedV6540(value, d) + '%';
+      var places = column && column.decimals != null ? column.decimals : 1;
+      return fixedV6540(value, places) + '%';
     },
     currency: function(value, row, column){
-      var d = column && column.decimals != null ? column.decimals : 0;
-      var n = numV6540(value);
-      return (n < 0 ? '-$' : '$') + fixedV6540(Math.abs(n), d);
+      var places = column && column.decimals != null ? column.decimals : 0;
+      var number = numV6540(value);
+      return (number < 0 ? '-$' : '$') + fixedV6540(Math.abs(number), places);
     }
   };
 
@@ -149,8 +146,6 @@ v6.540; this module replaces it.
     };
     cfg.selectable = cfg.selectable !== false;
     cfg.multiSelect = cfg.multiSelect !== false;
-    /* manageSelection false means the tab owns selection state and pushes it
-       in with setSelection(). The module still paints it identically. */
     cfg.manageSelection = cfg.manageSelection !== false;
     cfg.totalsRow = cfg.totalsRow === true;
     cfg.totalsLabel = cfg.totalsLabel || 'Total';
@@ -167,8 +162,6 @@ v6.540; this module replaces it.
     return cfg;
   }
 
-  /* A tab may point at the table or at its tbody. TAT places IDs on tbody
-     elements. The generated tbody is re-stamped with the same ID after render. */
   function resolveTableV6540(cfg){
     if (!cfg) return null;
     if (cfg.$table && cfg.$table.isConnected) return cfg.$table;
@@ -187,20 +180,19 @@ v6.540; this module replaces it.
     return table;
   }
 
-  function directChildByClassV6542(parent, className){
+  function directChildByClassV6543(parent, className){
     if (!parent) return null;
     var children = parent.children || [];
-    for (var i = 0; i < children.length; i += 1) {
-      if (children[i].classList && children[i].classList.contains(className)) {
-        return children[i];
+    for (var index = 0; index < children.length; index += 1) {
+      if (children[index].classList && children[index].classList.contains(className)) {
+        return children[index];
       }
     }
     return null;
   }
 
-  function ensureTableFrameV6542(cfg, table){
+  function ensureTableFrameV6543(cfg, table){
     if (!cfg || !table || !table.parentNode) return null;
-
     var frame = table.parentNode.classList
       && table.parentNode.classList.contains('cdaTableFrameV6542')
       ? table.parentNode
@@ -214,8 +206,7 @@ v6.540; this module replaces it.
     }
 
     frame.setAttribute('data-cda-table-key', cfg.key);
-
-    var tools = directChildByClassV6542(frame, 'cdaTableToolsV6542');
+    var tools = directChildByClassV6543(frame, 'cdaTableToolsV6542');
     if (!tools) {
       tools = document.createElement('div');
       tools.className = 'cdaTableToolsV6542';
@@ -223,12 +214,12 @@ v6.540; this module replaces it.
       frame.insertBefore(tools, table);
     }
 
-    cfg.$frameV6542 = frame;
-    cfg.$toolsV6542 = tools;
+    cfg.$frameV6543 = frame;
+    cfg.$toolsV6543 = tools;
     return frame;
   }
 
-  function hasConfiguredWidthsV6542(cfg){
+  function hasConfiguredWidthsV6543(cfg){
     return !!(cfg && cfg.columns && cfg.columns.some(function(column){
       return !!(column && column.width);
     }));
@@ -243,8 +234,8 @@ v6.540; this module replaces it.
   }
 
   function columnByFieldV6540(cfg, field){
-    for (var i = 0; i < cfg.columns.length; i += 1) {
-      if (cfg.columns[i].field === field) return cfg.columns[i];
+    for (var index = 0; index < cfg.columns.length; index += 1) {
+      if (cfg.columns[index].field === field) return cfg.columns[index];
     }
     return null;
   }
@@ -268,7 +259,7 @@ v6.540; this module replaces it.
     if (!sort) return (rows || []).slice();
     var column = columnByFieldV6540(cfg, sort.field);
     if (!column) return (rows || []).slice();
-    var dir = sort.dir === 'asc' ? 1 : -1;
+    var direction = sort.dir === 'asc' ? 1 : -1;
     return (rows || []).slice().sort(function(a, b){
       var av = sortValueV6540(a, column);
       var bv = sortValueV6540(b, column);
@@ -276,9 +267,9 @@ v6.540; this module replaces it.
         return String(av).localeCompare(String(bv), undefined, {
           numeric: true,
           sensitivity: 'base'
-        }) * dir;
+        }) * direction;
       }
-      if (av !== bv) return (av - bv) * dir;
+      if (av !== bv) return (av - bv) * direction;
       return labelValueV6540(cfg, a).localeCompare(labelValueV6540(cfg, b), undefined, {
         numeric: true,
         sensitivity: 'base'
@@ -300,7 +291,7 @@ v6.540; this module replaces it.
     });
     pinned.sort(function(a, b){
       return Number(rank.get(String(cfg.rowKey(a))))
-        - Number(rank.get(String(cfg.rowKey(b)));
+        - Number(rank.get(String(cfg.rowKey(b))));
     });
     return pinned.concat(rest).slice(0, Math.max(limit, pinned.length));
   }
@@ -358,8 +349,8 @@ v6.540; this module replaces it.
         : '';
       var title = column.sortable ? 'Sort by ' + column.title : column.title;
       return '<th class="' + escV6540(classes.join(' ')) + '"'
-        + ' data-cda-field=' + escV6540(column.field) + '"'
-        + ' title=' + escV6540(title) + '"'
+        + ' data-cda-field="' + escV6540(column.field) + '"'
+        + ' title="' + escV6540(title) + '"'
         + ' aria-label="' + escV6540(title) + '"'
         + style + click + '>'
         + escV6540(column.label)
@@ -403,11 +394,10 @@ v6.540; this module replaces it.
         if (extra) classes.push(extra);
       }
       out.push('<tr class="' + escV6540(classes.join(' '))
-        + '" data-cda-key=' + escV6540(key) + '">'
+        + '" data-cda-key="' + escV6540(key) + '">'
         + columns.map(function(column){ return cellHtmlV6540(row, column); }).join('')
         + '</tr>');
 
-      /* Child rows travel with their parent and are never sorted apart. */
       if (typeof cfg.childRows === 'function') {
         var children = cfg.childRows(row, selected) || [];
         children.forEach(function(child){
@@ -493,9 +483,9 @@ v6.540; this module replaces it.
 
   function handleRowClickV6540(cfg, key, event){
     var row = null;
-    for (var i = 0; i < cfg.viewRows.length; i += 1) {
-      if (String(cfg.rowKey(cfg.viewRows[i])) === String(key)) {
-        row = cfg.viewRows[i];
+    for (var index = 0; index < cfg.viewRows.length; index += 1) {
+      if (String(cfg.rowKey(cfg.viewRows[index])) === String(key)) {
+        row = cfg.viewRows[index];
         break;
       }
     }
@@ -543,9 +533,9 @@ v6.540; this module replaces it.
     var table = resolveTableV6540(cfg);
     if (!table) return;
 
-    var frame = ensureTableFrameV6542(cfg, table);
-    table.setAttribute('data-cda-managed', 'v6542');
-    if (hasConfiguredWidthsV6542(cfg)) {
+    var frame = ensureTableFrameV6543(cfg, table);
+    table.setAttribute('data-cda-managed', 'v6543');
+    if (hasConfiguredWidthsV6543(cfg)) {
       table.setAttribute('data-cda-fixed-layout', '1');
     } else {
       table.removeAttribute('data-cda-fixed-layout');
@@ -560,7 +550,7 @@ v6.540; this module replaces it.
       rows = context.rows || rows;
       columns = context.columns || columns;
     }
-    cfg.ViewRows = rows;
+    cfg.viewRows = rows;
 
     table.innerHTML = headerHtmlV6540(cfg, columns)
       + bodyHtmlV6540(cfg, columns, rows)
@@ -571,7 +561,7 @@ v6.540; this module replaces it.
     }
     bindV6540(cfg, table);
     applyPinningV6540(table);
-    ensureChooserButtonV6542(cfg, frame);
+    ensureChooserButtonV6543(cfg, frame);
 
     if (typeof cfg.afterRender === 'function') cfg.afterRender(table, cfg);
     emitV6540('cdaTableRendered', {
@@ -605,7 +595,7 @@ v6.540; this module replaces it.
     });
     var csv = lines.join('\r\n');
     try {
-      var blob = new Blob(['\uFAFF' + csv], { type: 'text/csv;charset=utf-8;' });
+      var blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
       var url = URL.createObjectURL(blob);
       var link = document.createElement('a');
       link.href = url;
@@ -618,26 +608,26 @@ v6.540; this module replaces it.
     return csv;
   }
 
-  var chooserPopoverV6542 = null;
-  var chooserKeyV6542 = null;
-  var chooserButtonV6542 = null;
-  var chooserPositionFrameV6542 = 0;
+  var chooserPopoverV6543 = null;
+  var chooserKeyV6543 = null;
+  var chooserButtonV6543 = null;
+  var chooserPositionFrameV6543 = 0;
 
-  function hideableColumnsV6542(cfg){
+  function hideableColumnsV6543(cfg){
     return cfg.columns.filter(function(column, index){
       return index > 0 && column.hideable;
     });
   }
 
-  function closeChooserV6542(options){
+  function closeChooserV6543(options){
     var returnFocus = options && options.returnFocus;
-    var focusTarget = chooserButtonV6542;
-    if (chooserPopoverV6542 && chooserPopoverV6542.parentNode) {
-      chooserPopoverV6542.parentNode.removeChild(chooserPopoverV6542);
+    var focusTarget = chooserButtonV6543;
+    if (chooserPopoverV6543 && chooserPopoverV6543.parentNode) {
+      chooserPopoverV6543.parentNode.removeChild(chooserPopoverV6543);
     }
-    chooserPopoverV6542 = null;
-    chooserKeyV6542 = null;
-    chooserButtonV6542 = null;
+    chooserPopoverV6543 = null;
+    chooserKeyV6543 = null;
+    chooserButtonV6543 = null;
     var buttons = document.querySelectorAll(
       '.cdaColChooserBtnV6542[aria-expanded="true"]'
     );
@@ -649,14 +639,14 @@ v6.540; this module replaces it.
     }
   }
 
-  function renderChooserV6542(){
-    if (!chooserPopoverV6542 || !chooserKeyV6542) return;
-    var cfg = registryV6540[chooserKeyV6542];
+  function renderChooserV6543(){
+    if (!chooserPopoverV6543 || !chooserKeyV6543) return;
+    var cfg = registryV6540[chooserKeyV6543];
     if (!cfg) return;
     var hidden = hiddenSetV6540(cfg);
-    var hideableColumns = hideableColumnsV6542(cfg);
+    var hideableColumns = hideableColumnsV6543(cfg);
     if (!hideableColumns.length) {
-      closeChooserV6542();
+      closeChooserV6543();
       return;
     }
 
@@ -668,7 +658,7 @@ v6.540; this module replaces it.
     var html = '<div class="cdaChooserHeaderV6542">'
       + '<span>Columns</span>'
       + '<button type="button" class="cdaTableButtonV6542 cdaTableButtonSmallV6542"'
-      + ' data-cda-chooser-action=' + action + '>'
+      + ' data-cda-chooser-action="' + action + '">'
       + actionLabel + '</button></div>';
 
     hideableColumns.forEach(function(column){
@@ -678,53 +668,50 @@ v6.540; this module replaces it.
         + escV6540(column.title || column.label) + '</span></label>';
     });
 
-    chooserPopoverV6542.innerHTML = html;
+    chooserPopoverV6543.innerHTML = html;
 
-    var inputs = chooserPopoverV6542.querySelectorAll('[data-cda-chooser-field]');
+    var inputs = chooserPopoverV6543.querySelectorAll('[data-cda-chooser-field]');
     Array.prototype.forEach.call(inputs, function(input){
       input.addEventListener('change', function(){
         var field = input.getAttribute('data-cda-chooser-field');
-        var set = new Set((hiddenV6540[chooserKeyV6542] || []).map(String));
+        var set = new Set((hiddenV6540[chooserKeyV6543] || []).map(String));
         if (input.checked) set.delete(field);
         else set.add(field);
-        hiddenV6540[chooserKeyV6542] = Array.from(set);
+        hiddenV6540[chooserKeyV6543] = Array.from(set);
         writeJsonV6540(COLS_STORE_V6540, hiddenV6540);
-        renderV6540(chooserKeyV6542);
-        renderChooserV6542();
-        scheduleChooserPositionV6542();
+        renderV6540(chooserKeyV6543);
+        renderChooserV6543();
+        scheduleChooserPositionV6543();
       });
     });
 
-    var actionButton = chooserPopoverV6542.querySelector(
+    var actionButton = chooserPopoverV6543.querySelector(
       '[data-cda-chooser-action]'
     );
     if (actionButton) {
       actionButton.addEventListener('click', function(){
         var nextAction = actionButton.getAttribute('data-cda-chooser-action');
         var fields = hideableColumns.map(function(column){ return column.field; });
-        hiddenV6540[chooserKeyV6542] = nextAction === 'hideAll'
+        hiddenV6540[chooserKeyV6543] = nextAction === 'hideAll'
           ? fields.slice()
           : [];
         writeJsonV6540(COLS_STORE_V6540, hiddenV6540);
-        renderV6540(chooserKeyV6542);
-        renderChooserV6542();
-        scheduleChooserPositionV6542();
+        renderV6540(chooserKeyV6543);
+        renderChooserV6543();
+        scheduleChooserPositionV6543();
       });
     }
   }
 
-  function positionChooserV6542(){
-    chooserPositionFrameV6542 = 0;
-    if (!chooserPopoverV6542 || !chooserButtonV6542 || !chooserButtonV6542.isConnected) {
+  function positionChooserV6543(){
+    chooserPositionFrameV6543 = 0;
+    if (!chooserPopoverV6543 || !chooserButtonV6543 || !chooserButtonV6543.isConnected) {
       return;
     }
-    var rect = chooserButtonV6542.getBoundingClientRect();
-    var width = Math.min(
-      260,
-      Math.max(190, window.innerWidth - 16)
-    );
-    chooserPopoverV6542.style.width = width + 'px';
-    chooserPopoverV6542.style.left = Math.max(
+    var rect = chooserButtonV6543.getBoundingClientRect();
+    var width = Math.min(260, Math.max(190, window.innerWidth - 16));
+    chooserPopoverV6543.style.width = width + 'px';
+    chooserPopoverV6543.style.left = Math.max(
       8,
       Math.min(window.innerWidth - width - 8, rect.right - width)
     ) + 'px';
@@ -732,74 +719,75 @@ v6.540; this module replaces it.
     var below = rect.bottom + 6;
     var estimatedHeight = Math.min(
       340,
-      chooserPopoverV6542.scrollHeight || 280
+      chooserPopoverV6543.scrollHeight || 280
     );
     if (below + estimatedHeight <= window.innerHeight - 10) {
-      chooserPopoverV6542.style.top = below + 'px';
-      chooserPopoverV6542.style.bottom = 'auto';
+      chooserPopoverV6543.style.top = below + 'px';
+      chooserPopoverV6543.style.bottom = 'auto';
     } else {
-      chooserPopoverV6542.style.top = 'auto';
-      chooserPopoverV6542.style.bottom = (
+      chooserPopoverV6543.style.top = 'auto';
+      chooserPopoverV6543.style.bottom = (
         window.innerHeight - rect.top + 6
       ) + 'px';
     }
   }
 
-  function scheduleChooserPositionV6542(){
-    if (!chooserPopoverV6542 || chooserPositionFrameV6542) return;
-    chooserPositionFrameV6542 = window.requestAnimationFrame(positionChooserV6542);
+  function scheduleChooserPositionV6543(){
+    if (!chooserPopoverV6543 || chooserPositionFrameV6543) return;
+    chooserPositionFrameV6543 = window.requestAnimationFrame(positionChooserV6543);
   }
 
-  function toggleChooserV6542(key, event){
+  function toggleChooserV6543(key, event){
     if (event) {
       event.preventDefault();
       event.stopPropagation();
     }
     var button = event && event.currentTarget ? event.currentTarget : null;
-    if (chooserPopoverV6542 && chooserKeyV6542 === key) {
-      closeChooserV6542();
+    if (chooserPopoverV6543 && chooserKeyV6543 === key) {
+      closeChooserV6543();
       return;
     }
 
-    closeChooserV6542();
+    closeChooserV6543();
     var cfg = registryV6540[key];
-    if (!cfg || !hideableColumnsV6542(cfg).length) return;
+    if (!cfg || !hideableColumnsV6543(cfg).length) return;
 
-    chooserKeyV6542 = key;
-    chooserButtonV6542 = button;
-    chooserPopoverV6542 = document.createElement('div');
-    chooserPopoverV6542.className = 'cdaColChooserPopoverV6542';
-    chooserPopoverV6542.id = 'cdaColChooserPopoverV6542-' + key.replace(/[^a-z0-9_-]/gi, '-');
-    chooserPopoverV6542.setAttribute('role', 'dialog');
-    chooserPopoverV6542.setAttribute('aria-label', 'Choose visible columns');
-    chooserPopoverV6542.addEventListener('click', function(popoverEvent){
+    chooserKeyV6543 = key;
+    chooserButtonV6543 = button;
+    chooserPopoverV6543 = document.createElement('div');
+    chooserPopoverV6543.className = 'cdaColChooserPopoverV6542';
+    chooserPopoverV6543.id = 'cdaColChooserPopoverV6543-'
+      + key.replace(/[^a-z0-9_-]/gi, '-');
+    chooserPopoverV6543.setAttribute('role', 'dialog');
+    chooserPopoverV6543.setAttribute('aria-label', 'Choose visible columns');
+    chooserPopoverV6543.addEventListener('click', function(popoverEvent){
       popoverEvent.stopPropagation();
     });
-    document.body.appendChild(chooserPopoverV6542);
+    document.body.appendChild(chooserPopoverV6543);
 
     if (button) {
       button.setAttribute('aria-expanded', 'true');
-      button.setAttribute('aria-controls', chooserPopoverV6542.id);
+      button.setAttribute('aria-controls', chooserPopoverV6543.id);
     }
 
-    renderChooserV6542();
-    positionChooserV6542();
+    renderChooserV6543();
+    positionChooserV6543();
   }
 
-  function ensureChooserButtonV6542(cfg, frame){
+  function ensureChooserButtonV6543(cfg, frame){
     if (!cfg || !frame) return;
-    var tools = cfg.$toolsV6542 || directChildByClassV6542(
+    var tools = cfg.$toolsV6543 || directChildByClassV6543(
       frame,
       'cdaTableToolsV6542'
     );
     if (!tools) return;
 
-    var hideableColumns = hideableColumnsV6542(cfg);
+    var hideableColumns = hideableColumnsV6543(cfg);
     var existing = null;
     var existingButtons = tools.querySelectorAll('.cdaColChooserBtnV6542');
-    for (var buttonIndex = 0; buttonIndex < existingButtons.length; buttonIndex += 1) {
-      if (existingButtons[buttonIndex].getAttribute('data-cda-chooser-key') === cfg.key) {
-        existing = existingButtons[buttonIndex];
+    for (var index = 0; index < existingButtons.length; index += 1) {
+      if (existingButtons[index].getAttribute('data-cda-chooser-key') === cfg.key) {
+        existing = existingButtons[index];
         break;
       }
     }
@@ -808,7 +796,7 @@ v6.540; this module replaces it.
       if (existing && existing.parentNode) existing.parentNode.removeChild(existing);
       tools.hidden = true;
       return;
-  }
+    }
 
     tools.hidden = false;
     if (existing) return;
@@ -822,29 +810,29 @@ v6.540; this module replaces it.
     button.title = 'Show or hide columns';
     button.innerHTML = '<span aria-hidden="true">&#9776;</span>';
     button.addEventListener('click', function(buttonEvent){
-      toggleChooserV6542(cfg.key, buttonEvent);
+      toggleChooserV6543(cfg.key, buttonEvent);
     });
     tools.appendChild(button);
   }
 
   document.addEventListener('click', function(event){
-    if (!chooserPopoverV6542) return;
+    if (!chooserPopoverV6543) return;
     var target = event.target;
     if (target && target.closest
         && target.closest('.cdaColChooserPopoverV6542,.cdaColChooserBtnV6542')) {
       return;
     }
-    closeChooserV6542();
+    closeChooserV6543();
   });
 
   document.addEventListener('keydown', function(event){
-    if (event.key === 'Escape' && chooserPopoverV6542) {
-      closeChooserV6542({ returnFocus: true });
+    if (event.key === 'Escape' && chooserPopoverV6543) {
+      closeChooserV6543({ returnFocus: true });
     }
   });
 
-  document.addEventListener('scroll', scheduleChooserPositionV6542, true);
-  window.addEventListener('resize', scheduleChooserPositionV6542, { passive: true });
+  document.addEventListener('scroll', scheduleChooserPositionV6543, true);
+  window.addEventListener('resize', scheduleChooserPositionV6543, { passive: true });
 
   var api = {
     version: MODULE_VERSION_V6540,
@@ -978,8 +966,8 @@ v6.540; this module replaces it.
       });
     },
 
-    toggleChooser: toggleChooserV6542,
-    closeChooser: closeChooserV6542,
+    toggleChooser: toggleChooserV6543,
+    closeChooser: closeChooserV6543,
     exportCsv: exportCsvV6540,
     formatters: FORMATTERS_V6540,
     config: function(key){ return registryV6540[key] || null; },
@@ -993,6 +981,7 @@ v6.540; this module replaces it.
   };
   window.cdaTableSortV6539 = window.cdaTableSortV6540;
   window.cdaTableSortV6542 = window.cdaTableSortV6540;
+  window.cdaTableSortV6543 = window.cdaTableSortV6540;
   window.CDA_TABLE_MODULE_VERSION = MODULE_VERSION_V6540;
 })();
 </script>
