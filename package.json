@@ -5,7 +5,9 @@
   "description": "Google Apps Script dashboard with a safe local preview mode.",
   "scripts": {
     "preview": "node preview/server.js",
-    "audit:components": "node scripts/audit-dashboard-components.js"
+    "audit:components": "node scripts/audit-dashboard-components.js",
+    "audit:matrix": "node scripts/build-component-migration-matrix.js",
+    "audit:dashboard": "npm run audit:components && npm run audit:matrix"
   },
   "engines": {
     "node": ">=18"
