@@ -1,0 +1,117 @@
+<!-- SharedTableFeatureRegistryV6544.html
+Owns reusable table capabilities. Tables enable features by configuration; feature
+implementations remain independent of any specific dashboard table.
+-->
+<script id="cdaSharedTableFeatureRegistryV6544">
+(function installSharedTableFeatureRegistryV6544(){
+  'use strict';
+
+  if (window.cdaSharedTableFeatureRegistryV6544) return;
+
+  var featuresV6544 = Object.create(null);
+  var enabledByTableV6544 = Object.create(null);
+
+  function requireNameV6544(name){
+    var normalized = String(name == null ? '' : name).trim();
+    if (!normalized) throw new Error('Shared table feature name is required.');
+    return normalized;
+  }
+
+  function registerV6544(name, implementation){
+    var key = requireNameV6544(name);
+    if (!implementation || typeof implementation !== 'object') {
+      throw new Error('Feature "' + key + '" requires an implementation object.');
+    }
+    featuresV6544[key] = implementation;
+    return implementation;
+  }
+
+  function unregisterV6544(name){
+    var key = requireNameV6544(name);
+    var previous = featuresV6544[key] || null;
+    delete featuresV6544[key];
+    return previous;
+  }
+
+  function getV6544(name){
+    return featuresV6544[requireNameV6544(name)] || null;
+  }
+
+  function listV6544(){
+    return Object.keys(featuresV6544).sort();
+  }
+
+  function requestedFeatureNamesV6544(config){
+    var requested = config && config.features || {};
+    return Object.keys(requested).filter(function(name){ return requested[name] === true; });
+  }
+
+  function enableV6544(tableContext){
+    if (!tableContext || !tableContext.config) {
+      throw new Error('A table context with config is required to enable features.');
+    }
+
+    var tableKey = String(tableContext.config.key || '').trim();
+    if (!tableKey) throw new Error('Table context config requires a key.');
+
+    disableV6544(tableKey, tableContext);
+    var enabled = [];
+
+    requestedFeatureNamesV6544(tableContext.config).forEach(function(name){
+      var feature = featuresV6544[name];
+      if (!feature) return;
+      if (typeof feature.enable === 'function') feature.enable(tableContext);
+      enabled.push(name);
+    });
+
+    enabledByTableV6544[tableKey] = enabled;
+    return enabled.slice();
+  }
+
+  function refreshV6544(tableContext){
+    if (!tableContext || !tableContext.config) return [];
+    var tableKey = String(tableContext.config.key || '').trim();
+    var enabled = enabledByTableV6544[tableKey] || [];
+    enabled.forEach(function(name){
+      var feature = featuresV6544[name];
+      if (feature && typeof feature.refresh === 'function') feature.refresh(tableContext);
+    });
+    return enabled.slice();
+  }
+
+  function disableV6544(tableKey, tableContext){
+    var key = String(tableKey == null ? '' : tableKey).trim();
+    if (!key) return [];
+    var enabled = enabledByTableV6544[key] || [];
+    enabled.slice().reverse().forEach(function(name){
+      var feature = featuresV6544[name];
+      if (feature && typeof feature.disable === 'function') feature.disable(tableContext || { config:{ key:key } });
+    });
+    delete enabledByTableV6544[key];
+    return enabled.slice();
+  }
+
+  function auditV6544(){
+    var enabled = {};
+    Object.keys(enabledByTableV6544).forEach(function(key){
+      enabled[key] = enabledByTableV6544[key].slice();
+    });
+    return {
+      version:'v6544',
+      registered:listV6544(),
+      enabledByTable:enabled
+    };
+  }
+
+  window.cdaSharedTableFeatureRegistryV6544 = Object.freeze({
+    register:registerV6544,
+    unregister:unregisterV6544,
+    get:getV6544,
+    list:listV6544,
+    enable:enableV6544,
+    refresh:refreshV6544,
+    disable:disableV6544,
+    audit:auditV6544
+  });
+})();
+</script>
