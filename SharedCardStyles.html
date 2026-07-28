@@ -1,0 +1,218 @@
+<!-- SharedCardStyles.html v6.544
+Visual contract for cards created by SharedCardModule.
+Legacy dashboard cards are intentionally outside this selector scope.
+-->
+<style id="cdaSharedCardStylesV6544">
+  :root {
+    --cda-card-font-family-v6544: Roboto, Arial, sans-serif;
+    --cda-card-background-v6544: #ffffff;
+    --cda-card-border-v6544: #d7dce2;
+    --cda-card-radius-v6544: 10px;
+    --cda-card-title-v6544: #172033;
+    --cda-card-muted-v6544: #667085;
+    --cda-card-selection-v6544: #fff7d6;
+    --cda-card-selection-border-v6544: #f2c94c;
+    --cda-card-error-v6544: #b42318;
+    --cda-card-button-height-v6544: 32px;
+    --cda-card-button-radius-v6544: 7px;
+  }
+
+  .cdaCardV6544[data-cda-card-managed="v6544"] {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    min-width: 0;
+    min-height: 0;
+    box-sizing: border-box;
+    border: 1px solid var(--cda-card-border-v6544);
+    border-radius: var(--cda-card-radius-v6544);
+    background: var(--cda-card-background-v6544);
+    color: var(--cda-card-title-v6544);
+    font-family: var(--cda-card-font-family-v6544);
+    overflow: hidden;
+  }
+
+  .cdaCardV6544[data-cda-wide="1"] {
+    grid-column: 1 / -1;
+  }
+
+  .cdaCardV6544[data-cda-selected="1"] {
+    border-color: var(--cda-card-selection-border-v6544);
+    box-shadow: inset 0 0 0 1px rgba(242, 201, 76, .28);
+  }
+
+  .cdaCardHeaderV6544 {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+    min-height: 42px;
+    padding: 9px 10px 7px;
+    box-sizing: border-box;
+    border-bottom: 1px solid transparent;
+  }
+
+  .cdaCardV6544[data-cda-header-divider="1"] > .cdaCardHeaderV6544 {
+    border-bottom-color: #eaecf0;
+  }
+
+  .cdaCardHeadingV6544 {
+    min-width: 0;
+    padding-top: 1px;
+  }
+
+  .cdaCardTitleV6544 {
+    margin: 0;
+    color: var(--cda-card-title-v6544);
+    font: 900 12.5px/1.25 var(--cda-card-font-family-v6544);
+    overflow-wrap: anywhere;
+  }
+
+  .cdaCardSubtitleV6544 {
+    margin-top: 2px;
+    color: var(--cda-card-muted-v6544);
+    font: 700 10px/1.3 var(--cda-card-font-family-v6544);
+    overflow-wrap: anywhere;
+  }
+
+  .cdaCardActionsV6544 {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 5px;
+    min-height: var(--cda-card-button-height-v6544);
+  }
+
+  .cdaCardActionsV6544:empty {
+    display: none;
+  }
+
+  .cdaCardActionV6544,
+  .cdaCardCollapseV6544 {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-height: var(--cda-card-button-height-v6544) !important;
+    box-sizing: border-box !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: var(--cda-card-button-radius-v6544) !important;
+    background: #ffffff !important;
+    color: #334155 !important;
+    padding: 0 10px !important;
+    font: 800 11px/1 var(--cda-card-font-family-v6544) !important;
+    white-space: nowrap !important;
+    cursor: pointer !important;
+    box-shadow: none !important;
+  }
+
+  .cdaCardActionV6544[data-icon-only="1"],
+  .cdaCardCollapseV6544 {
+    width: var(--cda-card-button-height-v6544) !important;
+    min-width: var(--cda-card-button-height-v6544) !important;
+    padding: 0 !important;
+    font-size: 15px !important;
+  }
+
+  .cdaCardActionV6544:hover,
+  .cdaCardActionV6544:focus-visible,
+  .cdaCardActionV6544[aria-pressed="true"],
+  .cdaCardActionV6544[aria-expanded="true"],
+  .cdaCardCollapseV6544:hover,
+  .cdaCardCollapseV6544:focus-visible {
+    border-color: var(--cda-card-selection-border-v6544) !important;
+    background: var(--cda-card-selection-v6544) !important;
+    color: #7a4a00 !important;
+  }
+
+  .cdaCardActionV6544:focus-visible,
+  .cdaCardCollapseV6544:focus-visible {
+    outline: 2px solid rgba(37, 99, 235, .25) !important;
+    outline-offset: 2px !important;
+  }
+
+  .cdaCardActionV6544:disabled,
+  .cdaCardCollapseV6544:disabled {
+    opacity: .48 !important;
+    cursor: not-allowed !important;
+  }
+
+  .cdaCardBodyV6544 {
+    position: relative;
+    display: block;
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 0;
+    box-sizing: border-box;
+  }
+
+  .cdaCardV6544[data-cda-collapsed="1"] > .cdaCardBodyV6544,
+  .cdaCardV6544[data-cda-collapsed="1"] > .cdaCardStateV6544 {
+    display: none !important;
+  }
+
+  .cdaCardStateV6544 {
+    position: absolute;
+    inset: 42px 0 0;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 18px;
+    box-sizing: border-box;
+    background: rgba(255, 255, 255, .95);
+    color: var(--cda-card-muted-v6544);
+    text-align: center;
+    font: 800 11px/1.4 var(--cda-card-font-family-v6544);
+  }
+
+  .cdaCardStateV6544[hidden] {
+    display: none !important;
+  }
+
+  .cdaCardStateV6544[data-state="error"] {
+    color: var(--cda-card-error-v6544);
+  }
+
+  .cdaCardStateV6544[data-state="loading"]::before {
+    content: '';
+    width: 14px;
+    height: 14px;
+    flex: 0 0 14px;
+    border: 2px solid #d0d5dd;
+    border-top-color: #475467;
+    border-radius: 50%;
+    animation: cdaCardSpinV6544 .7s linear infinite;
+  }
+
+  @keyframes cdaCardSpinV6544 {
+    to { transform: rotate(360deg); }
+  }
+
+  @media (max-width: 760px) {
+    .cdaCardHeaderV6544 {
+      align-items: flex-start;
+      padding: 8px 8px 6px;
+    }
+
+    .cdaCardActionsV6544 {
+      gap: 4px;
+    }
+
+    .cdaCardActionV6544:not([data-icon-only="1"]) {
+      min-height: 34px !important;
+      padding-left: 8px !important;
+      padding-right: 8px !important;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .cdaCardStateV6544[data-state="loading"]::before {
+      animation: none;
+    }
+  }
+</style>
