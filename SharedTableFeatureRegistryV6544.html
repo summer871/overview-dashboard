@@ -1,4 +1,4 @@
-﻿<!-- SharedTableFeatureRegistryV6544.html
+<!-- SharedTableFeatureRegistryV6544.html
 Owns reusable table capabilities. Tables enable features by configuration; feature
 implementations remain independent of any specific dashboard table.
 -->
@@ -6,13 +6,7 @@ implementations remain independent of any specific dashboard table.
 (function installSharedTableFeatureRegistryV6544(){
   'use strict';
 
-  var existingFeatureRegistryV6544 = window.cdaSharedTableFeatureRegistryV6544;
-  if (
-    existingFeatureRegistryV6544 &&
-    typeof existingFeatureRegistryV6544.register === 'function' &&
-    typeof existingFeatureRegistryV6544.enable === 'function' &&
-    typeof existingFeatureRegistryV6544.audit === 'function'
-  ) return;
+  if (window.cdaSharedTableFeatureRegistryV6544) return;
 
   var featuresV6544 = Object.create(null);
   var enabledByTableV6544 = Object.create(null);
@@ -121,4 +115,3 @@ implementations remain independent of any specific dashboard table.
   });
 })();
 </script>
-

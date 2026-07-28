@@ -1,4 +1,4 @@
-﻿<!-- SharedTableRegistryV6544.html
+<!-- SharedTableRegistryV6544.html
 Central registry and lifecycle manager for shared table definitions and mounted instances.
 Definitions remain static. Resolvers produce runtime DOM-aware renderer configurations.
 Missing dynamic markup is pending, not failed.
@@ -7,13 +7,7 @@ Missing dynamic markup is pending, not failed.
 (function installSharedTableRegistryV6544(){
   'use strict';
 
-  var existingRegistryV6544 = window.cdaSharedTableRegistryV6544;
-  if (
-    existingRegistryV6544 &&
-    typeof existingRegistryV6544.registerMany === 'function' &&
-    typeof existingRegistryV6544.renderAll === 'function' &&
-    typeof existingRegistryV6544.audit === 'function'
-  ) return;
+  if (window.cdaSharedTableRegistryV6544) return;
 
   var VERSION_V6544 = 'v6.544';
   var definitionsV6544 = Object.create(null);
@@ -332,4 +326,3 @@ Missing dynamic markup is pending, not failed.
   });
 })();
 </script>
-

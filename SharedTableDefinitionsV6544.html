@@ -1,4 +1,4 @@
-﻿<!-- SharedTableDefinitionsV6544.html
+<!-- SharedTableDefinitionsV6544.html
 Static TAT and Remake table definitions plus DOM resolvers.
 Definitions register once; the registry owns rendering and lifecycle.
 -->
@@ -6,13 +6,7 @@ Definitions register once; the registry owns rendering and lifecycle.
 (function installSharedTableDefinitionsV6544(){
   'use strict';
 
-  var existingDefinitionsV6544 = window.cdaSharedTableDefinitionsV6544;
-  if (
-    existingDefinitionsV6544 &&
-    typeof existingDefinitionsV6544.list === 'function' &&
-    typeof existingDefinitionsV6544.register === 'function' &&
-    typeof existingDefinitionsV6544.audit === 'function'
-  ) return;
+  if (window.cdaSharedTableDefinitionsV6544) return;
 
   var VERSION_V6544 = 'v6.544';
   var RENDERER_V6544 = 'renderSharedTableCardV6544';
@@ -281,4 +275,3 @@ Definitions register once; the registry owns rendering and lifecycle.
   });
 })();
 </script>
-
