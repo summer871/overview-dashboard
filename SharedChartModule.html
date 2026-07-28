@@ -1,0 +1,526 @@
+<!-- SharedChartModule.html v6.544
+Base chart component for all dashboard tabs.
+
+Legacy charts are unaffected until they explicitly call cdaChart.register().
+A registered chart receives shared framing, actions, states, Chart.js defaults,
+and a documented extension surface for specialized charts such as the Remake
+main trend chart.
+-->
+<script id="cdaSharedChartModuleV6544">
+(function installCdaSharedChartModuleV6544(){
+  'use strict';
+
+  if (window.CdaSharedChartModule && window.CdaSharedChartModule.version === '6.544') return;
+
+  var VERSION_V6544 = '6.544';
+  var registryV6544 = new Map();
+  var instancesV6544 = new Map();
+
+  function cloneV6544(value){
+    if (Array.isArray(value)) return value.map(cloneV6544);
+    if (value && Object.prototype.toString.call(value) === '[object Object]') {
+      var output = {};
+      Object.keys(value).forEach(function(key){ output[key] = cloneV6544(value[key]); });
+      return output;
+    }
+    return value;
+  }
+
+  function mergeV6544(target, source){
+    var output = cloneV6544(target || {});
+    Object.keys(source || {}).forEach(function(key){
+      var value = source[key];
+      if (value && Object.prototype.toString.call(value) === '[object Object]') {
+        output[key] = mergeV6544(output[key] || {}, value);
+      } else {
+        output[key] = cloneV6544(value);
+      }
+    });
+    return output;
+  }
+
+  function safeCallV6544(callback, args, fallback){
+    if (typeof callback !== 'function') return fallback;
+    try { return callback.apply(null, args || []); } catch (error) {
+      window.setTimeout(function(){ throw error; }, 0);
+      return fallback;
+    }
+  }
+
+  function resolveCanvasV6544(config){
+    if (!config) return null;
+    if (config.canvas && config.canvas.isConnected) return config.canvas;
+    var canvas = config.canvasId ? document.getElementById(config.canvasId) : null;
+    if (!canvas && config.selector) canvas = document.querySelector(config.selector);
+    if (canvas && canvas.tagName && canvas.tagName.toLowerCase() === 'canvas') config.canvas = canvas;
+    return config.canvas || null;
+  }
+
+  function normalizeActionsV6544(actions){
+    if (actions === false) return [];
+    if (!Array.isArray(actions)) return [];
+    return actions.map(function(action){
+      if (typeof action === 'string') return { key: action, label: action };
+      return Object.assign({}, action || {});
+    }).filter(function(action){ return !!action.key; });
+  }
+
+  function normalizeV6544(input){
+    if (!input || !input.key) throw new Error('cdaChart.register requires a unique key.');
+    var config = Object.assign({}, input);
+    config.key = String(config.key);
+    config.title = config.title == null ? '' : String(config.title);
+    config.subtitle = config.subtitle == null ? '' : String(config.subtitle);
+    config.type = config.type || 'bar';
+    config.actions = normalizeActionsV6544(config.actions);
+    config.plugins = Array.isArray(config.plugins) ? config.plugins.slice() : [];
+    config.state = config.state || 'ready';
+    config.stateMessage = config.stateMessage || '';
+    config.selected = config.selected === true;
+    return config;
+  }
+
+  function directChildV6544(parent, className){
+    if (!parent) return null;
+    var children = parent.children || [];
+    for (var index = 0; index < children.length; index += 1) {
+      if (children[index].classList && children[index].classList.contains(className)) return children[index];
+    }
+    return null;
+  }
+
+  function ensureFrameV6544(config, canvas){
+    if (!canvas || !canvas.parentNode) return null;
+    var wrap = canvas.parentNode.classList && canvas.parentNode.classList.contains('cdaChartCanvasWrapV6544')
+      ? canvas.parentNode
+      : null;
+    var frame = wrap && wrap.parentNode && wrap.parentNode.classList && wrap.parentNode.classList.contains('cdaChartFrameV6544')
+      ? wrap.parentNode
+      : null;
+
+    if (!frame) {
+      frame = document.createElement('section');
+      frame.className = 'cdaChartFrameV6544';
+      canvas.parentNode.insertBefore(frame, canvas);
+      wrap = document.createElement('div');
+      wrap.className = 'cdaChartCanvasWrapV6544';
+      frame.appendChild(wrap);
+      wrap.appendChild(canvas);
+    }
+
+    frame.setAttribute('data-cda-chart-key', config.key);
+    canvas.setAttribute('data-cda-chart-managed', 'v6544');
+    canvas.setAttribute('data-cda-chart-key', config.key);
+
+    var header = directChildV6544(frame, 'cdaChartHeaderV6544');
+    if (!header) {
+      header = document.createElement('header');
+      header.className = 'cdaChartHeaderV6544';
+      frame.insertBefore(header, wrap);
+    }
+
+    var heading = directChildV6544(header, 'cdaChartHeadingV6544');
+    if (!heading) {
+      heading = document.createElement('div');
+      heading.className = 'cdaChartHeadingV6544';
+      header.appendChild(heading);
+    }
+
+    var title = directChildV6544(heading, 'cdaChartTitleV6544');
+    if (!title) {
+      title = document.createElement('h3');
+      title.className = 'cdaChartTitleV6544';
+      heading.appendChild(title);
+    }
+    title.textContent = config.title;
+    title.hidden = !config.title;
+
+    var subtitle = directChildV6544(heading, 'cdaChartSubtitleV6544');
+    if (!subtitle) {
+      subtitle = document.createElement('div');
+      subtitle.className = 'cdaChartSubtitleV6544';
+      heading.appendChild(subtitle);
+    }
+    subtitle.textContent = config.subtitle;
+    subtitle.hidden = !config.subtitle;
+
+    var tools = directChildV6544(header, 'cdaChartToolsV6544');
+    if (!tools) {
+      tools = document.createElement('div');
+      tools.className = 'cdaChartToolsV6544';
+      header.appendChild(tools);
+    }
+
+    var state = directChildV6544(wrap, 'cdaChartStateV6544');
+    if (!state) {
+      state = document.createElement('div');
+      state.className = 'cdaChartStateV6544';
+      state.hidden = true;
+      wrap.appendChild(state);
+    }
+
+    config.frame = frame;
+    config.wrap = wrap;
+    config.header = header;
+    config.tools = tools;
+    config.stateNode = state;
+    renderActionsV6544(config);
+    renderStateV6544(config);
+    renderSelectionV6544(config);
+    return frame;
+  }
+
+  function actionLabelV6544(action){
+    return action.label || action.title || action.key;
+  }
+
+  function runActionV6544(config, action, event){
+    if (typeof action.onClick === 'function') {
+      safeCallV6544(action.onClick, [config, instanceV6544(config.key), event]);
+      return;
+    }
+    if (action.key === 'reset') resetV6544(config.key);
+    else if (action.key === 'export') exportCsvV6544(config.key);
+    else if (action.key === 'png') savePngV6544(config.key);
+    else if (action.key === 'copy') copyImageV6544(config.key);
+    else if (action.key === 'clearSelection') clearSelectionV6544(config.key);
+    else if (action.key === 'popout') safeCallV6544(config.onPopout, [config, instanceV6544(config.key), event]);
+  }
+
+  function renderActionsV6544(config){
+    if (!config.tools) return;
+    config.tools.innerHTML = '';
+    config.actions.forEach(function(action){
+      if (action.hidden === true) return;
+      var button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'cdaChartButtonV6544' + (action.iconOnly ? ' cdaChartButtonIconV6544' : '');
+      button.textContent = action.icon || actionLabelV6544(action);
+      button.title = action.title || actionLabelV6544(action);
+      button.setAttribute('aria-label', action.ariaLabel || button.title);
+      button.setAttribute('data-cda-chart-action', action.key);
+      if (action.pressed != null) button.setAttribute('aria-pressed', action.pressed ? 'true' : 'false');
+      if (action.disabled === true) button.disabled = true;
+      button.addEventListener('click', function(event){ runActionV6544(config, action, event); });
+      config.tools.appendChild(button);
+    });
+    config.tools.hidden = config.actions.length === 0;
+  }
+
+  function renderStateV6544(config){
+    if (!config.stateNode) return;
+    var state = config.state || 'ready';
+    var hidden = state === 'ready';
+    config.stateNode.hidden = hidden;
+    config.stateNode.setAttribute('data-state', state);
+    config.stateNode.textContent = hidden ? '' : (config.stateMessage || (state === 'loading' ? 'Loading...' : state === 'empty' ? 'No data available.' : 'Unable to render chart.'));
+  }
+
+  function renderSelectionV6544(config){
+    if (!config.frame) return;
+    config.frame.setAttribute('data-cda-chart-selected', config.selected ? '1' : '0');
+  }
+
+  function baseOptionsV6544(config){
+    return {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: false,
+      normalized: true,
+      interaction: {
+        mode: 'nearest',
+        intersect: true
+      },
+      plugins: {
+        legend: {
+          display: true,
+          position: 'top',
+          align: 'start',
+          labels: {
+            color: '#475467',
+            boxWidth: 10,
+            boxHeight: 10,
+            padding: 12,
+            font: { family: 'Roboto, Arial, sans-serif', size: 10, weight: '700' }
+          }
+        },
+        tooltip: {
+          enabled: true,
+          backgroundColor: '#172033',
+          titleColor: '#ffffff',
+          bodyColor: '#ffffff',
+          borderColor: '#344054',
+          borderWidth: 1,
+          padding: 10,
+          cornerRadius: 7,
+          titleFont: { family: 'Roboto, Arial, sans-serif', size: 11, weight: '900' },
+          bodyFont: { family: 'Roboto, Arial, sans-serif', size: 11, weight: '700' }
+        }
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          border: { color: '#d0d5dd' },
+          ticks: { color: '#667085', font: { family: 'Roboto, Arial, sans-serif', size: 10, weight: '700' } }
+        },
+        y: {
+          beginAtZero: true,
+          grid: { color: 'rgba(71, 84, 103, .14)', drawBorder: false },
+          border: { display: false },
+          ticks: { color: '#667085', font: { family: 'Roboto, Arial, sans-serif', size: 10, weight: '700' } }
+        }
+      }
+    };
+  }
+
+  function chartContextV6544(config){
+    return {
+      key: config.key,
+      config: config,
+      canvas: resolveCanvasV6544(config),
+      instance: instanceV6544(config.key),
+      selected: config.selected,
+      module: apiV6544
+    };
+  }
+
+  function chartDataV6544(config){
+    var source = typeof config.data === 'function'
+      ? safeCallV6544(config.data, [chartContextV6544(config)], { labels: [], datasets: [] })
+      : config.data;
+    return cloneV6544(source || { labels: [], datasets: [] });
+  }
+
+  function chartOptionsV6544(config){
+    var custom = typeof config.options === 'function'
+      ? safeCallV6544(config.options, [chartContextV6544(config)], {})
+      : config.options;
+    var options = mergeV6544(baseOptionsV6544(config), custom || {});
+    var existingClick = options.onClick;
+    if (typeof config.onElementClick === 'function' || typeof existingClick === 'function') {
+      options.onClick = function(event, elements, chart){
+        var additive = !!(event && event.native && (event.native.ctrlKey || event.native.metaKey || event.native.shiftKey));
+        if (typeof existingClick === 'function') existingClick.call(this, event, elements, chart);
+        if (typeof config.onElementClick === 'function') {
+          config.onElementClick({
+            event: event,
+            nativeEvent: event && event.native,
+            elements: elements || [],
+            chart: chart,
+            config: config,
+            additive: additive
+          });
+        }
+      };
+    }
+    return options;
+  }
+
+  function destroyV6544(key){
+    var instance = instancesV6544.get(String(key));
+    if (instance && typeof instance.destroy === 'function') {
+      try { instance.destroy(); } catch (error) {}
+    }
+    instancesV6544.delete(String(key));
+  }
+
+  function renderV6544(key){
+    var config = registryV6544.get(String(key));
+    if (!config) return null;
+    var canvas = resolveCanvasV6544(config);
+    if (!canvas) return null;
+    ensureFrameV6544(config, canvas);
+    renderStateV6544(config);
+    if (config.state !== 'ready') {
+      destroyV6544(config.key);
+      return null;
+    }
+    if (!window.Chart) throw new Error('Chart.js is required before rendering ' + config.key + '.');
+
+    var context = chartContextV6544(config);
+    safeCallV6544(config.beforeRender, [context]);
+    destroyV6544(config.key);
+
+    var chartConfig = {
+      type: typeof config.type === 'function' ? config.type(context) : config.type,
+      data: chartDataV6544(config),
+      options: chartOptionsV6544(config),
+      plugins: config.plugins.slice()
+    };
+    if (typeof config.extendChartConfig === 'function') {
+      chartConfig = config.extendChartConfig(chartConfig, context) || chartConfig;
+    }
+
+    var instance = typeof config.createChart === 'function'
+      ? config.createChart(canvas, chartConfig, context)
+      : new window.Chart(canvas.getContext('2d'), chartConfig);
+    instancesV6544.set(config.key, instance);
+    context.instance = instance;
+    safeCallV6544(config.afterRender, [context]);
+    document.dispatchEvent(new CustomEvent('cdaChartRendered', { detail: { key: config.key, instance: instance } }));
+    return instance;
+  }
+
+  function registerV6544(input){
+    var config = normalizeV6544(input);
+    if (registryV6544.has(config.key)) destroyV6544(config.key);
+    registryV6544.set(config.key, config);
+    if (config.autoRender !== false) renderV6544(config.key);
+    return config;
+  }
+
+  function unregisterV6544(key){
+    key = String(key);
+    destroyV6544(key);
+    return registryV6544.delete(key);
+  }
+
+  function updateV6544(key, patch, rerender){
+    key = String(key);
+    var current = registryV6544.get(key);
+    if (!current) return null;
+    var next = normalizeV6544(Object.assign({}, current, patch || {}, { key: key }));
+    registryV6544.set(key, next);
+    if (rerender !== false) renderV6544(key);
+    return next;
+  }
+
+  function setDataV6544(key, data, rerender){
+    return updateV6544(key, { data: data }, rerender);
+  }
+
+  function setStateV6544(key, state, message){
+    key = String(key);
+    var config = registryV6544.get(key);
+    if (!config) return null;
+    config.state = state || 'ready';
+    config.stateMessage = message || '';
+    if (config.state === 'ready') return renderV6544(key);
+    var canvas = resolveCanvasV6544(config);
+    if (canvas) ensureFrameV6544(config, canvas);
+    renderStateV6544(config);
+    destroyV6544(key);
+    return null;
+  }
+
+  function setSelectionV6544(key, selected, detail){
+    key = String(key);
+    var config = registryV6544.get(key);
+    if (!config) return;
+    config.selected = selected === true;
+    config.selectionDetail = detail;
+    renderSelectionV6544(config);
+    safeCallV6544(config.onSelectionChange, [config.selected, detail, config]);
+  }
+
+  function clearSelectionV6544(key){
+    setSelectionV6544(key, false, null);
+    var config = registryV6544.get(String(key));
+    safeCallV6544(config && config.onClearSelection, [config]);
+  }
+
+  function resetV6544(key){
+    var config = registryV6544.get(String(key));
+    if (!config) return;
+    safeCallV6544(config.onReset, [config, instanceV6544(config.key)]);
+    if (config.rerenderOnReset !== false) renderV6544(config.key);
+  }
+
+  function csvEscapeV6544(value){
+    var text = String(value == null ? '' : value);
+    return /[",\r\n]/.test(text) ? '"' + text.replace(/"/g, '""') + '"' : text;
+  }
+
+  function csvRowsV6544(config){
+    if (typeof config.exportRows === 'function') return config.exportRows(chartContextV6544(config)) || [];
+    var data = chartDataV6544(config);
+    var labels = data.labels || [];
+    var datasets = data.datasets || [];
+    var rows = [['Label'].concat(datasets.map(function(dataset){ return dataset.label || 'Series'; }))];
+    labels.forEach(function(label, index){
+      rows.push([label].concat(datasets.map(function(dataset){
+        var value = dataset.data && dataset.data[index];
+        return value && typeof value === 'object' && value.y != null ? value.y : value;
+      })));
+    });
+    return rows;
+  }
+
+  function exportCsvV6544(key){
+    var config = registryV6544.get(String(key));
+    if (!config) return '';
+    var csv = csvRowsV6544(config).map(function(row){ return row.map(csvEscapeV6544).join(','); }).join('\r\n');
+    try {
+      var blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+      var url = URL.createObjectURL(blob);
+      var link = document.createElement('a');
+      link.href = url;
+      link.download = config.csvFileName || (config.key.replace(/[^a-z0-9_-]+/gi, '-') + '.csv');
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(function(){ URL.revokeObjectURL(url); }, 0);
+    } catch (error) {}
+    return csv;
+  }
+
+  function savePngV6544(key){
+    var config = registryV6544.get(String(key));
+    var canvas = config && resolveCanvasV6544(config);
+    if (!canvas || typeof canvas.toDataURL !== 'function') return;
+    var link = document.createElement('a');
+    link.href = canvas.toDataURL('image/png');
+    link.download = config.pngFileName || (config.key.replace(/[^a-z0-9_-]+/gi, '-') + '.png');
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  }
+
+  function copyImageV6544(key){
+    var config = registryV6544.get(String(key));
+    var canvas = config && resolveCanvasV6544(config);
+    if (!canvas || !navigator.clipboard || typeof ClipboardItem === 'undefined') return Promise.resolve(false);
+    return new Promise(function(resolve){
+      canvas.toBlob(function(blob){
+        if (!blob) return resolve(false);
+        navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]).then(function(){ resolve(true); }, function(){ resolve(false); });
+      }, 'image/png');
+    });
+  }
+
+  function renderAllV6544(){
+    registryV6544.forEach(function(config){ renderV6544(config.key); });
+  }
+
+  function configV6544(key){ return registryV6544.get(String(key)) || null; }
+  function instanceV6544(key){ return instancesV6544.get(String(key)) || null; }
+  function registeredV6544(){ return Array.from(registryV6544.keys()); }
+
+  var apiV6544 = {
+    version: VERSION_V6544,
+    register: registerV6544,
+    unregister: unregisterV6544,
+    update: updateV6544,
+    setData: setDataV6544,
+    setState: setStateV6544,
+    setSelection: setSelectionV6544,
+    clearSelection: clearSelectionV6544,
+    reset: resetV6544,
+    render: renderV6544,
+    renderAll: renderAllV6544,
+    destroy: destroyV6544,
+    exportCsv: exportCsvV6544,
+    savePng: savePngV6544,
+    copyImage: copyImageV6544,
+    config: configV6544,
+    instance: instanceV6544,
+    registered: registeredV6544,
+    defaults: baseOptionsV6544,
+    merge: mergeV6544
+  };
+
+  window.CdaSharedChartModule = apiV6544;
+  window.cdaChart = apiV6544;
+  document.dispatchEvent(new CustomEvent('cdaSharedChartModuleReady', { detail: { version: VERSION_V6544 } }));
+})();
+</script>
