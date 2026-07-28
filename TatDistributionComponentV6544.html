@@ -1,0 +1,438 @@
+<!-- TatDistributionComponentV6544.html
+From-scratch TAT Distribution component.
+
+Creates its own shared chart frame, controls, canvas, data, Chart.js instance,
+selection states, exports, pop-out, and mode handling. The legacy Distribution
+article and canvas are removed before the TAT controller renders chart data.
+-->
+<style id="cdaTatDistributionComponentStylesV6544">
+  .cdaTatDistributionHostV6544 {
+    display: flex;
+    min-width: 0;
+    min-height: 0;
+  }
+
+  .cdaTatDistributionHostV6544 > .cdaChartFrameV6544 {
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 320px;
+  }
+
+  .cdaTatDistributionHostV6544 .cdaChartCanvasWrapV6544 {
+    min-height: 270px;
+  }
+
+  @media (max-width: 760px) {
+    .cdaTatDistributionHostV6544 > .cdaChartFrameV6544 {
+      min-height: 360px;
+    }
+  }
+</style>
+<script id="cdaTatDistributionComponentControllerV6544">
+(function installTatDistributionComponentV6544(){
+  'use strict';
+
+  var COMPONENT_KEY_V6544 = 'tat.distribution';
+  var LEGACY_CANVAS_ID_V6544 = 'tatDistributionChartV6509';
+  var CANVAS_ID_V6544 = 'tatDistributionChartSharedV6544';
+  var HOST_ID_V6544 = 'tatDistributionCardHostV6544';
+  var modeV6544 = 'percent';
+  var installedV6544 = false;
+  var renderFrameV6544 = 0;
+  var latestV6544 = { labels: [], counts: [], values: [], total: 0 };
+
+  function numberV6544(value){
+    var parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+
+  function formatV6544(value, digits){
+    return numberV6544(value).toLocaleString(undefined, {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: digits == null ? 1 : digits
+    });
+  }
+
+  function stateV6544(){
+    return window.cdaTatStateV6509 || null;
+  }
+
+  function setFromV6544(value){
+    if (value instanceof Set) return value;
+    return new Set(Array.isArray(value) ? value.map(String) : []);
+  }
+
+  function selectedV6544(state, type, key){
+    var modes = state.modes || {};
+    if ((modes[type] || 'ALL') === 'ALL') return true;
+    var selected = setFromV6544((state.selected || {})[type]);
+    return selected.has(String(key));
+  }
+
+  function productGroupV6544(row){
+    return String(row && row.productsGroup || 'Unassigned');
+  }
+
+  function filterKeyV6544(type, row){
+    if (type === 'year') return String(row.year || '');
+    if (type === 'department') return String(row.productsDepartment || 'Unassigned');
+    if (type === 'product') return String(row.productId || row.productsDescription || row.productsGroup || '') + '||' + String(row.productsDescription || row.productId || row.productsGroup || '');
+    if (type === 'productGroup') return productGroupV6544(row);
+    if (type === 'customer') return String(row.customerId || row.customerName || '').trim();
+    if (type === 'reason') return String(row.remakeReason || 'Not a remake');
+    return '';
+  }
+
+  function reportingYearV6544(state){
+    var mode = (state.modes || {}).year || 'ALL';
+    var explicit = mode === 'CUSTOM'
+      ? Array.from(setFromV6544((state.selected || {}).year)).map(Number).filter(function(year){ return year === 2025 || year === 2026; })
+      : [];
+    if (explicit.length) return Math.max.apply(null, explicit);
+    var available = Array.from(new Set((state.rows || []).map(function(row){ return Number(row.year); }).filter(function(year){ return year === 2025 || year === 2026; })));
+    return available.length ? Math.max.apply(null, available) : 2026;
+  }
+
+  function monthKeyV6544(row){
+    return String(row.year || '') + '-' + String(row.monthNum || 0).padStart(2, '0');
+  }
+
+  function lateBandV6544(row){
+    if (!row.otpEligible) return '';
+    var days = numberV6544(row.daysLate);
+    if (days <= 0) return 'On time';
+    if (days <= 2) return '1-2 days late';
+    if (days <= 5) return '3-5 days late';
+    if (days <= 10) return '6-10 days late';
+    if (days <= 30) return '11-30 days late';
+    return '31+ days late';
+  }
+
+  function issueMatchesV6544(row, issue){
+    if (!issue) return true;
+    if (issue === 'Missing Date In') return row.tatIssue === 'Missing Date In';
+    if (issue === 'Completion date is before Date In') return row.tatIssue === 'Completion date is before Date In';
+    if (issue === 'Missing due date') return row.tatEligible && !row.otpEligible;
+    if (issue === 'Missing hold end') return numberV6544(row.missingHoldEndCount) > 0;
+    if (issue === 'Invoice date fallback') return row.usedInvoiceDateFallback === true;
+    return true;
+  }
+
+  function filteredRowsV6544(state){
+    var filterTypes = ['year','department','product','productGroup','customer','reason'];
+    var cross = state.cross || {};
+    var months = setFromV6544(cross.months);
+    var reportingYear = reportingYearV6544(state);
+    return (state.rows || []).filter(function(row){
+      if (Number(row.year) !== reportingYear) return false;
+      if (!filterTypes.every(function(type){ return selectedV6544(state, type, filterKeyV6544(type, row)); })) return false;
+      if (months.size && !months.has(monthKeyV6544(row))) return false;
+      if (cross.lateBand && lateBandV6544(row) !== cross.lateBand) return false;
+      if (cross.issue && !issueMatchesV6544(row, cross.issue)) return false;
+      return true;
+    });
+  }
+
+  function aggregateCasesV6544(rows){
+    var map = new Map();
+    (rows || []).forEach(function(row){
+      var key = String(row.caseId || row.caseNumber || '');
+      if (!key) return;
+      var item = map.get(key);
+      if (!item) {
+        item = {
+          key: key,
+          tatEligible: !!row.tatEligible,
+          businessTatDays: row.businessTatDays
+        };
+        map.set(key, item);
+      } else {
+        item.tatEligible = item.tatEligible || !!row.tatEligible;
+        if (!Number.isFinite(Number(item.businessTatDays)) && Number.isFinite(Number(row.businessTatDays))) {
+          item.businessTatDays = row.businessTatDays;
+        }
+      }
+    });
+    return Array.from(map.values());
+  }
+
+  function distributionV6544(){
+    var state = stateV6544();
+    if (!state) return { labels: [], counts: [], values: [], total: 0 };
+    var cases = aggregateCasesV6544(filteredRowsV6544(state)).filter(function(row){
+      return row.tatEligible && Number.isFinite(Number(row.businessTatDays));
+    });
+    var allCounts = Array.from({ length: 32 }, function(){ return 0; });
+    cases.forEach(function(row){
+      var bucket = Math.min(31, Math.max(0, Math.round(numberV6544(row.businessTatDays))));
+      allCounts[bucket] += 1;
+    });
+    var lastRegular = 0;
+    for (var index = 30; index >= 0; index -= 1) {
+      if (allCounts[index] > 0) { lastRegular = index; break; }
+    }
+    var labels = Array.from({ length: lastRegular + 1 }, function(_, index){ return String(index); });
+    var counts = allCounts.slice(0, lastRegular + 1);
+    if (allCounts[31] > 0) {
+      labels.push('31+');
+      counts.push(allCounts[31]);
+    }
+    var values = counts.slice();
+    if (modeV6544 === 'percent') {
+      values = counts.map(function(value){ return cases.length ? value / cases.length * 100 : 0; });
+    } else if (modeV6544 === 'cumulative') {
+      var running = 0;
+      values = counts.map(function(value){
+        running += value;
+        return cases.length ? running / cases.length * 100 : 0;
+      });
+    }
+    return { labels: labels, counts: counts, values: values, total: cases.length };
+  }
+
+  function subtitleV6544(){
+    if (modeV6544 === 'cases') return 'Eligible case count by business-day bucket';
+    if (modeV6544 === 'cumulative') return 'Cumulative share completed by each business-day bucket';
+    return 'Percent of eligible cases by business-day bucket';
+  }
+
+  function selectedBucketsV6544(){
+    var state = stateV6544();
+    return setFromV6544(state && state.cross && state.cross.tatBuckets);
+  }
+
+  function chartDataV6544(){
+    latestV6544 = distributionV6544();
+    var selected = selectedBucketsV6544();
+    var hasSelection = selected.size > 0;
+    var cumulative = modeV6544 === 'cumulative';
+    return {
+      labels: latestV6544.labels,
+      datasets: [{
+        label: cumulative ? 'Cumulative completion' : 'Eligible cases',
+        data: latestV6544.values,
+        borderColor: cumulative ? '#2563eb' : function(context){
+          var label = latestV6544.labels[context.dataIndex];
+          if (selected.has(label)) return '#d97706';
+          if (hasSelection) return 'rgba(148,163,184,.34)';
+          return '#2f6fe4';
+        },
+        backgroundColor: cumulative ? 'transparent' : function(context){
+          var label = latestV6544.labels[context.dataIndex];
+          if (selected.has(label)) return 'rgba(245,158,11,.78)';
+          if (hasSelection) return 'rgba(148,163,184,.18)';
+          return '#4285f4';
+        },
+        borderWidth: cumulative ? 3.4 : 1.2,
+        fill: false,
+        borderRadius: 0,
+        borderSkipped: false,
+        tension: cumulative ? .38 : 0,
+        pointRadius: cumulative ? 2.8 : undefined,
+        pointHoverRadius: cumulative ? 4.4 : undefined,
+        pointHitRadius: cumulative ? 18 : undefined,
+        pointBackgroundColor: cumulative ? '#2563eb' : undefined,
+        pointBorderColor: '#ffffff',
+        pointBorderWidth: cumulative ? 2 : 0,
+        maxBarThickness: cumulative ? undefined : 34,
+        categoryPercentage: cumulative ? undefined : .72,
+        barPercentage: cumulative ? undefined : .82
+      }]
+    };
+  }
+
+  function chartOptionsV6544(){
+    return {
+      animation: { duration: 85, easing: 'easeOutQuad' },
+      interaction: { mode: 'index', intersect: false },
+      hover: { mode: 'index', intersect: false, animationDuration: 0 },
+      layout: { padding: { top: 14, right: 6, bottom: 0, left: 2 } },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          enabled: true,
+          position: 'average',
+          intersect: false,
+          displayColors: true,
+          caretPadding: 8,
+          callbacks: {
+            title: function(items){
+              if (!items || !items.length) return '';
+              return String(items[0].label) === '31+' ? '31+ business days' : String(items[0].label) + ' business days';
+            },
+            label: function(context){
+              return modeV6544 === 'cases' ? formatV6544(context.raw, 0) + ' cases' : formatV6544(context.raw, 1) + '%';
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: { autoSkip: latestV6544.labels.length > 18, maxTicksLimit: 18, maxRotation: 0, padding: 5 },
+          title: { display: true, text: 'Business TAT days', color: '#202124', font: { family: 'Roboto, Arial, sans-serif', size: 11, weight: '700' } }
+        },
+        y: {
+          beginAtZero: true,
+          ticks: { callback: function(value){ return modeV6544 === 'cases' ? formatV6544(value, 0) : formatV6544(value, 0) + '%'; } },
+          title: { display: true, text: modeV6544 === 'cases' ? 'Cases' : 'Percent of cases', color: '#202124', font: { family: 'Roboto, Arial, sans-serif', size: 11, weight: '700' } },
+          afterFit: function(scale){ scale.width += 16; }
+        }
+      }
+    };
+  }
+
+  function requestDashboardRenderV6544(){
+    if (typeof window.setTatDistributionModeV6509 === 'function') {
+      window.setTatDistributionModeV6509();
+      return;
+    }
+    scheduleRenderV6544();
+  }
+
+  function toggleBucketV6544(label){
+    var state = stateV6544();
+    if (!state) return;
+    if (!state.cross) state.cross = {};
+    var selected = setFromV6544(state.cross.tatBuckets);
+    if (selected.has(label)) selected.delete(label);
+    else selected.add(label);
+    state.cross.tatBuckets = selected;
+    requestDashboardRenderV6544();
+  }
+
+  function setModeV6544(mode){
+    if (['cases','percent','cumulative'].indexOf(mode) < 0) return;
+    modeV6544 = mode;
+    renderChartV6544();
+  }
+
+  function popoutV6544(){
+    var canvas = document.getElementById(CANVAS_ID_V6544);
+    if (!canvas || typeof canvas.toDataURL !== 'function') return;
+    var win = window.open('', '_blank', 'width=1200,height=760,noopener');
+    if (!win) return;
+    win.document.write('<!doctype html><html><head><title>TAT Distribution</title><style>body{font-family:Arial,sans-serif;padding:18px;color:#172033}img{max-width:100%;height:auto}</style></head><body><h2>TAT Distribution</h2><p>' + subtitleV6544() + '</p><img src="' + canvas.toDataURL('image/png') + '"></body></html>');
+    win.document.close();
+  }
+
+  function actionsV6544(){
+    return [
+      { key: 'mode-cases', label: 'Cases', pressed: modeV6544 === 'cases', onClick: function(){ setModeV6544('cases'); } },
+      { key: 'mode-percent', label: 'Percent', pressed: modeV6544 === 'percent', onClick: function(){ setModeV6544('percent'); } },
+      { key: 'mode-cumulative', label: 'Cumulative', pressed: modeV6544 === 'cumulative', onClick: function(){ setModeV6544('cumulative'); } },
+      { key: 'export', label: 'Export current' },
+      { key: 'export-all', label: 'All data', onClick: function(){ if (typeof window.exportTatAllDataV6509 === 'function') window.exportTatAllDataV6509('distribution'); } },
+      { key: 'png', label: 'PNG' },
+      { key: 'copy', label: 'Copy' },
+      { key: 'popout', label: 'Pop out', onClick: popoutV6544 },
+      { key: 'reset', icon: '↺', iconOnly: true, title: 'Reset TAT Distribution selection', ariaLabel: 'Reset TAT Distribution selection', onClick: function(){
+        var state = stateV6544();
+        if (state && state.cross) state.cross.tatBuckets = new Set();
+        requestDashboardRenderV6544();
+      } }
+    ];
+  }
+
+  function findLegacyCardV6544(){
+    var canvas = document.getElementById(LEGACY_CANVAS_ID_V6544);
+    if (!canvas || !canvas.closest) return null;
+    return canvas.closest('article');
+  }
+
+  function installDomV6544(){
+    if (installedV6544) return true;
+    if (!window.cdaChart || window.cdaChart.version !== '6.544') return false;
+    var legacyCard = findLegacyCardV6544();
+    if (!legacyCard || !legacyCard.parentNode) return false;
+
+    var host = document.createElement('div');
+    host.id = HOST_ID_V6544;
+    host.className = 'cdaTatDistributionHostV6544';
+    host.setAttribute('data-cda-component-host', COMPONENT_KEY_V6544);
+
+    var canvas = document.createElement('canvas');
+    canvas.id = CANVAS_ID_V6544;
+    canvas.setAttribute('aria-label', 'TAT Distribution chart');
+    canvas.setAttribute('role', 'img');
+    host.appendChild(canvas);
+
+    legacyCard.parentNode.insertBefore(host, legacyCard);
+    legacyCard.parentNode.removeChild(legacyCard);
+    installedV6544 = true;
+    window.CDA_TAT_DISTRIBUTION_COMPONENT_VERSION = 'v6.544';
+    return true;
+  }
+
+  function renderChartV6544(){
+    renderFrameV6544 = 0;
+    if (!installDomV6544()) return false;
+    latestV6544 = distributionV6544();
+    window.cdaChart.register({
+      key: COMPONENT_KEY_V6544,
+      canvasId: CANVAS_ID_V6544,
+      title: 'TAT Distribution',
+      subtitle: subtitleV6544(),
+      type: function(){ return modeV6544 === 'cumulative' ? 'line' : 'bar'; },
+      data: chartDataV6544,
+      options: chartOptionsV6544,
+      actions: actionsV6544(),
+      state: latestV6544.total ? 'ready' : 'empty',
+      stateMessage: latestV6544.total ? '' : 'No eligible cases match the current filters.',
+      selected: selectedBucketsV6544().size > 0,
+      csvFileName: 'tat-distribution-current.csv',
+      pngFileName: 'tat-distribution.png',
+      exportRows: function(){
+        return [['TAT Bucket','Case Count','Case Share']].concat(latestV6544.labels.map(function(label, index){
+          return [label, latestV6544.counts[index], latestV6544.total ? latestV6544.counts[index] / latestV6544.total : 0];
+        }));
+      },
+      onElementClick: function(detail){
+        var points = detail.elements && detail.elements.length ? detail.elements : [];
+        if (!points.length || !latestV6544.labels[points[0].index]) return;
+        toggleBucketV6544(latestV6544.labels[points[0].index]);
+      }
+    });
+    try {
+      document.dispatchEvent(new CustomEvent('cdaReferenceComponentRenderedV6544', {
+        detail: { key: COMPONENT_KEY_V6544, kind: 'chart', source: 'new-dom' }
+      }));
+    } catch (error) {}
+    return true;
+  }
+
+  function scheduleRenderV6544(){
+    if (renderFrameV6544) return;
+    renderFrameV6544 = window.requestAnimationFrame(renderChartV6544);
+  }
+
+  window.renderTatDistributionComponentV6544 = renderChartV6544;
+  window.auditTatDistributionComponentV6544 = function(){
+    var canvas = document.getElementById(CANVAS_ID_V6544);
+    var legacy = document.getElementById(LEGACY_CANVAS_ID_V6544);
+    var instance = window.cdaChart && window.cdaChart.instance(COMPONENT_KEY_V6544);
+    return {
+      version: 'v6.544',
+      installed: installedV6544,
+      sharedChart: !!(canvas && canvas.getAttribute('data-cda-chart-managed') === 'v6544'),
+      newCanvas: !!canvas,
+      legacyCanvasPresent: !!legacy,
+      sharedInstance: !!instance,
+      mode: modeV6544,
+      points: latestV6544.labels.length,
+      eligibleCases: latestV6544.total
+    };
+  };
+
+  document.addEventListener('cdaTableRendered', function(event){
+    if (event && event.detail && event.detail.key === 'tatDepartment') scheduleRenderV6544();
+  });
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function(){ installDomV6544(); scheduleRenderV6544(); }, { once: true });
+  } else {
+    installDomV6544();
+    scheduleRenderV6544();
+  }
+})();
+</script>
