@@ -1,87 +1,33 @@
-<!-- SharedTableStyles.html v6.535
-Single owner of table appearance for every dashboard tab at EVERY viewport width.
-Must be included last among the stylesheets, immediately after SharedTopParityStyles.
+<!-- SharedTableStyles.html v6.542
+Single owner of table appearance and table-local control appearance for every
+managed dashboard table at every viewport width.
+
+Include immediately before SharedTableModule. Dashboard-specific files may own
+layout and data behavior, but they must not redefine managed-table typography,
+header treatment, alignment, sort glyphs or table-local buttons.
 -->
 <style id="cdaSharedTableStandardV6535">
-  /*
-   * Version: v6.535 - one table appearance, all widths
-   *
-   * WHAT CHANGED FROM v6.534
-   *
-   * v6.533 and v6.534 wrapped everything in @media (min-width: 1280px). That was
-   * wrong. Below 1280px the file was completely inert, so the compact and
-   * split-screen views still showed the old divergent styling:
-   *
-   *   Remake headers  #3b556e   from .remakeTable th in DashboardBaseStyles L8589
-   *   TAT headers     #263238   from the global th rule, because TAT tables are
-   *                             .tatTableV6509 and were never covered by any
-   *                             .remakeTable scoped rule
-   *   sizes/weights   whatever RemakeResponsiveStyles or the global base supplied
-   *
-   * Different rule, different hex, different size. Hence still visibly different.
-   *
-   * v6.535 splits the file in two:
-   *
-   *   SECTION A - APPEARANCE. No media query. Applies at every width.
-   *     font-family, font-size, font-weight, line-height, colour,
-   *     header background, border colour.
-   *     These are the properties that must be identical everywhere.
-   *
-   *   SECTION B - PADDING. Scoped to min-width: 981px.
-   *     Compact and mobile deliberately use tighter cell padding so wide tables
-   *     stay usable on a narrow screen. Forcing desktop padding there would
-   *     create horizontal scrolling on every table. 981px is used, not 1280px,
-   *     because that is the breakpoint the Remake desktop rules themselves use.
-   *
-   * Owner:   Shared. This file is the authoritative source for table appearance.
-   *
-   * Approved standard, identical on every tab at every width:
-   *   header  background #172033, colour #ffffff, weight 900, 10.5px/1.2
-   *   cell    11px/1.25, weight 400, colour #172033
-   *   borders header #2a3a4f, cell #e4e7ec
-   *   family  Roboto, Arial, sans-serif
-   *   padding 6px 8px at 981px and above; owned elsewhere below that
-   *
-   * SAFETY NOTES - read before editing:
-   *
-   * 1. Include position. This file MUST be included last among the stylesheets,
-   *    immediately after SharedTopParityStyles. Competing rules are injected at
-   *    runtime by scripts inside Index.html, which land after every static
-   *    stylesheet, so cascade position alone is not enough. This file must also
-   *    win on specificity, which is why the selectors look heavier than needed.
-   *
-   * 2. Two-ID selectors for the four named Remake tables are required. The
-   *    injected block remakeV6317LayoutBalanceStyles targets
-   *    #remakeFactorPage #remakeDepartmentTable th with two IDs, specificity
-   *    (2,2,1). A one-ID rule loses to it no matter how many classes it carries,
-   *    because ID count is compared first.
-   *
-   * 3. Doubled class selectors (.remakeTable.remakeTable) are intentional. They
-   *    raise specificity without changing what is matched. Do not "clean up".
-   *
-   * 4. .tatTableV6509 is listed separately on purpose. TAT tables do not carry
-   *    the .remakeTable class and have no id, so every .remakeTable scoped rule
-   *    in the codebase misses them entirely.
-   *
-   * 5. Deliberately NOT declared here, because other files own them and
-   *    overriding them breaks working behaviour:
-   *      text-align            per-column alignment
-   *      width / min-width     column geometry and table minimum widths
-   *      position / top / z-index   sticky headers, frozen first columns
-   *      overflow / text-overflow / white-space
-   *      row-state background  hover, selected, pinned, dimmed, section rows
-   *      td background         row striping
-   *
-   * 6. Row striping is deliberately untouched. Overview stripes #fafafa and
-   *    Remake stripes #f9fafb, one shade apart. Unifying it means excluding
-   *    every row-state class and belongs in its own reviewed change.
-   */
+  :root {
+    --cda-table-font-family-v6542: Roboto, Arial, sans-serif;
+    --cda-table-cell-font-size-v6542: 11px;
+    --cda-table-cell-line-height-v6542: 1.25;
+    --cda-table-header-font-size-v6542: 10.5px;
+    --cda-table-header-line-height-v6542: 1.2;
+    --cda-table-header-background-v6542: #172033;
+    --cda-table-header-border-v6542: #2a3a4f;
+    --cda-table-cell-border-v6542: #e4e7ec;
+    --cda-table-text-v6542: #172033;
+    --cda-table-button-height-v6542: 32px;
+    --cda-table-button-radius-v6542: 7px;
+  }
 
   /* ==================================================================
-     SECTION A - APPEARANCE. Every width. No media query.
+     SECTION A - APPEARANCE. Every width.
      ================================================================== */
 
-  /* ---- A1. Table typography baseline ---- */
+  /* Table typography baseline. data-cda-managed is the durable contract for
+     current and future tables; legacy selectors remain for pre-module tables. */
+  html body table[data-cda-managed],
   html body #overviewOne table,
   html body #overviewOne .moverArea.moverArea table,
   html body #overviewTwo table,
@@ -92,30 +38,29 @@ Must be included last among the stylesheets, immediately after SharedTopParitySt
   html body #remakeFactorPage #remakeCeramistDetailTableV6343,
   html body #tatDashboardPageV6509 #remakeCeramistTableV6342,
   html body #tatDashboardPageV6509 #remakeCeramistDetailTableV6343 {
-    font-family: Roboto, Arial, sans-serif !important;
-    font-size: 11px !important;
-    line-height: 1.25 !important;
+    font-family: var(--cda-table-font-family-v6542) !important;
+    font-size: var(--cda-table-cell-font-size-v6542) !important;
+    line-height: var(--cda-table-cell-line-height-v6542) !important;
   }
 
-  /* ---- A2. Header cells, one ID scope ---- */
+  /* Header cells, one-ID and managed-table scope. */
+  html body table[data-cda-managed] th,
   html body #overviewOne th,
   html body #overviewOne .moverArea.moverArea th,
   html body #overviewTwo th,
   html body #remakeFactorPage .remakeTable.remakeTable th,
   html body #tatDashboardPageV6509 .remakeTable.remakeTable th,
   html body #tatDashboardPageV6509 .tatTableV6509.tatTableV6509 th {
-    background: #172033 !important;
+    background: var(--cda-table-header-background-v6542) !important;
     color: #ffffff !important;
-    font-family: Roboto, Arial, sans-serif !important;
-    font-size: 10.5px !important;
+    font-family: var(--cda-table-font-family-v6542) !important;
+    font-size: var(--cda-table-header-font-size-v6542) !important;
     font-weight: 900 !important;
-    line-height: 1.2 !important;
-    border-color: #2a3a4f !important;
+    line-height: var(--cda-table-header-line-height-v6542) !important;
+    border-color: var(--cda-table-header-border-v6542) !important;
   }
 
-  /* ---- A3. Header cells, two ID scope.
-            Beats remakeV6317LayoutBalanceStyles and the sticky first-header
-            background overrides in RemakeResponsiveStyles. ---- */
+  /* Two-ID scope is required to beat legacy injected Remake selectors. */
   html body #remakeFactorPage #remakeDepartmentTable.remakeTable.remakeTable th,
   html body #remakeFactorPage #remakeReasonTable.remakeTable.remakeTable th,
   html body #remakeFactorPage #remakeProductTable.remakeTable.remakeTable th,
@@ -130,29 +75,30 @@ Must be included last among the stylesheets, immediately after SharedTopParitySt
   html body #remakeFactorPage #remakeCustomerTable.remakeTable.remakeTable thead th:first-child,
   html body #remakeFactorPage #remakeCeramistTableV6342 thead th:first-child,
   html body #remakeFactorPage #remakeCeramistDetailTableV6343 thead th:first-child {
-    background: #172033 !important;
+    background: var(--cda-table-header-background-v6542) !important;
     color: #ffffff !important;
-    font-family: Roboto, Arial, sans-serif !important;
-    font-size: 10.5px !important;
+    font-family: var(--cda-table-font-family-v6542) !important;
+    font-size: var(--cda-table-header-font-size-v6542) !important;
     font-weight: 900 !important;
-    line-height: 1.2 !important;
-    border-color: #2a3a4f !important;
+    line-height: var(--cda-table-header-line-height-v6542) !important;
+    border-color: var(--cda-table-header-border-v6542) !important;
   }
 
-  /* ---- A4. Data cells, one ID scope. Type and borders only. ---- */
+  /* Data cells, one-ID and managed-table scope. */
+  html body table[data-cda-managed] td,
   html body #overviewOne td,
   html body #overviewOne .moverArea.moverArea td,
   html body #overviewTwo td,
   html body #remakeFactorPage .remakeTable.remakeTable td,
   html body #tatDashboardPageV6509 .remakeTable.remakeTable td,
   html body #tatDashboardPageV6509 .tatTableV6509.tatTableV6509 td {
-    font-family: Roboto, Arial, sans-serif !important;
-    font-size: 11px !important;
-    line-height: 1.25 !important;
-    border-color: #e4e7ec !important;
+    font-family: var(--cda-table-font-family-v6542) !important;
+    font-size: var(--cda-table-cell-font-size-v6542) !important;
+    line-height: var(--cda-table-cell-line-height-v6542) !important;
+    border-color: var(--cda-table-cell-border-v6542) !important;
   }
 
-  /* ---- A5. Data cells, two ID scope ---- */
+  /* Data cells, two-ID scope. */
   html body #remakeFactorPage #remakeDepartmentTable.remakeTable.remakeTable td,
   html body #remakeFactorPage #remakeReasonTable.remakeTable.remakeTable td,
   html body #remakeFactorPage #remakeProductTable.remakeTable.remakeTable td,
@@ -161,15 +107,15 @@ Must be included last among the stylesheets, immediately after SharedTopParitySt
   html body #remakeFactorPage #remakeCeramistDetailTableV6343 td,
   html body #tatDashboardPageV6509 #remakeCeramistTableV6342 td,
   html body #tatDashboardPageV6509 #remakeCeramistDetailTableV6343 td {
-    font-family: Roboto, Arial, sans-serif !important;
-    font-size: 11px !important;
-    line-height: 1.25 !important;
-    border-color: #e4e7ec !important;
+    font-family: var(--cda-table-font-family-v6542) !important;
+    font-size: var(--cda-table-cell-font-size-v6542) !important;
+    line-height: var(--cda-table-cell-line-height-v6542) !important;
+    border-color: var(--cda-table-cell-border-v6542) !important;
   }
 
-  /* ---- A6. Data cell colour and weight.
-            .negative and .positive excluded so red and green figures keep
-            their colour and their heavier weight. ---- */
+  /* Standard data-cell colour and weight. Positive/negative cells retain
+     their semantic treatment in the preserve rules below. */
+  html body table[data-cda-managed] td:not(.negative):not(.positive),
   html body #overviewOne td:not(.negative):not(.positive),
   html body #overviewOne .moverArea.moverArea td:not(.negative):not(.positive),
   html body #overviewTwo tbody tr:not(.pinned) > td:not(.negative):not(.positive),
@@ -180,25 +126,27 @@ Must be included last among the stylesheets, immediately after SharedTopParitySt
   html body #remakeFactorPage #remakeReasonTable.remakeTable.remakeTable td:not(.negative):not(.positive),
   html body #remakeFactorPage #remakeProductTable.remakeTable.remakeTable td:not(.negative):not(.positive),
   html body #remakeFactorPage #remakeCustomerTable.remakeTable.remakeTable td:not(.negative):not(.positive) {
-    color: #172033 !important;
+    color: var(--cda-table-text-v6542) !important;
     font-weight: 400 !important;
   }
 
-  /* ---- A7. In-cell name text matches the cell scale ---- */
+  /* In-cell names match the standard cell scale. */
+  html body table[data-cda-managed] .customerNameText,
+  html body table[data-cda-managed] .remakeNameText,
+  html body table[data-cda-managed] .productNameText,
   html body #remakeFactorPage .remakeTable.remakeTable .customerNameText,
   html body #remakeFactorPage .remakeTable.remakeTable .remakeNameText,
   html body #remakeFactorPage .remakeTable.remakeTable .productNameText,
   html body #tatDashboardPageV6509 .remakeTable.remakeTable .customerNameText,
   html body #tatDashboardPageV6509 .remakeTable.remakeTable .remakeNameText,
-  html body #tatDashboardPageV6509 .remakeTable.remakeTable .productNameText,
-  html body #remakeFactorPage #remakeDepartmentTable.remakeTable.remakeTable .remakeNameText,
-  html body #remakeFactorPage #remakeProductTable.remakeTable.remakeTable .productNameText,
-  html body #remakeFactorPage #remakeCustomerTable.remakeTable.remakeTable .customerNameText {
-    font-size: 11px !important;
-    line-height: 1.25 !important;
+  html body #tatDashboardPageV6509 .remakeTable.remakeTable .productNameText {
+    font-size: var(--cda-table-cell-font-size-v6542) !important;
+    line-height: var(--cda-table-cell-line-height-v6542) !important;
   }
 
-  /* ---- A8. In-cell badges stay small but consistent ---- */
+  /* In-cell badges stay small but consistent. */
+  html body table[data-cda-managed] .inactiveBadge,
+  html body table[data-cda-managed] .ceramistNoteBadgeV6343,
   html body #remakeFactorPage .remakeTable.remakeTable .inactiveBadge,
   html body #remakeFactorPage .remakeTable.remakeTable .ceramistNoteBadgeV6343,
   html body #tatDashboardPageV6509 .remakeTable.remakeTable .inactiveBadge,
@@ -209,23 +157,23 @@ Must be included last among the stylesheets, immediately after SharedTopParitySt
 
   /* ==================================================================
      SECTION B - PADDING. 981px and above only.
-     Compact and mobile keep their own tighter padding on purpose.
      ================================================================== */
-
   @media (min-width: 981px) {
-
+    html body table[data-cda-managed] th,
+    html body table[data-cda-managed] td,
     html body #overviewOne th,
     html body #overviewOne .moverArea.moverArea th,
     html body #overviewTwo th,
-    html body #remakeFactorPage .remakeTable.remakeTable th,
-    html body #tatDashboardPageV6509 .remakeTable.remakeTable th,
-    html body #tatDashboardPageV6509 .tatTableV6509.tatTableV6509 th,
     html body #overviewOne td,
     html body #overviewOne .moverArea.moverArea td,
     html body #overviewTwo td,
+    html body #remakeFactorPage .remakeTable.remakeTable th,
     html body #remakeFactorPage .remakeTable.remakeTable td,
+    html body #tatDashboardPageV6509 .remakeTable.remakeTable th,
     html body #tatDashboardPageV6509 .remakeTable.remakeTable td,
-    html body #tatDashboardPageV6509 .tatTableV6509.tatTableV6509 td {
+    html body #tatDashboardPageV6509 .tatTableV6509.tatTableV6509 th,
+    html body #tatDashboardPageV6509 .remakeTable.remakeTable td,
+    html body #tatDashboardPageV6509 .remakeTable.remakeTable td {
       padding: 6px 8px !important;
     }
 
@@ -247,19 +195,11 @@ Must be included last among the stylesheets, immediately after SharedTopParitySt
     html body #tatDashboardPageV6509 #remakeCeramistDetailTableV6343 td {
       padding: 6px 8px !important;
     }
-
   }
 
   /* ==================================================================
      SECTION C - PRESERVE RULES.
-     Sections A and B are heavier than the rules that used to own these
-     elements, so their intended treatment is restated here at higher
-     specificity. Without this block the ceramist section bands would
-     flatten to normal body text and Overview 2.0 pinned rows would lose
-     their weight.
-     ================================================================== */
-
-  /* Ceramist grey uppercase section bands */
+     ================================================================= */
   html body #remakeFactorPage #remakeCeramistTableV6342 tbody tr.ceramistSectionRowV6348 > td,
   html body #remakeFactorPage #remakeCeramistDetailTableV6343 tbody tr.ceramistSectionRowV6348 > td,
   html body #tatDashboardPageV6509 #remakeCeramistTableV6342 tbody tr.ceramistSectionRowV6348 > td,
@@ -271,12 +211,12 @@ Must be included last among the stylesheets, immediately after SharedTopParitySt
     text-transform: uppercase !important;
   }
 
-  /* Overview 2.0 pinned rows keep their heavier weight */
   html body #overviewTwo tbody tr.pinned.pinned > td {
     font-weight: 850 !important;
   }
 
-  /* Red and green figures keep their weight */
+  html body table[data-cda-managed] td.negative,
+  html body table[data-cda-managed] td.positive,
   html body #overviewOne td.negative,
   html body #overviewOne td.positive,
   html body #overviewOne .moverArea.moverArea td.negative,
@@ -288,5 +228,188 @@ Must be included last among the stylesheets, immediately after SharedTopParitySt
   html body #tatDashboardPageV6509 .remakeTable.remakeTable td.negative,
   html body #tatDashboardPageV6509 .remakeTable.remakeTable td.positive {
     font-weight: 800 !important;
+  }
+
+  /* ==================================================================
+     SECTION D - MANAGED TABLE COMPONENT CONTRACT.
+     This is the only visual owner for module-managed header alignment, sort
+     glyphs, table frames, fixed-width layout and table-local controls.
+     ================================================================== */
+  html body table[data-cda-managed] thead th:first-child {
+    text-align: left !important;
+    padding-left: 5px !important;
+    padding-right: 18px !important;
+    white-space: nowrap !important;
+  }
+
+  html body table[data-cda-managed] thead th:not(:first-child) {
+    text-align: center !important;
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+    white-space: nowrap !important;
+  }
+
+  html body table[data-cda-managed] tbody td:not(:first-child) {
+    text-align: right !important;
+  }
+
+  html body table[data-cda-managed] thead .sortGlyphV6230 {
+    position: absolute !important;
+    right: 4px !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    display: block !important;
+    width: auto !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    opacity: 1 !important;
+    line-height: 1 !important;
+  }
+
+  html body table[data-cda-managed] thead th.sortableV6230 {
+    position: sticky !important;
+    cursor: pointer !important;
+    user-select: none !important;
+  }
+
+  html body table[data-cda-managed][data-cda-fixed-layout="1"] {
+    width: 100% !important;
+    table-layout: fixed !important;
+  }
+
+  html body table[data-cda-managed] tbody tr.cdaChildRowV6540 > td:first-child {
+    padding-left: 18px !important;
+  }
+
+  html body table[data-cda-managed] tbody tr.cdaChildRowV6540 {
+    cursor: default;
+  }
+
+  html body table[data-cda-managed] tbody td.cdaEmptyV6540 {
+    text-align: center !important;
+    opacity: .7;
+  }
+
+  .cdaTableFrameV6542 {
+    position: relative;
+    display: block;
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+
+  .cdaTableToolsV6542 {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    width: 100%;
+    min-height: var(--cda-table-button-height-v6542);
+    padding: 4px 4px 5px;
+    box-sizing: border-box;
+  }
+
+  .cdaTableToolsV6542[hidden] {
+    display: none !important;
+  }
+
+  .cdaTableButtonV6542 {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-height: var(--cda-table-button-height-v6542) !important;
+    box-sizing: border-box !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: var(--cda-table-button-radius-v6542) !important;
+    background: #ffffff !important;
+    color: #334155 !important;
+    font: 800 11px/1 var(--cda-table-font-family-v6542) !important;
+    padding: 0 10px !important;
+    cursor: pointer !important;
+    white-space: nowrap !important;
+    box-shadow: none !important;
+  }
+
+  .cdaTableButtonV6542:hover,
+  .cdaTableButtonV6542:focus-visible,
+  .cdaTableButtonV6542[aria-expanded="true"] {
+    background: #fff7d6 !important;
+    border-color: #f2c94c !important;
+    color: #7a4a00 !important;
+  }
+
+  .cdaTableButtonV6542:focus-visible {
+    outline: 2px solid rgba(37, 99, 235, .25) !important;
+    outline-offset: 2px !important;
+  }
+
+  .cdaTableButtonIconV6542 {
+    width: var(--cda-table-button-height-v6542) !important;
+    min-width: var(--cda-table-button-height-v6542) !important;
+    padding: 0 !important;
+    font-size: 15px !important;
+  }
+
+  .cdaTableButtonSmallV6542 {
+    min-height: 26px !important;
+    height: 26px !important;
+    border-radius: 6px !important;
+    padding: 0 8px !important;
+    font-size: 10px !important;
+  }
+
+  .cdaColChooserPopoverV6542 {
+    position: fixed;
+    z-index: 9200;
+    min-width: 190px;
+    max-width: 260px;
+    max-height: 340px;
+    overflow-y: auto;
+    box-sizing: border-box;
+    padding: 6px 0;
+    border: 1px solid #d0d5dd;
+    border-radius: 8px;
+    background: #ffffff;
+    color: #344054;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, .12);
+    font: 400 11px/1.4 var(--cda-table-font-family-v6542);
+  }
+
+  .cdaColChooserPopoverV6542 label {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 6px 12px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  .cdaColChooserPopoverV6542 label:hover {
+    background: #f9fafb;
+  }
+
+  .cdaColChooserPopoverV6542 input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    accent-color: #d89b00;
+    cursor: pointer;
+  }
+
+  .cdaChooserHeaderV6542 {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 4px 10px 7px 12px;
+    margin-bottom: 4px;
+    border-bottom: 1px solid #eaecf0;
+    color: #475467;
+    font: 900 11px/1 var(--cda-table-font-family-v6542);
+  }
+
+  @media (max-width: 760px) {
+    .cdaTableToolsV6542 {
+      padding-right: 2px;
+    }
   }
 </style>
