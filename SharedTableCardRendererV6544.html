@@ -1,4 +1,4 @@
-<!-- SharedTableCardRendererV6544.html
+﻿<!-- SharedTableCardRendererV6544.html
 Presentation-only renderer for resolved shared table runtime configurations.
 Table identity, DOM resolution, registration, and lifecycle are owned elsewhere.
 -->
@@ -180,7 +180,12 @@ Table identity, DOM resolution, registration, and lifecycle are owned elsewhere.
 (function installSharedTableCardRendererV6544(){
   'use strict';
 
-  if (window.cdaSharedTableCardRendererV6544) return;
+  var existingRendererV6544 = window.cdaSharedTableCardRendererV6544;
+  if (
+    existingRendererV6544 &&
+    typeof existingRendererV6544.render === 'function' &&
+    typeof existingRendererV6544.audit === 'function'
+  ) return;
 
   var VERSION_V6544 = 'v6.544';
   var RENDERER_V6544 = 'renderSharedTableCardV6544';
@@ -272,7 +277,7 @@ Table identity, DOM resolution, registration, and lifecycle are owned elsewhere.
     actions.push(buttonV6544('Pop out', 'remakeMiniButtonV6230', function(){
       if (typeof window.popoutTatComponentV6509 === 'function') window.popoutTatComponentV6509(config.component);
     }));
-    actions.push(buttonV6544('↺', 'remakeMiniButtonV6230 backButtonV6266', function(){
+    actions.push(buttonV6544('â†º', 'remakeMiniButtonV6230 backButtonV6266', function(){
       if (typeof window.clearTatComponentV6509 === 'function') window.clearTatComponentV6509(config.component);
     }, 'Reset this selection'));
     return actions;
@@ -301,7 +306,7 @@ Table identity, DOM resolution, registration, and lifecycle are owned elsewhere.
     }, 'Collapse or expand ' + config.title);
     if (config.collapseButtonId) button.id = config.collapseButtonId;
     button.setAttribute('aria-expanded', 'true');
-    var chevron = nodeV6544('span', 'remakeSectionChevronV6402', '▾');
+    var chevron = nodeV6544('span', 'remakeSectionChevronV6402', 'â–¾');
     chevron.setAttribute('aria-hidden', 'true');
     button.appendChild(chevron);
     return button;
@@ -456,3 +461,4 @@ Table identity, DOM resolution, registration, and lifecycle are owned elsewhere.
   });
 })();
 </script>
+

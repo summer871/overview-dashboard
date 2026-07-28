@@ -1,4 +1,4 @@
-<!-- SharedTableConfigV6544.html
+﻿<!-- SharedTableConfigV6544.html
 Defines the repository-aware configuration contract for shared table definitions.
 Static definitions identify existing dashboard DOM and may provide a resolver that
 builds the renderer's runtime configuration after dynamic markup exists.
@@ -7,7 +7,12 @@ builds the renderer's runtime configuration after dynamic markup exists.
 (function installSharedTableConfigV6544(){
   'use strict';
 
-  if (window.cdaSharedTableConfigV6544) return;
+  var existingConfigV6544 = window.cdaSharedTableConfigV6544;
+  if (
+    existingConfigV6544 &&
+    typeof existingConfigV6544.normalize === 'function' &&
+    typeof existingConfigV6544.validate === 'function'
+  ) return;
 
   var VERSION_V6544 = 'v6.544';
   var SUPPORTED_PAGES_V6544 = Object.freeze({ tat:true, remake:true });
@@ -142,3 +147,4 @@ builds the renderer's runtime configuration after dynamic markup exists.
   });
 })();
 </script>
+
