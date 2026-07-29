@@ -1,9 +1,16 @@
 <!-- SharedComponentFoundation.html
-Version: v6.546
+Version: v6.547
 Date: 2026-07-29
-Purpose: Load the existing shared table runtime once, then install the validated single-file TAT platform.
-The legacy registry adapters, mutation bootstrap, duplicate TAT chart component, and split script fragments are excluded.
+Purpose: Load the shared dashboard platform in dependency order, then register TAT as a configuration-driven tab.
+Every included file is a complete independently valid Apps Script HTML partial.
 -->
 <?!= includeDashboardFile('SharedTableStyles') ?>
 <?!= includeDashboardFile('SharedTableModule') ?>
-<?!= includeDashboardFile('SharedTableCardRendererV6546') ?>
+<?!= includeDashboardFile('SharedDashboardRegistryV6547') ?>
+<?!= includeDashboardFile('SharedDashboardPopoverV6547') ?>
+<?!= includeDashboardFile('SharedDashboardKpiV6547') ?>
+<?!= includeDashboardFile('SharedDashboardFeaturesV6547') ?>
+<?!= includeDashboardFile('SharedDashboardRendererV6547') ?>
+<?!= includeDashboardFile('TatDashboardAdapterV6547') ?>
+<?!= includeDashboardFile('TatDashboardDefinitionV6547') ?>
+<?!= includeDashboardFile('TatDashboardBootstrapV6547') ?>
