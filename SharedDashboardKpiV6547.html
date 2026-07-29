@@ -1,0 +1,107 @@
+<!-- SharedDashboardKpiV6547.html
+Version: v6.547
+Date: 2026-07-29
+Purpose: Reusable KPI visibility chooser for any configured dashboard tab.
+-->
+<script id="cdaSharedDashboardKpiControllerV6547">
+(function installSharedDashboardKpiV6547(){
+  'use strict';
+
+  if (window.cdaDashboardKpiV6547) return;
+
+  function storageKey(config){
+    return config.storageKey || ('cdaDashboardKpis.' + config.tabKey);
+  }
+
+  function allKeys(config){
+    return (config.items || []).map(function(item){ return String(item.key); });
+  }
+
+  function read(config){
+    try {
+      const saved = JSON.parse(localStorage.getItem(storageKey(config)) || 'null');
+      if (saved && Array.isArray(saved.visible)) return new Set(saved.visible.map(String));
+    } catch (error) {}
+    return new Set(allKeys(config));
+  }
+
+  function write(config, visible){
+    try {
+      localStorage.setItem(storageKey(config), JSON.stringify({ visible:Array.from(visible || []) }));
+    } catch (error) {}
+  }
+
+  function apply(config){
+    const visible = read(config);
+    let visibleCount = 0;
+    (config.items || []).forEach(function(item){
+      const valueNode = document.getElementById(item.valueId);
+      const card = valueNode && valueNode.closest ? valueNode.closest(config.cardSelector || '.tatKpiV6509') : null;
+      if (!card) return;
+      const show = visible.has(String(item.key));
+      card.classList.toggle(config.hiddenClass || 'remakeKpiHiddenV6403', !show);
+      card.setAttribute('aria-hidden', show ? 'false' : 'true');
+      if (show) visibleCount += 1;
+    });
+    const strip = config.stripSelector ? document.querySelector(config.stripSelector) : null;
+    if (strip) strip.classList.toggle(config.allHiddenClass || 'remakeKpisAllHiddenV6403', visibleCount === 0);
+    return visibleCount;
+  }
+
+  function open(config, button){
+    const popoverApi = window.cdaDashboardPopoverV6547;
+    if (!popoverApi || !button) return;
+    if (popoverApi.isOpenFor(button)) {
+      popoverApi.close();
+      return;
+    }
+    const popover = popoverApi.open(button, {
+      label:'Choose KPI cards',
+      title:'KPI cards'
+    });
+    (config.items || []).forEach(function(item){
+      const label = document.createElement('label');
+      const input = document.createElement('input');
+      const text = document.createElement('span');
+      input.type = 'checkbox';
+      input.checked = read(config).has(String(item.key));
+      input.addEventListener('change', function(){
+        const next = read(config);
+        if (input.checked) next.add(String(item.key));
+        else next.delete(String(item.key));
+        write(config, next);
+        apply(config);
+      });
+      text.textContent = item.label || item.key;
+      label.append(input, text);
+      popover.appendChild(label);
+    });
+    popoverApi.position();
+  }
+
+  function bind(config){
+    const button = document.getElementById(config.buttonId);
+    if (!button || button.getAttribute('data-cda-kpi-bound') === 'true') {
+      apply(config);
+      return;
+    }
+    button.setAttribute('data-cda-kpi-bound', 'true');
+    button.setAttribute('data-cda-dashboard-popover-trigger', 'true');
+    button.addEventListener('click', function(event){
+      event.preventDefault();
+      event.stopPropagation();
+      open(config, button);
+    });
+    apply(config);
+  }
+
+  window.cdaDashboardKpiV6547 = Object.freeze({
+    version:'v6.547',
+    bind:bind,
+    apply:apply,
+    read:read,
+    write:write,
+    open:open
+  });
+})();
+</script>
