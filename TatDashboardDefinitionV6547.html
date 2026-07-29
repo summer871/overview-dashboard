@@ -1,13 +1,13 @@
 <!-- TatDashboardDefinitionV6547.html
-Version: v6.548
+Version: v6.555
 Date: 2026-07-29
-Purpose: Declarative TAT components and opt-in shared features. TAT does not opt into prior-year comparison.
+Purpose: Declarative TAT components, stable identities, and opt-in shared capabilities.
 -->
 <script id="cdaTatDashboardDefinitionControllerV6547">
 (function installTatDashboardDefinitionV6547(){
   'use strict';
 
-  if (window.cdaTatDashboardDefinitionV6547) return;
+  if (window.cdaTatDashboardDefinitionV6547 && window.cdaTatDashboardDefinitionV6547.version === 'v6.555') return;
 
   const platform = window.cdaDashboardPlatformV6547;
   const adapter = window.cdaTatDashboardAdapterV6547;
@@ -15,7 +15,7 @@ Purpose: Declarative TAT components and opt-in shared features. TAT does not opt
 
   const STANDARD_FEATURES = ['columns','popout','reset','more','exportCurrent','exportAll'];
 
-  function tableV6547(bodyId, headers, extraClass){
+  function tableV6547(bodyId,headers,extraClass){
     const cells = headers.map(function(header){
       return '<th' + (header.numeric ? ' class="num"' : '') + '>' + platform.util.escapeHtml(header.label) + '</th>';
     }).join('');
@@ -25,22 +25,22 @@ Purpose: Declarative TAT components and opt-in shared features. TAT does not opt
 
   const components = [
     {
-      key:'monthly', title:'Monthly TAT Comparison', kind:'chart', chartKey:'monthly', targetId:'tatMonthlyChartV6509',
+      key:'monthly',title:'Monthly TAT Comparison',kind:'chart',chartKey:'monthly',targetId:'tatMonthlyChartV6509',
       features:STANDARD_FEATURES.slice(),
       renderBody:function(){ return '<div class="tatChartV6509 remakeTrendCanvasWrapV6230"><canvas id="tatMonthlyChartV6509"></canvas></div>'; }
     },
     {
-      key:'department', title:'Department Summary', kind:'table', tableKey:'tatDepartment', targetId:'tatDepartmentTableV6509',
+      key:'department',title:'Department Summary',kind:'table',tableKey:'tatDepartment',targetId:'tatDepartmentTableV6509',
       features:STANDARD_FEATURES.slice(),
       renderBody:function(){
-        return tableV6547('tatDepartmentTableV6509', [
-          {label:'Department / Product'}, {label:'Sold Units',numeric:true}, {label:'Remake Units',numeric:true},
-          {label:'Remake %',numeric:true}, {label:'Avg TAT',numeric:true}, {label:'OTP',numeric:true}, {label:'Avg Days Late',numeric:true}
+        return tableV6547('tatDepartmentTableV6509',[
+          {label:'Department / Product'},{label:'Sold Units',numeric:true},{label:'Remake Units',numeric:true},
+          {label:'Remake %',numeric:true},{label:'Avg TAT',numeric:true},{label:'OTP',numeric:true},{label:'Avg Days Late',numeric:true}
         ]);
       }
     },
     {
-      key:'distribution', title:'TAT Distribution', kind:'chart', chartKey:'distribution', targetId:'tatDistributionChartV6509',
+      key:'distribution',title:'TAT Distribution',kind:'chart',chartKey:'distribution',targetId:'tatDistributionChartV6509',
       features:STANDARD_FEATURES.slice(),
       renderBody:function(){
         return '<div id="tatDistributionSubV6509" class="tatSrOnlyV6513">Percent of eligible cases by business-day bucket</div>' +
@@ -48,28 +48,28 @@ Purpose: Declarative TAT components and opt-in shared features. TAT does not opt
       }
     },
     {
-      key:'late', title:'Promise Performance', kind:'table', tableKey:'tatLate', targetId:'tatLateTableV6509',
+      key:'late',title:'Promise Performance',kind:'table',tableKey:'tatLate',targetId:'tatLateTableV6509',
       features:STANDARD_FEATURES.slice(),
       renderBody:function(){
-        return tableV6547('tatLateTableV6509', [
-          {label:'Performance'}, {label:'Cases',numeric:true}, {label:'Share',numeric:true}
+        return tableV6547('tatLateTableV6509',[
+          {label:'Performance'},{label:'Cases',numeric:true},{label:'Share',numeric:true}
         ]);
       }
     },
     {
-      key:'customer', title:'Customers', kind:'table', tableKey:'tatCustomer', targetId:'tatCustomerTableV6509',
-      cardId:'tatCustomerCardV6509', wide:true, collapseSection:'customers',
+      key:'customer',title:'Customers',kind:'table',tableKey:'tatCustomer',targetId:'tatCustomerTableV6509',
+      cardId:'tatCustomerCardV6509',wide:true,collapseSection:'customers',
       features:STANDARD_FEATURES.concat(['collapse']),
       renderBody:function(){
-        return '<div class="tatCollapsibleBodyV6509">' + tableV6547('tatCustomerTableV6509', [
-          {label:'Customer'}, {label:'Cases',numeric:true}, {label:'Sold Units',numeric:true}, {label:'Remake Units',numeric:true},
-          {label:'Remake %',numeric:true}, {label:'Avg TAT',numeric:true}, {label:'OTP',numeric:true}, {label:'Avg Days Late',numeric:true}
+        return '<div class="tatCollapsibleBodyV6509">' + tableV6547('tatCustomerTableV6509',[
+          {label:'Customer'},{label:'Cases',numeric:true},{label:'Sold Units',numeric:true},{label:'Remake Units',numeric:true},
+          {label:'Remake %',numeric:true},{label:'Avg TAT',numeric:true},{label:'OTP',numeric:true},{label:'Avg Days Late',numeric:true}
         ]) + '</div>';
       }
     },
     {
-      key:'quality', title:'Data Quality & Coverage', kind:'table', tableKey:'tatQuality', targetId:'tatQualityTableV6509',
-      cardId:'tatQualityCardV6509', wide:true, collapseSection:'quality', summaryIds:['tatIssueSummaryV6509'],
+      key:'quality',title:'Data Quality & Coverage',kind:'table',tableKey:'tatQuality',targetId:'tatQualityTableV6509',
+      cardId:'tatQualityCardV6509',wide:true,collapseSection:'quality',summaryIds:['tatIssueSummaryV6509'],
       features:STANDARD_FEATURES.concat(['collapse']),
       renderTitle:function(){
         return '<div class="tatQualityTitleRowV6513"><div class="tatCardTitleV6509 remakeCardTitle">Data Quality &amp; Coverage</div>' +
@@ -77,10 +77,10 @@ Purpose: Declarative TAT components and opt-in shared features. TAT does not opt
       },
       renderBody:function(){
         return '<div class="tatCollapsibleBodyV6509 tatQualityBodyV6509"><div id="tatIssueSummaryV6509" class="tatIssueSummaryV6509"></div>' +
-          tableV6547('tatQualityTableV6509', [
-            {label:'Issue'}, {label:'Case'}, {label:'Customer'}, {label:'Departments'}, {label:'Invoice Date'}, {label:'Date In'},
-            {label:'TAT End'}, {label:'TAT Days',numeric:true}, {label:'Units',numeric:true}, {label:'Remake Units',numeric:true}
-          ], 'tatQualityTableWrapV6509') + '</div>';
+          tableV6547('tatQualityTableV6509',[
+            {label:'Issue'},{label:'Case'},{label:'Customer'},{label:'Departments'},{label:'Invoice Date'},{label:'Date In'},
+            {label:'TAT End'},{label:'TAT Days',numeric:true},{label:'Units',numeric:true},{label:'Remake Units',numeric:true}
+          ],'tatQualityTableWrapV6509') + '</div>';
       }
     }
   ];
@@ -130,8 +130,10 @@ Purpose: Declarative TAT components and opt-in shared features. TAT does not opt
   }
 
   window.cdaTatDashboardDefinitionV6547 = {
+    version:'v6.555',
     key:'tat',
     pageId:'tatDashboardPageV6509',
+    tabButtonId:'tatTabBtnV6509',
     pageClass:'tabContent cleanRemakeV6230',
     adapter:adapter,
     components:components,
