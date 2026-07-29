@@ -1,22 +1,75 @@
 <!-- SharedTableCardRendererV6544.html
-Non-destructive compatibility adapter for shared table definitions.
-This file intentionally contains no card or table styling. It never replaces,
-reparents, resizes, or reconstructs existing dashboard markup.
+Non-destructive shared table card and toolbar adapter.
+It never replaces, reparents, resizes, or reconstructs existing dashboard cards.
+It standardizes existing table action controls and adds only missing TAT controls.
 -->
+<style id="cdaSharedTableToolbarStylesV6544">
+  [data-cda-shared-toolbar="v6.544"] {
+    display:flex !important;
+    align-items:center !important;
+    justify-content:flex-end !important;
+    flex-wrap:wrap !important;
+    gap:5px !important;
+    min-width:0;
+  }
+
+  [data-cda-shared-toolbar="v6.544"] .cdaSharedTableActionV6544 {
+    box-sizing:border-box !important;
+    min-width:0 !important;
+    min-height:27px !important;
+    height:27px !important;
+    margin:0 !important;
+    padding:0 10px !important;
+    border:1px solid #d7dce2 !important;
+    border-radius:999px !important;
+    background:#fff !important;
+    color:#344054 !important;
+    box-shadow:none !important;
+    font:800 10px/1 Roboto,Arial,sans-serif !important;
+    letter-spacing:0 !important;
+    text-transform:none !important;
+    white-space:nowrap !important;
+    cursor:pointer !important;
+  }
+
+  [data-cda-shared-toolbar="v6.544"] .cdaSharedTableActionV6544:hover,
+  [data-cda-shared-toolbar="v6.544"] .cdaSharedTableActionV6544:focus-visible {
+    border-color:#b8c0ca !important;
+    background:#f8fafc !important;
+    color:#172033 !important;
+    outline:none !important;
+  }
+
+  [data-cda-shared-toolbar="v6.544"] .cdaSharedTableActionV6544[data-cda-action="reset"] {
+    width:27px !important;
+    min-width:27px !important;
+    padding:0 !important;
+    border-color:#e5c35b !important;
+    background:#fff8dc !important;
+    color:#8a6500 !important;
+    font-size:15px !important;
+  }
+
+  [data-cda-shared-toolbar="v6.544"] .cdaSharedTableActionV6544[aria-expanded="true"],
+  [data-cda-shared-toolbar="v6.544"] .cdaSharedTableActionV6544[aria-pressed="true"] {
+    border-color:#e5c35b !important;
+    background:#fff8dc !important;
+    color:#7a5700 !important;
+  }
+</style>
 <script id="cdaSharedTableCardRendererControllerV6544">
 (function installSharedTableCardRendererV6544(){
   'use strict';
 
-  var existingRendererV6544 = window.cdaSharedTableCardRendererV6544;
-  if (
-    existingRendererV6544 &&
-    typeof existingRendererV6544.render === 'function' &&
-    typeof existingRendererV6544.audit === 'function' &&
-    existingRendererV6544.mode === 'attach-existing-markup'
-  ) return;
-
   var VERSION_V6544 = 'v6.544';
   var RENDERER_V6544 = 'attachExistingTableV6544';
+  var ACTION_ORDER_V6544 = ['year','columns','export-current','export-all','popout','reset'];
+  var observerV6544 = null;
+  var syncTimerV6544 = null;
+
+  function cleanV6544(value){
+    return String(value == null ? '' : value).replace(/\s+/g,' ').trim();
+  }
 
   function tableForConfigV6544(config){
     if (!config) return null;
@@ -40,6 +93,151 @@ reparents, resizes, or reconstructs existing dashboard markup.
     return table && table.closest ? table.closest('article,.remakeCard') : null;
   }
 
+  function actionFromButtonV6544(button){
+    var explicit = cleanV6544(button.getAttribute('data-cda-action') || button.getAttribute('data-cda-card-action')).toLowerCase();
+    var text = cleanV6544(button.textContent).toLowerCase();
+    var title = cleanV6544(button.title || button.getAttribute('aria-label')).toLowerCase();
+    var combined = explicit + ' ' + text + ' ' + title;
+    if (/\byear\b|^20\d{2}$/.test(combined)) return 'year';
+    if (/column/.test(combined)) return 'columns';
+    if (/export[ -]?current/.test(combined)) return 'export-current';
+    if (/all data|export[ -]?all/.test(combined)) return 'export-all';
+    if (/pop[ -]?out/.test(combined)) return 'popout';
+    if (/reset|clear|↺|⟳|⟲/.test(combined)) return 'reset';
+    return '';
+  }
+
+  function toolbarForCardV6544(card){
+    if (!card) return null;
+    var known = card.querySelector('.cdaCardActionsV6544,[data-cda-card-actions],.remakeCardActions,.tatCardActions');
+    if (known) return known;
+    var buttons = Array.prototype.slice.call(card.querySelectorAll('button'));
+    var actionButton = buttons.find(function(button){
+      var action = actionFromButtonV6544(button);
+      return action === 'export-current' || action === 'export-all' || action === 'popout' || action === 'reset';
+    });
+    return actionButton ? actionButton.parentElement : null;
+  }
+
+  function currentYearLabelV6544(){
+    var button = document.getElementById('tatFilterButton_year_V6509');
+    var label = cleanV6544(button && button.textContent);
+    if (label && label.toLowerCase() !== 'all years') return label;
+    var state = window.cdaTatStateV6509;
+    if (state && state.modes && state.modes.year !== 'ALL' && state.selected && state.selected.year) {
+      var selected = Array.from(state.selected.year);
+      if (selected.length === 1) return selected[0];
+    }
+    return 'All years';
+  }
+
+  function createActionButtonV6544(action, key){
+    var button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'cdaSharedTableActionV6544';
+    button.setAttribute('data-cda-action', action);
+
+    if (action === 'year') {
+      button.textContent = currentYearLabelV6544();
+      button.title = 'Filter by year';
+      button.setAttribute('aria-label','Filter by year');
+      button.onclick = function(event){
+        event.preventDefault();
+        event.stopPropagation();
+        if (typeof window.toggleTatDropdownV6509 === 'function') {
+          window.toggleTatDropdownV6509('year', event);
+        } else {
+          var source = document.getElementById('tatFilterButton_year_V6509');
+          if (source) source.click();
+        }
+      };
+    }
+
+    if (action === 'columns') {
+      button.textContent = 'Columns';
+      button.title = 'Choose columns';
+      button.setAttribute('aria-label','Choose columns');
+      button.onclick = function(event){
+        event.preventDefault();
+        event.stopPropagation();
+        if (window.cdaTable && typeof window.cdaTable.toggleChooser === 'function') {
+          window.cdaTable.toggleChooser(key);
+        }
+      };
+    }
+    return button;
+  }
+
+  function normalizeButtonV6544(button, action){
+    button.classList.add('cdaSharedTableActionV6544');
+    button.setAttribute('data-cda-action', action);
+    if (action === 'reset') {
+      button.textContent = '↺';
+      if (!button.title) button.title = 'Reset';
+      if (!button.getAttribute('aria-label')) button.setAttribute('aria-label',button.title || 'Reset');
+    }
+  }
+
+  function syncToolbarV6544(configOrKey){
+    var registry = window.cdaSharedTableRegistryV6544;
+    var config = typeof configOrKey === 'string' && registry && typeof registry.get === 'function'
+      ? registry.get(configOrKey)
+      : configOrKey;
+    if (!config) return null;
+
+    var table = tableForConfigV6544(config);
+    var card = cardForConfigV6544(config, table);
+    var toolbar = toolbarForCardV6544(card);
+    if (!card || !toolbar) return null;
+
+    var key = config.key || card.getAttribute('data-cda-table-instance') || '';
+    var page = config.page || card.getAttribute('data-cda-table-page') || '';
+    toolbar.setAttribute('data-cda-shared-toolbar', VERSION_V6544);
+    toolbar.setAttribute('data-cda-toolbar-key', key);
+
+    var byAction = Object.create(null);
+    Array.prototype.slice.call(toolbar.querySelectorAll('button')).forEach(function(button){
+      var action = actionFromButtonV6544(button);
+      if (!action || byAction[action]) return;
+      byAction[action] = button;
+      normalizeButtonV6544(button, action);
+    });
+
+    if (page === 'tat') {
+      if (!byAction.year) {
+        byAction.year = createActionButtonV6544('year', key);
+        toolbar.appendChild(byAction.year);
+      } else {
+        byAction.year.textContent = currentYearLabelV6544();
+      }
+      if (!byAction.columns) {
+        byAction.columns = createActionButtonV6544('columns', key);
+        toolbar.appendChild(byAction.columns);
+      }
+    }
+
+    ACTION_ORDER_V6544.forEach(function(action){
+      if (byAction[action]) toolbar.appendChild(byAction[action]);
+    });
+
+    card.setAttribute('data-cda-toolbar-synced', VERSION_V6544);
+    return toolbar;
+  }
+
+  function syncAllToolbarsV6544(){
+    var registry = window.cdaSharedTableRegistryV6544;
+    if (!registry || typeof registry.list !== 'function') return [];
+    return registry.list().map(syncToolbarV6544).filter(Boolean);
+  }
+
+  function scheduleSyncV6544(){
+    if (syncTimerV6544) window.clearTimeout(syncTimerV6544);
+    syncTimerV6544 = window.setTimeout(function(){
+      syncTimerV6544 = null;
+      syncAllToolbarsV6544();
+    },25);
+  }
+
   function renderSharedTableCardV6544(config){
     var table = tableForConfigV6544(config);
     var card = cardForConfigV6544(config, table);
@@ -51,26 +249,23 @@ reparents, resizes, or reconstructs existing dashboard markup.
     card.setAttribute('data-cda-table-attacher', RENDERER_V6544);
     table.setAttribute('data-cda-shared-table-attached', VERSION_V6544);
     table.setAttribute('data-cda-table-instance', config && config.key || '');
-
+    syncToolbarV6544(config);
     return card;
   }
 
-  function createTatActionsV6544(){
-    return [];
-  }
-
-  function syncToolbarV6544(){
-    return true;
+  function createTatActionsV6544(config){
+    if (!config) return [];
+    return [
+      createActionButtonV6544('year', config.key),
+      createActionButtonV6544('columns', config.key)
+    ];
   }
 
   function toggleCollapsedV6544(config, force){
     var table = tableForConfigV6544(config);
     var card = cardForConfigV6544(config, table);
     if (!card) return false;
-
-    var existingButton = config && config.collapseButtonId
-      ? document.getElementById(config.collapseButtonId)
-      : null;
+    var existingButton = config && config.collapseButtonId ? document.getElementById(config.collapseButtonId) : null;
     if (existingButton && typeof existingButton.click === 'function' && force == null) {
       existingButton.click();
       return true;
@@ -78,26 +273,44 @@ reparents, resizes, or reconstructs existing dashboard markup.
     return false;
   }
 
+  function toolbarAuditV6544(){
+    var registry = window.cdaSharedTableRegistryV6544;
+    if (!registry || typeof registry.list !== 'function') return [];
+    return registry.list().map(function(config){
+      var table = tableForConfigV6544(config);
+      var card = cardForConfigV6544(config, table);
+      var toolbar = toolbarForCardV6544(card);
+      var actions = toolbar ? Array.prototype.slice.call(toolbar.querySelectorAll('button')).map(actionFromButtonV6544).filter(Boolean) : [];
+      return {
+        key:config.key,
+        page:config.page,
+        toolbarPresent:!!toolbar,
+        actions:actions,
+        expected:config.page === 'tat' ? ACTION_ORDER_V6544.slice() : actions.slice(),
+        missing:config.page === 'tat' ? ACTION_ORDER_V6544.filter(function(action){ return actions.indexOf(action) < 0; }) : []
+      };
+    });
+  }
+
   function auditV6544(){
-    var attached = Array.prototype.slice.call(
-      document.querySelectorAll('[data-cda-shared-table-attached="v6.544"][data-cda-table-instance]')
-    );
+    var attached = Array.prototype.slice.call(document.querySelectorAll('[data-cda-shared-table-attached="v6.544"][data-cda-table-instance]'));
     var cards = attached.filter(function(node){ return node.matches('article,.remakeCard'); });
+    var toolbars = toolbarAuditV6544();
     return {
       version:VERSION_V6544,
       renderer:RENDERER_V6544,
       mode:'attach-existing-markup',
       totalCards:cards.length,
       instances:cards.map(function(card){ return card.getAttribute('data-cda-table-instance'); }),
-      noRendererStyles:!document.getElementById('cdaSharedTableCardRendererStylesV6544'),
-      noGeneratedCards:cards.every(function(card){
-        return card.getAttribute('data-cda-table-attacher') === RENDERER_V6544;
-      }),
+      noGeneratedCards:cards.every(function(card){ return card.getAttribute('data-cda-table-attacher') === RENDERER_V6544; }),
       tablesRemainContained:cards.every(function(card){
         var key = card.getAttribute('data-cda-table-instance');
         var table = card.querySelector('table[data-cda-table-instance="' + key + '"]');
         return !!table && card.contains(table);
-      })
+      }),
+      sharedToolbarStyles:!!document.getElementById('cdaSharedTableToolbarStylesV6544'),
+      toolbars:toolbars,
+      allTatControlsPresent:toolbars.filter(function(item){ return item.page === 'tat'; }).every(function(item){ return item.missing.length === 0; })
     };
   }
 
@@ -111,8 +324,24 @@ reparents, resizes, or reconstructs existing dashboard markup.
     render:renderSharedTableCardV6544,
     createTatActions:createTatActionsV6544,
     syncToolbar:syncToolbarV6544,
+    syncAllToolbars:syncAllToolbarsV6544,
     toggleCollapsed:toggleCollapsedV6544,
+    toolbarAudit:toolbarAuditV6544,
     audit:auditV6544
   });
+
+  document.addEventListener('cdaSharedTableDefinitionsReadyV6544', scheduleSyncV6544);
+  document.addEventListener('cdaSharedTableRenderedV6544', scheduleSyncV6544);
+  document.addEventListener('cdaSharedTableExistingV6544', scheduleSyncV6544);
+  document.addEventListener('cdaTatDashboardRenderedV6509', scheduleSyncV6544);
+  document.addEventListener('click', function(){ window.setTimeout(scheduleSyncV6544,0); }, true);
+
+  if (window.MutationObserver) {
+    observerV6544 = new MutationObserver(scheduleSyncV6544);
+    observerV6544.observe(document.documentElement, { childList:true, subtree:true });
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', scheduleSyncV6544, { once:true });
+  else scheduleSyncV6544();
 })();
 </script>
