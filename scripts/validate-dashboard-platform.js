@@ -11,7 +11,8 @@ const requiredVersion = 'v6.555';
 const foundationPath = path.join(root, 'SharedComponentFoundation.html');
 const blockedReferences = [
   'TatCleanPlatformScriptPart','TatCleanPlatformStylesV6545',
-  'SharedTableCardRendererV6544','SharedTableCardRendererV6546'
+  'SharedTableCardRendererV6544','SharedTableCardRendererV6546',
+  'SharedDashboardLiveComponentV6555'
 ];
 const requiredIncludes = [
   'SharedDashboardThemeV6549','SharedDashboardRegistryV6547','SharedDashboardCatalogV6555',
@@ -55,7 +56,7 @@ function validateHtmlPartial(fileName, text) {
 const foundation = read(foundationPath);
 if (!foundation.includes(requiredVersion)) fail('SharedComponentFoundation.html does not contain ' + requiredVersion + '.');
 blockedReferences.forEach(reference => {
-  if (foundation.includes(reference)) fail('Active foundation references blocked legacy runtime: ' + reference);
+  if (foundation.includes(reference)) fail('Active foundation references blocked runtime: ' + reference);
 });
 
 const includes = Array.from(
@@ -87,7 +88,7 @@ includes.forEach(name => {
   const text = read(path.join(root, fileName));
   validateHtmlPartial(fileName, text);
   if (text.includes('Bolean')) fail(fileName + ' contains the invalid Bolean identifier.');
-  blockedReferences.forEach(reference => {
+  blockedReferences.slice(0,4).forEach(reference => {
     if (text.includes(reference)) fail(fileName + ' references blocked legacy runtime: ' + reference);
   });
 });
@@ -102,6 +103,7 @@ const titleToggle = read(path.join(root, 'SharedDashboardTitleToggleV6555.html')
 const renderer = read(path.join(root, 'SharedDashboardRendererV6547.html'));
 const decorator = read(path.join(root, 'SharedDashboardDecoratorV6548.html'));
 const audit = read(path.join(root, 'SharedDashboardAuditV6550.html'));
+const bridge = read(path.join(root, 'RemakeDashboardLegacyBridgeV6554.html'));
 const remakeAdapter = read(path.join(root, 'RemakeDashboardAdapterV6548.html'));
 const remakeDefinition = read(path.join(root, 'RemakeDashboardDefinitionV6548.html'));
 const remakeBootstrap = read(path.join(root, 'RemakeDashboardBootstrapV6548.html'));
@@ -125,7 +127,7 @@ if (!router.includes('componentRoute')) fail('Router does not inject the compone
 
 if (!popout.includes("version:'v6.555'")) fail('Shared pop-out is not stamped v6.555.');
 if (!popout.includes("mode:'same-application-live-component'")) fail('Shared pop-out is not a live same-application component.');
-['toBase64Image','toDataURL','outerHTML','documentHtml'].forEach(marker => {
+['toBase64Image','toDataURL','outerHTML','documentHtml','document.write'].forEach(marker => {
   if (popout.includes(marker)) fail('Shared pop-out still contains static snapshot marker: ' + marker);
 });
 if (!popout.includes('isolation.open(context)')) fail('Shared pop-out does not delegate to isolation.');
@@ -155,6 +157,10 @@ if (!decorator.includes("version:'v6.555'")) fail('Decorator is not stamped v6.5
 if (!decorator.includes('catalog.stamp')) fail('Decorator does not stamp component identity.');
 if (!decorator.includes('titleToggle.mount')) fail('Decorator does not mount title toggles.');
 
+if (!bridge.includes("version:'v6.555'")) fail('Remake legacy bridge is not stamped v6.555.');
+if (/cdaDashboardCollapseTitleV6554[\s\S]{0,200}pointer-events\s*:\s*none/i.test(bridge)) {
+  fail('Remake legacy bridge disables title interaction.');
+}
 if (!remakeAdapter.includes("version:'v6.555'")) fail('Remake adapter is not stamped v6.555.');
 if (!remakeAdapter.includes('isCollapsed:isCollapsedV6555')) fail('Remake adapter does not expose collapse state.');
 if (remakeAdapter.includes("bridge.invoke(context.component,'popout')")) fail('Remake still invokes the legacy pop-out provider.');
@@ -178,6 +184,7 @@ if (!audit.includes('toolbarCollapseCount')) fail('Shared audit does not reject 
 if (!remakeBootstrap.includes("version:'v6.555'")) fail('Remake bootstrap is not stamped v6.555.');
 if (!remakeBootstrap.includes('expectedActiveComponents:6')) fail('Remake bootstrap lacks the six-component contract.');
 if (!remakeBootstrap.includes("same-application-live-component")) fail('Remake bootstrap does not require live pop-out mode.');
+if (!remakeBootstrap.includes("bridge.version === 'v6.555'")) fail('Remake bootstrap expects the wrong bridge version.');
 if (!tatBootstrap.includes("version:'v6.555'")) fail('TAT bootstrap is not stamped v6.555.');
 if (!tatBootstrap.includes("same-application-live-component")) fail('TAT bootstrap does not require live pop-out mode.');
 if (!tatBindings.includes("version:'v6.555'")) fail('TAT title binding is not stamped v6.555.');
@@ -200,6 +207,7 @@ if (!process.exitCode) {
   console.log('Live same-application pop-out contract: passed');
   console.log('Title-side collapse contract: passed');
   console.log('Static snapshot pop-out guard: passed');
+  console.log('Columns regression contracts: passed');
   console.log('Active includes: ' + includes.length);
   includes.forEach(name => console.log('  - ' + name + '.html'));
 }
