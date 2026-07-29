@@ -1,130 +1,28 @@
 <!-- SharedDashboardPopoutV6548.html
-Version: v6.550
+Version: v6.555
 Date: 2026-07-29
-Purpose: One pop-out service and fully theme-driven visual shell for tables, charts, and custom content.
+Purpose: Open the same live dashboard component in a separate application window.
 -->
 <script id="cdaSharedDashboardPopoutControllerV6548">
 (function installSharedDashboardPopoutV6548(){
   'use strict';
 
-  if (window.cdaDashboardPopoutV6548 && window.cdaDashboardPopoutV6548.version === 'v6.550') return;
+  if (window.cdaDashboardPopoutV6548 && window.cdaDashboardPopoutV6548.version === 'v6.555') return;
 
-  const theme = window.cdaDashboardThemeV6549;
-  if (!theme || theme.version !== 'v6.550') {
-    throw new Error('Dashboard theme v6.550 must load before pop-out.');
-  }
-
-  function escapeHtml(value){
-    return String(value == null ? '' : value)
-      .replace(/&/g,'&amp;')
-      .replace(/</g,'&lt;')
-      .replace(/>/g,'&gt;')
-      .replace(/"/g,'&quot;')
-      .replace(/'/g,'&#39;');
-  }
-
-  function chartFor(context,canvas){
-    if (context.adapter && typeof context.adapter.getChart === 'function') {
-      const chart = context.adapter.getChart(context);
-      if (chart) return chart;
-    }
-    try {
-      return window.Chart && typeof window.Chart.getChart === 'function' && canvas
-        ? window.Chart.getChart(canvas) || null
-        : null;
-    } catch (error) {
-      return null;
-    }
-  }
-
-  function chartContent(context,target){
-    const canvas = target && target.tagName === 'CANVAS'
-      ? target
-      : target && target.querySelector
-        ? target.querySelector('canvas')
-        : null;
-    const chart = chartFor(context,canvas);
-    let source = '';
-    try {
-      source = chart && typeof chart.toBase64Image === 'function'
-        ? chart.toBase64Image()
-        : canvas && typeof canvas.toDataURL === 'function'
-          ? canvas.toDataURL('image/png')
-          : '';
-    } catch (error) {}
-    return source ? '<img class="cdaPopoutImage" src="' + source + '" alt="">' : '';
-  }
-
-  function tableContent(target){
-    const table = target && target.tagName === 'TABLE'
-      ? target
-      : target && target.closest
-        ? target.closest('table')
-        : null;
-    return table ? table.outerHTML : '';
-  }
-
-  function summaryContent(component){
-    return (component.summaryIds || []).map(function(id){
-      const node = document.getElementById(id);
-      return node ? node.outerHTML : '';
-    }).join('');
-  }
-
-  function content(context){
-    const component = context.component || {};
-    const target = component.targetId ? document.getElementById(component.targetId) : null;
-    if (component.kind === 'chart') return chartContent(context,target);
-    if (component.kind === 'table') return summaryContent(component) + tableContent(target);
-    if (context.adapter && typeof context.adapter.popoutContent === 'function') {
-      return context.adapter.popoutContent(context) || '';
-    }
-    return target ? target.outerHTML : '';
-  }
-
-  function documentHtml(title,body){
-    const t = theme.tokens;
-    return '<!doctype html><html><head><meta charset="utf-8">' +
-      '<meta name="viewport" content="width=device-width,initial-scale=1">' +
-      '<title>' + escapeHtml(title) + '</title><style>' +
-      'body{margin:0;padding:20px;background:' + t.page + ';color:' + t.title + ';font-family:' + t.fontUi + '}' +
-      '.cdaPopoutShell{max-width:1400px;margin:0 auto;background:' + t.surface + ';border:1px solid ' + t.borderStrong + ';border-radius:' + t.radiusCard + ';overflow:hidden}' +
-      '.cdaPopoutTitle{padding:12px 14px;border-bottom:1px solid ' + t.divider + ';font:' + t.fontPopoutTitle + '}' +
-      '.cdaPopoutBody{padding:14px;overflow:auto}' +
-      '.cdaPopoutImage{display:block;max-width:100%;height:auto;margin:0 auto}' +
-      'table{width:100%;border-collapse:collapse;background:' + t.surface + ';font:' + t.fontPopoutTable + '}' +
-      'th,td{border:1px solid ' + t.borderStrong + ';padding:7px;text-align:left}' +
-      'th{background:' + t.tableHeader + ';color:' + t.onDark + ';font-weight:900}' +
-      '.num{text-align:right}' +
-      '</style></head><body><main class="cdaPopoutShell"><div class="cdaPopoutTitle">' +
-      escapeHtml(title) + '</div><div class="cdaPopoutBody">' + body +
-      '</div></main></body></html>';
+  const isolation = window.cdaDashboardIsolationV6555;
+  if (!isolation || isolation.version !== 'v6.555') {
+    throw new Error('Dashboard isolation v6.555 must load before pop-out.');
   }
 
   function open(context){
-    if (!context || !context.component) return false;
-    const body = content(context);
-    if (!body) return false;
-    const component = context.component;
-    const popup = window.open(
-      '',
-      'cdaDashboard_' + String(context.tab && context.tab.key || 'tab') + '_' + component.key,
-      'width=1200,height=760,resizable=yes,scrollbars=yes'
-    );
-    if (!popup) return false;
-    try { popup.opener = null; } catch (error) {}
-    popup.document.open();
-    popup.document.write(documentHtml(component.title || component.key,body));
-    popup.document.close();
-    return true;
+    return isolation.open(context);
   }
 
   window.cdaDashboardPopoutV6548 = Object.freeze({
-    version:'v6.550',
-    themeVersion:theme.version,
+    version:'v6.555',
+    mode:'same-application-live-component',
     open:open,
-    content:content,
-    documentHtml:documentHtml
+    buildUrl:isolation.buildUrl
   });
 })();
 </script>
