@@ -1,0 +1,92 @@
+<!-- TatDashboardBootstrapV6547.html
+Version: v6.547
+Date: 2026-07-29
+Purpose: Register, validate, render, and audit the TAT tab on the shared dashboard platform.
+-->
+<script id="cdaTatDashboardBootstrapControllerV6547">
+(function installTatDashboardBootstrapV6547(){
+  'use strict';
+
+  if (window.__cdaTatDashboardBootstrapV6547) return;
+  window.__cdaTatDashboardBootstrapV6547 = true;
+
+  const platform = window.cdaDashboardPlatformV6547;
+  const renderer = window.cdaDashboardRendererV6547;
+  const definition = window.cdaTatDashboardDefinitionV6547;
+  if (!platform || !renderer || !definition) {
+    throw new Error('TAT bootstrap requires registry, renderer, and definition.');
+  }
+
+  platform.registerTab(definition);
+  const registrationAudit = platform.validateTab('tat');
+  if (!registrationAudit.ok) {
+    throw new Error('TAT definition is invalid:\n' + registrationAudit.errors.join('\n'));
+  }
+
+  function dependencyAudit(){
+    return {
+      tableModule:!!window.cdaTable,
+      tableToggleChooser:!!(window.cdaTable && typeof window.cdaTable.toggleChooser === 'function'),
+      tableExportCsv:!!(window.cdaTable && typeof window.cdaTable.exportCsv === 'function'),
+      tableResetColumns:!!(window.cdaTable && typeof window.cdaTable.resetColumns === 'function'),
+      tableClearSelection:!!(window.cdaTable && typeof window.cdaTable.clearSelection === 'function'),
+      popover:!!window.cdaDashboardPopoverV6547,
+      kpi:!!window.cdaDashboardKpiV6547,
+      toggleTatDropdownV6509:typeof window.toggleTatDropdownV6509 === 'function',
+      clearTatComponentV6509:typeof window.clearTatComponentV6509 === 'function',
+      exportTatComponentV6509:typeof window.exportTatComponentV6509 === 'function',
+      exportTatAllDataV6509:typeof window.exportTatAllDataV6509 === 'function',
+      setTatDistributionModeV6509:typeof window.setTatDistributionModeV6509 === 'function'
+    };
+  }
+
+  function audit(){
+    const base = renderer.audit('tat');
+    const dependencies = dependencyAudit();
+    return Object.assign({}, base, {
+      mode:'configuration-driven-dashboard-platform',
+      registeredFeatures:platform.listFeatures(),
+      registeredTabs:platform.listTabs(),
+      dependencies:dependencies,
+      allRequiredDependenciesPresent:Object.keys(dependencies).every(function(key){
+        return dependencies[key] === true;
+      }),
+      noRemakeMutation:document.querySelectorAll(
+        '#remakeFactorPage [data-cda-dashboard-tab],#remakeFactorPage [data-cda-dashboard-component]'
+      ).length === 0
+    });
+  }
+
+  function render(){
+    return renderer.rebuild('tat');
+  }
+
+  function start(){
+    let attempts = 0;
+    const timer = window.setInterval(function(){
+      attempts += 1;
+      if (document.getElementById(definition.pageId) && window.cdaTable) {
+        window.clearInterval(timer);
+        render();
+      } else if (attempts >= 160) {
+        window.clearInterval(timer);
+      }
+    }, 25);
+  }
+
+  window.cdaTatDashboardV6547 = Object.freeze({
+    version:'v6.547',
+    definition:definition,
+    render:render,
+    audit:audit,
+    dependencyAudit:dependencyAudit
+  });
+  window.auditSharedRemakeTableShellV6544 = audit;
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', start, { once:true });
+  } else {
+    start();
+  }
+})();
+</script>
