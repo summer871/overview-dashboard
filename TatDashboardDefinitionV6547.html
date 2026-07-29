@@ -1,7 +1,7 @@
 <!-- TatDashboardDefinitionV6547.html
-Version: v6.547
+Version: v6.548
 Date: 2026-07-29
-Purpose: Declarative TAT tab definition: components, opted-in features, markup, and KPI configuration.
+Purpose: Declarative TAT components and opt-in shared features. TAT does not opt into prior-year comparison.
 -->
 <script id="cdaTatDashboardDefinitionControllerV6547">
 (function installTatDashboardDefinitionV6547(){
@@ -13,9 +13,9 @@ Purpose: Declarative TAT tab definition: components, opted-in features, markup, 
   const adapter = window.cdaTatDashboardAdapterV6547;
   if (!platform || !adapter) throw new Error('TAT definition requires the dashboard registry and TAT adapter.');
 
-  const STANDARD_FEATURES = ['year','columns','popout','reset','more','exportCurrent','exportAll'];
+  const STANDARD_FEATURES = ['columns','popout','reset','more','exportCurrent','exportAll'];
 
-  function table(bodyId, headers, extraClass){
+  function tableV6547(bodyId, headers, extraClass){
     const cells = headers.map(function(header){
       return '<th' + (header.numeric ? ' class="num"' : '') + '>' + platform.util.escapeHtml(header.label) + '</th>';
     }).join('');
@@ -33,7 +33,7 @@ Purpose: Declarative TAT tab definition: components, opted-in features, markup, 
       key:'department', title:'Department Summary', kind:'table', tableKey:'tatDepartment', targetId:'tatDepartmentTableV6509',
       features:STANDARD_FEATURES.slice(),
       renderBody:function(){
-        return table('tatDepartmentTableV6509', [
+        return tableV6547('tatDepartmentTableV6509', [
           {label:'Department / Product'}, {label:'Sold Units',numeric:true}, {label:'Remake Units',numeric:true},
           {label:'Remake %',numeric:true}, {label:'Avg TAT',numeric:true}, {label:'OTP',numeric:true}, {label:'Avg Days Late',numeric:true}
         ]);
@@ -51,7 +51,7 @@ Purpose: Declarative TAT tab definition: components, opted-in features, markup, 
       key:'late', title:'Promise Performance', kind:'table', tableKey:'tatLate', targetId:'tatLateTableV6509',
       features:STANDARD_FEATURES.slice(),
       renderBody:function(){
-        return table('tatLateTableV6509', [
+        return tableV6547('tatLateTableV6509', [
           {label:'Performance'}, {label:'Cases',numeric:true}, {label:'Share',numeric:true}
         ]);
       }
@@ -61,7 +61,7 @@ Purpose: Declarative TAT tab definition: components, opted-in features, markup, 
       cardId:'tatCustomerCardV6509', wide:true, collapseSection:'customers',
       features:STANDARD_FEATURES.concat(['collapse']),
       renderBody:function(){
-        return '<div class="tatCollapsibleBodyV6509">' + table('tatCustomerTableV6509', [
+        return '<div class="tatCollapsibleBodyV6509">' + tableV6547('tatCustomerTableV6509', [
           {label:'Customer'}, {label:'Cases',numeric:true}, {label:'Sold Units',numeric:true}, {label:'Remake Units',numeric:true},
           {label:'Remake %',numeric:true}, {label:'Avg TAT',numeric:true}, {label:'OTP',numeric:true}, {label:'Avg Days Late',numeric:true}
         ]) + '</div>';
@@ -69,7 +69,7 @@ Purpose: Declarative TAT tab definition: components, opted-in features, markup, 
     },
     {
       key:'quality', title:'Data Quality & Coverage', kind:'table', tableKey:'tatQuality', targetId:'tatQualityTableV6509',
-      cardId:'tatQualityCardV6509', wide:true, collapseSection:'quality',
+      cardId:'tatQualityCardV6509', wide:true, collapseSection:'quality', summaryIds:['tatIssueSummaryV6509'],
       features:STANDARD_FEATURES.concat(['collapse']),
       renderTitle:function(){
         return '<div class="tatQualityTitleRowV6513"><div class="tatCardTitleV6509 remakeCardTitle">Data Quality &amp; Coverage</div>' +
@@ -77,7 +77,7 @@ Purpose: Declarative TAT tab definition: components, opted-in features, markup, 
       },
       renderBody:function(){
         return '<div class="tatCollapsibleBodyV6509 tatQualityBodyV6509"><div id="tatIssueSummaryV6509" class="tatIssueSummaryV6509"></div>' +
-          table('tatQualityTableV6509', [
+          tableV6547('tatQualityTableV6509', [
             {label:'Issue'}, {label:'Case'}, {label:'Customer'}, {label:'Departments'}, {label:'Invoice Date'}, {label:'Date In'},
             {label:'TAT End'}, {label:'TAT Days',numeric:true}, {label:'Units',numeric:true}, {label:'Remake Units',numeric:true}
           ], 'tatQualityTableWrapV6509') + '</div>';
@@ -99,25 +99,24 @@ Purpose: Declarative TAT tab definition: components, opted-in features, markup, 
     ]
   };
 
-  function kpiMarkup(){
-    const items = [
+  function kpiMarkupV6547(){
+    return [
       ['avgTat','Average TAT','tatKpiAvgV6509','tatKpiAvgSubV6509','Eligible cases'],
       ['otp','On Time to Promise','tatKpiOtpV6509','tatKpiOtpSubV6509','Due-date eligible'],
       ['avgLate','Average Days Late','tatKpiLateV6509','tatKpiLateSubV6509','Late cases only'],
       ['soldUnits','Sold Units','tatKpi31V6509','tatKpi31SubV6509','Included units'],
       ['remakePct','Remake %','tatKpiRemakePctV6523','tatKpiRemakePctSubV6523','Remake units / sold units']
-    ];
-    return items.map(function(item){
+    ].map(function(item){
       return '<div class="tatKpiV6509 remakeKpi" data-tat-kpi-key-v6528="' + item[0] + '"><div class="label">' + item[1] +
         '</div><div id="' + item[2] + '" class="value">-</div><div id="' + item[3] + '" class="sub">' + item[4] + '</div></div>';
     }).join('');
   }
 
-  function renderLayout(context){
+  function renderLayoutV6547(context){
     return '<div class="tatKpiStageV6509"><div class="remakeKpiAreaV6406 tatKpiAreaV6528">' +
       '<div class="remakeKpiToolbarV6403"><button id="tatKpiChooserButtonV6528" class="remakeKpiChooserButtonV6403" type="button"' +
       ' aria-label="Choose KPI cards" aria-haspopup="dialog" aria-expanded="false">⋮</button></div>' +
-      '<div class="tatKpisV6509 remakeKpisV6230">' + kpiMarkup() + '</div></div><div id="tatStampV6509" class="tatStampV6509">Loading</div></div>' +
+      '<div class="tatKpisV6509 remakeKpisV6230">' + kpiMarkupV6547() + '</div></div><div id="tatStampV6509" class="tatStampV6509">Loading</div></div>' +
       '<div class="tatShellV6509"><div id="tatNoticeV6509" class="tatNoticeV6509"></div>' +
       '<div id="tatCoverageV6509" class="tatCoverageV6509" hidden>' +
       '<div class="tatCoverageMetricV6509"><span>Total Cases</span><strong id="tatCoverageCasesV6509">-</strong></div>' +
@@ -130,13 +129,13 @@ Purpose: Declarative TAT tab definition: components, opted-in features, markup, 
       components.map(function(component){ return context.renderComponent(component.key); }).join('') + '</div></div>';
   }
 
-  const definition = {
+  window.cdaTatDashboardDefinitionV6547 = {
     key:'tat',
     pageId:'tatDashboardPageV6509',
     pageClass:'tabContent cleanRemakeV6230',
     adapter:adapter,
     components:components,
-    renderLayout:renderLayout,
+    renderLayout:renderLayoutV6547,
     beforeReplace:function(){ adapter.beforeReplace(); },
     afterReplace:function(){
       window.cdaDashboardKpiV6547.bind(kpiConfig);
@@ -144,7 +143,5 @@ Purpose: Declarative TAT tab definition: components, opted-in features, markup, 
     },
     kpiConfig:kpiConfig
   };
-
-  window.cdaTatDashboardDefinitionV6547 = definition;
 })();
 </script>

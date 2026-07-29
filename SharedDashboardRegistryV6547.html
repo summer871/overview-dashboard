@@ -1,7 +1,7 @@
 <!-- SharedDashboardRegistryV6547.html
-Version: v6.547
+Version: v6.548
 Date: 2026-07-29
-Purpose: Shared registry and validation layer for dashboard tabs and opt-in features.
+Purpose: Shared registry and validation layer for replace-mode and decorate-mode dashboard tabs.
 -->
 <script id="cdaSharedDashboardRegistryV6547">
 (function installSharedDashboardRegistryV6547(){
@@ -9,7 +9,7 @@ Purpose: Shared registry and validation layer for dashboard tabs and opt-in feat
 
   if (window.cdaDashboardPlatformV6547) return;
 
-  const VERSION_V6547 = 'v6.547';
+  const VERSION_V6547 = 'v6.548';
   const featureRegistryV6547 = new Map();
   const tabRegistryV6547 = new Map();
 
@@ -39,7 +39,8 @@ Purpose: Shared registry and validation layer for dashboard tabs and opt-in feat
     const normalized = Object.assign({
       placement:'toolbar',
       order:100,
-      iconOnly:false
+      iconOnly:false,
+      appearance:'standard'
     }, definition, { key:key });
     if (typeof normalized.run !== 'function') {
       throw new Error('Feature requires a run function: ' + key);
@@ -72,8 +73,9 @@ Purpose: Shared registry and validation layer for dashboard tabs and opt-in feat
       throw new Error('Tab already registered: ' + key);
     }
     const components = (definition.components || []).map(normalizeComponentV6547);
-    const normalized = Object.assign({}, definition, {
+    const normalized = Object.assign({ mountMode:'replace' }, definition, {
       key:key,
+      mountMode:definition.mountMode === 'decorate' ? 'decorate' : 'replace',
       components:components
     });
     tabRegistryV6547.set(key, normalized);
@@ -117,17 +119,23 @@ Purpose: Shared registry and validation layer for dashboard tabs and opt-in feat
           errors.push('Unknown feature "' + featureKey + '" on component "' + component.key + '".');
         }
       });
-      if (typeof component.renderBody !== 'function') {
-        errors.push('Component requires renderBody(): ' + component.key);
+      if (tab.mountMode === 'replace' && typeof component.renderBody !== 'function') {
+        errors.push('Replace-mode component requires renderBody(): ' + component.key);
+      }
+      if (tab.mountMode === 'decorate' && !component.cardId && !component.targetId && typeof component.resolveCard !== 'function') {
+        errors.push('Decorate-mode component requires cardId, targetId, or resolveCard(): ' + component.key);
       }
     });
     if (!tab.pageId) errors.push('Tab pageId is required.');
-    if (typeof tab.renderLayout !== 'function') errors.push('Tab renderLayout() is required.');
+    if (tab.mountMode === 'replace' && typeof tab.renderLayout !== 'function') {
+      errors.push('Replace-mode tab requires renderLayout().');
+    }
     if (!tab.components.length) warnings.push('Tab has no components.');
     return {
       ok:errors.length === 0,
       version:VERSION_V6547,
       tabKey:tab.key,
+      mountMode:tab.mountMode,
       componentKeys:Array.from(componentKeys),
       errors:errors,
       warnings:warnings

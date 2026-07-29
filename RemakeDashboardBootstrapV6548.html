@@ -1,0 +1,118 @@
+<!-- RemakeDashboardBootstrapV6548.html
+Version: v6.548
+Date: 2026-07-29
+Purpose: Register, decorate, refresh, and audit Remake shared controls without replacing Remake cards.
+-->
+<script id="cdaRemakeDashboardBootstrapControllerV6548">
+(function installRemakeDashboardBootstrapV6548(){
+  'use strict';
+
+  if (window.__cdaRemakeDashboardBootstrapV6548) return;
+  window.__cdaRemakeDashboardBootstrapV6548 = true;
+
+  const platform = window.cdaDashboardPlatformV6547;
+  const decorator = window.cdaDashboardDecoratorV6548;
+  const definition = window.cdaRemakeDashboardDefinitionV6548;
+  if (!platform || !decorator || !definition) {
+    throw new Error('Remake bootstrap requires registry, renderer, and definition.');
+  }
+
+  platform.registerTab(definition);
+  const registrationAudit = platform.validateTab('remake');
+  if (!registrationAudit.ok) {
+    throw new Error('Remake definition is invalid:\n' + registrationAudit.errors.join('\n'));
+  }
+
+  let scheduledV6548 = false;
+
+  function decorateV6548(){
+    scheduledV6548 = false;
+    return decorator.decorate('remake');
+  }
+
+  function scheduleV6548(){
+    if (scheduledV6548) return;
+    scheduledV6548 = true;
+    window.requestAnimationFrame(decorateV6548);
+  }
+
+  function relevantNodeV6548(node){
+    if (!node || node.nodeType !== 1) return false;
+    const selector = [
+      '#remakeTrendList','#remakeReasonCardV6230','#remakeDepartmentCardV6230','#remakeProductCardV6230',
+      '#remakeCustomerCardV6230','#remakeCeramistCardV6342','.tableCompareToggleV6297',
+      '[data-column-chooser-v6357]','.clearComponentButtonV6304'
+    ].join(',');
+    if (node.matches && node.matches(selector)) return true;
+    return !!(node.querySelector && node.querySelector(selector));
+  }
+
+  function dependencyAuditV6548(){
+    return {
+      sharedColumns:!!window.cdaDashboardColumnsV6548,
+      sharedPopout:!!window.cdaDashboardPopoutV6548,
+      sharedPopover:!!window.cdaDashboardPopoverV6547,
+      clearRemakeComponentV6230:typeof window.clearRemakeComponentV6230 === 'function'
+    };
+  }
+
+  function auditV6548(){
+    const base = decorator.audit('remake');
+    const dependencies = dependencyAuditV6548();
+    const page = document.getElementById('remakeFactorPage');
+    const comparisonButtons = page ? Array.from(page.querySelectorAll(
+      '.cdaDashboardToolbarV6547 [data-cda-dashboard-feature-key="comparePriorYear"]'
+    )) : [];
+    return Object.assign({}, base, {
+      mode:'shared-control-decoration',
+      dependencies:dependencies,
+      allRequiredDependenciesPresent:Object.keys(dependencies).every(function(key){ return dependencies[key] === true; }),
+      noCardReplacement:!!page && !page.hasAttribute('data-cda-dashboard-tab') &&
+        page.querySelectorAll('[data-cda-dashboard-component]').length === 0,
+      priorYearLabels:comparisonButtons.filter(function(button){ return !button.hidden; }).map(function(button){ return button.textContent.trim(); }),
+      priorYearLabelsCorrect:comparisonButtons.filter(function(button){ return !button.hidden; }).length > 0 &&
+        comparisonButtons.filter(function(button){ return !button.hidden; }).every(function(button){
+          return button.textContent.trim() === String(new Date().getFullYear() - 1);
+        }),
+      plainMoreButtons:!!page && Array.from(page.querySelectorAll(
+        '.cdaDashboardToolbarV6547 [data-cda-dashboard-feature-key="more"]'
+      )).every(function(button){ return button.classList.contains('cdaDashboardButtonPlainV6548'); })
+    });
+  }
+
+  function startV6548(){
+    let attempts = 0;
+    const timer = window.setInterval(function(){
+      attempts += 1;
+      if (document.getElementById(definition.pageId)) {
+        window.clearInterval(timer);
+        decorateV6548();
+        if (window.MutationObserver) {
+          const observer = new MutationObserver(function(records){
+            if (records.some(function(record){
+              return Array.from(record.addedNodes || []).some(relevantNodeV6548);
+            })) scheduleV6548();
+          });
+          observer.observe(document.getElementById(definition.pageId), { childList:true, subtree:true });
+        }
+      } else if (attempts >= 160) {
+        window.clearInterval(timer);
+      }
+    }, 25);
+  }
+
+  window.cdaRemakeDashboardV6548 = Object.freeze({
+    version:'v6.548',
+    definition:definition,
+    decorate:decorateV6548,
+    audit:auditV6548,
+    dependencyAudit:dependencyAuditV6548
+  });
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', startV6548, { once:true });
+  } else {
+    startV6548();
+  }
+})();
+</script>

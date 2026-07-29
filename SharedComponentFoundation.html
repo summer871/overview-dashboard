@@ -1,7 +1,7 @@
 <!-- SharedComponentFoundation.html
-Version: v6.547
+Version: v6.548
 Date: 2026-07-29
-Purpose: Load the shared dashboard platform in dependency order, then register TAT as a configuration-driven tab.
+Purpose: Load the shared dashboard feature pool, then register TAT and decorate Remake with the same controls.
 Every included file is a complete independently valid Apps Script HTML partial.
 -->
 <?!= includeDashboardFile('SharedTableStyles') ?>
@@ -9,10 +9,17 @@ Every included file is a complete independently valid Apps Script HTML partial.
 <?!= includeDashboardFile('SharedDashboardRegistryV6547') ?>
 <?!= includeDashboardFile('SharedDashboardPopoverV6547') ?>
 <?!= includeDashboardFile('SharedDashboardKpiV6547') ?>
+<?!= includeDashboardFile('SharedDashboardColumnsV6548') ?>
+<?!= includeDashboardFile('SharedDashboardPopoutV6548') ?>
 <?!= includeDashboardFile('SharedDashboardFeaturesV6547') ?>
+<?!= includeDashboardFile('SharedDashboardToolbarV6548') ?>
 <?!= includeDashboardFile('SharedDashboardRendererV6547') ?>
+<?!= includeDashboardFile('SharedDashboardDecoratorV6548') ?>
 <?!= includeDashboardFile('SharedDashboardTableIntegrationV6547') ?>
 <?!= includeDashboardFile('TatDashboardAdapterV6547') ?>
 <?!= includeDashboardFile('TatDashboardDefinitionV6547') ?>
 <?!= includeDashboardFile('TatDashboardBindingsV6547') ?>
+<?!= includeDashboardFile('RemakeDashboardAdapterV6548') ?>
+<?!= includeDashboardFile('RemakeDashboardDefinitionV6548') ?>
 <?!= includeDashboardFile('TatDashboardBootstrapV6547') ?>
+<?!= includeDashboardFile('RemakeDashboardBootstrapV6548') ?>

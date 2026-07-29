@@ -1,20 +1,20 @@
 <!-- SharedFooter.html
-Version: v6.547
+Version: v6.548
 Date: 2026-07-29
 Purpose: Shared Remake/TAT status footer and visible deployment stamp.
 -->
-<style id="cdaSharedFooterStylesV6547">
+<style id="cdaSharedFooterStylesV6548">
   #remakeLastRefresh,#tatStampV6509,.remakePageFooterV6338{display:none!important;visibility:hidden!important}
   #cdaSharedAppFooterV6531{width:100%;box-sizing:border-box;display:flex;justify-content:flex-end;align-items:center;flex-wrap:wrap;padding:4px 12px 6px;color:#98a2b3;background:transparent;font:500 8px/1.2 Roboto,Arial,sans-serif;text-align:right;opacity:.78}
   #cdaSharedAppFooterV6531 [data-footer-item]{display:inline-flex;align-items:center;white-space:nowrap}
   #cdaSharedAppFooterV6531 [data-footer-item]+[data-footer-item]::before{content:'\2022';display:inline-block;margin:0 5px;color:#d0d5dd}
   #cdaSharedAppFooterV6531 .cdaSharedFooterIdentityV6531{color:inherit;font-weight:600}
 </style>
-<script id="cdaSharedFooterControllerV6547">
-(function installCdaSharedFooterV6547(){
+<script id="cdaSharedFooterControllerV6548">
+(function installCdaSharedFooterV6548(){
   'use strict';
-  const UI_VERSION='v6.547';
-  const BUILD_LABEL='MODULAR-DASHBOARD-PLATFORM-01';
+  const UI_VERSION='v6.548';
+  const BUILD_LABEL='SHARED-CONTROLS-REMAKE-01';
   const FOOTER_ID='cdaSharedAppFooterV6531';
   let frame=0;
   window.CDA_CURRENT_FRONTEND_VERSION=UI_VERSION;
@@ -22,14 +22,14 @@ Purpose: Shared Remake/TAT status footer and visible deployment stamp.
   window.CDA_SHARED_FOOTER_BUILD=BUILD_LABEL;
   function byId(id){return document.getElementById(id)}
   function clean(value){return String(value==null?'':value).replace(/\s+/g,' ').trim()}
-  function simpleStatus(value){const raw=clean(value);if(!raw)return'Not loaded';if(/loading|waiting|updating/i.test(raw))return'Loading';if(/failed|unavailable/i.test(raw))return'Unavailable';return raw.replace(/^.*?(?:cache|refreshed|updated):\s*/i,'').trim()||raw}
-  function isTatActive(){const button=byId('tatTabBtnV6509'),page=byId('tatDashboardPageV6509');if(button&&button.classList.contains('active'))return true;if(!page||!window.getComputedStyle)return false;const style=window.getComputedStyle(page);return style.display!=='none'&&style.visibility!=='hidden'}
+  function simpleStatus(value){const raw = clean(value);if(!raw)return'Not loaded';if(/loading|waiting|updating/i.test(raw))return'Loading';if(/failed|unavailable/i.test(raw))return'Unavailable';return raw.replace(/^.*?(?:cache|refreshed|updated):\s*/i,'').trim()||raw}
+  function isTatActive(){const button=byId('tatTabBtnV6509'),p = byId('tatDashboardPageV6509');if(button&&button.classList.contains('active'))return true;if(!p||!window.getComputedStyle)return false;const s=window.getComputedStyle(p);return s.display!=='none'&&s.visibility!=='hidden'}
   function ensureFooter(){let footer=byId(FOOTER_ID);if(!footer){footer=document.createElement('footer');footer.id=FOOTER_ID;footer.setAttribute('aria-label','Dashboard status and build identity');footer.setAttribute('aria-live','polite')}if(footer.parentNode!==document.body||footer!==document.body.lastElementChild)document.body.appendChild(footer);return footer}
   function appendItem(footer,label,value,identity){const item=document.createElement('span');item.setAttribute('data-footer-item','');if(identity)item.className='cdaSharedFooterIdentityV6531';item.textContent=label+': '+value;footer.appendChild(item)}
-  function routerLabel(){const presentation=window.CDA_SERVER_PRESENTATION||{},source=clean(presentation.source||''),match=source.match(/Code\.gs\s+v[0-9.]+/i);return match?match[0]:'Router unknown'}
-  function render(){frame=0;if(!document.body)return;const footer=ensureFooter();footer.replaceChildren();if(isTatActive()){const tat=byId('tatStampV6509');appendItem(footer,'Cache',simpleStatus(tat&&tat.textContent),false)}else{const remake=document.querySelector('.remakePageFooterV6338'),refresh=byId('remakeLastRefresh');appendItem(footer,'Cache',simpleStatus(clean(remake&&remake.textContent)||clean(refresh&&refresh.textContent)),false)}appendItem(footer,'UI',UI_VERSION,true);appendItem(footer,'Router',routerLabel(),true);appendItem(footer,'Build',BUILD_LABEL,true)}
+  function routerLabel(){const presentation=window.CDA_SERVER_PRESENTATION||{},source=clean(presentation.source||''),m=source.match(/Code\.gs\s+v[0-9.]+/i);return m?m[0]:'Router unknown'}
+  function render(){frame=0;if(!document.body)return;const f=ensureFooter();f.replaceChildren();if(isTatActive()){const t=byId('tatStampV6509');appendItem(f,'Cache',simpleStatus(t&&t.textContent),false)}else{const r=document.querySelector('.remakePageFooterV6338'),ref=byId('remakeLastRefresh');appendItem(f,'Cache',simpleStatus(clean(r&&r.textContent)||clean(ref&&ref.textContent)),false)}appendItem(f,'UI',UI_VERSION,true);appendItem(f,'Router',routerLabel(),true);appendItem(f,'Build',BUILD_LABEL,true)}
   function schedule(){if(frame)return;frame=window.requestAnimationFrame(render)}
-  function start(){render();document.addEventListener('click',function(event){const target=event.target&&event.target.closest?event.target.closest('#remakeFactorTabBtn,#tatTabBtnV6509'):null;if(target)window.setTimeout(schedule,0)},true);window.addEventListener('pageshow',schedule);window.addEventListener('resize',schedule,{passive:true})}
+  function start(){render();document.addEventListener('click',function(e){const t=e.target&&e.target.closest?e.target.closest('#remakeFactorTabBtn,#tatTabBtnV6509'):null;if(t)window.setTimeout(schedule,0)},true);window.addEventListener('pageshow',schedule);window.addEventListener('resize',schedule,{passive:true})}
   window.renderCdaSharedFooterV6531=render;
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
 })();

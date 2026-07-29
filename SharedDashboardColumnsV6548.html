@@ -1,0 +1,281 @@
+<!-- SharedDashboardColumnsV6548.html
+Version: v6.548
+Date: 2026-07-29
+Purpose: One column chooser service for managed shared tables and existing DOM tables.
+-->
+<style id="cdaSharedDashboardColumnsStylesV6548">
+  .cdaDashboardColumnHiddenV6548 { display:none!important; }
+  .cdaDashboardColumnSectionV6548 + .cdaDashboardColumnSectionV6548 { margin-top:7px; padding-top:7px; border-top:1px solid #eaecf0; }
+  .cdaDashboardColumnSectionTitleV6548 { padding:3px 6px 5px; color:#667085; font:800 9px/1.2 Roboto,Arial,sans-serif; text-transform:uppercase; letter-spacing:.05em; }
+  .cdaDashboardColumnFooterV6548 { display:flex; justify-content:flex-end; gap:6px; padding:7px 5px 2px; border-top:1px solid #eaecf0; margin-top:5px; }
+  .cdaDashboardColumnFooterV6548 button { width:auto!important; }
+</style>
+<script id="cdaSharedDashboardColumnsControllerV6548">
+(function installSharedDashboardColumnsV6548(){
+  'use strict';
+
+  if (window.cdaDashboardColumnsV6548) return;
+
+  const STORAGE_KEY_V6548 = 'cdaDashboardColumns.v6548';
+
+  function readStateV6548(){
+    try {
+      const value = JSON.parse(window.localStorage.getItem(STORAGE_KEY_V6548) || '{}');
+      return value && typeof value === 'object' ? value : {};
+    } catch (error) {
+      return {};
+    }
+  }
+
+  function writeStateV6548(state){
+    try { window.localStorage.setItem(STORAGE_KEY_V6548, JSON.stringify(state || {})); }
+    catch (error) {}
+  }
+
+  function stateKeyV6548(context){
+    return String(context.tab && context.tab.key || 'dashboard') + ':' + String(context.component && context.component.key || 'component');
+  }
+
+  function tableIdsV6548(component){
+    if (!component) return [];
+    if (Array.isArray(component.tableIds)) return component.tableIds.map(String).filter(Bolean);
+    if (component.targetId) return [String(component.targetId)];
+    return [];
+  }
+
+  function resolveTableV6548(id){
+    const node = document.getElementById(id);
+    if (!node) return null;
+    return node.tagName === 'TABLE' ? node : node.closest ? node.closest('table') : null;
+  }
+
+  function cleanLabelV6548(value){
+    return String(value == null ? '' : value)
+      .replace(/[▲▼▴▾]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim() || 'Column';
+  }
+
+  function modelV6548(table){
+    if (!table || !table.tHead || !table.tHead.rows.length) return [];
+    const counts = Object.create(null);
+    return Array.from(table.tHead.rows[0].cells || []).map(function(cell, index){
+      const label = cleanLabelV6548(cell.textContent);
+      const base = label.toLowerCase();
+      counts[base] = (counts[base] || 0) + 1;
+      return { index:index, label:label, key:base + '#' + counts[base] };
+    });
+  }
+
+  function hiddenForV6548(context, tableId){
+    const state = readStateV6548();
+    const key = stateKeyV6548(context);
+    const componentState = state[key] || {};
+    if (!Object.prototype.hasOwnProperty.call(componentState, tableId)) {
+      try {
+        const legacy = JSON.parse(window.localStorage.getItem('cda.remake.columnVisibility.v6357') || '{}');
+        const legacyHidden = legacy && legacy[tableId] && Array.isArray(legacy[tableId].hidden)
+          ? legacy[tableId].hidden.map(String)
+          : [];
+        if (legacyHidden.length) {
+          componentState[tableId] = legacyHidden;
+          state[key] = componentState;
+          writeStateV6548(state);
+        }
+        if (legacy && Object.prototype.hasOwnProperty.call(legacy, tableId)) {
+          delete legacy[tableId];
+          window.localStorage.setItem('cda.remake.columnVisibility.v6357', JSON.stringify(legacy));
+        }
+      } catch (error) {}
+    }
+    return new Set(Array.isArray(componentState[tableId]) ? componentState[tableId] : []);
+  }
+
+  function saveHiddenV6548(context, tableId, hidden){
+    const state = readStateV6548();
+    const key = stateKeyV6548(context);
+    state[key] = state[key] && typeof state[key] === 'object' ? state[key] : {};
+    state[key][tableId] = Array.from(hidden || []);
+    writeStateV6548(state);
+  }
+
+  function applyTableV6548(context, tableId){
+    const table = resolveTableV6548(tableId);
+    const model = modelV6548(table);
+    if (!table || !model.length) return false;
+    const hidden = hiddenForV6548(context, tableId);
+    table.setAttribute('data-cda-dashboard-columns-key', stateKeyV6548(context));
+    table.setAttribute('data-cda-dashboard-columns-table-id', tableId);
+    Array.from(table.querySelectorAll('.columnHiddenV6357')).forEach(function(node){
+      node.classList.remove('columnHiddenV6357');
+    });
+    Array.from(table.rows || []).forEach(function(row){
+      Array.from(row.cells || []).forEach(function(cell, index){
+        const column = model[index];
+        cell.classList.toggle('cdaDashboardColumnHiddenV6548', !!(column && hidden.has(column.key)));
+      });
+    });
+    Array.from(table.querySelectorAll('col')).forEach(function(col, index){
+      const column = model[index];
+      col.classList.toggle('cdaDashboardColumnHiddenV6548', !!(column && hidden.has(column.key)));
+    });
+    return true;
+  }
+
+  function isManagedV6548(component){
+    return !!(component && component.tableKey && window.cdaTable &&
+      typeof window.cdaTable.config === 'function' && window.cdaTable.config(component.tableKey));
+  }
+
+  function applyV6548(context){
+    if (!context || !context.component || isManagedV6548(context.component)) return false;
+    let applied = false;
+    tableIdsV6548(context.component).forEach(function(tableId){
+      applied = applyTableV6548(context, tableId) || applied;
+    });
+    return applied;
+  }
+
+  function closeExistingV6548(context){
+    if (context.popover && context.popover.isOpenFor(context.button)) {
+      context.popover.close();
+      return true;
+    }
+    return false;
+  }
+
+  function managedChooserEventV6548(button){
+    return { currentTarget:button, preventDefault:function(){}, stopPropagation:function(){} };
+  }
+
+  function openManagedV6548(context){
+    if (!window.cdaTable || typeof window.cdaTable.toggleChooser !== 'function') return false;
+    window.cdaTable.toggleChooser(context.component.tableKey, managedChooserEventV6548(context.button));
+    return true;
+  }
+
+  function visibleCountV6548(model, hidden){
+    return model.reduce(function(total, column){ return total + (hidden.has(column.key) ? 0 : 1); }, 0);
+  }
+
+  function openDomV6548(context){
+    if (!context.popover || closeExistingV6548(context)) return true;
+    const resolved = tableIdsV6548(context.component).map(function(tableId){
+      const table = resolveTableV6548(tableId);
+      return { tableId:tableId, table:table, model:modelV6548(table) };
+    }).filter(function(item){ return item.table && item.model.length; });
+    if (!resolved.length) return false;
+
+    const popover = context.popover.open(context.button, {
+      label:'Choose visible columns',
+      title:'Columns'
+    });
+
+    resolved.forEach(function(item){
+      const section = document.createElement('div');
+      section.className = 'cdaDashboardColumnSectionV6548';
+      if (resolved.length > 1) {
+        const heading = document.createElement('div');
+        heading.className = 'cdaDashboardColumnSectionTitleV6548';
+        heading.textContent = item.table.getAttribute('aria-label') || item.tableId;
+        section.appendChild(heading);
+      }
+      item.model.forEach(function(column){
+        const hidden = hiddenForV6548(context, item.tableId);
+        const label = document.createElement('label');
+        const input = document.createElement('input');
+        const text = document.createElement('span');
+        input.type = 'checkbox';
+        input.checked = !hidden.has(column.key);
+        input.addEventListener('change', function(){
+          const nextHidden = hiddenForV6548(context, item.tableId);
+          if (input.checked) {
+            nextHidden.delete(column.key);
+          } else if (visibleCountV6548(item.model, nextHidden) <= 1) {
+            input.checked = true;
+            return;
+          } else {
+            nextHidden.add(column.key);
+          }
+          saveHiddenV6548(context, item.tableId, nextHidden);
+          applyTableV6548(context, item.tableId);
+        });
+        text.textContent = column.label;
+        label.append(input, text);
+        section.appendChild(label);
+      });
+      popover.appendChild(section);
+    });
+
+    const footer = document.createElement('div');
+    footer.className = 'cdaDashboardColumnFooterV6548';
+    const showAll = document.createElement('button');
+    showAll.type = 'button';
+    showAll.textContent = 'Show all';
+    showAll.addEventListener('click', function(){
+      resolved.forEach(function(item){
+        saveHiddenV6548(context, item.tableId, new Set());
+        applyTableV6548(context, item.tableId);
+      });
+      context.popover.close();
+    });
+    const done = document.createElement('button');
+    done.type = 'button';
+    done.textContent = 'Done';
+    done.addEventListener('click', function(){ context.popover.close(); });
+    footer.append(showAll, done);
+    popover.appendChild(footer);
+    context.popover.position();
+    return true;
+  }
+
+  function openV6548(context){
+    if (!context || !context.component) return false;
+    if (isManagedV6548(context.component)) return openManagedV6548(context);
+    return openDomV6548(context);
+  }
+
+  function resetV6548(context){
+    if (!context || !context.component) return false;
+    if (isManagedV6548(context.component)) {
+      if (typeof window.cdaTable.resetColumns === 'function') {
+        window.cdaTable.resetColumns(context.component.tableKey);
+        return true;
+      }
+      return false;
+    }
+    tableIdsV6548(context.component).forEach(function(tableId){
+      saveHiddenV6548(context, tableId, new Set());
+      applyTableV6548(context, tableId);
+    });
+    return true;
+  }
+
+  if (window.MutationObserver && document.documentElement) {
+    const observerV6548 = new MutationObserver(function(records){
+      const tables = new Set();
+      records.forEach(function(record){
+        const target = record.target && record.target.nodeType === 1 ? record.target : null;
+        const table = target && target.closest ? target.closest('table[data-cda-dashboard-columns-key]') : null;
+        if (table) tables.add(table);
+      });
+      tables.forEach(function(table){
+        const key = table.getAttribute('data-cda-dashboard-columns-key') || '';
+        const parts = key.split(':');
+        const tableId = table.getAttribute('data-cda-dashboard-columns-table-id') || table.id;
+        const context = { tab:{key:parts[0] || 'dashboard'}, component: {key:parts.slice(1).join(':') || 'component'} };
+        window.requestAnimationFrame(function(){ applyTableV6548(context, tableId); });
+      });
+    });
+    observerV6548.observe(document.documentElement, { childList:true, subtree:true });
+  }
+
+  window.cdaDashboardColumnsV6548 = Object.freeze({
+    version:'v6.548',
+    open:openV6548,
+    apply:applyV6548,
+    reset:resetV6548,
+    isManaged:isManagedV6548
+  });
+})();
+</script>

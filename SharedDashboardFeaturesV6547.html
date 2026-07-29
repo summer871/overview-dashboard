@@ -1,7 +1,7 @@
 <!-- SharedDashboardFeaturesV6547.html
-Version: v6.547
+Version: v6.548
 Date: 2026-07-29
-Purpose: Reusable opt-in dashboard feature catalog.
+Purpose: Reusable opt-in dashboard feature catalog shared by TAT, Remake, and future tabs.
 -->
 <script id="cdaSharedDashboardFeaturesControllerV6547">
 (function installSharedDashboardFeaturesV6547(){
@@ -9,7 +9,7 @@ Purpose: Reusable opt-in dashboard feature catalog.
 
   const platform = window.cdaDashboardPlatformV6547;
   if (!platform) throw new Error('Dashboard registry must load before features.');
-  if (window.CDA_DASHBOARD_FEATURES_VERSION === 'v6.547') return;
+  if (window.CDA_DASHBOARD_FEATURES_VERSION === 'v6.548') return;
 
   function callAdapter(context, method){
     const fn = context.adapter && context.adapter[method];
@@ -18,7 +18,14 @@ Purpose: Reusable opt-in dashboard feature catalog.
   }
 
   platform.registerFeature({
-    key:'year', placement:'toolbar', order:10,
+    key:'comparePriorYear', placement:'toolbar', order:10,
+    label:function(context){ return callAdapter(context, 'priorYearLabel') || 'Prior year'; },
+    title:'Compare with the previous year',
+    run:function(context){ callAdapter(context, 'togglePriorYearComparison'); }
+  });
+
+  platform.registerFeature({
+    key:'year', placement:'toolbar', order:15,
     label:function(context){ return callAdapter(context, 'yearLabel') || 'Year'; },
     title:'Choose reporting year',
     run:function(context){ callAdapter(context, 'openYear'); }
@@ -32,8 +39,11 @@ Purpose: Reusable opt-in dashboard feature catalog.
 
   platform.registerFeature({
     key:'popout', placement:'toolbar', order:30,
-    label:'Pop out', title:'Open this component in a new window',
-    run:function(context){ callAdapter(context, 'popout'); }
+    label:'↗', title:'Open this component in a new window', iconOnly:true,
+    run:function(context){
+      if (callAdapter(context, 'popout')) return;
+      if (window.cdaDashboardPopoutV6548) window.cdaDashboardPopoutV6548.open(context);
+    }
   });
 
   platform.registerFeature({
@@ -44,7 +54,7 @@ Purpose: Reusable opt-in dashboard feature catalog.
 
   platform.registerFeature({
     key:'more', placement:'toolbar', order:50,
-    label:'⋮', title:'More actions', iconOnly:true, ariaHasPopup:'menu',
+    label:'⋮', title:'More actions', iconOnly:true, appearance:'plain', ariaHasPopup:'menu',
     run:function(context){
       const menuFeatures = platform.sortedFeatures(context.component, 'menu');
       if (!context.popover || !menuFeatures.length) return;
@@ -92,6 +102,6 @@ Purpose: Reusable opt-in dashboard feature catalog.
     run:function(context){ callAdapter(context, 'exportAll'); }
   });
 
-  window.CDA_DASHBOARD_FEATURES_VERSION = 'v6.547';
+  window.CDA_DASHBOARD_FEATURES_VERSION = 'v6.548';
 })();
 </script>

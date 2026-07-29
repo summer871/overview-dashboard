@@ -1,0 +1,95 @@
+<!-- SharedDashboardDecoratorV6548.html
+Version: v6.548
+Date: 2026-07-29
+Purpose: Add shared controls to existing tab/card DOM without replacing cards or calculations.
+-->
+<script id="cdaSharedDashboardDecoratorControllerV6548">
+(function installSharedDashboardDecoratorV6548(){
+  'use strict';
+
+  if (window.cdaDashboardDecoratorV6548) return;
+  const platform = window.cdaDashboardPlatformV6547;
+  const toolbar = window.cdaDashboardToolbarV6548;
+  if (!platform || !toolbar) throw new Error('Registry and toolbar must load before decorator.');
+
+  function resolveCard(component){
+    if (typeof component.resolveCard === 'function') return component.resolveCard();
+    if (component.cardId) return document.getElementById(component.cardId);
+    const target = component.targetId && document.getElementById(component.targetId);
+    return target && target.closest ? target.closest('.remakeCard,article') : null;
+  }
+
+  function decorate(tabKey){
+    const validation = platform.validateTab(tabKey);
+    if (!validation.ok) throw new Error(validation.errors.join('\n'));
+    const tab = platform.getTab(tabKey);
+    if (!tab || tab.mountMode !== 'decorate') throw new Error('Tab is not decorate-mode: ' + tabKey);
+    const page = document.getElementById(tab.pageId);
+    if (!page) return null;
+    let mounted = 0;
+    tab.components.forEach(function(component){
+      const card = resolveCard(component);
+      if (!card) return;
+      if (tab.adapter && typeof tab.adapter.prepareComponent === 'function') {
+        tab.adapter.prepareComponent({ tab:tab, component:component, card:card });
+      }
+      const header = card.querySelector('.remakeCardHeader,.tatCardHeadV6509');
+      if (!header) return;
+      let host = tab.adapter && typeof tab.adapter.resolveToolbarHost === 'function'
+        ? tab.adapter.resolveToolbarHost({ tab:tab, component:component, card:card, header:header })
+        : header.querySelector('.remakeCardActionsV6230');
+      if (!host) {
+        host = document.createElement('div');
+        host.className = 'remakeCardActionsV6230 cdaDashboardDecoratedActionsV6548';
+        header.appendChild(host);
+      }
+      if (toolbar.mount(tab.key, component.key, host)) mounted += 1;
+      card.setAttribute('data-cda-dashboard-decorated-component', component.key);
+    });
+    page.setAttribute('data-cda-dashboard-decorated-tab', tab.key);
+    if (tab.adapter && typeof tab.adapter.afterDecorate === 'function') {
+      tab.adapter.afterDecorate({ tab:tab, page:page, mounted:mounted });
+    }
+    platform.util.emit('cdaDashboardTabDecoratedV6548', { tabKey:tab.key, mounted:mounted });
+    return page;
+  }
+
+  function duplicateIds(root){
+    const seen = new Set();
+    const duplicates = new Set();
+    if (!root) return [];
+    root.querySelectorAll('[id]').forEach(function(node){
+      if (seen.has(node.id)) duplicates.add(node.id); else seen.add(node.id);
+    });
+    return Array.from(duplicates).sort();
+  }
+
+  function audit(tabKey){
+    const tab = platform.getTab(tabKey);
+    const validation = platform.validateTab(tabKey);
+    const page = tab ? document.getElementById(tab.pageId) : null;
+    const duplicates = duplicateIds(page);
+    const toolbars = page ? Array.from(page.querySelectorAll('.cdaDashboardToolbarV6547')) : [];
+    return {
+      version:platform.version,
+      tabKey:tabKey,
+      mountMode:'decorate',
+      validation:validation,
+      pagePresent:!!page,
+      toolbarCount:toolbars.length,
+      expectedToolbarCount:tab ? tab.components.length : 0,
+      allComponentsDecorated:!!tab && tab.components.every(function(component){
+        return !!page && page.querySelectorAll('[data-cda-dashboard-decorated-component="' + component.key + '"]').length === 1;
+      }),
+      noDuplicateIds:duplicates.length === 0,
+      duplicateIds:duplicates
+    };
+  }
+
+  window.cdaDashboardDecoratorV6548 = Object.freeze({
+    version:'v6.548',
+    decorate:decorate,
+    audit:audit
+  });
+})();
+</script>

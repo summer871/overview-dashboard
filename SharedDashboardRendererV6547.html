@@ -1,54 +1,9 @@
 <!-- SharedDashboardRendererV6547.html
-Version: v6.547
+Version: v6.548
 Date: 2026-07-29
-Purpose: Configuration-driven card and tab renderer. Tabs supply definitions; this file owns shared presentation and event dispatch.
+Purpose: Replace-mode tab and card renderer. Existing-tab decoration is owned separately.
 -->
 <style id="cdaSharedDashboardRendererStylesV6547">
-  [data-cda-dashboard-tab] .cdaDashboardCardV6547 { min-width:0; overflow:hidden; }
-  [data-cda-dashboard-tab] .cdaDashboardCardHeaderV6547 {
-    display:flex!important;
-    align-items:center!important;
-    justify-content:space-between!important;
-    gap:8px!important;
-    min-height:40px!important;
-    padding:7px 9px!important;
-  }
-  [data-cda-dashboard-tab] .cdaDashboardToolbarV6547 {
-    display:flex;
-    align-items:center;
-    justify-content:flex-end;
-    flex-wrap:wrap;
-    gap:5px;
-  }
-  [data-cda-dashboard-tab] .cdaDashboardButtonV6547 {
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
-    height:27px;
-    min-width:0;
-    padding:0 8px;
-    border:1px solid #cfd6df;
-    border-radius:999px;
-    background:#fff;
-    color:#344054;
-    font:900 9.5px/1 Roboto,Arial,sans-serif;
-    cursor:pointer;
-    white-space:nowrap;
-  }
-  [data-cda-dashboard-tab] .cdaDashboardButtonV6547:hover,
-  [data-cda-dashboard-tab] .cdaDashboardButtonV6547:focus-visible,
-  [data-cda-dashboard-tab] .cdaDashboardButtonV6547[aria-expanded="true"] {
-    border-color:#f2c94c;
-    background:#fff7d6;
-    color:#7a4a00;
-    outline:none;
-  }
-  [data-cda-dashboard-tab] .cdaDashboardButtonIconV6547 {
-    width:27px;
-    min-width:27px;
-    padding:0;
-    font-size:15px;
-  }
   [data-cda-dashboard-tab] .remakeTableWrap { width:100%; min-width:0; overflow:auto; }
   [data-cda-dashboard-tab] table.remakeTable { width:100%; }
 </style>
@@ -57,147 +12,83 @@ Purpose: Configuration-driven card and tab renderer. Tabs supply definitions; th
   'use strict';
 
   if (window.cdaDashboardRendererV6547) return;
+  const platform = window.cdaDashboardPlatformV6547;
+  const toolbar = window.cdaDashboardToolbarV6548;
+  if (!platform || !toolbar) throw new Error('Registry and toolbar must load before renderer.');
 
-  const platformV6547 = window.cdaDashboardPlatformV6547;
-  if (!platformV6547) throw new Error('Shared dashboard registry must load before renderer.');
-
-  const renderedTabsV6547 = new Map();
-
-  function featureContextV6547(tab, component, button, event){
-    return {
-      tab:tab,
-      component:component,
-      button:button,
-      event:event,
-      adapter:tab.adapter || {},
-      platform:platformV6547,
-      renderer:window.cdaDashboardRendererV6547,
-      popover:window.cdaDashboardPopoverV6547 || null
-    };
+  function componentFor(tab, componentKey){
+    return tab && tab.components.find(function(item){ return item.key === componentKey; }) || null;
   }
 
-  function featureLabelV6547(feature, context){
-    return typeof feature.label === 'function'
-      ? String(feature.label(context))
-      : String(feature.label || feature.key);
-  }
-
-  function featureTitleV6547(feature, context){
-    return typeof feature.title === 'function'
-      ? String(feature.title(context))
-      : String(feature.title || feature.label || feature.key);
-  }
-
-  function buttonMarkupV6547(tab, component, feature){
-    const context = featureContextV6547(tab, component, null, null);
-    const label = featureLabelV6547(feature, context);
-    const title = featureTitleV6547(feature, context);
-    const extra = feature.ariaHasPopup
-      ? ' aria-haspopup="' + platformV6547.util.escapeHtml(feature.ariaHasPopup) + '" aria-expanded="false" data-cda-dashboard-popover-trigger="true"'
-      : '';
-    return '<button class="cdaDashboardButtonV6547' + (feature.iconOnly ? ' cdaDashboardButtonIconV6547' : '') + '" type="button"' +
-      ' data-cda-dashboard-tab-key="' + platformV6547.util.escapeHtml(tab.key) + '"' +
-      ' data-cda-dashboard-component-key="' + platformV6547.util.escapeHtml(component.key) + '"' +
-      ' data-cda-dashboard-feature-key="' + platformV6547.util.escapeHtml(feature.key) + '"' +
-      ' title="' + platformV6547.util.escapeHtml(title) + '" aria-label="' + platformV6547.util.escapeHtml(title) + '"' + extra + '>' +
-      platformV6547.util.escapeHtml(label) + '</button>';
-  }
-
-  function toolbarMarkupV6547(tab, component){
-    const features = platformV6547.sortedFeatures(component, 'toolbar');
-    return '<div class="cdaDashboardToolbarV6547" data-cda-dashboard-toolbar="' + platformV6547.util.escapeHtml(component.key) + '">' +
-      features.map(function(feature){ return buttonMarkupV6547(tab, component, feature); }).join('') + '</div>';
-  }
-
-  function cardMarkupV6547(tab, component){
-    const body = component.renderBody({ tab:tab, component:component, platform:platformV6547 });
+  function cardMarkup(tab, component){
+    const body = component.renderBody({ tab:tab, component:component, platform:platform });
     const title = typeof component.renderTitle === 'function'
-      ? component.renderTitle({ tab:tab, component:component, platform:platformV6547 })
-      : '<div class="tatCardTitleV6509 remakeCardTitle">' + platformV6547.util.escapeHtml(component.title) + '</div>';
-    return '<article' + (component.cardId ? ' id="' + platformV6547.util.escapeHtml(component.cardId) + '"' : '') +
+      ? component.renderTitle({ tab:tab, component:component, platform:platform })
+      : '<div class="tatCardTitleV6509 remakeCardTitle">' + platform.util.escapeHtml(component.title) + '</div>';
+    return '<article' + (component.cardId ? ' id="' + platform.util.escapeHtml(component.cardId) + '"' : '') +
       ' class="tatCardV6509 remakeCard cdaDashboardCardV6547' + (component.wide ? ' tatWideV6509' : '') + '"' +
-      ' data-cda-dashboard-component="' + platformV6547.util.escapeHtml(component.key) + '">' +
+      ' data-cda-dashboard-component="' + platform.util.escapeHtml(component.key) + '">' +
       '<div class="tatCardHeadV6509 remakeCardHeader cdaDashboardCardHeaderV6547"><div>' + title + '</div>' +
-      toolbarMarkupV6547(tab, component) + '</div>' + body + '</article>';
+      toolbar.markup(tab, component) + '</div>' + body + '</article>';
   }
 
-  function renderComponentV6547(tab, componentKey){
-    const component = tab.components.find(function(item){ return item.key === componentKey; });
+  function renderComponent(tab, componentKey){
+    const component = componentFor(tab, componentKey);
     if (!component) throw new Error('Unknown component: ' + componentKey);
-    return cardMarkupV6547(tab, component);
+    return cardMarkup(tab, component);
   }
 
-  function bindV6547(page, tab){
-    page.addEventListener('click', function(event){
-      const button = event.target && event.target.closest
-        ? event.target.closest('[data-cda-dashboard-feature-key]')
-        : null;
-      if (!button || !page.contains(button)) return;
-      const componentKey = button.getAttribute('data-cda-dashboard-component-key');
-      const featureKey = button.getAttribute('data-cda-dashboard-feature-key');
-      const component = tab.components.find(function(item){ return item.key === componentKey; });
-      const feature = platformV6547.getFeature(featureKey);
-      if (!component || !feature) return;
-      event.preventDefault();
-      event.stopPropagation();
-      feature.run(featureContextV6547(tab, component, button, event));
-    });
-  }
-
-  function rebuildV6547(tabKey){
-    const validation = platformV6547.validateTab(tabKey);
+  function rebuild(tabKey){
+    const validation = platform.validateTab(tabKey);
     if (!validation.ok) throw new Error(validation.errors.join('\n'));
-    const tab = platformV6547.getTab(tabKey);
+    const tab = platform.getTab(tabKey);
+    if (tab.mountMode !== 'replace') throw new Error('Tab is not replace-mode: ' + tabKey);
     const oldPage = document.getElementById(tab.pageId);
     if (!oldPage) return null;
-    if (oldPage.getAttribute('data-cda-dashboard-version') === platformV6547.version) return oldPage;
-
+    if (oldPage.getAttribute('data-cda-dashboard-version') === platform.version) return oldPage;
     const wasActive = oldPage.classList.contains('active') || getComputedStyle(oldPage).display !== 'none';
     if (typeof tab.beforeReplace === 'function') tab.beforeReplace({ oldPage:oldPage, tab:tab });
-
     const page = document.createElement(oldPage.tagName.toLowerCase());
     page.id = tab.pageId;
     page.className = tab.pageClass || 'tabContent cleanRemakeV6230';
     page.setAttribute('data-cda-dashboard-tab', tab.key);
-    page.setAttribute('data-cda-dashboard-version', platformV6547.version);
+    page.setAttribute('data-cda-dashboard-version', platform.version);
     page.innerHTML = tab.renderLayout({
       tab:tab,
-      platform:platformV6547,
-      renderComponent:function(componentKey){ return renderComponentV6547(tab, componentKey); }
+      platform:platform,
+      renderComponent:function(componentKey){ return renderComponent(tab, componentKey); }
     });
-    bindV6547(page, tab);
     oldPage.parentNode.replaceChild(page, oldPage);
     page.style.setProperty('display', wasActive ? 'block' : 'none', 'important');
     if (wasActive) {
       page.classList.add('active');
       page.style.setProperty('visibility', 'visible', 'important');
     }
-    renderedTabsV6547.set(tab.key, page);
     if (typeof tab.afterReplace === 'function') tab.afterReplace({ page:page, tab:tab, wasActive:wasActive });
-    platformV6547.util.emit('cdaDashboardTabRenderedV6547', { tabKey:tab.key });
+    platform.util.emit('cdaDashboardTabRenderedV6547', { tabKey:tab.key });
     return page;
   }
 
-  function duplicateIdsV6547(root){
+  function duplicateIds(root){
     const seen = new Set();
     const duplicates = new Set();
     if (!root) return [];
     root.querySelectorAll('[id]').forEach(function(node){
-      if (seen.has(node.id)) duplicates.add(node.id);
-      else seen.add(node.id);
+      if (seen.has(node.id)) duplicates.add(node.id); else seen.add(node.id);
     });
     return Array.from(duplicates).sort();
   }
 
-  function auditV6547(tabKey){
-    const tab = platformV6547.getTab(tabKey);
-    const validation = platformV6547.validateTab(tabKey);
+  function audit(tabKey){
+    const tab = platform.getTab(tabKey);
+    const validation = platform.validateTab(tabKey);
     const page = tab ? document.getElementById(tab.pageId) : null;
     const cards = page ? Array.from(page.querySelectorAll('[data-cda-dashboard-component]')) : [];
-    const duplicates = duplicateIdsV6547(page);
+    const duplicates = duplicateIds(page);
     return {
-      version:platformV6547.version,
+      version:platform.version,
       tabKey:tabKey,
+      mountMode:'replace',
       validation:validation,
       pagePresent:!!page,
       renderedVersion:page && page.getAttribute('data-cda-dashboard-version'),
@@ -212,10 +103,10 @@ Purpose: Configuration-driven card and tab renderer. Tabs supply definitions; th
   }
 
   window.cdaDashboardRendererV6547 = Object.freeze({
-    version:'v6.547',
-    rebuild:rebuildV6547,
-    renderComponent:renderComponentV6547,
-    audit:auditV6547
+    version:'v6.548',
+    rebuild:rebuild,
+    renderComponent:renderComponent,
+    audit:audit
   });
 })();
 </script>

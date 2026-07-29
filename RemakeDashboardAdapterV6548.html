@@ -1,0 +1,211 @@
+<!-- RemakeDashboardAdapterV6548.html
+Version: v6.548
+Date: 2026-07-29
+Purpose: Bridge shared dashboard controls to the existing Remake calculations and card DOM.
+-->
+<style id="cdaRemakeDashboardAdapterStylesV6548">
+  #remakeFactorPage .cdaDashboardLegacyControlV6548 { display:none!important; visibility:hidden!important; pointer-events:none!important; }
+  #remakeFactorPage .cdaDashboardDecoratedActionsV6548 { display:flex!important; align-items:center!important; justify-content:flex-end!important; gap:5px!important; margin-left:auto!important; }
+</style>
+<script id="cdaRemakeDashboardAdapterControllerV6548">
+(function installRemakeDashboardAdapterV6548(){
+  'use strict';
+
+  if (window.cdaRemakeDashboardAdapterV6548) return;
+
+  function cardV6548(component){
+    if (component.cardId) return document.getElementById(component.cardId);
+    const target = component.targetId && document.getElementById(component.targetId);
+    return target && target.closest ? target.closest('.remakeCard,article') : null;
+  }
+
+  function targetTableV6548(component){
+    const id = Array.isArray(component.tableIds) && component.tableIds.length
+      ? component.tableIds[0]
+      : component.targetId;
+    const target = id && document.getElementById(id);
+    return target && target.tagName === 'TABLE' ? target : target && target.closest ? target.closest('table') : null;
+  }
+
+  function legacyCompareButtonV6548(component){
+    const card = cardV6548(component);
+    return card && card.querySelector ? card.querySelector('.tableCompareToggleV6297') : null;
+  }
+
+  function comparisonActiveV6548(component){
+    const table = targetTableV6548(component);
+    const legacy = legacyCompareButtonV6548(component);
+    return !!((table && table.classList.contains('compareColumnsV6301')) ||
+      (legacy && (legacy.classList.contains('active') || legacy.getAttribute('aria-pressed') === 'true')));
+  }
+
+  function priorYearLabelV6548(context){
+    const legacy = legacyCompareButtonV6548(context.component);
+    const match = String(legacy && legacy.textContent || '').match(/\b(20\d{2})\b/);
+    return match ? match[1] : String(new Date().getFullYear() - 1);
+  }
+
+  function syncToolbarStateV6548(context){
+    const toolbar = context.toolbar || null;
+    if (!toolbar) return;
+    const button = toolbar.querySelector('[data-cda-dashboard-feature-key="comparePriorYear"]');
+    if (button) {
+      const provider = legacyCompareButtonV6548(context.component);
+      button.hidden = !provider;
+      if (provider) button.setAttribute('aria-pressed', comparisonActiveV6548(context.component) ? 'true' : 'false');
+    }
+  }
+
+  function syncComponentV6548(component){
+    const card = cardV6548(component);
+    const toolbar = card && card.querySelector('.cdaDashboardToolbarV6547[data-cda-dashboard-toolbar="' + component.key + '"]');
+    if (toolbar) syncToolbarStateV6548({ component:component, toolbar:toolbar });
+  }
+
+  function togglePriorYearComparisonV6548(context){
+    const legacy = legacyCompareButtonV6548(context.component);
+    if (!legacy) return false;
+    legacy.click();
+    window.setTimeout(function(){ syncComponentV6548(context.component); }, 0);
+    return true;
+  }
+
+  function openColumnsV6548(context){
+    return !!(window.cdaDashboardColumnsV6548 && window.cdaDashboardColumnsV6548.open(context));
+  }
+
+  function getChartV6548(context){
+    const target = context.component.targetId && document.getElementById(context.component.targetId);
+    const canvas = target && target.tagName === 'CANVAS' ? target : target && target.querySelector ? target.querySelector('canvas') : null;
+    try {
+      return window.Chart && typeof window.Chart.getChart === 'function' && canvas
+        ? window.Chart.getChart(canvas) || null
+        : null;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function popoutV6548(context){
+    return !!(window.cdaDashboardPopoutV6548 && window.cdaDashboardPopoutV6548.open(context));
+  }
+
+  function resetV6548(context){
+    if (window.cdaDashboardColumnsV6548) window.cdaDashboardColumnsV6548.reset(context);
+    const legacy = legacyCompareButtonV6548(context.component);
+    if (legacy && comparisonActiveV6548(context.component)) legacy.click();
+    if (typeof window.clearRemakeComponentV6230 === 'function') {
+      window.clearRemakeComponentV6230(context.component.legacyKey || context.component.key);
+    }
+    window.setTimeout(function(){ syncComponentV6548(context.component); }, 0);
+    return true;
+  }
+
+  function csvCellV6548(value){
+    const text = String(value == null ? '' : value);
+    return /[",\n\r]/.test(text) ? '"' + text.replace(/"/g, '""') + '"' : text;
+  }
+
+  function downloadCsvV6548(filename, rows){
+    const csv = rows.map(function(row){ return row.map(csvCellV6548).join(','); }).join('\r\n');
+    const url = URL.createObjectURL(new Blob(['\uFEFF' + csv], {type:'text/csv;charset=utf-8'}));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(function(){ URL.revokeObjectURL(url); }, 500);
+    return true;
+  }
+
+  function exportTableV6548(component){
+    const table = targetTableV6548(component);
+    if (!table) return false;
+    const rows = Array.from(table.rows || []).map(function(row){
+      return Array.from(row.cells || []).filter(function(cell){
+        return !cell.classList.contains('cdaDashboardColumnHiddenV6548') && getComputedStyle(cell).display !== 'none';
+      }).map(function(cell){ return String(cell.textContent || '').replace(/\s+/g, ' ').trim(); });
+    }).filter(function(row){ return row.length; });
+    return rows.length ? downloadCsvV6548('remake_' + component.key + '_current.csv', rows) : false;
+  }
+
+  function exportTrendV6548(component){
+    const target = component.targetId && document.getElementById(component.targetId);
+    if (!target) return false;
+    const rows = [['Item']].concat(Array.from(target.children || []).map(function(node){
+      return [String(node.textContent || '').replace(/\s+/g, ' ').trim()];
+    }).filter(function(row){ return row[0]; }));
+    return rows.length > 1 ? downloadCsvV6548('remake_' + component.key + '_current.csv', rows) : false;
+  }
+
+  function exportCurrentV6548(context){
+    return context.component.kind === 'table'
+      ? exportTableV6548(context.component)
+      : exportTrendV6548(context.component);
+  }
+
+  function hideLegacyControlsV6548(card){
+    if (!card || !card.querySelectorAll) return;
+    card.querySelectorAll('[data-column-chooser-v6357],.tableCompareToggleV6297,.clearComponentButtonV6304').forEach(function(button){
+      button.classList.add('cdaDashboardLegacyControlV6548');
+      button.setAttribute('data-cda-dashboard-legacy-provider', 'true');
+    });
+    card.querySelectorAll('button').forEach(function(button){
+      const label = [button.textContent, button.title, button.getAttribute('aria-label')].join(' ');
+      if (/pop\s*out|open.*(?:window|separate)/i.test(label)) {
+        button.classList.add('cdaDashboardLegacyControlV6548');
+        button.setAttribute('data-cda-dashboard-legacy-provider', 'true');
+      }
+    });
+  }
+
+  function prepareComponentV6548(context){
+    context.card.classList.add('cdaDashboardCardV6547');
+    const header = context.card.querySelector('.remakeCardHeader');
+    if (header) header.classList.add('cdaDashboardCardHeaderV6547');
+    hideLegacyControlsV6548(context.card);
+  }
+
+  function resolveToolbarHostV6548(context){
+    let host = context.header.querySelector('.remakeCardActionsV6230');
+    if (!host) {
+      host = document.createElement('div');
+      host.className = 'remakeCardActionsV6230 cdaDashboardDecoratedActionsV6548';
+      context.header.appendChild(host);
+    } else {
+      host.classList.add('cdaDashboardDecoratedActionsV6548');
+    }
+    return host;
+  }
+
+  function applyColumnsV6548(tab){
+    if (!window.cdaDashboardColumnsV6548) return;
+    tab.components.forEach(function(component){
+      if (component.kind === 'table') {
+        window.cdaDashboardColumnsV6548.apply({ tab:tab, component:component });
+      }
+    });
+  }
+
+  function afterDecorateV6548(context){
+    applyColumnsV6548(context.tab);
+    context.tab.components.forEach(syncComponentV6548);
+  }
+
+  window.cdaRemakeDashboardAdapterV6548 = Object.freeze({
+    priorYearLabel:priorYearLabelV6548,
+    togglePriorYearComparison:togglePriorYearComparisonV6548,
+    openColumns:openColumnsV6548,
+    getChart:getChartV6548,
+    popout:popoutV6548,
+    reset:resetV6548,
+    exportCurrent:exportCurrentV6548,
+    prepareComponent:prepareComponentV6548,
+    resolveToolbarHost:resolveToolbarHostV6548,
+    syncToolbarState:syncToolbarStateV6548,
+    afterDecorate:afterDecorateV6548,
+    comparisonActive:comparisonActiveV6548
+  });
+})();
+</script>
