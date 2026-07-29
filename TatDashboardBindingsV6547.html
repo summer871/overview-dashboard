@@ -1,0 +1,41 @@
+<!-- TatDashboardBindingsV6547.html
+Version: v6.547
+Date: 2026-07-29
+Purpose: Bind declarative TAT components to stable controller-owned DOM IDs and state contracts.
+-->
+<script id="cdaTatDashboardBindingsControllerV6547">
+(function installTatDashboardBindingsV6547(){
+  'use strict';
+
+  if (window.cdaTatDashboardBindingsV6547) return;
+
+  const COLLAPSE_BINDINGS = [
+    { component:'customer', buttonId:'tatCustomerCollapseV6509', stateKey:'customers' },
+    { component:'quality', buttonId:'tatQualityCollapseV6509', stateKey:'quality' }
+  ];
+
+  function applyCollapseBindings(){
+    const state = window.cdaTatStateV6509 || {};
+    const collapsed = state.collapsed || {};
+    COLLAPSE_BINDINGS.forEach(function(binding){
+      const selector = '[data-cda-dashboard-component-key="' + binding.component + '"]' +
+        '[data-cda-dashboard-feature-key="collapse"]';
+      const button = document.querySelector('#tatDashboardPageV6509 ' + selector);
+      if (!button) return;
+      button.id = binding.buttonId;
+      const isCollapsed = !!collapsed[binding.stateKey];
+      button.textContent = isCollapsed ? '▸' : '▾';
+      button.setAttribute('aria-expanded', isCollapsed ? 'false' : 'true');
+    });
+  }
+
+  document.addEventListener('cdaDashboardTabRenderedV6547', function(event){
+    if (event && event.detail && event.detail.tabKey === 'tat') applyCollapseBindings();
+  });
+
+  window.cdaTatDashboardBindingsV6547 = Object.freeze({
+    version:'v6.547',
+    apply:applyCollapseBindings
+  });
+})();
+</script>
