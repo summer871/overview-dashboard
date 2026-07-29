@@ -1,5 +1,5 @@
 <!-- RemakeDashboardLegacyBridgeV6554.html
-Version: v6.555
+Version: v6.555 implementation / v6.554 public API
 Date: 2026-07-29
 Purpose: Locate active Remake cards and preserve legacy behavior behind hidden shared-control providers.
 -->
@@ -14,7 +14,7 @@ Purpose: Locate active Remake cards and preserve legacy behavior behind hidden s
 (function installRemakeDashboardLegacyBridgeV6554(){
   'use strict';
 
-  if (window.cdaRemakeLegacyBridgeV6554 && window.cdaRemakeLegacyBridgeV6554.version === 'v6.555') return;
+  if (window.cdaRemakeLegacyBridgeV6554 && window.cdaRemakeLegacyBridgeV6554.version === 'v6.554') return;
 
   function pageV6554(){ return document.getElementById('remakeFactorPage'); }
 
@@ -97,7 +97,7 @@ Purpose: Locate active Remake cards and preserve legacy behavior behind hidden s
   }
 
   window.cdaRemakeLegacyBridgeV6554 = Object.freeze({
-    version:'v6.555',page:pageV6554,card:cardV6554,label:labelV6554,
+    version:'v6.554',page:pageV6554,card:cardV6554,label:labelV6554,
     action:actionV6554,prepare:prepareV6554,provider:providerV6554,invoke:invokeV6554
   });
 })();
