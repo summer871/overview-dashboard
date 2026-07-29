@@ -1,0 +1,159 @@
+<!-- SharedDashboardRegistryV6547.html
+Version: v6.547
+Date: 2026-07-29
+Purpose: Shared registry and validation layer for dashboard tabs and opt-in features.
+-->
+<script id="cdaSharedDashboardRegistryV6547">
+(function installSharedDashboardRegistryV6547(){
+  'use strict';
+
+  if (window.cdaDashboardPlatformV6547) return;
+
+  const VERSION_V6547 = 'v6.547';
+  const featureRegistryV6547 = new Map();
+  const tabRegistryV6547 = new Map();
+
+  function normalizeKeyV6547(value, label){
+    const key = String(value == null ? '' : value).trim();
+    if (!key) throw new Error((label || 'Key') + ' is required.');
+    return key;
+  }
+
+  function escapeHtmlV6547(value){
+    return String(value == null ? '' : value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function registerFeatureV6547(definition){
+    if (!definition || typeof definition !== 'object') {
+      throw new Error('Feature definition is required.');
+    }
+    const key = normalizeKeyV6547(definition.key, 'Feature key');
+    if (featureRegistryV6547.has(key)) {
+      throw new Error('Feature already registered: ' + key);
+    }
+    const normalized = Object.assign({
+      placement:'toolbar',
+      order:100,
+      iconOnly:false
+    }, definition, { key:key });
+    if (typeof normalized.run !== 'function') {
+      throw new Error('Feature requires a run function: ' + key);
+    }
+    featureRegistryV6547.set(key, Object.freeze(normalized));
+    return normalized;
+  }
+
+  function normalizeComponentV6547(component, index){
+    if (!component || typeof component !== 'object') {
+      throw new Error('Tab component at index ' + index + ' is invalid.');
+    }
+    const key = normalizeKeyV6547(component.key, 'Component key');
+    return Object.assign({
+      title:key,
+      kind:'custom',
+      features:[]
+    }, component, {
+      key:key,
+      features:Array.from(new Set((component.features || []).map(String)))
+    });
+  }
+
+  function registerTabV6547(definition){
+    if (!definition || typeof definition !== 'object') {
+      throw new Error('Tab definition is required.');
+    }
+    const key = normalizeKeyV6547(definition.key, 'Tab key');
+    if (tabRegistryV6547.has(key)) {
+      throw new Error('Tab already registered: ' + key);
+    }
+    const components = (definition.components || []).map(normalizeComponentV6547);
+    const normalized = Object.assign({}, definition, {
+      key:key,
+      components:components
+    });
+    tabRegistryV6547.set(key, normalized);
+    return normalized;
+  }
+
+  function getFeatureV6547(key){
+    return featureRegistryV6547.get(String(key || '')) || null;
+  }
+
+  function getTabV6547(key){
+    return tabRegistryV6547.get(String(key || '')) || null;
+  }
+
+  function sortedFeaturesV6547(component, placement){
+    return (component && component.features || [])
+      .map(getFeatureV6547)
+      .filter(function(feature){
+        return feature && (!placement || feature.placement === placement);
+      })
+      .sort(function(left, right){
+        return Number(left.order || 0) - Number(right.order || 0);
+      });
+  }
+
+  function validateTabV6547(tabKey){
+    const tab = getTabV6547(tabKey);
+    if (!tab) {
+      return { ok:false, tabKey:String(tabKey || ''), errors:['Tab is not registered.'] };
+    }
+    const errors = [];
+    const warnings = [];
+    const componentKeys = new Set();
+    tab.components.forEach(function(component){
+      if (componentKeys.has(component.key)) {
+        errors.push('Duplicate component key: ' + component.key);
+      }
+      componentKeys.add(component.key);
+      component.features.forEach(function(featureKey){
+        if (!featureRegistryV6547.has(featureKey)) {
+          errors.push('Unknown feature "' + featureKey + '" on component "' + component.key + '".');
+        }
+      });
+      if (typeof component.renderBody !== 'function') {
+        errors.push('Component requires renderBody(): ' + component.key);
+      }
+    });
+    if (!tab.pageId) errors.push('Tab pageId is required.');
+    if (typeof tab.renderLayout !== 'function') errors.push('Tab renderLayout() is required.');
+    if (!tab.components.length) warnings.push('Tab has no components.');
+    return {
+      ok:errors.length === 0,
+      version:VERSION_V6547,
+      tabKey:tab.key,
+      componentKeys:Array.from(componentKeys),
+      errors:errors,
+      warnings:warnings
+    };
+  }
+
+  const platformV6547 = {
+    version:VERSION_V6547,
+    registerFeature:registerFeatureV6547,
+    registerTab:registerTabV6547,
+    getFeature:getFeatureV6547,
+    getTab:getTabV6547,
+    sortedFeatures:sortedFeaturesV6547,
+    validateTab:validateTabV6547,
+    listFeatures:function(){ return Array.from(featureRegistryV6547.keys()).sort(); },
+    listTabs:function(){ return Array.from(tabRegistryV6547.keys()).sort(); },
+    util:{
+      byId:function(id){ return document.getElementById(id); },
+      escapeHtml:escapeHtmlV6547,
+      emit:function(name, detail){
+        document.dispatchEvent(new CustomEvent(name, { detail:detail }));
+      }
+    }
+  };
+
+  window.cdaDashboardPlatformV6547 = platformV6547;
+  window.CDA_DASHBOARD_PLATFORM_VERSION = VERSION_V6547;
+})();
+</script>
