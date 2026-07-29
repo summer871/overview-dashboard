@@ -1,7 +1,7 @@
 <!-- SharedComponentFoundation.html
-Version: v6.553
+Version: v6.554
 Date: 2026-07-29
-Purpose: Load the shared dashboard feature pool, then register TAT and decorate the active Remake cards with the same controls.
+Purpose: Load the shared dashboard feature pool, then register TAT and decorate every visible Remake analytics card.
 Every included file is a complete independently valid Apps Script HTML partial.
 -->
 <?!= includeDashboardFile('SharedTableStyles') ?>
@@ -21,6 +21,7 @@ Every included file is a complete independently valid Apps Script HTML partial.
 <?!= includeDashboardFile('TatDashboardAdapterV6547') ?>
 <?!= includeDashboardFile('TatDashboardDefinitionV6547') ?>
 <?!= includeDashboardFile('TatDashboardBindingsV6547') ?>
+<?!= includeDashboardFile('RemakeDashboardLegacyBridgeV6554') ?>
 <?!= includeDashboardFile('RemakeDashboardAdapterV6548') ?>
 <?!= includeDashboardFile('RemakeDashboardDefinitionV6548') ?>
 <?!= includeDashboardFile('TatDashboardBootstrapV6547') ?>
