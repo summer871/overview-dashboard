@@ -1,0 +1,124 @@
+<!-- RemakeDashboardLegacyBridgeV6554.html
+Version: v6.554
+Date: 2026-07-29
+Purpose: Locate active Remake cards and preserve legacy behavior behind hidden shared-control providers.
+-->
+<style id="cdaRemakeDashboardLegacyBridgeStylesV6554">
+  #remakeFactorPage .cdaDashboardLegacyControlV6548 {
+    display:none!important;
+    visibility:hidden!important;
+    pointer-events:none!important;
+  }
+  #remakeFactorPage .cdaDashboardCollapseTitleV6554 {
+    cursor:default!important;
+    pointer-events:none!important;
+  }
+</style>
+<script id="cdaRemakeDashboardLegacyBridgeControllerV6554">
+(function installRemakeDashboardLegacyBridgeV6554(){
+  'use strict';
+
+  if (window.cdaRemakeLegacyBridgeV6554) return;
+
+  function pageV6554(){
+    return document.getElementById('remakeFactorPage');
+  }
+
+  function cardV6554(component){
+    if (!component) return null;
+    if (typeof component.resolveCard === 'function') {
+      try {
+        const custom = component.resolveCard({
+          component:component,
+          page:pageV6554()
+        });
+        if (custom) return custom;
+      } catch (error) {}
+    }
+    if (component.cardId) {
+      const byId = document.getElementById(component.cardId);
+      if (byId) return byId;
+    }
+    const target = component.targetId && document.getElementById(component.targetId);
+    return target && target.closest ? target.closest('.remakeCard,article') : null;
+  }
+
+  function labelV6554(button){
+    return [
+      button && button.textContent,
+      button && button.title,
+      button && button.getAttribute && button.getAttribute('aria-label')
+    ].join(' ').replace(/\s+/g,' ').trim().toLowerCase();
+  }
+
+  function actionV6554(button){
+    if (!button || !button.matches || button.closest('.cdaDashboardToolbarV6547')) return '';
+    if (button.matches('[data-remake-section-toggle-v6402]')) return 'collapse';
+    if (button.matches('[data-column-chooser-v6357]')) return 'columns';
+    if (button.matches('.tableCompareToggleV6297')) return 'comparePriorYear';
+    if (button.matches('.clearComponentButtonV6304')) return 'reset';
+
+    const label = labelV6554(button);
+    if (/\bexport current\b|\bdownload current\b/.test(label)) return 'exportCurrent';
+    if (/(^|\s)all data(\s|$)|\bexport all\b|\bdownload all\b/.test(label)) return 'exportAll';
+    if (/\bpop\s*out\b|open.*(?:window|separate)/.test(label)) return 'popout';
+    if (/\breset\b|\bclear (?:card|component|selection|filters?)\b/.test(label)) return 'reset';
+    return '';
+  }
+
+  function markV6554(button,action){
+    if (!button || !action) return;
+    button.classList.add('cdaDashboardLegacyControlV6548');
+    button.setAttribute('data-cda-dashboard-legacy-provider','true');
+    button.setAttribute('data-cda-dashboard-legacy-action',action);
+  }
+
+  function normalizeCollapseTitleV6554(component,card){
+    if (!component || !component.collapseKey || !card) return;
+    const title = card.querySelector('.remakeCardTitle');
+    if (!title) return;
+    title.classList.add('cdaDashboardCollapseTitleV6554');
+    title.removeAttribute('role');
+    title.removeAttribute('tabindex');
+    title.removeAttribute('aria-expanded');
+    title.removeAttribute('aria-label');
+    title.removeAttribute('title');
+  }
+
+  function prepareV6554(component){
+    const card = cardV6554(component);
+    if (!card || !card.querySelectorAll) return card;
+    card.querySelectorAll('button').forEach(function(button){
+      const action = actionV6554(button);
+      if (action) markV6554(button,action);
+    });
+    normalizeCollapseTitleV6554(component,card);
+    return card;
+  }
+
+  function providerV6554(component,action){
+    const card = prepareV6554(component);
+    return card
+      ? card.querySelector('[data-cda-dashboard-legacy-action="' + action + '"]')
+      : null;
+  }
+
+  function invokeV6554(component,action){
+    const provider = providerV6554(component,action);
+    if (!provider || typeof provider.click !== 'function') return false;
+    provider.click();
+    return true;
+  }
+
+  window.cdaRemakeLegacyBridgeV6554 = Object.freeze({
+    version:'v6.554',
+    page:pageV6554,
+    card:cardV6554,
+    label:labelV6554,
+    action:actionV6554,
+    prepare:prepareV6554,
+    provider:providerV6554,
+    invoke:invokeV6554
+  });
+})();
+</script>
