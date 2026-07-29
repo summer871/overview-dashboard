@@ -1,14 +1,14 @@
 <!-- RemakeDashboardBootstrapV6548.html
-Version: v6.551
+Version: v6.552
 Date: 2026-07-29
-Purpose: Register, reconcile, refresh, and audit complete Remake shared-control decoration.
+Purpose: Register, reconcile, refresh, and audit the five active Remake shared-control cards.
 -->
 <script id="cdaRemakeDashboardBootstrapControllerV6548">
 (function installRemakeDashboardBootstrapV6548(){
   'use strict';
 
-  if (window.__cdaRemakeDashboardBootstrapV6551) return;
-  window.__cdaRemakeDashboardBootstrapV6551 = true;
+  if (window.__cdaRemakeDashboardBootstrapV6552) return;
+  window.__cdaRemakeDashboardBootstrapV6552 = true;
 
   const platform = window.cdaDashboardPlatformV6547;
   const decorator = window.cdaDashboardDecoratorV6548;
@@ -24,54 +24,54 @@ Purpose: Register, reconcile, refresh, and audit complete Remake shared-control 
     throw new Error('Remake definition is invalid:\n' + registrationAudit.errors.join('\n'));
   }
 
-  let scheduledV6551 = false;
-  let reconciliationTimerV6551 = 0;
-  let reconciliationAttemptsV6551 = 0;
-  const MAX_RECONCILIATION_ATTEMPTS_V6551 = 80;
+  let scheduledV6552 = false;
+  let reconciliationTimerV6552 = 0;
+  let reconciliationAttemptsV6552 = 0;
+  const MAX_RECONCILIATION_ATTEMPTS_V6552 = 80;
 
-  function baseAuditV6551(){
+  function baseAuditV6552(){
     return decorator.audit('remake');
   }
 
-  function decorateV6551(){
-    scheduledV6551 = false;
+  function decorateV6552(){
+    scheduledV6552 = false;
     const page = decorator.decorate('remake');
-    const audit = baseAuditV6551();
-    if (audit.pagePresent && !audit.allComponentsDecorated) scheduleReconciliationV6551();
+    const audit = baseAuditV6552();
+    if (audit.pagePresent && !audit.allComponentsDecorated) scheduleReconciliationV6552();
     return page;
   }
 
-  function scheduleV6551(){
-    if (scheduledV6551) return;
-    scheduledV6551 = true;
-    window.requestAnimationFrame(decorateV6551);
+  function scheduleV6552(){
+    if (scheduledV6552) return;
+    scheduledV6552 = true;
+    window.requestAnimationFrame(decorateV6552);
   }
 
-  function stopReconciliationV6551(){
-    if (reconciliationTimerV6551) window.clearTimeout(reconciliationTimerV6551);
-    reconciliationTimerV6551 = 0;
-    reconciliationAttemptsV6551 = 0;
+  function stopReconciliationV6552(){
+    if (reconciliationTimerV6552) window.clearTimeout(reconciliationTimerV6552);
+    reconciliationTimerV6552 = 0;
+    reconciliationAttemptsV6552 = 0;
   }
 
-  function scheduleReconciliationV6551(){
-    if (reconciliationTimerV6551 || reconciliationAttemptsV6551 >= MAX_RECONCILIATION_ATTEMPTS_V6551) return;
-    reconciliationTimerV6551 = window.setTimeout(function(){
-      reconciliationTimerV6551 = 0;
-      reconciliationAttemptsV6551 += 1;
+  function scheduleReconciliationV6552(){
+    if (reconciliationTimerV6552 || reconciliationAttemptsV6552 >= MAX_RECONCILIATION_ATTEMPTS_V6552) return;
+    reconciliationTimerV6552 = window.setTimeout(function(){
+      reconciliationTimerV6552 = 0;
+      reconciliationAttemptsV6552 += 1;
       decorator.decorate('remake');
-      const audit = baseAuditV6551();
+      const audit = baseAuditV6552();
       if (audit.allComponentsDecorated) {
-        stopReconciliationV6551();
+        stopReconciliationV6552();
       } else {
-        scheduleReconciliationV6551();
+        scheduleReconciliationV6552();
       }
     },50);
   }
 
-  function relevantNodeV6551(node){
+  function relevantNodeV6552(node){
     if (!node || node.nodeType !== 1) return false;
     const selector = [
-      '#remakeTrendList','#remakeReasonCardV6230','#remakeDepartmentCardV6230','#remakeProductCardV6230',
+      '#remakeReasonCardV6230','#remakeDepartmentCardV6230','#remakeProductCardV6230',
       '#remakeCustomerCardV6230','#remakeCeramistCardV6342','.remakeCard','.remakeCardHeader','.remakeCardTitle',
       '.tableCompareToggleV6297','[data-column-chooser-v6357]','.clearComponentButtonV6304'
     ].join(',');
@@ -79,7 +79,7 @@ Purpose: Register, reconcile, refresh, and audit complete Remake shared-control 
     return !!(node.querySelector && node.querySelector(selector));
   }
 
-  function dependencyAuditV6551(){
+  function dependencyAuditV6552(){
     return {
       sharedTheme:window.cdaDashboardThemeV6549 && window.cdaDashboardThemeV6549.version === 'v6.550',
       sharedColumns:window.cdaDashboardColumnsV6548 && window.cdaDashboardColumnsV6548.version === 'v6.550',
@@ -88,13 +88,14 @@ Purpose: Register, reconcile, refresh, and audit complete Remake shared-control 
       sharedToolbar:window.cdaDashboardToolbarV6548 && window.cdaDashboardToolbarV6548.version === 'v6.550',
       sharedAudit:window.cdaDashboardAuditV6550 && window.cdaDashboardAuditV6550.version === 'v6.550',
       decorator:window.cdaDashboardDecoratorV6548 && window.cdaDashboardDecoratorV6548.version === 'v6.551',
+      definition:definition.version === 'v6.552',
       clearRemakeComponentV6230:typeof window.clearRemakeComponentV6230 === 'function'
     };
   }
 
-  function auditV6551(){
-    const base = baseAuditV6551();
-    const dependencies = dependencyAuditV6551();
+  function auditV6552(){
+    const base = baseAuditV6552();
+    const dependencies = dependencyAuditV6552();
     const page = document.getElementById('remakeFactorPage');
     const comparisonButtons = page ? Array.from(page.querySelectorAll(
       '.cdaDashboardToolbarV6547 [data-cda-dashboard-feature-key="comparePriorYear"]'
@@ -103,11 +104,15 @@ Purpose: Register, reconcile, refresh, and audit complete Remake shared-control 
     const allRequiredDependenciesPresent = Object.keys(dependencies).every(function(key){
       return dependencies[key] === true;
     });
-    const sharedControlsValidated = sharedControls.ok && base.allComponentsDecorated &&
-      base.toolbarCount === base.expectedToolbarCount;
+    const expectedActiveComponents = definition.components.length === 5;
+    const sharedControlsValidated = sharedControls.ok && expectedActiveComponents &&
+      base.allComponentsDecorated && base.toolbarCount === base.expectedToolbarCount;
     return Object.assign({},base,{
-      version:'v6.551',
+      version:'v6.552',
       mode:'shared-control-decoration',
+      activeComponentCount:definition.components.length,
+      expectedActiveComponents:5,
+      activeComponentModelCorrect:expectedActiveComponents,
       dependencies:dependencies,
       allRequiredDependenciesPresent:allRequiredDependenciesPresent,
       noCardReplacement:!!page && !page.hasAttribute('data-cda-dashboard-tab') &&
@@ -126,26 +131,24 @@ Purpose: Register, reconcile, refresh, and audit complete Remake shared-control 
       }),
       sharedControls:sharedControls,
       sharedControlsValidated:sharedControlsValidated,
-      ok:registrationAudit.ok && allRequiredDependenciesPresent && base.allComponentsDecorated &&
-        base.noDuplicateIds && sharedControlsValidated
+      ok:registrationAudit.ok && expectedActiveComponents && allRequiredDependenciesPresent &&
+        base.allComponentsDecorated && base.noDuplicateIds && sharedControlsValidated
     });
   }
 
-  function startV6551(){
+  function startV6552(){
     let attempts = 0;
     const timer = window.setInterval(function(){
       attempts += 1;
       if (document.getElementById(definition.pageId)) {
         window.clearInterval(timer);
-        decorateV6551();
-        scheduleReconciliationV6551();
+        decorateV6552();
+        scheduleReconciliationV6552();
         if (window.MutationObserver) {
           const observer = new MutationObserver(function(records){
             if (records.some(function(record){
-              return Array.from(record.addedNodes || []).some(relevantNodeV6551);
-            })) {
-              scheduleV6551();
-            }
+              return Array.from(record.addedNodes || []).some(relevantNodeV6552);
+            })) scheduleV6552();
           });
           observer.observe(document.getElementById(definition.pageId),{childList:true,subtree:true});
         }
@@ -156,18 +159,18 @@ Purpose: Register, reconcile, refresh, and audit complete Remake shared-control 
   }
 
   window.cdaRemakeDashboardV6548 = Object.freeze({
-    version:'v6.551',
+    version:'v6.552',
     definition:definition,
-    decorate:decorateV6551,
-    audit:auditV6551,
-    dependencyAudit:dependencyAuditV6551,
-    reconcile:scheduleReconciliationV6551
+    decorate:decorateV6552,
+    audit:auditV6552,
+    dependencyAudit:dependencyAuditV6552,
+    reconcile:scheduleReconciliationV6552
   });
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded',startV6551,{once:true});
+    document.addEventListener('DOMContentLoaded',startV6552,{once:true});
   } else {
-    startV6551();
+    startV6552();
   }
 })();
 </script>
