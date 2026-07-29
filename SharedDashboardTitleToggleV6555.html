@@ -1,0 +1,139 @@
+<!-- SharedDashboardTitleToggleV6555.html
+Version: v6.555
+Date: 2026-07-29
+Purpose: Shared left-side title interaction for collapsible dashboard components.
+-->
+<style id="cdaSharedDashboardTitleToggleStylesV6555">
+  .cdaDashboardTitleToggleV6555 {
+    display:inline-flex!important;
+    align-items:center!important;
+    gap:5px!important;
+    min-width:0!important;
+    padding:0!important;
+    border:0!important;
+    background:transparent!important;
+    color:inherit!important;
+    font:inherit!important;
+    text-align:left!important;
+    cursor:pointer!important;
+  }
+  .cdaDashboardTitleToggleV6555:hover .cdaDashboardTitleChevronV6555,
+  .cdaDashboardTitleToggleV6555:focus-visible .cdaDashboardTitleChevronV6555 {
+    color:var(--cda-color-accent)!important;
+  }
+  .cdaDashboardTitleToggleV6555:focus-visible {
+    outline:2px solid var(--cda-color-accent-border)!important;
+    outline-offset:3px!important;
+    border-radius:var(--cda-radius-small)!important;
+  }
+  .cdaDashboardTitleChevronV6555 {
+    display:inline-flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    flex:0 0 12px!important;
+    width:12px!important;
+    color:var(--cda-color-muted)!important;
+    font:900 12px/1 var(--cda-font-ui)!important;
+  }
+  .cdaDashboardTitleTextV6555 {
+    min-width:0!important;
+    overflow:hidden!important;
+    text-overflow:ellipsis!important;
+    white-space:nowrap!important;
+  }
+</style>
+<script id="cdaSharedDashboardTitleToggleControllerV6555">
+(function installSharedDashboardTitleToggleV6555(){
+  'use strict';
+
+  if (window.cdaDashboardTitleToggleV6555) return;
+
+  const platform = window.cdaDashboardPlatformV6547;
+  const theme = window.cdaDashboardThemeV6549;
+  if (!platform || !theme) throw new Error('Dashboard registry and theme must load before title toggles.');
+
+  function isCollapsed(context){
+    const adapter = context.tab && context.tab.adapter;
+    return !!(adapter && typeof adapter.isCollapsed === 'function' && adapter.isCollapsed(context));
+  }
+
+  function sync(context,button){
+    if (!button) return;
+    const collapsed = isCollapsed(context);
+    const iconName = collapsed ? 'expand' : 'collapse';
+    const icon = button.querySelector('.cdaDashboardTitleChevronV6555');
+    if (icon) icon.textContent = theme.icon(iconName);
+    button.setAttribute('data-cda-dashboard-icon-state',iconName);
+    button.setAttribute('aria-expanded',collapsed ? 'false' : 'true');
+    button.setAttribute('aria-label',(collapsed ? 'Expand ' : 'Collapse ') + context.component.title);
+    button.title = (collapsed ? 'Expand ' : 'Collapse ') + context.component.title;
+  }
+
+  function mount(tabKey,componentKey,card){
+    const tab = platform.getTab(tabKey);
+    const component = tab && tab.components.find(function(item){ return item.key === componentKey; });
+    if (!tab || !component || !card || (component.features || []).indexOf('collapse') < 0) return null;
+
+    const title = card.querySelector('.remakeCardTitle,.tatCardTitleV6509');
+    if (!title) return null;
+
+    let button = title.querySelector(':scope > .cdaDashboardTitleToggleV6555');
+    if (!button) {
+      const originalText = String(title.textContent || component.title || component.key).replace(/\s+/g,' ').trim();
+      title.replaceChildren();
+      button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'cdaDashboardTitleToggleV6555';
+      button.setAttribute('data-cda-dashboard-title-toggle','true');
+      button.setAttribute('data-cda-dashboard-tab-key',tab.key);
+      button.setAttribute('data-cda-dashboard-component-key',component.key);
+      const chevron = document.createElement('span');
+      chevron.className = 'cdaDashboardTitleChevronV6555';
+      chevron.setAttribute('aria-hidden','true');
+      const text = document.createElement('span');
+      text.className = 'cdaDashboardTitleTextV6555';
+      text.textContent = originalText;
+      button.append(chevron,text);
+      title.appendChild(button);
+      button.addEventListener('click',function(event){
+        event.preventDefault();
+        event.stopPropagation();
+        const adapter = tab.adapter || {};
+        if (typeof adapter.collapse !== 'function') return;
+        adapter.collapse({
+          tab:tab,
+          component:component,
+          button:button,
+          event:event,
+          adapter:adapter,
+          platform:platform
+        });
+        window.setTimeout(function(){ sync({tab:tab,component:component},button); },0);
+      });
+    }
+
+    sync({tab:tab,component:component},button);
+    return button;
+  }
+
+  function syncAll(tabKey){
+    const tab = platform.getTab(tabKey);
+    if (!tab) return;
+    tab.components.forEach(function(component){
+      if ((component.features || []).indexOf('collapse') < 0) return;
+      const card = window.cdaDashboardCatalogV6555
+        ? window.cdaDashboardCatalogV6555.resolveCard(tab.key,component.key)
+        : null;
+      if (card) mount(tab.key,component.key,card);
+    });
+  }
+
+  window.cdaDashboardTitleToggleV6555 = Object.freeze({
+    version:'v6.555',
+    mount:mount,
+    sync:sync,
+    syncAll:syncAll,
+    isCollapsed:isCollapsed
+  });
+})();
+</script>
