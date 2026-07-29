@@ -1,13 +1,13 @@
 <!-- SharedDashboardDecoratorV6548.html
-Version: v6.551
+Version: v6.555
 Date: 2026-07-29
-Purpose: Add shared controls to existing tab/card DOM and report component-level decoration coverage.
+Purpose: Decorate existing dashboard cards with shared controls, identity, and title interactions.
 -->
 <script id="cdaSharedDashboardDecoratorControllerV6548">
 (function installSharedDashboardDecoratorV6548(){
   'use strict';
 
-  if (window.cdaDashboardDecoratorV6548 && window.cdaDashboardDecoratorV6548.version === 'v6.551') return;
+  if (window.cdaDashboardDecoratorV6548 && window.cdaDashboardDecoratorV6548.version === 'v6.555') return;
 
   const platform = window.cdaDashboardPlatformV6547;
   const toolbar = window.cdaDashboardToolbarV6548;
@@ -27,6 +27,11 @@ Purpose: Add shared controls to existing tab/card DOM and report component-level
   }
 
   function resolveCard(tab,component,page){
+    const catalog = window.cdaDashboardCatalogV6555;
+    if (catalog) {
+      const resolved = catalog.resolveCard(tab.key,component.key);
+      if (resolved) return resolved;
+    }
     if (typeof component.resolveCard === 'function') {
       const custom = component.resolveCard({tab:tab,component:component,page:page});
       if (custom) return custom;
@@ -45,9 +50,7 @@ Purpose: Add shared controls to existing tab/card DOM and report component-level
 
   function componentState(tab,component,page){
     const card = resolveCard(tab,component,page);
-    const header = card && card.querySelector
-      ? card.querySelector('.remakeCardHeader,.tatCardHeadV6509')
-      : null;
+    const header = card && card.querySelector ? card.querySelector('.remakeCardHeader,.tatCardHeadV6509') : null;
     const toolbarCount = card && card.querySelectorAll
       ? card.querySelectorAll('.cdaDashboardToolbarV6547[data-cda-dashboard-toolbar="' + component.key + '"]').length
       : 0;
@@ -77,6 +80,8 @@ Purpose: Add shared controls to existing tab/card DOM and report component-level
     tab.components.forEach(function(component){
       const card = resolveCard(tab,component,page);
       if (!card) return;
+      const catalog = window.cdaDashboardCatalogV6555;
+      if (catalog) catalog.stamp(tab,component,card);
       if (tab.adapter && typeof tab.adapter.prepareComponent === 'function') {
         tab.adapter.prepareComponent({tab:tab,component:component,card:card});
       }
@@ -92,6 +97,8 @@ Purpose: Add shared controls to existing tab/card DOM and report component-level
       }
       const mountedToolbar = toolbar.mount(tab.key,component.key,host);
       if (!mountedToolbar) return;
+      const titleToggle = window.cdaDashboardTitleToggleV6555;
+      if (titleToggle) titleToggle.mount(tab.key,component.key,card);
       mounted += 1;
       card.setAttribute('data-cda-dashboard-decorated-component',component.key);
     });
@@ -119,13 +126,11 @@ Purpose: Add shared controls to existing tab/card DOM and report component-level
     const validation = platform.validateTab(tabKey);
     const page = tab ? document.getElementById(tab.pageId) : null;
     const duplicates = duplicateIds(page);
-    const states = tab ? tab.components.map(function(component){
-      return componentState(tab,component,page);
-    }) : [];
+    const states = tab ? tab.components.map(function(component){ return componentState(tab,component,page); }) : [];
     const missing = states.filter(function(state){ return !state.decorated; });
     const toolbars = page ? Array.from(page.querySelectorAll('.cdaDashboardToolbarV6547')) : [];
     return {
-      version:'v6.551',
+      version:'v6.555',
       tabKey:tabKey,
       mountMode:'decorate',
       validation:validation,
@@ -141,7 +146,7 @@ Purpose: Add shared controls to existing tab/card DOM and report component-level
   }
 
   window.cdaDashboardDecoratorV6548 = Object.freeze({
-    version:'v6.551',
+    version:'v6.555',
     decorate:decorate,
     audit:audit,
     resolveCard:resolveCard,
