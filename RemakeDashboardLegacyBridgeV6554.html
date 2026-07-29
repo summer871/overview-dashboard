@@ -1,5 +1,5 @@
 <!-- RemakeDashboardLegacyBridgeV6554.html
-Version: v6.554
+Version: v6.555
 Date: 2026-07-29
 Purpose: Locate active Remake cards and preserve legacy behavior behind hidden shared-control providers.
 -->
@@ -9,29 +9,20 @@ Purpose: Locate active Remake cards and preserve legacy behavior behind hidden s
     visibility:hidden!important;
     pointer-events:none!important;
   }
-  #remakeFactorPage .cdaDashboardCollapseTitleV6554 {
-    cursor:default!important;
-    pointer-events:none!important;
-  }
 </style>
 <script id="cdaRemakeDashboardLegacyBridgeControllerV6554">
 (function installRemakeDashboardLegacyBridgeV6554(){
   'use strict';
 
-  if (window.cdaRemakeLegacyBridgeV6554) return;
+  if (window.cdaRemakeLegacyBridgeV6554 && window.cdaRemakeLegacyBridgeV6554.version === 'v6.555') return;
 
-  function pageV6554(){
-    return document.getElementById('remakeFactorPage');
-  }
+  function pageV6554(){ return document.getElementById('remakeFactorPage'); }
 
   function cardV6554(component){
     if (!component) return null;
     if (typeof component.resolveCard === 'function') {
       try {
-        const custom = component.resolveCard({
-          component:component,
-          page:pageV6554()
-        });
+        const custom = component.resolveCard({component:component,page:pageV6554()});
         if (custom) return custom;
       } catch (error) {}
     }
@@ -44,11 +35,9 @@ Purpose: Locate active Remake cards and preserve legacy behavior behind hidden s
   }
 
   function labelV6554(button){
-    return [
-      button && button.textContent,
-      button && button.title,
-      button && button.getAttribute && button.getAttribute('aria-label')
-    ].join(' ').replace(/\s+/g,' ').trim().toLowerCase();
+    return [button && button.textContent,button && button.title,
+      button && button.getAttribute && button.getAttribute('aria-label')]
+      .join(' ').replace(/\s+/g,' ').trim().toLowerCase();
   }
 
   function actionV6554(button){
@@ -57,7 +46,6 @@ Purpose: Locate active Remake cards and preserve legacy behavior behind hidden s
     if (button.matches('[data-column-chooser-v6357]')) return 'columns';
     if (button.matches('.tableCompareToggleV6297')) return 'comparePriorYear';
     if (button.matches('.clearComponentButtonV6304')) return 'reset';
-
     const label = labelV6554(button);
     if (/\bexport current\b|\bdownload current\b/.test(label)) return 'exportCurrent';
     if (/(^|\s)all data(\s|$)|\bexport all\b|\bdownload all\b/.test(label)) return 'exportAll';
@@ -77,7 +65,7 @@ Purpose: Locate active Remake cards and preserve legacy behavior behind hidden s
     if (!component || !component.collapseKey || !card) return;
     const title = card.querySelector('.remakeCardTitle');
     if (!title) return;
-    title.classList.add('cdaDashboardCollapseTitleV6554');
+    title.classList.remove('cdaDashboardCollapseTitleV6554');
     title.removeAttribute('role');
     title.removeAttribute('tabindex');
     title.removeAttribute('aria-expanded');
@@ -98,9 +86,7 @@ Purpose: Locate active Remake cards and preserve legacy behavior behind hidden s
 
   function providerV6554(component,action){
     const card = prepareV6554(component);
-    return card
-      ? card.querySelector('[data-cda-dashboard-legacy-action="' + action + '"]')
-      : null;
+    return card ? card.querySelector('[data-cda-dashboard-legacy-action="' + action + '"]') : null;
   }
 
   function invokeV6554(component,action){
@@ -111,14 +97,8 @@ Purpose: Locate active Remake cards and preserve legacy behavior behind hidden s
   }
 
   window.cdaRemakeLegacyBridgeV6554 = Object.freeze({
-    version:'v6.554',
-    page:pageV6554,
-    card:cardV6554,
-    label:labelV6554,
-    action:actionV6554,
-    prepare:prepareV6554,
-    provider:providerV6554,
-    invoke:invokeV6554
+    version:'v6.555',page:pageV6554,card:cardV6554,label:labelV6554,
+    action:actionV6554,prepare:prepareV6554,provider:providerV6554,invoke:invokeV6554
   });
 })();
 </script>
