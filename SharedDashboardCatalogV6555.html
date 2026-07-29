@@ -1,0 +1,256 @@
+<!-- SharedDashboardCatalogV6555.html
+Version: v6.555
+Date: 2026-07-29
+Purpose: Make every chart and table explicitly identifiable, resolvable, auditable, and addressable by tab.component.
+-->
+<script id="cdaSharedDashboardCatalogControllerV6555">
+(function installSharedDashboardCatalogV6555(){
+  'use strict';
+
+  if (window.cdaDashboardCatalogV6555) return;
+
+  const platform = window.cdaDashboardPlatformV6547;
+  if (!platform) throw new Error('Dashboard registry must load before the component catalog.');
+
+  function normalizeText(value){
+    return String(value == null ? '' : value).replace(/\s+/g,' ').trim().toLowerCase();
+  }
+
+  function componentId(tabKey,componentKey){
+    return String(tabKey || '').trim() + '.' + String(componentKey || '').trim();
+  }
+
+  function tabFor(tabKey){
+    return platform.getTab(String(tabKey || '')) || null;
+  }
+
+  function componentFor(tabKey,componentKey){
+    const tab = tabFor(tabKey);
+    return tab && tab.components.find(function(component){
+      return component.key === String(componentKey || '');
+    }) || null;
+  }
+
+  function pageFor(tab){
+    return tab && tab.pageId ? document.getElementById(tab.pageId) : null;
+  }
+
+  function titleCard(tab,component,page){
+    if (!component || !component.title || !page) return null;
+    const wanted = normalizeText(component.title);
+    return Array.from(page.querySelectorAll('.remakeCard,article,[data-cda-dashboard-component]')).find(function(card){
+      const title = card.querySelector('.remakeCardTitle,.tatCardTitleV6509');
+      return !!(title && normalizeText(title.textContent) === wanted);
+    }) || null;
+  }
+
+  function resolveCard(tabKey,componentKey){
+    const tab = tabFor(tabKey);
+    const component = componentFor(tabKey,componentKey);
+    const page = pageFor(tab);
+    if (!tab || !component || !page) return null;
+
+    if (typeof component.resolveCard === 'function') {
+      try {
+        const custom = component.resolveCard({tab:tab,component:component,page:page});
+        if (custom) return custom;
+      } catch (error) {}
+    }
+
+    if (component.cardId) {
+      const byId = document.getElementById(component.cardId);
+      if (byId) return byId;
+    }
+
+    const stableId = componentId(tab.key,component.key);
+    const byStableId = page.querySelector('[data-cda-component-id="' + stableId + '"]');
+    if (byStableId) return byStableId;
+
+    const byRenderer = page.querySelector(
+      '[data-cda-dashboard-component="' + component.key + '"],' +
+      '[data-cda-dashboard-decorated-component="' + component.key + '"]'
+    );
+    if (byRenderer) return byRenderer;
+
+    if (component.targetId) {
+      const target = document.getElementById(component.targetId);
+      const byTarget = target && target.closest ? target.closest('.remakeCard,article') : null;
+      if (byTarget) return byTarget;
+    }
+
+    return titleCard(tab,component,page);
+  }
+
+  function resolveTarget(tabKey,componentKey){
+    const component = componentFor(tabKey,componentKey);
+    const card = resolveCard(tabKey,componentKey);
+    if (!component) return null;
+
+    if (typeof component.resolveTarget === 'function') {
+      try {
+        const custom = component.resolveTarget({
+          tab:tabFor(tabKey),component:component,card:card
+        });
+        if (custom) return custom;
+      } catch (error) {}
+    }
+
+    if (component.targetId) {
+      const target = document.getElementById(component.targetId);
+      if (target) return target;
+    }
+
+    const tableIds = Array.isArray(component.tableIds) ? component.tableIds : [];
+    for (let index = 0; index < tableIds.length; index += 1) {
+      const tableTarget = document.getElementById(String(tableIds[index]));
+      if (tableTarget) return tableTarget;
+    }
+
+    if (!card || !card.querySelector) return null;
+    if (component.kind === 'chart') return card.querySelector('canvas,.remakeTrendCanvasWrapV6230');
+    if (component.kind === 'table') return card.querySelector('table');
+    return card;
+  }
+
+  function stamp(tab,component,card){
+    if (!tab || !component || !card) return null;
+    card.setAttribute('data-cda-component-id',componentId(tab.key,component.key));
+    card.setAttribute('data-cda-component-tab',tab.key);
+    card.setAttribute('data-cda-component-key',component.key);
+    card.setAttribute('data-cda-component-kind',component.kind || 'custom');
+    card.setAttribute('data-cda-component-title',component.title || component.key);
+    return card;
+  }
+
+  function featureKeys(component,placement){
+    if (!component) return [];
+    if (!placement) return (component.features || []).slice();
+    return platform.sortedFeatures(component,placement).map(function(feature){ return feature.key; });
+  }
+
+  function describe(tabKey,componentKey){
+    const tab = tabFor(tabKey);
+    const component = componentFor(tabKey,componentKey);
+    if (!tab || !component) return null;
+    const card = resolveCard(tab.key,component.key);
+    const target = resolveTarget(tab.key,component.key);
+    const features = featureKeys(component);
+    return {
+      id:componentId(tab.key,component.key),
+      tabKey:tab.key,
+      key:component.key,
+      title:component.title,
+      kind:component.kind || 'custom',
+      mountMode:tab.mountMode,
+      pageId:tab.pageId,
+      tabButtonId:tab.tabButtonId || '',
+      cardId:component.cardId || '',
+      targetId:component.targetId || '',
+      tableIds:Array.isArray(component.tableIds) ? component.tableIds.slice() : [],
+      tableKey:component.tableKey || '',
+      chartKey:component.chartKey || '',
+      features:features,
+      toolbarFeatures:featureKeys(component,'toolbar'),
+      titleFeatures:featureKeys(component,'title'),
+      menuFeatures:featureKeys(component,'menu'),
+      capabilities:{
+        columns:features.indexOf('columns') >= 0,
+        popout:features.indexOf('popout') >= 0,
+        reset:features.indexOf('reset') >= 0,
+        more:features.indexOf('more') >= 0,
+        exportCurrent:features.indexOf('exportCurrent') >= 0,
+        exportAll:features.indexOf('exportAll') >= 0,
+        comparePriorYear:features.indexOf('comparePriorYear') >= 0,
+        collapse:features.indexOf('collapse') >= 0
+      },
+      dom:{
+        pagePresent:!!pageFor(tab),
+        cardPresent:!!card,
+        targetPresent:!!target,
+        toolbarPresent:!!(card && card.querySelector && card.querySelector('.cdaDashboardToolbarV6547')),
+        stamped:!!(card && card.getAttribute('data-cda-component-id') === componentId(tab.key,component.key))
+      }
+    };
+  }
+
+  function list(tabKey){
+    const tabKeys = tabKey ? [String(tabKey)] : platform.listTabs();
+    const result = [];
+    tabKeys.forEach(function(key){
+      const tab = tabFor(key);
+      if (!tab) return;
+      tab.components.forEach(function(component){
+        const descriptor = describe(tab.key,component.key);
+        if (descriptor) result.push(descriptor);
+      });
+    });
+    return result;
+  }
+
+  function audit(){
+    const components = list();
+    const ids = new Set();
+    const duplicateIds = [];
+    const missingCards = [];
+    const missingTargets = [];
+    const unstampedCards = [];
+
+    components.forEach(function(component){
+      if (ids.has(component.id)) duplicateIds.push(component.id); else ids.add(component.id);
+      if (!component.dom.cardPresent) missingCards.push(component.id);
+      if ((component.kind === 'chart' || component.kind === 'table') && !component.dom.targetPresent) {
+        missingTargets.push(component.id);
+      }
+      if (component.dom.cardPresent && !component.dom.stamped) unstampedCards.push(component.id);
+    });
+
+    return {
+      version:'v6.555',
+      componentCount:components.length,
+      components:components,
+      duplicateIds:duplicateIds,
+      missingCards:missingCards,
+      missingTargets:missingTargets,
+      unstampedCards:unstampedCards,
+      ok:components.length > 0 && duplicateIds.length === 0 && missingCards.length === 0 &&
+        missingTargets.length === 0 && unstampedCards.length === 0
+    };
+  }
+
+  function waitFor(tabKey,componentKey,options){
+    const settings = options || {};
+    const timeoutMs = Number(settings.timeoutMs || 20000);
+    const intervalMs = Number(settings.intervalMs || 40);
+    const started = Date.now();
+    return new Promise(function(resolve,reject){
+      const check = function(){
+        const descriptor = describe(tabKey,componentKey);
+        if (descriptor && descriptor.dom.cardPresent && descriptor.dom.targetPresent) {
+          resolve({descriptor:descriptor,card:resolveCard(tabKey,componentKey),target:resolveTarget(tabKey,componentKey)});
+          return;
+        }
+        if (Date.now() - started >= timeoutMs) {
+          reject(new Error('Dashboard component did not become ready: ' + componentId(tabKey,componentKey)));
+          return;
+        }
+        window.setTimeout(check,intervalMs);
+      };
+      check();
+    });
+  }
+
+  window.cdaDashboardCatalogV6555 = Object.freeze({
+    version:'v6.555',
+    componentId:componentId,
+    tab:tabFor,
+    component:componentFor,
+    resolveCard:resolveCard,
+    resolveTarget:resolveTarget,
+    stamp:stamp,
+    describe:describe,
+    list:list,
+    audit:audit,
+    waitFor:waitFor
+  });
+})();
+</script>
