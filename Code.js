@@ -1,6 +1,6 @@
 /**
  * Executive Overview Dashboard Router
- * Version: Code.gs v6.546 validated single-file TAT runtime
+ * Version: Code.gs v6.547 modular dashboard platform
  * Date: 2026-07-29
  * Purpose: Serve the single Index.html dashboard shell without appending duplicate
  * shared-component scripts after the document has already included them.
@@ -13,8 +13,8 @@ function doGet(e) {
   const template = HtmlService.createTemplateFromFile('Index');
   template.dashboardBaseUrl = getDashboardBaseUrl();
   template.dashboardPresentationMode = presentationMode;
-  template.dashboardPresentationVersion = 'v6.546';
-  template.dashboardPresentationSource = 'Code.gs v6.546 validated single-file TAT runtime';
+  template.dashboardPresentationVersion = 'v6.547';
+  template.dashboardPresentationSource = 'Code.gs v6.547 modular dashboard platform';
   return HtmlService.createHtmlOutput(template.evaluate().getContent())
     .setTitle('Overview Dashboard')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
@@ -22,7 +22,9 @@ function doGet(e) {
 
 function includeDashboardFile(filename, context) {
   const safeFilename = String(filename || '').trim();
-  if (!safeFilename || !/^[A-Za-z0-9_-]+$/.test(safeFilename)) throw new Error('Invalid dashboard include filename: ' + safeFilename);
+  if (!safeFilename || !/^[A-Za-z0-9_-]+$/.test(safeFilename)) {
+    throw new Error('Invalid dashboard include filename: ' + safeFilename);
+  }
   const template = HtmlService.createTemplateFromFile(safeFilename);
   const values = context && typeof context === 'object' ? context : {};
   Object.keys(values).forEach(function(key) { template[key] = values[key]; });
@@ -50,7 +52,7 @@ function renderDashboardDebugPage() {
 function debugDashboardServerHealth() {
   const health = {
     ok: true,
-    routerVersion: 'Code.gs v6.546 validated single-file TAT runtime',
+    routerVersion: 'Code.gs v6.547 modular dashboard platform',
     timestamp: new Date().toISOString(),
     scriptTimeZone: Session.getScriptTimeZone(),
     dashboardBaseUrl: getDashboardBaseUrl(),
@@ -67,12 +69,20 @@ function debugDashboardServerHealth() {
       ? debugOverviewDashboardCacheHealth()
       : { ok: false, message: 'debugOverviewDashboardCacheHealth is missing from OverviewDashboardCache.gs' };
   } catch (error) {
-    health.cache = { ok:false, message:error && error.message ? error.message : String(error), stack:error && error.stack ? error.stack : '' };
+    health.cache = {
+      ok:false,
+      message:error && error.message ? error.message : String(error),
+      stack:error && error.stack ? error.stack : ''
+    };
   }
   return health;
 }
 
 function escapeDashboardDebugHtml(value) {
   return String(value === null || value === undefined ? '' : value)
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
