@@ -1,13 +1,13 @@
 <!-- SharedDashboardAuditV6550.html
-Version: v6.550
+Version: v6.553
 Date: 2026-07-29
-Purpose: Audit rendered shared controls, computed style parity, icon ownership, and hidden legacy controls.
+Purpose: Audit rendered shared controls, computed style parity, stateful icon ownership, and hidden legacy controls.
 -->
 <script id="cdaSharedDashboardAuditControllerV6550">
 (function installSharedDashboardAuditV6550(){
   'use strict';
 
-  if (window.cdaDashboardAuditV6550) return;
+  if (window.cdaDashboardAuditV6550 && window.cdaDashboardAuditV6550.version === 'v6.553') return;
 
   function visible(node){
     if (!node || !window.getComputedStyle) return false;
@@ -40,28 +40,38 @@ Purpose: Audit rendered shared controls, computed style parity, icon ownership, 
     return page ? Array.from(page.querySelectorAll('.cdaDashboardToolbarV6547 [data-cda-dashboard-feature-key]')) : [];
   }
 
+  function expectedIconName(button){
+    return button.getAttribute('data-cda-dashboard-icon-state') ||
+      button.getAttribute('data-cda-dashboard-icon') || '';
+  }
+
   function iconAudit(buttons){
     const theme = window.cdaDashboardThemeV6549;
     const failures = [];
+
     buttons.forEach(function(button){
-      const iconName = button.getAttribute('data-cda-dashboard-icon');
+      const iconName = expectedIconName(button);
       if (!iconName) return;
       const expected = theme && typeof theme.icon === 'function' ? theme.icon(iconName) : '';
-      if (!expected || button.textContent.trim() !== expected) {
+      const actual = button.textContent.trim();
+      if (!expected || actual !== expected) {
         failures.push({
           feature:button.getAttribute('data-cda-dashboard-feature-key'),
           icon:iconName,
           expected:expected,
-          actual:button.textContent.trim()
+          actual:actual,
+          ariaExpanded:button.getAttribute('aria-expanded')
         });
       }
     });
-    return { ok:failures.length === 0, failures:failures };
+
+    return {ok:failures.length === 0,failures:failures};
   }
 
   function commonStyleAudit(){
     const featureKeys = ['columns','popout','reset','more'];
     const mismatches = [];
+
     featureKeys.forEach(function(featureKey){
       const tat = buttonsFor('tatDashboardPageV6509').filter(function(button){
         return button.getAttribute('data-cda-dashboard-feature-key') === featureKey && visible(button);
@@ -69,17 +79,20 @@ Purpose: Audit rendered shared controls, computed style parity, icon ownership, 
       const remake = buttonsFor('remakeFactorPage').filter(function(button){
         return button.getAttribute('data-cda-dashboard-feature-key') === featureKey && visible(button);
       })[0];
+
       if (!tat || !remake) {
         mismatches.push({feature:featureKey,reason:'missing-visible-control'});
         return;
       }
+
       const tatSignature = styleSignature(tat);
       const remakeSignature = styleSignature(remake);
       if (tatSignature !== remakeSignature) {
         mismatches.push({feature:featureKey,tat:tatSignature,remake:remakeSignature});
       }
     });
-    return { ok:mismatches.length === 0, mismatches:mismatches };
+
+    return {ok:mismatches.length === 0,mismatches:mismatches};
   }
 
   function legacyAudit(){
@@ -87,7 +100,7 @@ Purpose: Audit rendered shared controls, computed style parity, icon ownership, 
     const visibleNodes = nodes.filter(visible).map(function(node){
       return node.id || node.getAttribute('aria-label') || node.textContent.trim() || node.tagName;
     });
-    return { total:nodes.length, visible:visibleNodes, ok:visibleNodes.length === 0 };
+    return {total:nodes.length,visible:visibleNodes,ok:visibleNodes.length === 0};
   }
 
   function toolbarOwnershipAudit(){
@@ -96,17 +109,21 @@ Purpose: Audit rendered shared controls, computed style parity, icon ownership, 
       const count = card.querySelectorAll('.cdaDashboardToolbarV6547').length;
       if (count > 1) duplicateCards.push(card.id || card.getAttribute('data-cda-dashboard-component') || 'unnamed-card');
     });
-    return { ok:duplicateCards.length === 0, duplicateCards:duplicateCards };
+    return {ok:duplicateCards.length === 0,duplicateCards:duplicateCards};
   }
 
   function cssTokenAudit(){
-    if (!window.getComputedStyle || !document.documentElement) return {ok:false,missing:['computed-style-unavailable']};
+    if (!window.getComputedStyle || !document.documentElement) {
+      return {ok:false,missing:['computed-style-unavailable']};
+    }
     const root = window.getComputedStyle(document.documentElement);
     const names = [
       '--cda-color-text','--cda-color-border','--cda-color-surface','--cda-color-accent',
       '--cda-control-height','--cda-radius-control','--cda-font-ui'
     ];
-    const missing = names.filter(function(name){ return !String(root.getPropertyValue(name) || '').trim(); });
+    const missing = names.filter(function(name){
+      return !String(root.getPropertyValue(name) || '').trim();
+    });
     return {ok:missing.length === 0,missing:missing};
   }
 
@@ -132,8 +149,9 @@ Purpose: Audit rendered shared controls, computed style parity, icon ownership, 
       services.columns === 'v6.550' && services.columnsMode === 'single-shared-chooser' &&
       services.popover === 'v6.550' && services.popout === 'v6.550' &&
       services.popoutTheme === 'v6.550' && services.toolbar === 'v6.550';
+
     return {
-      version:'v6.550',
+      version:'v6.553',
       tatButtonCount:tatButtons.length,
       remakeButtonCount:remakeButtons.length,
       bothTabsPresent:tatButtons.length > 0 && remakeButtons.length > 0,
@@ -149,9 +167,10 @@ Purpose: Audit rendered shared controls, computed style parity, icon ownership, 
   }
 
   window.cdaDashboardAuditV6550 = Object.freeze({
-    version:'v6.550',
+    version:'v6.553',
     visible:visible,
     styleSignature:styleSignature,
+    expectedIconName:expectedIconName,
     audit:auditAll
   });
 })();
