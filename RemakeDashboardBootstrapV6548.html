@@ -1,14 +1,14 @@
 <!-- RemakeDashboardBootstrapV6548.html
-Version: v6.554
+Version: v6.555
 Date: 2026-07-29
-Purpose: Register, reconcile, refresh, and audit all six visible Remake shared-control cards.
+Purpose: Register, reconcile, and audit all six identifiable live Remake components.
 -->
 <script id="cdaRemakeDashboardBootstrapControllerV6548">
 (function installRemakeDashboardBootstrapV6548(){
   'use strict';
 
-  if (window.__cdaRemakeDashboardBootstrapV6554) return;
-  window.__cdaRemakeDashboardBootstrapV6554 = true;
+  if (window.__cdaRemakeDashboardBootstrapV6555) return;
+  window.__cdaRemakeDashboardBootstrapV6555 = true;
 
   const platform = window.cdaDashboardPlatformV6547;
   const decorator = window.cdaDashboardDecoratorV6548;
@@ -24,46 +24,46 @@ Purpose: Register, reconcile, refresh, and audit all six visible Remake shared-c
   const registrationAudit = platform.validateTab('remake');
   if (!registrationAudit.ok) throw new Error('Remake definition is invalid:\n' + registrationAudit.errors.join('\n'));
 
-  let scheduledV6554 = false;
-  let reconciliationTimerV6554 = 0;
-  let reconciliationAttemptsV6554 = 0;
-  const MAX_RECONCILIATION_ATTEMPTS_V6554 = 80;
+  let scheduledV6555 = false;
+  let reconciliationTimerV6555 = 0;
+  let reconciliationAttemptsV6555 = 0;
+  const MAX_RECONCILIATION_ATTEMPTS_V6555 = 80;
 
-  function baseAuditV6554(){ return decorator.audit('remake'); }
+  function baseAuditV6555(){ return decorator.audit('remake'); }
 
-  function decorateV6554(){
-    scheduledV6554 = false;
+  function decorateV6555(){
+    scheduledV6555 = false;
     const page = decorator.decorate('remake');
-    const audit = baseAuditV6554();
-    if (audit.pagePresent && !audit.allComponentsDecorated) scheduleReconciliationV6554();
+    const audit = baseAuditV6555();
+    if (audit.pagePresent && !audit.allComponentsDecorated) scheduleReconciliationV6555();
     return page;
   }
 
-  function scheduleV6554(){
-    if (scheduledV6554) return;
-    scheduledV6554 = true;
-    window.requestAnimationFrame(decorateV6554);
+  function scheduleV6555(){
+    if (scheduledV6555) return;
+    scheduledV6555 = true;
+    window.requestAnimationFrame(decorateV6555);
   }
 
-  function stopReconciliationV6554(){
-    if (reconciliationTimerV6554) window.clearTimeout(reconciliationTimerV6554);
-    reconciliationTimerV6554 = 0;
-    reconciliationAttemptsV6554 = 0;
+  function stopReconciliationV6555(){
+    if (reconciliationTimerV6555) window.clearTimeout(reconciliationTimerV6555);
+    reconciliationTimerV6555 = 0;
+    reconciliationAttemptsV6555 = 0;
   }
 
-  function scheduleReconciliationV6554(){
-    if (reconciliationTimerV6554 || reconciliationAttemptsV6554 >= MAX_RECONCILIATION_ATTEMPTS_V6554) return;
-    reconciliationTimerV6554 = window.setTimeout(function(){
-      reconciliationTimerV6554 = 0;
-      reconciliationAttemptsV6554 += 1;
+  function scheduleReconciliationV6555(){
+    if (reconciliationTimerV6555 || reconciliationAttemptsV6555 >= MAX_RECONCILIATION_ATTEMPTS_V6555) return;
+    reconciliationTimerV6555 = window.setTimeout(function(){
+      reconciliationTimerV6555 = 0;
+      reconciliationAttemptsV6555 += 1;
       decorator.decorate('remake');
-      const audit = baseAuditV6554();
-      if (audit.allComponentsDecorated) stopReconciliationV6554();
-      else scheduleReconciliationV6554();
+      const audit = baseAuditV6555();
+      if (audit.allComponentsDecorated) stopReconciliationV6555();
+      else scheduleReconciliationV6555();
     },50);
   }
 
-  function relevantNodeV6554(node){
+  function relevantNodeV6555(node){
     if (!node || node.nodeType !== 1) return false;
     const selector = [
       '#remakeReasonCardV6230','#remakeDepartmentCardV6230','#remakeProductCardV6230',
@@ -75,44 +75,50 @@ Purpose: Register, reconcile, refresh, and audit all six visible Remake shared-c
     return !!(node.querySelector && node.querySelector(selector));
   }
 
-  function dependencyAuditV6554(){
+  function dependencyAuditV6555(){
     return {
       sharedTheme:window.cdaDashboardThemeV6549 && window.cdaDashboardThemeV6549.version === 'v6.550',
       sharedColumns:window.cdaDashboardColumnsV6548 && window.cdaDashboardColumnsV6548.version === 'v6.550',
-      sharedPopout:window.cdaDashboardPopoutV6548 && window.cdaDashboardPopoutV6548.version === 'v6.550',
       sharedPopover:window.cdaDashboardPopoverV6547 && window.cdaDashboardPopoverV6547.version === 'v6.550',
       sharedToolbar:window.cdaDashboardToolbarV6548 && window.cdaDashboardToolbarV6548.version === 'v6.554',
-      sharedAudit:window.cdaDashboardAuditV6550 && window.cdaDashboardAuditV6550.version === 'v6.554',
-      decorator:window.cdaDashboardDecoratorV6548 && window.cdaDashboardDecoratorV6548.version === 'v6.551',
+      componentCatalog:window.cdaDashboardCatalogV6555 && window.cdaDashboardCatalogV6555.version === 'v6.555',
+      componentIsolation:window.cdaDashboardIsolationV6555 && window.cdaDashboardIsolationV6555.version === 'v6.555',
+      livePopout:window.cdaDashboardPopoutV6548 && window.cdaDashboardPopoutV6548.version === 'v6.555' &&
+        window.cdaDashboardPopoutV6548.mode === 'same-application-live-component',
+      titleToggle:window.cdaDashboardTitleToggleV6555 && window.cdaDashboardTitleToggleV6555.version === 'v6.555',
+      sharedAudit:sharedAudit.version === 'v6.555',
+      decorator:decorator.version === 'v6.555',
       bridge:bridge.version === 'v6.554',
-      adapter:adapter.version === 'v6.554',
-      definition:definition.version === 'v6.554',
+      adapter:adapter.version === 'v6.555',
+      definition:definition.version === 'v6.555',
       clearRemakeComponentV6230:typeof window.clearRemakeComponentV6230 === 'function'
     };
   }
 
-  function auditV6554(){
-    const base = baseAuditV6554();
-    const dependencies = dependencyAuditV6554();
+  function auditV6555(){
+    const base = baseAuditV6555();
+    const dependencies = dependencyAuditV6555();
     const page = document.getElementById('remakeFactorPage');
     const comparisonButtons = page ? Array.from(page.querySelectorAll(
       '.cdaDashboardToolbarV6547 [data-cda-dashboard-feature-key="comparePriorYear"]'
     )) : [];
     const sharedControls = sharedAudit.audit();
+    const catalog = window.cdaDashboardCatalogV6555.audit();
     const allRequiredDependenciesPresent = Object.keys(dependencies).every(function(key){
       return dependencies[key] === true;
     });
     const expectedActiveComponents = definition.components.length === 6;
-    const sharedControlsValidated = sharedControls.ok && expectedActiveComponents &&
+    const sharedControlsValidated = sharedControls.ok && expectedActiveComponents && catalog.ok &&
       base.allComponentsDecorated && base.toolbarCount === base.expectedToolbarCount;
     return Object.assign({},base,{
-      version:'v6.554',
-      mode:'complete-shared-visual-decoration',
+      version:'v6.555',
+      mode:'identifiable-live-component-decoration',
       activeComponentCount:definition.components.length,
       expectedActiveComponents:6,
       activeComponentModelCorrect:expectedActiveComponents,
       dependencies:dependencies,
       allRequiredDependenciesPresent:allRequiredDependenciesPresent,
+      componentCatalog:catalog,
       noCardReplacement:!!page && !page.hasAttribute('data-cda-dashboard-tab') &&
         page.querySelectorAll('[data-cda-dashboard-component]').length === 0,
       priorYearLabels:comparisonButtons.filter(function(button){ return !button.hidden; }).map(function(button){
@@ -127,24 +133,24 @@ Purpose: Register, reconcile, refresh, and audit all six visible Remake shared-c
       )).every(function(button){ return button.classList.contains('cdaDashboardButtonPlainV6548'); }),
       sharedControls:sharedControls,
       sharedControlsValidated:sharedControlsValidated,
-      ok:registrationAudit.ok && expectedActiveComponents && allRequiredDependenciesPresent &&
+      ok:registrationAudit.ok && expectedActiveComponents && allRequiredDependenciesPresent && catalog.ok &&
         base.allComponentsDecorated && base.noDuplicateIds && sharedControlsValidated
     });
   }
 
-  function startV6554(){
+  function startV6555(){
     let attempts = 0;
     const timer = window.setInterval(function(){
       attempts += 1;
       if (document.getElementById(definition.pageId)) {
         window.clearInterval(timer);
-        decorateV6554();
-        scheduleReconciliationV6554();
+        decorateV6555();
+        scheduleReconciliationV6555();
         if (window.MutationObserver) {
           const observer = new MutationObserver(function(records){
             if (records.some(function(record){
-              return Array.from(record.addedNodes || []).some(relevantNodeV6554);
-            })) scheduleV6554();
+              return Array.from(record.addedNodes || []).some(relevantNodeV6555);
+            })) scheduleV6555();
           });
           observer.observe(document.getElementById(definition.pageId),{childList:true,subtree:true});
         }
@@ -153,11 +159,11 @@ Purpose: Register, reconcile, refresh, and audit all six visible Remake shared-c
   }
 
   window.cdaRemakeDashboardV6548 = Object.freeze({
-    version:'v6.554',definition:definition,decorate:decorateV6554,audit:auditV6554,
-    dependencyAudit:dependencyAuditV6554,reconcile:scheduleReconciliationV6554
+    version:'v6.555',definition:definition,decorate:decorateV6555,audit:auditV6555,
+    dependencyAudit:dependencyAuditV6555,reconcile:scheduleReconciliationV6555
   });
 
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded',startV6554,{once:true});
-  else startV6554();
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded',startV6555,{once:true});
+  else startV6555();
 })();
 </script>
