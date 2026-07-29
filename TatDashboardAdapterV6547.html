@@ -1,0 +1,250 @@
+<!-- TatDashboardAdapterV6547.html
+Version: v6.547
+Date: 2026-07-29
+Purpose: TAT-only bridge between shared dashboard features and the existing TAT controller/data state.
+-->
+<script id="cdaTatDashboardAdapterControllerV6547">
+(function installTatDashboardAdapterV6547(){
+  'use strict';
+
+  if (window.cdaTatDashboardAdapterV6547) return;
+
+  const TABLE_KEYS_V6547 = ['tatDepartment','tatLate','tatCustomer','tatQuality'];
+
+  function state(){ return window.cdaTatStateV6509 || null; }
+  function chart(component){
+    const current = state();
+    return current && current.charts && component.chartKey
+      ? current.charts[component.chartKey] || null
+      : null;
+  }
+  function yearLabel(){
+    try {
+      const debugApi = window.__tatDebugV6509;
+      const year = Number(debugApi && typeof debugApi.selectedReportingYear === 'function' && debugApi.selectedReportingYear());
+      if (Number.isFinite(year)) return String(year);
+    } catch (error) {}
+    const button = document.getElementById('tatFilterButton_year_V6509');
+    const label = String(button && button.textContent || '').trim();
+    if (label && !/^all years$/i.test(label)) return label;
+    const years = (state() && state().rows || []).map(function(row){ return Number(row && row.year); }).filter(Number.isFinite);
+    return years.length ? String(Math.max.apply(null, years)) : 'Year';
+  }
+
+  function openYear(context){
+    if (typeof window.toggleTatDropdownV6509 === 'function') {
+      window.toggleTatDropdownV6509('year', context.event || null);
+      return true;
+    }
+    return false;
+  }
+
+  function tableChooserEvent(button){
+    return { currentTarget:button, preventDefault:function(){}, stopPropagation:function(){} };
+  }
+
+  function openChartColumns(context){
+    const chartInstance = chart(context.component);
+    if (!chartInstance || !chartInstance.data || !Array.isArray(chartInstance.data.datasets) || !context.popover) return false;
+    if (context.popover.isOpenFor(context.button)) {
+      context.popover.close();
+      return true;
+    }
+    const popover = context.popover.open(context.button, {
+      label:'Visible chart series',
+      title:'Visible series'
+    });
+    chartInstance.data.datasets.forEach(function(dataset, index){
+      const label = document.createElement('label');
+      const input = document.createElement('input');
+      const text = document.createElement('span');
+      input.type = 'checkbox';
+      input.checked = typeof chartInstance.isDatasetVisible === 'function'
+        ? chartInstance.isDatasetVisible(index)
+        : !dataset.hidden;
+      input.addEventListener('change', function(){
+        if (typeof chartInstance.setDatasetVisibility === 'function') {
+          chartInstance.setDatasetVisibility(index, input.checked);
+        } else {
+          dataset.hidden = !input.checked;
+        }
+        chartInstance.update();
+      });
+      text.textContent = dataset.label || 'Series ' + (index + 1);
+      label.append(input, text);
+      popover.appendChild(label);
+    });
+    context.popover.position();
+    return true;
+  }
+
+  function openColumns(context){
+    if (context.component.kind === 'chart') return openChartColumns(context);
+    if (context.component.tableKey && window.cdaTable && typeof window.cdaTable.toggleChooser === 'function') {
+      window.cdaTable.toggleChooser(context.component.tableKey, tableChooserEvent(context.button));
+      return true;
+    }
+    return false;
+  }
+
+  function csvCell(value){
+    const text = String(value == null ? '' : value);
+    return /[",\n\r]/.test(text) ? '"' + text.replace(/"/g, '""') + '"' : text;
+  }
+
+  function exportChartCurrent(component){
+    const chartInstance = chart(component);
+    if (!chartInstance || !chartInstance.data) return false;
+    const datasets = (chartInstance.data.datasets || []).filter(function(dataset,index){
+      return typeof chartInstance.isDatasetVisible === 'function'
+        ? chartInstance.isDatasetVisible(index)
+        : !dataset.hidden;
+    });
+    const rows = [['Label'].concat(datasets.map(function(dataset){ return dataset.label || 'Series'; }))];
+    (chartInstance.data.labels || []).forEach(function(label,index){
+      rows.push([label].concat(datasets.map(function(dataset){
+        const value = (dataset.data || [])[index];
+        return value && value.y != null ? value.y : value;
+      })));
+    });
+    const csv = rows.map(function(row){ return row.map(csvCell).join(','); }).join('\r\n');
+    const url = URL.createObjectURL(new Blob(['\uFEFF' + csv], {type:'text/csv;charset=utf-8'}));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'tat_' + component.key + '_current.csv';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(function(){ URL.revokeObjectURL(url); }, 500);
+    return true;
+  }
+
+  function exportCurrent(context){
+    if (context.component.kind === 'chart' && exportChartCurrent(context.component)) return true;
+    if (context.component.tableKey && window.cdaTable && typeof window.cdaTable.exportCsv === 'function') {
+      window.cdaTable.exportCsv(context.component.tableKey, 'tat_' + context.component.key + '_current.csv');
+      return true;
+    }
+    if (typeof window.exportTatComponentV6509 === 'function') {
+      window.exportTatComponentV6509(context.component.key);
+      return true;
+    }
+    return false;
+  }
+
+  function exportAll(context){
+    if (typeof window.exportTatAllDataV6509 !== 'function') return false;
+    window.exportTatAllDataV6509(context.component.key);
+    return true;
+  }
+
+  function popout(context){
+    const component = context.component;
+    let content = '';
+    if (component.kind === 'chart') {
+      const chartInstance = chart(component);
+      const canvas = document.getElementById(component.targetId);
+      let source = '';
+      try {
+        source = chartInstance && typeof chartInstance.toBase64Image === 'function'
+          ? chartInstance.toBase64Image()
+          : canvas && typeof canvas.toDataURL === 'function'
+            ? canvas.toDataURL('image/png')
+            : '';
+      } catch (error) {}
+      if (source) content = '<img style="max-width:100%;height:auto" src="' + source + '">';
+    } else {
+      const body = document.getElementById(component.targetId);
+      const table = body && body.closest ? body.closest('table') : null;
+      if (table) content = table.outerHTML;
+      if (component.key === 'quality') {
+        const summary = document.getElementById('tatIssueSummaryV6509');
+        content = (summary ? summary.outerHTML : '') + content;
+      }
+    }
+    if (!content) return false;
+    const popup = window.open('', 'cdaTat_' + component.key, 'width=1200,height=760,resizable=yes,scrollbars=yes');
+    if (!popup) return false;
+    try { popup.opener = null; } catch (error) {}
+    popup.document.open();
+    popup.document.write('<!doctype html><html><head><meta charset="utf-8"><title>' + component.title + '</title>' +
+      '<style>body{font-family:Arial,sans-serif;padding:20px;color:#172033}table{border-collapse:collapse;width:100%}' +
+      'th,td{border:1px solid #d0d5dd;padding:7px}th{background:#172033;color:#fff}</style></head><body><h2>' +
+      component.title + '</h2>' + content + '</body></html>');
+    popup.document.close();
+    return true;
+  }
+
+  function reset(context){
+    const component = context.component;
+    if (component.tableKey && window.cdaTable) {
+      if (typeof window.cdaTable.resetColumns === 'function') window.cdaTable.resetColumns(component.tableKey);
+      if (typeof window.cdaTable.clearSelection === 'function') window.cdaTable.clearSelection(component.tableKey);
+    }
+    if (component.kind === 'chart') {
+      const chartInstance = chart(component);
+      if (chartInstance) {
+        (chartInstance.data.datasets || []).forEach(function(dataset,index){
+          if (typeof chartInstance.setDatasetVisibility === 'function') chartInstance.setDatasetVisibility(index,true);
+          else dataset.hidden = false;
+        });
+        chartInstance.update('none');
+      }
+    }
+    if (typeof window.clearTatComponentV6509 === 'function') window.clearTatComponentV6509(component.key);
+    return true;
+  }
+
+  function collapse(context){
+    if (!context.component.collapseSection || typeof window.toggleTatSectionV6509 !== 'function') return false;
+    window.toggleTatSectionV6509(context.component.collapseSection);
+    return true;
+  }
+
+  function beforeReplace(){
+    if (window.cdaDashboardPopoverV6547) window.cdaDashboardPopoverV6547.close();
+    if (window.cdaTable && typeof window.cdaTable.closeChooser === 'function') window.cdaTable.closeChooser();
+    const current = state();
+    if (current && current.charts) {
+      Object.keys(current.charts).forEach(function(key){
+        const instance = current.charts[key];
+        if (instance && typeof instance.destroy === 'function') {
+          try { instance.destroy(); } catch (error) {}
+        }
+      });
+      current.charts = {};
+    }
+    if (window.cdaTable && typeof window.cdaTable.config === 'function') {
+      TABLE_KEYS_V6547.forEach(function(key){
+        const config = window.cdaTable.config(key);
+        if (!config) return;
+        config.$table = null;
+        config.$frameV6543 = null;
+        config.$toolsV6543 = null;
+        config.bound = false;
+        config.autoTools = false;
+      });
+    }
+  }
+
+  function afterReplace(){
+    window.requestAnimationFrame(function(){
+      if (typeof window.setTatDistributionModeV6509 === 'function') window.setTatDistributionModeV6509();
+      window.dispatchEvent(new Event('resize'));
+    });
+  }
+
+  window.cdaTatDashboardAdapterV6547 = Object.freeze({
+    yearLabel:yearLabel,
+    openYear:openYear,
+    openColumns:openColumns,
+    popout:popout,
+    reset:reset,
+    collapse:collapse,
+    exportCurrent:exportCurrent,
+    exportAll:exportAll,
+    beforeReplace:beforeReplace,
+    afterReplace:afterReplace
+  });
+})();
+</script>
