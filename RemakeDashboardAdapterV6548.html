@@ -1,7 +1,7 @@
 <!-- RemakeDashboardAdapterV6548.html
-Version: v6.554
+Version: v6.555
 Date: 2026-07-29
-Purpose: Bridge shared dashboard features to existing Remake calculations and hidden legacy behavior providers.
+Purpose: Bridge shared dashboard capabilities to existing Remake calculations and hidden legacy behavior providers.
 -->
 <style id="cdaRemakeDashboardAdapterStylesV6548">
   #remakeFactorPage .cdaDashboardDecoratedActionsV6548 {
@@ -17,11 +17,10 @@ Purpose: Bridge shared dashboard features to existing Remake calculations and hi
   'use strict';
 
   if (window.cdaRemakeDashboardAdapterV6548 &&
-      window.cdaRemakeDashboardAdapterV6548.version === 'v6.554') return;
+      window.cdaRemakeDashboardAdapterV6548.version === 'v6.555') return;
 
   const bridge = window.cdaRemakeLegacyBridgeV6554;
-  const theme = window.cdaDashboardThemeV6549;
-  if (!bridge || !theme) throw new Error('Remake adapter requires the legacy bridge and shared theme.');
+  if (!bridge) throw new Error('Remake adapter requires the legacy bridge.');
 
   function cardV6548(component){ return bridge.card(component); }
 
@@ -48,29 +47,19 @@ Purpose: Bridge shared dashboard features to existing Remake calculations and hi
     return match ? match[1] : String(new Date().getFullYear() - 1);
   }
 
-  function collapsedV6554(component){
-    const card = cardV6548(component);
+  function isCollapsedV6555(context){
+    const card = cardV6548(context.component);
     return !!(card && card.classList.contains('remakeSectionCollapsedV6402'));
   }
 
   function syncToolbarStateV6548(context){
     const toolbar = context.toolbar || null;
     if (!toolbar) return;
-
     const compare = toolbar.querySelector('[data-cda-dashboard-feature-key="comparePriorYear"]');
     if (compare) {
       const provider = legacyCompareButtonV6548(context.component);
       compare.hidden = !provider;
       if (provider) compare.setAttribute('aria-pressed',comparisonActiveV6548(context.component) ? 'true' : 'false');
-    }
-
-    const collapse = toolbar.querySelector('[data-cda-dashboard-feature-key="collapse"]');
-    if (collapse) {
-      const isCollapsed = collapsedV6554(context.component);
-      const iconName = isCollapsed ? 'expand' : 'collapse';
-      collapse.textContent = theme.icon(iconName);
-      collapse.setAttribute('data-cda-dashboard-icon-state',iconName);
-      collapse.setAttribute('aria-expanded',isCollapsed ? 'false' : 'true');
     }
   }
 
@@ -78,6 +67,9 @@ Purpose: Bridge shared dashboard features to existing Remake calculations and hi
     const card = cardV6548(component);
     const toolbar = card && card.querySelector('.cdaDashboardToolbarV6547[data-cda-dashboard-toolbar="' + component.key + '"]');
     if (toolbar) syncToolbarStateV6548({component:component,toolbar:toolbar});
+    if (card && window.cdaDashboardTitleToggleV6555) {
+      window.cdaDashboardTitleToggleV6555.mount('remake',component.key,card);
+    }
   }
 
   function togglePriorYearComparisonV6548(context){
@@ -101,7 +93,6 @@ Purpose: Bridge shared dashboard features to existing Remake calculations and hi
   }
 
   function popoutV6548(context){
-    if (bridge.invoke(context.component,'popout')) return true;
     return !!(window.cdaDashboardPopoutV6548 && window.cdaDashboardPopoutV6548.open(context));
   }
 
@@ -116,16 +107,14 @@ Purpose: Bridge shared dashboard features to existing Remake calculations and hi
     return true;
   }
 
-  function exportCurrentV6548(context){
-    return bridge.invoke(context.component,'exportCurrent');
-  }
+  function exportCurrentV6548(context){ return bridge.invoke(context.component,'exportCurrent'); }
 
   function exportAllV6548(context){
     if (bridge.invoke(context.component,'exportAll')) return true;
     return exportCurrentV6548(context);
   }
 
-  function collapseV6554(context){
+  function collapseV6555(context){
     const key = context.component.collapseKey;
     if (!key || typeof window.toggleRemakeSectionV6402 !== 'function') return false;
     window.toggleRemakeSectionV6402(key);
@@ -171,7 +160,7 @@ Purpose: Bridge shared dashboard features to existing Remake calculations and hi
   }
 
   window.cdaRemakeDashboardAdapterV6548 = Object.freeze({
-    version:'v6.554',
+    version:'v6.555',
     priorYearLabel:priorYearLabelV6548,
     togglePriorYearComparison:togglePriorYearComparisonV6548,
     openColumns:openColumnsV6548,
@@ -180,7 +169,8 @@ Purpose: Bridge shared dashboard features to existing Remake calculations and hi
     reset:resetV6548,
     exportCurrent:exportCurrentV6548,
     exportAll:exportAllV6548,
-    collapse:collapseV6554,
+    isCollapsed:isCollapsedV6555,
+    collapse:collapseV6555,
     prepareComponent:prepareComponentV6548,
     resolveToolbarHost:resolveToolbarHostV6548,
     syncToolbarState:syncToolbarStateV6548,
