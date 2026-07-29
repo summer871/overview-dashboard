@@ -8,7 +8,7 @@ const childProcess = require('child_process');
 
 const root = path.resolve(__dirname, '..');
 const foundationPath = path.join(root, 'SharedComponentFoundation.html');
-const requiredVersion = 'v6.550';
+const requiredVersion = 'v6.551';
 const blockedReferences = [
   'TatCleanPlatformScriptPart',
   'TatCleanPlatformStylesV6545',
@@ -75,7 +75,7 @@ if (!includes.length) fail('No active dashboard includes were found.');
 const duplicateIncludes = includes.filter((name, index) => includes.indexOf(name) !== index);
 if (duplicateIncludes.length) fail('Duplicate active includes: ' + Array.from(new Set(duplicateIncludes)).join(', '));
 requiredIncludes.forEach(name => {
-  if (!includes.includes(name)) fail('Missing required v6.550 include: ' + name);
+  if (!includes.includes(name)) fail('Missing required v6.551 include: ' + name);
 });
 
 includes.forEach(name => {
@@ -99,6 +99,7 @@ const theme = read(path.join(root, 'SharedDashboardThemeV6549.html'));
 const popover = read(path.join(root, 'SharedDashboardPopoverV6547.html'));
 const popout = read(path.join(root, 'SharedDashboardPopoutV6548.html'));
 const audit = read(path.join(root, 'SharedDashboardAuditV6550.html'));
+const decorator = read(path.join(root, 'SharedDashboardDecoratorV6548.html'));
 const tatBootstrap = read(path.join(root, 'TatDashboardBootstrapV6547.html'));
 const remakeBootstrap = read(path.join(root, 'RemakeDashboardBootstrapV6548.html'));
 
@@ -109,8 +110,9 @@ try {
   fail(error.message);
 }
 
-if (!footer.includes("'v6.550'")) fail('SharedFooter.html is not stamped v6.550.');
-if (!router.includes("'v6.550'")) fail('Code.js is not stamped v6.550.');
+if (!footer.includes("'v6.551'")) fail('SharedFooter.html is not stamped v6.551.');
+if (!footer.includes('COMPLETE-SHARED-DECORATION-03')) fail('SharedFooter.html build label is not v6.551.');
+if (!router.includes("'v6.551'")) fail('Code.js is not stamped v6.551.');
 if (!registry.includes("const VERSION_V6547 = 'v6.550'")) fail('Shared dashboard registry is not stamped v6.550.');
 if (!featureCatalog.includes("CDA_DASHBOARD_FEATURES_VERSION = 'v6.550'")) fail('Feature catalog is not stamped v6.550.');
 if (!featureCatalog.includes("icon:'popout'") || !featureCatalog.includes("icon:'more'")) fail('Shared feature icons are not registry-based.');
@@ -122,11 +124,18 @@ if (columns.includes('.toggleChooser(')) fail('Shared Columns still delegates to
 if (!columns.includes("mode:'single-shared-chooser'")) fail('Shared Columns is not marked as the sole chooser owner.');
 if (!columns.includes("version:'v6.550'")) fail('Shared Columns is not stamped v6.550.');
 if (!popover.includes("themeVersion:'v6.550'")) fail('Shared popover is not bound to theme v6.550.');
-if (!popout.includes("themeVersion:theme.version")) fail('Shared pop-out does not publish its theme binding.');
+if (!popout.includes('themeVersion:theme.version')) fail('Shared pop-out does not publish its theme binding.');
 if (/#[0-9a-f]{3,8}/i.test(popout)) fail('Shared pop-out contains a hardcoded color literal.');
 if (!audit.includes('commonFeatureStyleParity') || !audit.includes('legacyControlsHidden')) fail('Rendered shared-control audit is incomplete.');
+if (!decorator.includes("version:'v6.551'")) fail('Shared decorator is not stamped v6.551.');
+if (!decorator.includes('missingComponents')) fail('Shared decorator does not report missing components.');
+if (!decorator.includes('titleCard(page,component)')) fail('Shared decorator lacks title-based card resolution.');
+if (!remakeBootstrap.includes("version:'v6.551'")) fail('Remake bootstrap is not stamped v6.551.');
+if (!remakeBootstrap.includes('scheduleReconciliationV6551')) fail('Remake bootstrap does not retry incomplete decoration.');
+if (!remakeBootstrap.includes('base.allComponentsDecorated')) fail('Remake success does not require every component to be decorated.');
+if (!remakeBootstrap.includes('base.toolbarCount === base.expectedToolbarCount')) fail('Remake success does not require exact toolbar count.');
+if (!remakeBootstrap.includes('ok:registrationAudit.ok')) fail('Remake audit does not expose an overall pass/fail value.');
 if (!tatBootstrap.includes('sharedControlsValidated')) fail('TAT audit does not include rendered shared-control validation.');
-if (!remakeBootstrap.includes('sharedControlsValidated')) fail('Remake audit does not include rendered shared-control validation.');
 if (/STANDARD_FEATURES\s*=\s*\[[^\]]*['"]year['"]/.test(tatDefinition)) fail('TAT still opts into the year feature.');
 
 if (!process.exitCode) {
@@ -143,6 +152,7 @@ if (!process.exitCode) {
 if (!process.exitCode) {
   console.log('Dashboard platform validation passed.');
   console.log('Version: ' + requiredVersion);
+  console.log('Complete Remake decoration guard: passed');
   console.log('Active includes: ' + includes.length);
   includes.forEach(name => console.log('  - ' + name + '.html'));
 }
