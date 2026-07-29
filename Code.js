@@ -1,6 +1,6 @@
 /**
  * Executive Overview Dashboard Router
- * Version: Code.gs v6.552 active Remake component model
+ * Version: Code.gs v6.553 stateful shared icon audit
  * Date: 2026-07-29
  * Purpose: Serve the single Index.html dashboard shell without appending duplicate
  * shared-component scripts after the document has already included them.
@@ -13,8 +13,8 @@ function doGet(e) {
   const template = HtmlService.createTemplateFromFile('Index');
   template.dashboardBaseUrl = getDashboardBaseUrl();
   template.dashboardPresentationMode = presentationMode;
-  template.dashboardPresentationVersion = 'v6.552';
-  template.dashboardPresentationSource = 'Code.gs v6.552 active Remake component model';
+  template.dashboardPresentationVersion = 'v6.553';
+  template.dashboardPresentationSource = 'Code.gs v6.553 stateful shared icon audit';
   return HtmlService.createHtmlOutput(template.evaluate().getContent())
     .setTitle('Overview Dashboard')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
@@ -54,7 +54,7 @@ function renderDashboardDebugPage() {
 function debugDashboardServerHealth() {
   const health = {
     ok: true,
-    routerVersion: 'Code.gs v6.552 active Remake component model',
+    routerVersion: 'Code.gs v6.553 stateful shared icon audit',
     timestamp: new Date().toISOString(),
     scriptTimeZone: Session.getScriptTimeZone(),
     dashboardBaseUrl: getDashboardBaseUrl(),
