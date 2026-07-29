@@ -1,14 +1,14 @@
 <!-- TatDashboardBootstrapV6547.html
-Version: v6.554
+Version: v6.555
 Date: 2026-07-29
-Purpose: Register, validate, render, and audit TAT on the complete shared dashboard platform.
+Purpose: Register, render, and audit TAT on the identifiable live-component platform.
 -->
 <script id="cdaTatDashboardBootstrapControllerV6547">
 (function installTatDashboardBootstrapV6547(){
   'use strict';
 
-  if (window.__cdaTatDashboardBootstrapV6554) return;
-  window.__cdaTatDashboardBootstrapV6554 = true;
+  if (window.__cdaTatDashboardBootstrapV6555) return;
+  window.__cdaTatDashboardBootstrapV6555 = true;
 
   const platform = window.cdaDashboardPlatformV6547;
   const renderer = window.cdaDashboardRendererV6547;
@@ -20,20 +20,25 @@ Purpose: Register, validate, render, and audit TAT on the complete shared dashbo
 
   platform.registerTab(definition);
   const registrationAudit = platform.validateTab('tat');
-  if (!registrationAudit.ok) {
-    throw new Error('TAT definition is invalid:\n' + registrationAudit.errors.join('\n'));
-  }
+  if (!registrationAudit.ok) throw new Error('TAT definition is invalid:\n' + registrationAudit.errors.join('\n'));
 
-  function dependencyAuditV6547(){
+  function dependencyAuditV6555(){
     return {
       tableModule:!!window.cdaTable,
       sharedTheme:window.cdaDashboardThemeV6549 && window.cdaDashboardThemeV6549.version === 'v6.550',
       sharedColumns:window.cdaDashboardColumnsV6548 && window.cdaDashboardColumnsV6548.version === 'v6.550',
-      sharedPopout:window.cdaDashboardPopoutV6548 && window.cdaDashboardPopoutV6548.version === 'v6.550',
       sharedPopover:window.cdaDashboardPopoverV6547 && window.cdaDashboardPopoverV6547.version === 'v6.550',
       sharedToolbar:window.cdaDashboardToolbarV6548 && window.cdaDashboardToolbarV6548.version === 'v6.554',
-      sharedAudit:window.cdaDashboardAuditV6550 && window.cdaDashboardAuditV6550.version === 'v6.554',
-      bindings:window.cdaTatDashboardBindingsV6547 && window.cdaTatDashboardBindingsV6547.version === 'v6.553',
+      componentCatalog:window.cdaDashboardCatalogV6555 && window.cdaDashboardCatalogV6555.version === 'v6.555',
+      componentIsolation:window.cdaDashboardIsolationV6555 && window.cdaDashboardIsolationV6555.version === 'v6.555',
+      livePopout:window.cdaDashboardPopoutV6548 && window.cdaDashboardPopoutV6548.version === 'v6.555' &&
+        window.cdaDashboardPopoutV6548.mode === 'same-application-live-component',
+      titleToggle:window.cdaDashboardTitleToggleV6555 && window.cdaDashboardTitleToggleV6555.version === 'v6.555',
+      renderer:renderer.version === 'v6.555',
+      sharedAudit:sharedAudit.version === 'v6.555',
+      adapter:window.cdaTatDashboardAdapterV6547 && window.cdaTatDashboardAdapterV6547.version === 'v6.555',
+      definition:definition.version === 'v6.555',
+      bindings:window.cdaTatDashboardBindingsV6547 && window.cdaTatDashboardBindingsV6547.version === 'v6.555',
       kpi:!!window.cdaDashboardKpiV6547,
       clearTatComponentV6509:typeof window.clearTatComponentV6509 === 'function',
       exportTatComponentV6509:typeof window.exportTatComponentV6509 === 'function',
@@ -42,20 +47,22 @@ Purpose: Register, validate, render, and audit TAT on the complete shared dashbo
     };
   }
 
-  function auditV6547(){
+  function auditV6555(){
     const base = renderer.audit('tat');
-    const dependencies = dependencyAuditV6547();
+    const dependencies = dependencyAuditV6555();
     const sharedControls = sharedAudit.audit();
+    const catalog = window.cdaDashboardCatalogV6555.audit();
     const allRequiredDependenciesPresent = Object.keys(dependencies).every(function(key){
       return dependencies[key] === true;
     });
     return Object.assign({},base,{
-      version:'v6.554',
-      mode:'configuration-driven-dashboard-platform',
+      version:'v6.555',
+      mode:'identifiable-live-component-platform',
       registeredFeatures:platform.listFeatures(),
       registeredTabs:platform.listTabs(),
       dependencies:dependencies,
       allRequiredDependenciesPresent:allRequiredDependenciesPresent,
+      componentCatalog:catalog,
       noRemakeCardReplacement:document.querySelectorAll(
         '#remakeFactorPage [data-cda-dashboard-tab],#remakeFactorPage [data-cda-dashboard-component]'
       ).length === 0,
@@ -64,39 +71,31 @@ Purpose: Register, validate, render, and audit TAT on the complete shared dashbo
       ).length === 0,
       sharedControls:sharedControls,
       sharedControlsValidated:sharedControls.ok,
-      ok:base.validation && base.validation.ok && allRequiredDependenciesPresent &&
+      ok:base.validation && base.validation.ok && allRequiredDependenciesPresent && catalog.ok &&
         base.noDuplicateIds && base.oneCardPerComponent && sharedControls.ok
     });
   }
 
-  function renderV6547(){ return renderer.rebuild('tat'); }
+  function renderV6555(){ return renderer.rebuild('tat'); }
 
-  function startV6547(){
+  function startV6555(){
     let attempts = 0;
     const timer = window.setInterval(function(){
       attempts += 1;
       if (document.getElementById(definition.pageId) && window.cdaTable) {
         window.clearInterval(timer);
-        renderV6547();
-      } else if (attempts >= 160) {
-        window.clearInterval(timer);
-      }
+        renderV6555();
+      } else if (attempts >= 160) window.clearInterval(timer);
     },25);
   }
 
   window.cdaTatDashboardV6547 = Object.freeze({
-    version:'v6.554',
-    definition:definition,
-    render:renderV6547,
-    audit:auditV6547,
-    dependencyAudit:dependencyAuditV6547
+    version:'v6.555',definition:definition,render:renderV6555,audit:auditV6555,
+    dependencyAudit:dependencyAuditV6555
   });
-  window.auditSharedRemakeTableShellV6544 = auditV6547;
+  window.auditSharedRemakeTableShellV6544 = auditV6555;
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded',startV6547,{once:true});
-  } else {
-    startV6547();
-  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded',startV6555,{once:true});
+  else startV6555();
 })();
 </script>
