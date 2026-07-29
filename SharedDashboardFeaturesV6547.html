@@ -1,5 +1,5 @@
 <!-- SharedDashboardFeaturesV6547.html
-Version: v6.550
+Version: v6.555
 Date: 2026-07-29
 Purpose: Reusable opt-in feature catalog shared by TAT, Remake, and future tabs.
 -->
@@ -12,7 +12,7 @@ Purpose: Reusable opt-in feature catalog shared by TAT, Remake, and future tabs.
   if (!platform || !theme || theme.version !== 'v6.550') {
     throw new Error('Dashboard registry and theme v6.550 must load before features.');
   }
-  if (window.CDA_DASHBOARD_FEATURES_VERSION === 'v6.550') return;
+  if (window.CDA_DASHBOARD_FEATURES_VERSION === 'v6.555') return;
 
   function callAdapter(context,method){
     const fn = context.adapter && context.adapter[method];
@@ -41,7 +41,7 @@ Purpose: Reusable opt-in feature catalog shared by TAT, Remake, and future tabs.
 
   platform.registerFeature({
     key:'popout', placement:'toolbar', order:30,
-    icon:'popout', title:'Open this component in a new window', iconOnly:true,
+    icon:'popout', title:'Open this live component in a separate window', iconOnly:true,
     run:function(context){
       if (callAdapter(context,'popout')) return;
       if (window.cdaDashboardPopoutV6548) window.cdaDashboardPopoutV6548.open(context);
@@ -69,9 +69,7 @@ Purpose: Reusable opt-in feature catalog shared by TAT, Remake, and future tabs.
         const button = document.createElement('button');
         button.type = 'button';
         button.setAttribute('role','menuitem');
-        button.textContent = typeof feature.label === 'function'
-          ? feature.label(context)
-          : feature.label;
+        button.textContent = typeof feature.label === 'function' ? feature.label(context) : feature.label;
         button.addEventListener('click',function(event){
           event.preventDefault();
           event.stopPropagation();
@@ -85,7 +83,7 @@ Purpose: Reusable opt-in feature catalog shared by TAT, Remake, and future tabs.
   });
 
   platform.registerFeature({
-    key:'collapse', placement:'toolbar', order:60,
+    key:'collapse', placement:'title', order:10,
     icon:'collapse', title:'Collapse or expand this component', iconOnly:true,
     run:function(context){ callAdapter(context,'collapse'); }
   });
@@ -102,6 +100,6 @@ Purpose: Reusable opt-in feature catalog shared by TAT, Remake, and future tabs.
     run:function(context){ callAdapter(context,'exportAll'); }
   });
 
-  window.CDA_DASHBOARD_FEATURES_VERSION = 'v6.550';
+  window.CDA_DASHBOARD_FEATURES_VERSION = 'v6.555';
 })();
 </script>
