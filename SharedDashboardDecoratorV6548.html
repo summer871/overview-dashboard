@@ -1,22 +1,68 @@
 <!-- SharedDashboardDecoratorV6548.html
-Version: v6.548
+Version: v6.551
 Date: 2026-07-29
-Purpose: Add shared controls to existing tab/card DOM without replacing cards or calculations.
+Purpose: Add shared controls to existing tab/card DOM and report component-level decoration coverage.
 -->
 <script id="cdaSharedDashboardDecoratorControllerV6548">
 (function installSharedDashboardDecoratorV6548(){
   'use strict';
 
-  if (window.cdaDashboardDecoratorV6548) return;
+  if (window.cdaDashboardDecoratorV6548 && window.cdaDashboardDecoratorV6548.version === 'v6.551') return;
+
   const platform = window.cdaDashboardPlatformV6547;
   const toolbar = window.cdaDashboardToolbarV6548;
   if (!platform || !toolbar) throw new Error('Registry and toolbar must load before decorator.');
 
-  function resolveCard(component){
-    if (typeof component.resolveCard === 'function') return component.resolveCard();
-    if (component.cardId) return document.getElementById(component.cardId);
+  function normalizeText(value){
+    return String(value == null ? '' : value).replace(/\s+/g,' ').trim().toLowerCase();
+  }
+
+  function titleCard(page,component){
+    if (!page || !component || !component.title) return null;
+    const wanted = normalizeText(component.title);
+    return Array.from(page.querySelectorAll('.remakeCard,article')).find(function(card){
+      const title = card.querySelector('.remakeCardTitle,.tatCardTitleV6509');
+      return title && normalizeText(title.textContent) === wanted;
+    }) || null;
+  }
+
+  function resolveCard(tab,component,page){
+    if (typeof component.resolveCard === 'function') {
+      const custom = component.resolveCard({tab:tab,component:component,page:page});
+      if (custom) return custom;
+    }
+    if (component.cardId) {
+      const byId = document.getElementById(component.cardId);
+      if (byId) return byId;
+    }
     const target = component.targetId && document.getElementById(component.targetId);
-    return target && target.closest ? target.closest('.remakeCard,article') : null;
+    if (target && target.closest) {
+      const byTarget = target.closest('.remakeCard,article');
+      if (byTarget) return byTarget;
+    }
+    return titleCard(page,component);
+  }
+
+  function componentState(tab,component,page){
+    const card = resolveCard(tab,component,page);
+    const header = card && card.querySelector
+      ? card.querySelector('.remakeCardHeader,.tatCardHeadV6509')
+      : null;
+    const toolbarCount = card && card.querySelectorAll
+      ? card.querySelectorAll('.cdaDashboardToolbarV6547[data-cda-dashboard-toolbar="' + component.key + '"]').length
+      : 0;
+    const decoratedCount = page
+      ? page.querySelectorAll('[data-cda-dashboard-decorated-component="' + component.key + '"]').length
+      : 0;
+    return {
+      key:component.key,
+      title:component.title,
+      cardPresent:!!card,
+      headerPresent:!!header,
+      toolbarCount:toolbarCount,
+      decoratedCount:decoratedCount,
+      decorated:!!card && !!header && toolbarCount === 1 && decoratedCount === 1
+    };
   }
 
   function decorate(tabKey){
@@ -26,31 +72,35 @@ Purpose: Add shared controls to existing tab/card DOM without replacing cards or
     if (!tab || tab.mountMode !== 'decorate') throw new Error('Tab is not decorate-mode: ' + tabKey);
     const page = document.getElementById(tab.pageId);
     if (!page) return null;
+
     let mounted = 0;
     tab.components.forEach(function(component){
-      const card = resolveCard(component);
+      const card = resolveCard(tab,component,page);
       if (!card) return;
       if (tab.adapter && typeof tab.adapter.prepareComponent === 'function') {
-        tab.adapter.prepareComponent({ tab:tab, component:component, card:card });
+        tab.adapter.prepareComponent({tab:tab,component:component,card:card});
       }
       const header = card.querySelector('.remakeCardHeader,.tatCardHeadV6509');
       if (!header) return;
       let host = tab.adapter && typeof tab.adapter.resolveToolbarHost === 'function'
-        ? tab.adapter.resolveToolbarHost({ tab:tab, component:component, card:card, header:header })
+        ? tab.adapter.resolveToolbarHost({tab:tab,component:component,card:card,header:header})
         : header.querySelector('.remakeCardActionsV6230');
       if (!host) {
         host = document.createElement('div');
         host.className = 'remakeCardActionsV6230 cdaDashboardDecoratedActionsV6548';
         header.appendChild(host);
       }
-      if (toolbar.mount(tab.key, component.key, host)) mounted += 1;
-      card.setAttribute('data-cda-dashboard-decorated-component', component.key);
+      const mountedToolbar = toolbar.mount(tab.key,component.key,host);
+      if (!mountedToolbar) return;
+      mounted += 1;
+      card.setAttribute('data-cda-dashboard-decorated-component',component.key);
     });
-    page.setAttribute('data-cda-dashboard-decorated-tab', tab.key);
+
+    page.setAttribute('data-cda-dashboard-decorated-tab',tab.key);
     if (tab.adapter && typeof tab.adapter.afterDecorate === 'function') {
-      tab.adapter.afterDecorate({ tab:tab, page:page, mounted:mounted });
+      tab.adapter.afterDecorate({tab:tab,page:page,mounted:mounted});
     }
-    platform.util.emit('cdaDashboardTabDecoratedV6548', { tabKey:tab.key, mounted:mounted });
+    platform.util.emit('cdaDashboardTabDecoratedV6548',{tabKey:tab.key,mounted:mounted});
     return page;
   }
 
@@ -69,27 +119,33 @@ Purpose: Add shared controls to existing tab/card DOM without replacing cards or
     const validation = platform.validateTab(tabKey);
     const page = tab ? document.getElementById(tab.pageId) : null;
     const duplicates = duplicateIds(page);
+    const states = tab ? tab.components.map(function(component){
+      return componentState(tab,component,page);
+    }) : [];
+    const missing = states.filter(function(state){ return !state.decorated; });
     const toolbars = page ? Array.from(page.querySelectorAll('.cdaDashboardToolbarV6547')) : [];
     return {
-      version:platform.version,
+      version:'v6.551',
       tabKey:tabKey,
       mountMode:'decorate',
       validation:validation,
       pagePresent:!!page,
       toolbarCount:toolbars.length,
       expectedToolbarCount:tab ? tab.components.length : 0,
-      allComponentsDecorated:!!tab && tab.components.every(function(component){
-        return !!page && page.querySelectorAll('[data-cda-dashboard-decorated-component="' + component.key + '"]').length === 1;
-      }),
+      componentStates:states,
+      missingComponents:missing.map(function(state){ return state.key; }),
+      allComponentsDecorated:!!tab && states.length === tab.components.length && missing.length === 0,
       noDuplicateIds:duplicates.length === 0,
       duplicateIds:duplicates
     };
   }
 
   window.cdaDashboardDecoratorV6548 = Object.freeze({
-    version:'v6.548',
+    version:'v6.551',
     decorate:decorate,
-    audit:audit
+    audit:audit,
+    resolveCard:resolveCard,
+    componentState:componentState
   });
 })();
 </script>
