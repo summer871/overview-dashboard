@@ -1,5 +1,5 @@
 <!-- TatDashboardBootstrapV6547.html
-Version: v6.550
+Version: v6.553
 Date: 2026-07-29
 Purpose: Register, validate, render, and audit TAT on the shared dashboard platform.
 -->
@@ -7,8 +7,8 @@ Purpose: Register, validate, render, and audit TAT on the shared dashboard platf
 (function installTatDashboardBootstrapV6547(){
   'use strict';
 
-  if (window.__cdaTatDashboardBootstrapV6547) return;
-  window.__cdaTatDashboardBootstrapV6547 = true;
+  if (window.__cdaTatDashboardBootstrapV6553) return;
+  window.__cdaTatDashboardBootstrapV6553 = true;
 
   const platform = window.cdaDashboardPlatformV6547;
   const renderer = window.cdaDashboardRendererV6547;
@@ -32,7 +32,8 @@ Purpose: Register, validate, render, and audit TAT on the shared dashboard platf
       sharedPopout:window.cdaDashboardPopoutV6548 && window.cdaDashboardPopoutV6548.version === 'v6.550',
       sharedPopover:window.cdaDashboardPopoverV6547 && window.cdaDashboardPopoverV6547.version === 'v6.550',
       sharedToolbar:window.cdaDashboardToolbarV6548 && window.cdaDashboardToolbarV6548.version === 'v6.550',
-      sharedAudit:window.cdaDashboardAuditV6550 && window.cdaDashboardAuditV6550.version === 'v6.550',
+      sharedAudit:window.cdaDashboardAuditV6550 && window.cdaDashboardAuditV6550.version === 'v6.553',
+      bindings:window.cdaTatDashboardBindingsV6547 && window.cdaTatDashboardBindingsV6547.version === 'v6.553',
       kpi:!!window.cdaDashboardKpiV6547,
       clearTatComponentV6509:typeof window.clearTatComponentV6509 === 'function',
       exportTatComponentV6509:typeof window.exportTatComponentV6509 === 'function',
@@ -45,15 +46,16 @@ Purpose: Register, validate, render, and audit TAT on the shared dashboard platf
     const base = renderer.audit('tat');
     const dependencies = dependencyAuditV6547();
     const sharedControls = sharedAudit.audit();
+    const allRequiredDependenciesPresent = Object.keys(dependencies).every(function(key){
+      return dependencies[key] === true;
+    });
     return Object.assign({},base,{
-      version:'v6.550',
+      version:'v6.553',
       mode:'configuration-driven-dashboard-platform',
       registeredFeatures:platform.listFeatures(),
       registeredTabs:platform.listTabs(),
       dependencies:dependencies,
-      allRequiredDependenciesPresent:Object.keys(dependencies).every(function(key){
-        return dependencies[key] === true;
-      }),
+      allRequiredDependenciesPresent:allRequiredDependenciesPresent,
       noRemakeCardReplacement:document.querySelectorAll(
         '#remakeFactorPage [data-cda-dashboard-tab],#remakeFactorPage [data-cda-dashboard-component]'
       ).length === 0,
@@ -61,7 +63,9 @@ Purpose: Register, validate, render, and audit TAT on the shared dashboard platf
         '#tatDashboardPageV6509 [data-cda-dashboard-feature-key="year"],#tatDashboardPageV6509 [data-cda-dashboard-feature-key="comparePriorYear"]'
       ).length === 0,
       sharedControls:sharedControls,
-      sharedControlsValidated:sharedControls.ok
+      sharedControlsValidated:sharedControls.ok,
+      ok:base.validation && base.validation.ok && allRequiredDependenciesPresent &&
+        base.noDuplicateIds && base.oneCardPerComponent && sharedControls.ok
     });
   }
 
@@ -81,7 +85,7 @@ Purpose: Register, validate, render, and audit TAT on the shared dashboard platf
   }
 
   window.cdaTatDashboardV6547 = Object.freeze({
-    version:'v6.550',
+    version:'v6.553',
     definition:definition,
     render:renderV6547,
     audit:auditV6547,
