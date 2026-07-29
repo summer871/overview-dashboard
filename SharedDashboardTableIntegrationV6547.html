@@ -1,0 +1,66 @@
+<!-- SharedDashboardTableIntegrationV6547.html
+Version: v6.547
+Date: 2026-07-29
+Purpose: Integrate the existing table service with configuration-driven dashboard cards without duplicate table toolbars.
+-->
+<style id="cdaSharedDashboardTableIntegrationStylesV6547">
+  [data-cda-dashboard-tab] .cdaTableToolsV6542 { display:none!important; }
+</style>
+<script id="cdaSharedDashboardTableIntegrationControllerV6547">
+(function installSharedDashboardTableIntegrationV6547(){
+  'use strict';
+
+  if (window.cdaDashboardTableIntegrationV6547) return;
+
+  function configuredTableKeys(){
+    const platform = window.cdaDashboardPlatformV6547;
+    if (!platform) return new Set();
+    const keys = new Set();
+    platform.listTabs().forEach(function(tabKey){
+      const tab = platform.getTab(tabKey);
+      (tab && tab.components || []).forEach(function(component){
+        if (component.tableKey) keys.add(String(component.tableKey));
+      });
+    });
+    return keys;
+  }
+
+  function apply(key){
+    if (!window.cdaTable || typeof window.cdaTable.config !== 'function') return false;
+    const tableKey = String(key || '');
+    if (!configuredTableKeys().has(tableKey)) return false;
+    const config = window.cdaTable.config(tableKey);
+    if (!config) return false;
+    config.autoTools = false;
+    const tableNode = document.getElementById(config.tableId);
+    const table = tableNode && tableNode.tagName === 'TABLE'
+      ? tableNode
+      : tableNode && tableNode.closest
+        ? tableNode.closest('table')
+        : null;
+    const frame = table && table.closest ? table.closest('.cdaTableFrameV6542') : null;
+    const tools = frame && frame.querySelector ? frame.querySelector('.cdaTableToolsV6542') : null;
+    if (tools) {
+      tools.hidden = true;
+      tools.replaceChildren();
+    }
+    return true;
+  }
+
+  function applyAll(){
+    configuredTableKeys().forEach(apply);
+  }
+
+  document.addEventListener('cdaTableRendered', function(event){
+    apply(event && event.detail && event.detail.key);
+  });
+  document.addEventListener('cdaDashboardTabRenderedV6547', applyAll);
+
+  window.cdaDashboardTableIntegrationV6547 = Object.freeze({
+    version:'v6.547',
+    apply:apply,
+    applyAll:applyAll,
+    configuredTableKeys:function(){ return Array.from(configuredTableKeys()).sort(); }
+  });
+})();
+</script>
