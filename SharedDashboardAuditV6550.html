@@ -1,13 +1,13 @@
 <!-- SharedDashboardAuditV6550.html
-Version: v6.554
+Version: v6.555
 Date: 2026-07-29
-Purpose: Audit every visible shared control, toolbar order, visual parity, card coverage, and hidden legacy actions.
+Purpose: Audit component identity, live pop-outs, title-side collapse, visual parity, order, and legacy controls.
 -->
 <script id="cdaSharedDashboardAuditControllerV6550">
 (function installSharedDashboardAuditV6550(){
   'use strict';
 
-  if (window.cdaDashboardAuditV6550 && window.cdaDashboardAuditV6550.version === 'v6.554') return;
+  if (window.cdaDashboardAuditV6550 && window.cdaDashboardAuditV6550.version === 'v6.555') return;
 
   function visible(node){
     if (!node || !window.getComputedStyle) return false;
@@ -19,10 +19,9 @@ Purpose: Audit every visible shared control, toolbar order, visual parity, card 
     if (!node || !window.getComputedStyle) return '';
     const style = window.getComputedStyle(node);
     return [
-      style.width,style.height,style.minWidth,style.minHeight,
-      style.paddingLeft,style.paddingRight,style.borderWidth,style.borderStyle,
-      style.borderRadius,style.backgroundColor,style.color,style.fontFamily,
-      style.fontSize,style.fontWeight,style.lineHeight
+      style.width,style.height,style.minWidth,style.minHeight,style.paddingLeft,style.paddingRight,
+      style.borderWidth,style.borderStyle,style.borderRadius,style.backgroundColor,style.color,
+      style.fontFamily,style.fontSize,style.fontWeight,style.lineHeight
     ].join('|');
   }
 
@@ -66,9 +65,8 @@ Purpose: Audit every visible shared control, toolbar order, visual parity, card 
       groups[key].push(button);
     });
     Object.keys(groups).forEach(function(key){
-      const instances = groups[key];
-      const expected = styleSignature(instances[0]);
-      instances.forEach(function(button,index){
+      const expected = styleSignature(groups[key][0]);
+      groups[key].forEach(function(button,index){
         const actual = styleSignature(button);
         if (actual !== expected) {
           mismatches.push({
@@ -84,20 +82,8 @@ Purpose: Audit every visible shared control, toolbar order, visual parity, card 
   }
 
   function componentCard(tab,component){
-    if (tab.key === 'remake') {
-      if (typeof component.resolveCard === 'function') {
-        try {
-          const custom = component.resolveCard({tab:tab,component:component,page:document.getElementById(tab.pageId)});
-          if (custom) return custom;
-        } catch (error) {}
-      }
-      if (component.cardId) {
-        const byId = document.getElementById(component.cardId);
-        if (byId) return byId;
-      }
-      return document.querySelector('#remakeFactorPage [data-cda-dashboard-decorated-component="' + component.key + '"]');
-    }
-    return document.querySelector('#' + tab.pageId + ' [data-cda-dashboard-component="' + component.key + '"]');
+    const catalog = window.cdaDashboardCatalogV6555;
+    return catalog ? catalog.resolveCard(tab.key,component.key) : null;
   }
 
   function toolbarOrderAudit(){
@@ -138,24 +124,17 @@ Purpose: Audit every visible shared control, toolbar order, visual parity, card 
     const failures = [];
     if (!page || !bridge) return {ok:false,failures:[{reason:'bridge-or-page-missing'}]};
     page.querySelectorAll('.remakeCardHeader button').forEach(function(button){
-      if (!visible(button) || button.closest('.cdaDashboardToolbarV6547')) return;
+      if (!visible(button) || button.closest('.cdaDashboardToolbarV6547') ||
+          button.matches('[data-cda-dashboard-title-toggle="true"]')) return;
       const action = bridge.action(button);
-      if (action) {
-        const card = button.closest('.remakeCard,article');
-        const title = card && card.querySelector('.remakeCardTitle,.tatCardTitleV6509');
-        failures.push({
-          action:action,
-          id:button.id || '',
-          label:bridge.label(button),
-          card:card ? (card.id || (title && title.textContent.trim()) || 'unnamed-card') : 'unknown-card'
-        });
-      }
+      if (action) failures.push({action:action,id:button.id || '',label:bridge.label(button)});
     });
     return {ok:failures.length === 0,failures:failures};
   }
 
   function remakeCardCoverageAudit(){
-    const tab = window.cdaDashboardPlatformV6547 && window.cdaDashboardPlatformV6547.getTab('remake');
+    const platform = window.cdaDashboardPlatformV6547;
+    const tab = platform && platform.getTab('remake');
     const page = document.getElementById('remakeFactorPage');
     const visibleAnalyticsCards = page ? Array.from(page.querySelectorAll('.remakeCard,article')).filter(function(card){
       return visible(card) && !!card.querySelector('.remakeCardHeader,.tatCardHeadV6509') &&
@@ -178,15 +157,67 @@ Purpose: Audit every visible shared control, toolbar order, visual parity, card 
     };
   }
 
+  function titleCollapseAudit(){
+    const platform = window.cdaDashboardPlatformV6547;
+    const theme = window.cdaDashboardThemeV6549;
+    const failures = [];
+    ['tat','remake'].forEach(function(tabKey){
+      const tab = platform && platform.getTab(tabKey);
+      if (!tab) return;
+      tab.components.filter(function(component){
+        return (component.features || []).indexOf('collapse') >= 0;
+      }).forEach(function(component){
+        const card = componentCard(tab,component);
+        const titleButtons = card ? card.querySelectorAll('[data-cda-dashboard-title-toggle="true"]') : [];
+        const toolbarButtons = card ? card.querySelectorAll('.cdaDashboardToolbarV6547 [data-cda-dashboard-feature-key="collapse"]') : [];
+        const button = titleButtons[0];
+        const icon = button && button.querySelector('.cdaDashboardTitleChevronV6555');
+        const iconName = button && button.getAttribute('data-cda-dashboard-icon-state');
+        const expectedIcon = theme && iconName ? theme.icon(iconName) : '';
+        if (!card || titleButtons.length !== 1 || toolbarButtons.length !== 0 || !button || !visible(button) ||
+            !icon || icon.textContent.trim() !== expectedIcon) {
+          failures.push({
+            component:tab.key + '.' + component.key,
+            cardPresent:!!card,
+            titleButtonCount:titleButtons.length,
+            toolbarCollapseCount:toolbarButtons.length,
+            expectedIcon:expectedIcon,
+            actualIcon:icon ? icon.textContent.trim() : ''
+          });
+        }
+      });
+    });
+    return {ok:failures.length === 0,failures:failures};
+  }
+
+  function livePopoutAudit(){
+    const service = window.cdaDashboardPopoutV6548;
+    const isolation = window.cdaDashboardIsolationV6555;
+    const catalog = window.cdaDashboardCatalogV6555;
+    const testUrl = isolation && typeof isolation.buildUrl === 'function'
+      ? isolation.buildUrl('tat','monthly')
+      : '';
+    return {
+      serviceVersion:service && service.version,
+      mode:service && service.mode,
+      isolationVersion:isolation && isolation.version,
+      catalogVersion:catalog && catalog.version,
+      testUrl:testUrl,
+      ok:!!service && service.version === 'v6.555' &&
+        service.mode === 'same-application-live-component' &&
+        !!isolation && isolation.version === 'v6.555' &&
+        !!catalog && catalog.version === 'v6.555' &&
+        (!testUrl || /[?&]component=tat(?:\.|%2E)monthly(?:&|$)/i.test(testUrl))
+    };
+  }
+
   function kpiOverflowAudit(){
     const controls = Array.from(document.querySelectorAll('.remakeKpiChooserButtonV6403')).filter(visible);
     const reference = document.querySelector('.cdaDashboardToolbarV6547 [data-cda-dashboard-feature-key="more"]');
     const expected = styleSignature(reference);
     const failures = controls.filter(function(button){
       return button.textContent.trim() !== '⋮' || styleSignature(button) !== expected;
-    }).map(function(button){
-      return {text:button.textContent.trim(),expected:expected,actual:styleSignature(button)};
-    });
+    }).map(function(button){ return {text:button.textContent.trim(),expected:expected,actual:styleSignature(button)}; });
     return {count:controls.length,ok:controls.length >= 2 && !!expected && failures.length === 0,failures:failures};
   }
 
@@ -194,7 +225,7 @@ Purpose: Audit every visible shared control, toolbar order, visual parity, card 
     const duplicateCards = [];
     document.querySelectorAll('#tatDashboardPageV6509 article,#remakeFactorPage .remakeCard').forEach(function(card){
       const count = card.querySelectorAll('.cdaDashboardToolbarV6547').length;
-      if (count > 1) duplicateCards.push(card.id || card.getAttribute('data-cda-dashboard-component') || 'unnamed-card');
+      if (count > 1) duplicateCards.push(card.id || card.getAttribute('data-cda-component-id') || 'unnamed-card');
     });
     return {ok:duplicateCards.length === 0,duplicateCards:duplicateCards};
   }
@@ -216,30 +247,40 @@ Purpose: Audit every visible shared control, toolbar order, visual parity, card 
       columns:window.cdaDashboardColumnsV6548 && window.cdaDashboardColumnsV6548.version,
       columnsMode:window.cdaDashboardColumnsV6548 && window.cdaDashboardColumnsV6548.mode,
       popover:window.cdaDashboardPopoverV6547 && window.cdaDashboardPopoverV6547.version,
-      popout:window.cdaDashboardPopoutV6548 && window.cdaDashboardPopoutV6548.version,
-      popoutTheme:window.cdaDashboardPopoutV6548 && window.cdaDashboardPopoutV6548.themeVersion,
       toolbar:window.cdaDashboardToolbarV6548 && window.cdaDashboardToolbarV6548.version,
-      bridge:window.cdaRemakeLegacyBridgeV6554 && window.cdaRemakeLegacyBridgeV6554.version
+      bridge:window.cdaRemakeLegacyBridgeV6554 && window.cdaRemakeLegacyBridgeV6554.version,
+      catalog:window.cdaDashboardCatalogV6555 && window.cdaDashboardCatalogV6555.version,
+      isolation:window.cdaDashboardIsolationV6555 && window.cdaDashboardIsolationV6555.version,
+      popout:window.cdaDashboardPopoutV6548 && window.cdaDashboardPopoutV6548.version,
+      titleToggle:window.cdaDashboardTitleToggleV6555 && window.cdaDashboardTitleToggleV6555.version
     };
     const serviceVersionsCorrect = services.theme === 'v6.550' && services.columns === 'v6.550' &&
       services.columnsMode === 'single-shared-chooser' && services.popover === 'v6.550' &&
-      services.popout === 'v6.550' && services.popoutTheme === 'v6.550' &&
-      services.toolbar === 'v6.554' && services.bridge === 'v6.554';
+      services.toolbar === 'v6.554' && services.bridge === 'v6.554' && services.catalog === 'v6.555' &&
+      services.isolation === 'v6.555' && services.popout === 'v6.555' && services.titleToggle === 'v6.555';
+    const catalog = window.cdaDashboardCatalogV6555
+      ? window.cdaDashboardCatalogV6555.audit()
+      : {ok:false,missingCards:['catalog-unavailable']};
     const icons = iconAudit(allButtons);
     const styles = allInstanceStyleAudit(allButtons);
     const order = toolbarOrderAudit();
     const legacy = legacyActionAudit();
     const coverage = remakeCardCoverageAudit();
+    const collapse = titleCollapseAudit();
+    const popout = livePopoutAudit();
     const kpi = kpiOverflowAudit();
     const ownership = toolbarOwnershipAudit();
     const cssTokens = cssTokenAudit();
     return {
-      version:'v6.554',
+      version:'v6.555',
       tatButtonCount:tatButtons.length,
       remakeButtonCount:remakeButtons.length,
       bothTabsPresent:tatButtons.length > 0 && remakeButtons.length > 0,
       services:services,
       serviceVersionsCorrect:serviceVersionsCorrect,
+      componentCatalog:catalog,
+      livePopoutContract:popout,
+      titleSideCollapse:collapse,
       iconOwnership:icons,
       everyFeatureInstanceStyleParity:styles,
       toolbarActionOrder:order,
@@ -248,13 +289,13 @@ Purpose: Audit every visible shared control, toolbar order, visual parity, card 
       kpiOverflowParity:kpi,
       oneToolbarOwnerPerCard:ownership,
       themeCssVariablesPresent:cssTokens,
-      ok:serviceVersionsCorrect && icons.ok && styles.ok && order.ok && legacy.ok &&
-        coverage.ok && kpi.ok && ownership.ok && cssTokens.ok
+      ok:serviceVersionsCorrect && catalog.ok && popout.ok && collapse.ok && icons.ok && styles.ok &&
+        order.ok && legacy.ok && coverage.ok && kpi.ok && ownership.ok && cssTokens.ok
     };
   }
 
   window.cdaDashboardAuditV6550 = Object.freeze({
-    version:'v6.554',visible:visible,styleSignature:styleSignature,
+    version:'v6.555',visible:visible,styleSignature:styleSignature,
     expectedIconName:expectedIconName,audit:auditAll
   });
 })();
