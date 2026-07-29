@@ -1,7 +1,9 @@
 /**
  * Executive Overview Dashboard Router
- * Current router: Code.gs v6.40 staleWhileRevalidate
- * Purpose: serve the single Index.html dashboard shell. No iframe routes for normal use.
+ * Version: Code.gs v6.545 clean shared-component runtime
+ * Date: 2026-07-29
+ * Purpose: Serve the single Index.html dashboard shell without appending duplicate
+ * shared-component scripts after the document has already included them.
  */
 function doGet(e) {
   const params = e && e.parameter ? e.parameter : {};
@@ -12,23 +14,17 @@ function doGet(e) {
   }
 
   const presentationMode = getDashboardPresentationMode(e);
-
   const template = HtmlService.createTemplateFromFile('Index');
   template.dashboardBaseUrl = getDashboardBaseUrl();
   template.dashboardPresentationMode = presentationMode;
-  template.dashboardPresentationVersion = 'v6.247';
-  template.dashboardPresentationSource = 'Code.gs v6.40 staleWhileRevalidate';
-
-  const renderedDashboard = template.evaluate();
-  const dashboardHtml = renderedDashboard.getContent();
-  const sharedComponentFoundation = includeDashboardFile('SharedComponentFoundation');
+  template.dashboardPresentationVersion = 'v6.545';
+  template.dashboardPresentationSource = 'Code.gs v6.545 clean shared-component runtime';
 
   return HtmlService
-    .createHtmlOutput(dashboardHtml + '\n' + sharedComponentFoundation)
+    .createHtmlOutput(template.evaluate().getContent())
     .setTitle('Overview Dashboard')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
-
 
 /**
  * Evaluates an HTML partial and returns its rendered content.
@@ -95,7 +91,7 @@ function renderDashboardDebugPage() {
 function debugDashboardServerHealth() {
   const health = {
     ok: true,
-    routerVersion: 'Code.gs v6.40 staleWhileRevalidate',
+    routerVersion: 'Code.gs v6.545 clean shared-component runtime',
     timestamp: new Date().toISOString(),
     scriptTimeZone: Session.getScriptTimeZone(),
     dashboardBaseUrl: getDashboardBaseUrl(),
