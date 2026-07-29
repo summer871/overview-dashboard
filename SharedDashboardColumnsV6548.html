@@ -1,281 +1,281 @@
 <!-- SharedDashboardColumnsV6548.html
-Version: v6.548
+Version: v6.550
 Date: 2026-07-29
-Purpose: One column chooser service for managed shared tables and existing DOM tables.
+Purpose: One visible column chooser and persistence service for managed and existing DOM tables.
 -->
 <style id="cdaSharedDashboardColumnsStylesV6548">
   .cdaDashboardColumnHiddenV6548 { display:none!important; }
-  .cdaDashboardColumnSectionV6548 + .cdaDashboardColumnSectionV6548 { margin-top:7px; padding-top:7px; border-top:1px solid #eaecf0; }
-  .cdaDashboardColumnSectionTitleV6548 { padding:3px 6px 5px; color:#667085; font:800 9px/1.2 Roboto,Arial,sans-serif; text-transform:uppercase; letter-spacing:.05em; }
-  .cdaDashboardColumnFooterV6548 { display:flex; justify-content:flex-end; gap:6px; padding:7px 5px 2px; border-top:1px solid #eaecf0; margin-top:5px; }
+  .cdaDashboardColumnSectionV6548 + .cdaDashboardColumnSectionV6548 { margin-top:7px; padding-top:7px; border-top:1px solid var(--cda-color-divider); }
+  .cdaDashboardColumnSectionTitleV6548 { padding:3px 6px 5px; color:var(--cda-color-muted); font:800 9px/1.2 var(--cda-font-ui); text-transform:uppercase; letter-spacing:.05em; }
+  .cdaDashboardColumnFooterV6548 { display:flex; justify-content:flex-end; gap:6px; padding:7px 5px 2px; border-top:1px solid var(--cda-color-divider); margin-top:5px; }
   .cdaDashboardColumnFooterV6548 button { width:auto!important; }
 </style>
 <script id="cdaSharedDashboardColumnsControllerV6548">
 (function installSharedDashboardColumnsV6548(){
   'use strict';
 
-  if (window.cdaDashboardColumnsV6548) return;
+  if (window.cdaDashboardColumnsV6548 && window.cdaDashboardColumnsV6548.version === 'v6.550') return;
 
-  const STORAGE_KEY_V6548 = 'cdaDashboardColumns.v6548';
+  const storageKey = 'cdaDashboardColumns.v6550';
 
-  function readStateV6548(){
+  function readState(){
     try {
-      const value = JSON.parse(window.localStorage.getItem(STORAGE_KEY_V6548) || '{}');
+      const value = JSON.parse(localStorage.getItem(storageKey) || '{}');
       return value && typeof value === 'object' ? value : {};
     } catch (error) {
       return {};
     }
   }
 
-  function writeStateV6548(state){
-    try { window.localStorage.setItem(STORAGE_KEY_V6548, JSON.stringify(state || {})); }
+  function writeState(state){
+    try { localStorage.setItem(storageKey,JSON.stringify(state || {})); }
     catch (error) {}
   }
 
-  function stateKeyV6548(context){
-    return String(context.tab && context.tab.key || 'dashboard') + ':' + String(context.component && context.component.key || 'component');
+  function stateKey(context){
+    return String(context.tab && context.tab.key || 'dashboard') + ':' +
+      String(context.component && context.component.key || 'component');
   }
 
-  function tableIdsV6548(component){
+  function tableIds(component){
     if (!component) return [];
-    if (Array.isArray(component.tableIds)) return component.tableIds.map(String).filter(Bolean);
+    if (Array.isArray(component.tableIds)) return component.tableIds.map(String).filter(Boolean);
     if (component.targetId) return [String(component.targetId)];
     return [];
   }
 
-  function resolveTableV6548(id){
+  function resolveTable(id){
     const node = document.getElementById(id);
     if (!node) return null;
     return node.tagName === 'TABLE' ? node : node.closest ? node.closest('table') : null;
   }
 
-  function cleanLabelV6548(value){
+  function cleanLabel(value){
     return String(value == null ? '' : value)
-      .replace(/[▲▼▴▾]/g, '')
-      .replace(/\s+/g, ' ')
+      .replace(/[▲▼▴▾]/g,'')
+      .replace(/\s+/g,' ')
       .trim() || 'Column';
   }
 
-  function modelV6548(table){
+  function domColumns(table){
     if (!table || !table.tHead || !table.tHead.rows.length) return [];
     const counts = Object.create(null);
-    return Array.from(table.tHead.rows[0].cells || []).map(function(cell, index){
-      const label = cleanLabelV6548(cell.textContent);
+    return Array.from(table.tHead.rows[0].cells || []).map(function(cell,index){
+      const label = cleanLabel(cell.textContent);
       const base = label.toLowerCase();
       counts[base] = (counts[base] || 0) + 1;
-      return { index:index, label:label, key:base + '#' + counts[base] };
+      return {
+        field:base + '#' + counts[base],
+        label:label,
+        index:index,
+        hideable:index > 0,
+        visible:true
+      };
     });
   }
 
-  function hiddenForV6548(context, tableId){
-    const state = readStateV6548();
-    const key = stateKeyV6548(context);
+  function domHidden(context,tableId){
+    const state = readState();
+    const key = stateKey(context);
     const componentState = state[key] || {};
-    if (!Object.prototype.hasOwnProperty.call(componentState, tableId)) {
+    if (!Object.prototype.hasOwnProperty.call(componentState,tableId)) {
       try {
-        const legacy = JSON.parse(window.localStorage.getItem('cda.remake.columnVisibility.v6357') || '{}');
-        const legacyHidden = legacy && legacy[tableId] && Array.isArray(legacy[tableId].hidden)
+        const legacy = JSON.parse(localStorage.getItem('cda.remake.columnVisibility.v6357') || '{}');
+        const values = legacy && legacy[tableId] && Array.isArray(legacy[tableId].hidden)
           ? legacy[tableId].hidden.map(String)
           : [];
-        if (legacyHidden.length) {
-          componentState[tableId] = legacyHidden;
+        if (values.length) {
+          componentState[tableId] = values;
           state[key] = componentState;
-          writeStateV6548(state);
+          writeState(state);
         }
-        if (legacy && Object.prototype.hasOwnProperty.call(legacy, tableId)) {
+        if (legacy && Object.prototype.hasOwnProperty.call(legacy,tableId)) {
           delete legacy[tableId];
-          window.localStorage.setItem('cda.remake.columnVisibility.v6357', JSON.stringify(legacy));
+          localStorage.setItem('cda.remake.columnVisibility.v6357',JSON.stringify(legacy));
         }
       } catch (error) {}
     }
     return new Set(Array.isArray(componentState[tableId]) ? componentState[tableId] : []);
   }
 
-  function saveHiddenV6548(context, tableId, hidden){
-    const state = readStateV6548();
-    const key = stateKeyV6548(context);
+  function saveDomHidden(context,tableId,hidden){
+    const state = readState();
+    const key = stateKey(context);
     state[key] = state[key] && typeof state[key] === 'object' ? state[key] : {};
     state[key][tableId] = Array.from(hidden || []);
-    writeStateV6548(state);
+    writeState(state);
   }
 
-  function applyTableV6548(context, tableId){
-    const table = resolveTableV6548(tableId);
-    const model = modelV6548(table);
-    if (!table || !model.length) return false;
-    const hidden = hiddenForV6548(context, tableId);
-    table.setAttribute('data-cda-dashboard-columns-key', stateKeyV6548(context));
-    table.setAttribute('data-cda-dashboard-columns-table-id', tableId);
-    Array.from(table.querySelectorAll('.columnHiddenV6357')).forEach(function(node){
+  function managedSource(context){
+    const component = context && context.component;
+    const api = window.cdaTable;
+    if (!component || !component.tableKey || !api ||
+        typeof api.config !== 'function' || !api.config(component.tableKey)) return null;
+    const config = api.config(component.tableKey);
+    const columns = typeof api.columns === 'function' ? api.columns(component.tableKey) : [];
+    return {
+      id:String(config.tableId || component.tableKey),
+      title:component.title || component.key,
+      type:'managed',
+      tableKey:component.tableKey,
+      columns:columns.map(function(column,index){
+        return {
+          field:String(column.field),
+          label:String(column.title || column.label || column.field),
+          index:index,
+          hideable:column.hideable !== false,
+          visible:column.visible !== false
+        };
+      })
+    };
+  }
+
+  function domSources(context){
+    return tableIds(context.component).map(function(tableId){
+      const table = resolveTable(tableId);
+      if (!table) return null;
+      const hidden = domHidden(context,tableId);
+      return {
+        id:tableId,
+        title:table.getAttribute('aria-label') || context.component.title || tableId,
+        type:'dom',
+        table:table,
+        columns:domColumns(table).map(function(column){
+          return Object.assign({},column,{visible:!hidden.has(column.field)});
+        })
+      };
+    }).filter(Boolean);
+  }
+
+  function describe(context){
+    const managed = managedSource(context);
+    return managed ? [managed] : domSources(context);
+  }
+
+  function applyDom(context,source){
+    const hidden = domHidden(context,source.id);
+    const columns = domColumns(source.table);
+    source.table.setAttribute('data-cda-dashboard-columns-key',stateKey(context));
+    source.table.setAttribute('data-cda-dashboard-columns-table-id',source.id);
+    Array.from(source.table.querySelectorAll('.columnHiddenV6357')).forEach(function(node){
       node.classList.remove('columnHiddenV6357');
     });
-    Array.from(table.rows || []).forEach(function(row){
-      Array.from(row.cells || []).forEach(function(cell, index){
-        const column = model[index];
-        cell.classList.toggle('cdaDashboardColumnHiddenV6548', !!(column && hidden.has(column.key)));
+    Array.from(source.table.rows || []).forEach(function(row){
+      Array.from(row.cells || []).forEach(function(cell,index){
+        const column = columns[index];
+        cell.classList.toggle('cdaDashboardColumnHiddenV6548',!!(column && hidden.has(column.field)));
       });
     });
-    Array.from(table.querySelectorAll('col')).forEach(function(col, index){
-      const column = model[index];
-      col.classList.toggle('cdaDashboardColumnHiddenV6548', !!(column && hidden.has(column.key)));
+    Array.from(source.table.querySelectorAll('col')).forEach(function(col,index){
+      const column = columns[index];
+      col.classList.toggle('cdaDashboardColumnHiddenV6548',!!(column && hidden.has(column.field)));
     });
     return true;
   }
 
-  function isManagedV6548(component){
-    return !!(component && component.tableKey && window.cdaTable &&
-      typeof window.cdaTable.config === 'function' && window.cdaTable.config(component.tableKey));
-  }
-
-  function applyV6548(context){
-    if (!context || !context.component || isManagedV6548(context.component)) return false;
+  function apply(context){
     let applied = false;
-    tableIdsV6548(context.component).forEach(function(tableId){
-      applied = applyTableV6548(context, tableId) || applied;
+    describe(context).forEach(function(source){
+      if (source.type === 'dom') applied = applyDom(context,source) || applied;
     });
     return applied;
   }
 
-  function closeExistingV6548(context){
-    if (context.popover && context.popover.isOpenFor(context.button)) {
-      context.popover.close();
+  function setVisible(context,sourceId,field,visible){
+    const source = describe(context).find(function(item){ return item.id === sourceId; });
+    if (!source) return false;
+    if (source.type === 'managed') {
+      if (!window.cdaTable || typeof window.cdaTable.toggleColumn !== 'function') return false;
+      window.cdaTable.toggleColumn(source.tableKey,field,visible);
       return true;
     }
-    return false;
-  }
-
-  function managedChooserEventV6548(button){
-    return { currentTarget:button, preventDefault:function(){}, stopPropagation:function(){} };
-  }
-
-  function openManagedV6548(context){
-    if (!window.cdaTable || typeof window.cdaTable.toggleChooser !== 'function') return false;
-    window.cdaTable.toggleChooser(context.component.tableKey, managedChooserEventV6548(context.button));
+    const hidden = domHidden(context,source.id);
+    if (visible) hidden.delete(field); else hidden.add(field);
+    saveDomHidden(context,source.id,hidden);
+    applyDom(context,source);
     return true;
   }
 
-  function visibleCountV6548(model, hidden){
-    return model.reduce(function(total, column){ return total + (hidden.has(column.key) ? 0 : 1); }, 0);
+  function showAll(context){
+    describe(context).forEach(function(source){
+      if (source.type === 'managed' && window.cdaTable && typeof window.cdaTable.resetColumns === 'function') {
+        window.cdaTable.resetColumns(source.tableKey);
+      }
+      if (source.type === 'dom') {
+        saveDomHidden(context,source.id,new Set());
+        applyDom(context,source);
+      }
+    });
+    return true;
   }
 
-  function openDomV6548(context){
-    if (!context.popover || closeExistingV6548(context)) return true;
-    const resolved = tableIdsV6548(context.component).map(function(tableId){
-      const table = resolveTableV6548(tableId);
-      return { tableId:tableId, table:table, model:modelV6548(table) };
-    }).filter(function(item){ return item.table && item.model.length; });
-    if (!resolved.length) return false;
-
-    const popover = context.popover.open(context.button, {
-      label:'Choose visible columns',
-      title:'Columns'
-    });
-
-    resolved.forEach(function(item){
+  function open(context){
+    if (!context || !context.component || !context.popover) return false;
+    if (context.popover.isOpenFor(context.button)) {
+      context.popover.close();
+      return true;
+    }
+    const sources = describe(context);
+    if (!sources.length) return false;
+    const panel = context.popover.open(context.button,{label:'Choose visible columns',title:'Columns'});
+    sources.forEach(function(source){
       const section = document.createElement('div');
       section.className = 'cdaDashboardColumnSectionV6548';
-      if (resolved.length > 1) {
+      if (sources.length > 1) {
         const heading = document.createElement('div');
         heading.className = 'cdaDashboardColumnSectionTitleV6548';
-        heading.textContent = item.table.getAttribute('aria-label') || item.tableId;
+        heading.textContent = source.title;
         section.appendChild(heading);
       }
-      item.model.forEach(function(column){
-        const hidden = hiddenForV6548(context, item.tableId);
+      source.columns.forEach(function(column){
         const label = document.createElement('label');
         const input = document.createElement('input');
         const text = document.createElement('span');
         input.type = 'checkbox';
-        input.checked = !hidden.has(column.key);
-        input.addEventListener('change', function(){
-          const nextHidden = hiddenForV6548(context, item.tableId);
-          if (input.checked) {
-            nextHidden.delete(column.key);
-          } else if (visibleCountV6548(item.model, nextHidden) <= 1) {
+        input.checked = column.visible;
+        input.disabled = !column.hideable;
+        input.addEventListener('change',function(){
+          const current = describe(context).find(function(item){ return item.id === source.id; });
+          const visibleCount = current
+            ? current.columns.filter(function(item){ return item.visible; }).length
+            : 0;
+          if (!input.checked && visibleCount <= 1) {
             input.checked = true;
             return;
-          } else {
-            nextHidden.add(column.key);
           }
-          saveHiddenV6548(context, item.tableId, nextHidden);
-          applyTableV6548(context, item.tableId);
+          setVisible(context,source.id,column.field,input.checked);
         });
         text.textContent = column.label;
-        label.append(input, text);
+        label.append(input,text);
         section.appendChild(label);
       });
-      popover.appendChild(section);
+      panel.appendChild(section);
     });
-
     const footer = document.createElement('div');
     footer.className = 'cdaDashboardColumnFooterV6548';
-    const showAll = document.createElement('button');
-    showAll.type = 'button';
-    showAll.textContent = 'Show all';
-    showAll.addEventListener('click', function(){
-      resolved.forEach(function(item){
-        saveHiddenV6548(context, item.tableId, new Set());
-        applyTableV6548(context, item.tableId);
-      });
-      context.popover.close();
-    });
+    const show = document.createElement('button');
+    show.type = 'button';
+    show.textContent = 'Show all';
+    show.addEventListener('click',function(){ showAll(context); context.popover.close(); });
     const done = document.createElement('button');
     done.type = 'button';
     done.textContent = 'Done';
-    done.addEventListener('click', function(){ context.popover.close(); });
-    footer.append(showAll, done);
-    popover.appendChild(footer);
+    done.addEventListener('click',function(){ context.popover.close(); });
+    footer.append(show,done);
+    panel.appendChild(footer);
     context.popover.position();
     return true;
   }
 
-  function openV6548(context){
-    if (!context || !context.component) return false;
-    if (isManagedV6548(context.component)) return openManagedV6548(context);
-    return openDomV6548(context);
-  }
-
-  function resetV6548(context){
-    if (!context || !context.component) return false;
-    if (isManagedV6548(context.component)) {
-      if (typeof window.cdaTable.resetColumns === 'function') {
-        window.cdaTable.resetColumns(context.component.tableKey);
-        return true;
-      }
-      return false;
-    }
-    tableIdsV6548(context.component).forEach(function(tableId){
-      saveHiddenV6548(context, tableId, new Set());
-      applyTableV6548(context, tableId);
-    });
-    return true;
-  }
-
-  if (window.MutationObserver && document.documentElement) {
-    const observerV6548 = new MutationObserver(function(records){
-      const tables = new Set();
-      records.forEach(function(record){
-        const target = record.target && record.target.nodeType === 1 ? record.target : null;
-        const table = target && target.closest ? target.closest('table[data-cda-dashboard-columns-key]') : null;
-        if (table) tables.add(table);
-      });
-      tables.forEach(function(table){
-        const key = table.getAttribute('data-cda-dashboard-columns-key') || '';
-        const parts = key.split(':');
-        const tableId = table.getAttribute('data-cda-dashboard-columns-table-id') || table.id;
-        const context = { tab:{key:parts[0] || 'dashboard'}, component: {key:parts.slice(1).join(':') || 'component'} };
-        window.requestAnimationFrame(function(){ applyTableV6548(context, tableId); });
-      });
-    });
-    observerV6548.observe(document.documentElement, { childList:true, subtree:true });
-  }
-
   window.cdaDashboardColumnsV6548 = Object.freeze({
-    version:'v6.548',
-    open:openV6548,
-    apply:applyV6548,
-    reset:resetV6548,
-    isManaged:isManagedV6548
+    version:'v6.550',
+    mode:'single-shared-chooser',
+    open:open,
+    apply:apply,
+    reset:showAll,
+    describe:describe,
+    setVisible:setVisible,
+    showAll:showAll
   });
 })();
 </script>

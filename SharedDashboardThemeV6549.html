@@ -1,0 +1,84 @@
+<!-- SharedDashboardThemeV6549.html
+Version: v6.550
+Date: 2026-07-29
+Purpose: Single visual token and icon source for shared controls, menus, choosers, and pop-outs.
+-->
+<style id="cdaSharedDashboardThemeStylesV6549">
+  :root {
+    --cda-color-title: #172033;
+    --cda-color-text: #344054;
+    --cda-color-muted: #667085;
+    --cda-color-border: #cfd6df;
+    --cda-color-border-strong: #d0d5dd;
+    --cda-color-divider: #e4e7ec;
+    --cda-color-surface: #ffffff;
+    --cda-color-surface-muted: #f5f7fa;
+    --cda-color-page: #f7f8fa;
+    --cda-color-accent: #7a4a00;
+    --cda-color-accent-border: #f2c94c;
+    --cda-color-accent-surface: #fff7d6;
+    --cda-color-table-header: #203038;
+    --cda-color-on-dark: #ffffff;
+    --cda-shadow-popover: 0 7px 24px rgba(16,24,40,.18);
+    --cda-control-height: 27px;
+    --cda-control-gap: 5px;
+    --cda-radius-control: 999px;
+    --cda-radius-small: 6px;
+    --cda-radius-menu: 8px;
+    --cda-radius-card: 10px;
+    --cda-font-ui: Roboto,Arial,sans-serif;
+    --cda-font-control: 900 9.5px/1 Roboto,Arial,sans-serif;
+    --cda-font-menu: 700 11px/1.35 Roboto,Arial,sans-serif;
+    --cda-font-menu-action: 800 11px/1.2 Roboto,Arial,sans-serif;
+    --cda-font-popout-title: 900 15px/1.2 Roboto,Arial,sans-serif;
+    --cda-font-popout-table: 500 11px/1.35 Roboto,Arial,sans-serif;
+  }
+</style>
+<script id="cdaSharedDashboardThemeControllerV6549">
+(function installSharedDashboardThemeV6549(){
+  'use strict';
+
+  if (window.cdaDashboardThemeV6549 && window.cdaDashboardThemeV6549.version === 'v6.550') return;
+
+  const icons = Object.freeze({
+    popout:'↗',
+    reset:'↺',
+    more:'⋮',
+    collapse:'▾',
+    expand:'▸'
+  });
+
+  const tokens = Object.freeze({
+    title:'#172033',
+    text:'#344054',
+    muted:'#667085',
+    border:'#cfd6df',
+    borderStrong:'#d0d5dd',
+    divider:'#e4e7ec',
+    surface:'#ffffff',
+    surfaceMuted:'#f5f7fa',
+    page:'#f7f8fa',
+    accent:'#7a4a00',
+    accentBorder:'#f2c94c',
+    accentSurface:'#fff7d6',
+    tableHeader:'#203038',
+    onDark:'#ffffff',
+    radiusSmall:'6px',
+    radiusMenu:'8px',
+    radiusCard:'10px',
+    fontUi:'Roboto,Arial,sans-serif',
+    fontControl:'900 9.5px/1 Roboto,Arial,sans-serif',
+    fontMenu:'700 11px/1.35 Roboto,Arial,sans-serif',
+    fontMenuAction:'800 11px/1.2 Roboto,Arial,sans-serif',
+    fontPopoutTitle:'900 15px/1.2 Roboto,Arial,sans-serif',
+    fontPopoutTable:'500 11px/1.35 Roboto,Arial,sans-serif'
+  });
+
+  window.cdaDashboardThemeV6549 = Object.freeze({
+    version:'v6.550',
+    icons:icons,
+    tokens:tokens,
+    icon:function(name){ return icons[String(name || '')] || ''; }
+  });
+})();
+</script>

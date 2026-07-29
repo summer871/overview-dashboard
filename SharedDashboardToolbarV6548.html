@@ -1,32 +1,41 @@
 <!-- SharedDashboardToolbarV6548.html
-Version: v6.548
+Version: v6.550
 Date: 2026-07-29
 Purpose: Shared toolbar presentation, feature button markup, mounting, and event dispatch.
 -->
 <style id="cdaSharedDashboardToolbarStylesV6548">
   .cdaDashboardCardV6547 { min-width:0; overflow:hidden; }
   .cdaDashboardCardHeaderV6547 { display:flex!important; align-items:center!important; justify-content:space-between!important; gap:8px!important; min-height:40px!important; padding:7px 9px!important; }
-  .cdaDashboardToolbarV6547 { display:flex!important; align-items:center!important; justify-content:flex-end!important; flex-wrap:wrap!important; gap:5px!important; margin-left:auto!important; }
-  .cdaDashboardButtonV6547 { display:inline-flex!important; align-items:center!important; justify-content:center!important; box-sizing:border-box!important; height:27px!important; min-height:27px!important; min-width:0!important; margin:0!important; padding:0 8px!important; border:1px solid #cfd6df!important; border-radius:999px!important; background:#fff!important; color:#344054!important; box-shadow:none!important; font:900 9.5px/1 Roboto,Arial,sans-serif!important; cursor:pointer!important; white-space:nowrap!important; }
-  .cdaDashboardButtonV6547:hover,.cdaDashboardButtonV6547:focus-visible,.cdaDashboardButtonV6547[aria-expanded="true"],.cdaDashboardButtonV6547[aria-pressed="true"] { border-color:#f2c94c!important; background:#fff7d6!important; color:#7a4a00!important; outline:none!important; }
+  .cdaDashboardToolbarV6547 { display:flex!important; align-items:center!important; justify-content:flex-end!important; flex-wrap:wrap!important; gap:var(--cda-control-gap)!important; margin-left:auto!important; }
+  .cdaDashboardButtonV6547 { display:inline-flex!important; align-items:center!important; justify-content:center!important; box-sizing:border-box!important; height:var(--cda-control-height)!important; min-height:var(--cda-control-height)!important; min-width:0!important; margin:0!important; padding:0 8px!important; border:1px solid var(--cda-color-border)!important; border-radius:var(--cda-radius-control)!important; background:var(--cda-color-surface)!important; color:var(--cda-color-text)!important; box-shadow:none!important; font:var(--cda-font-control)!important; cursor:pointer!important; white-space:nowrap!important; }
+  .cdaDashboardButtonV6547:hover,
+  .cdaDashboardButtonV6547:focus-visible,
+  .cdaDashboardButtonV6547[aria-expanded="true"],
+  .cdaDashboardButtonV6547[aria-pressed="true"] { border-color:var(--cda-color-accent-border)!important; background:var(--cda-color-accent-surface)!important; color:var(--cda-color-accent)!important; outline:none!important; }
   .cdaDashboardButtonIconV6547 { width:27px!important; min-width:27px!important; padding:0!important; font-size:15px!important; }
-  .cdaDashboardButtonPlainV6548 { width:22px!important; min-width:22px!important; height:27px!important; padding:0!important; border:0!important; border-radius:4px!important; background:transparent!important; box-shadow:none!important; color:#667085!important; font-size:18px!important; }
-  .cdaDashboardButtonPlainV6548:hover,.cdaDashboardButtonPlainV6548:focus-visible,.cdaDashboardButtonPlainV6548[aria-expanded="true"] { border:0!important; background:transparent!important; color:#7a4a00!important; outline:none!important; }
-  .cdaDashboardLegacyControlV6548 { display:none!important; }
+  .cdaDashboardButtonPlainV6548 { width:22px!important; min-width:22px!important; height:var(--cda-control-height)!important; padding:0!important; border:0!important; border-radius:var(--cda-radius-small)!important; background:transparent!important; box-shadow:none!important; color:var(--cda-color-muted)!important; font-size:18px!important; }
+  .cdaDashboardButtonPlainV6548:hover,
+  .cdaDashboardButtonPlainV6548:focus-visible,
+  .cdaDashboardButtonPlainV6548[aria-expanded="true"] { border:0!important; background:transparent!important; color:var(--cda-color-accent)!important; outline:none!important; }
+  .cdaDashboardLegacyControlV6548 { display:none!important; visibility:hidden!important; pointer-events:none!important; }
 </style>
 <script id="cdaSharedDashboardToolbarControllerV6548">
 (function installSharedDashboardToolbarV6548(){
   'use strict';
 
-  if (window.cdaDashboardToolbarV6548) return;
-  const platform = window.cdaDashboardPlatformV6547;
-  if (!platform) throw new Error('Shared dashboard registry must load before toolbar.');
+  if (window.cdaDashboardToolbarV6548 && window.cdaDashboardToolbarV6548.version === 'v6.550') return;
 
-  function componentFor(tab, componentKey){
-    return tab && tab.components.find(function(item){ return item.key === componentKey; }) || null;
+  const platform = window.cdaDashboardPlatformV6547;
+  const theme = window.cdaDashboardThemeV6549;
+  if (!platform || !theme || theme.version !== 'v6.550') {
+    throw new Error('Dashboard registry and theme v6.550 must load before toolbar.');
   }
 
-  function contextFor(tab, component, button, event){
+  function componentFor(tab,key){
+    return tab && tab.components.find(function(item){ return item.key === key; }) || null;
+  }
+
+  function contextFor(tab,component,button,event){
     return {
       tab:tab,
       component:component,
@@ -40,70 +49,88 @@ Purpose: Shared toolbar presentation, feature button markup, mounting, and event
     };
   }
 
-  function featureLabel(feature, context){
-    return typeof feature.label === 'function' ? String(feature.label(context)) : String(feature.label || feature.key);
+  function featureText(feature,context){
+    if (feature.icon) return theme.icon(feature.icon);
+    return typeof feature.label === 'function'
+      ? String(feature.label(context))
+      : String(feature.label || feature.key);
   }
 
-  function featureTitle(feature, context){
-    return typeof feature.title === 'function' ? String(feature.title(context)) : String(feature.title || feature.label || feature.key);
+  function featureTitle(feature,context){
+    return typeof feature.title === 'function'
+      ? String(feature.title(context))
+      : String(feature.title || feature.label || feature.key);
   }
 
-  function buttonMarkup(tab, component, feature){
-    const context = contextFor(tab, component, null, null);
+  function buttonMarkup(tab,component,feature){
+    const context = contextFor(tab,component,null,null);
     const classes = ['cdaDashboardButtonV6547'];
     if (feature.iconOnly) classes.push('cdaDashboardButtonIconV6547');
     if (feature.appearance === 'plain') classes.push('cdaDashboardButtonPlainV6548');
     const extra = feature.ariaHasPopup
       ? ' aria-haspopup="' + platform.util.escapeHtml(feature.ariaHasPopup) + '" aria-expanded="false" data-cda-dashboard-popover-trigger="true"'
-      : feature.key === 'comparePriorYear' ? ' aria-pressed="false"' : '';
+      : feature.key === 'comparePriorYear'
+        ? ' aria-pressed="false"'
+        : '';
+    const iconAttr = feature.icon
+      ? ' data-cda-dashboard-icon="' + platform.util.escapeHtml(feature.icon) + '"'
+      : '';
     return '<button class="' + classes.join(' ') + '" type="button"' +
       ' data-cda-dashboard-tab-key="' + platform.util.escapeHtml(tab.key) + '"' +
       ' data-cda-dashboard-component-key="' + platform.util.escapeHtml(component.key) + '"' +
       ' data-cda-dashboard-feature-key="' + platform.util.escapeHtml(feature.key) + '"' +
-      ' title="' + platform.util.escapeHtml(featureTitle(feature, context)) + '"' +
-      ' aria-label="' + platform.util.escapeHtml(featureTitle(feature, context)) + '"' + extra + '>' +
-      platform.util.escapeHtml(featureLabel(feature, context)) + '</button>';
+      iconAttr +
+      ' title="' + platform.util.escapeHtml(featureTitle(feature,context)) + '"' +
+      ' aria-label="' + platform.util.escapeHtml(featureTitle(feature,context)) + '"' + extra + '>' +
+      platform.util.escapeHtml(featureText(feature,context)) + '</button>';
   }
 
-  function markup(tab, component){
-    const features = platform.sortedFeatures(component, 'toolbar');
-    return '<div class="cdaDashboardToolbarV6547" data-cda-dashboard-toolbar="' + platform.util.escapeHtml(component.key) + '">' +
-      features.map(function(feature){ return buttonMarkup(tab, component, feature); }).join('') + '</div>';
+  function markup(tab,component){
+    return '<div class="cdaDashboardToolbarV6547" data-cda-dashboard-toolbar="' +
+      platform.util.escapeHtml(component.key) + '">' +
+      platform.sortedFeatures(component,'toolbar').map(function(feature){
+        return buttonMarkup(tab,component,feature);
+      }).join('') + '</div>';
   }
 
-  function mount(tabKey, componentKey, host){
+  function mount(tabKey,componentKey,host){
     const tab = platform.getTab(tabKey);
-    const component = componentFor(tab, componentKey);
+    const component = componentFor(tab,componentKey);
     if (!tab || !component || !host) return null;
-    const existing = host.querySelector(':scope > .cdaDashboardToolbarV6547[data-cda-dashboard-toolbar="' + component.key + '"]');
+    const existing = host.querySelector(
+      ':scope > .cdaDashboardToolbarV6547[data-cda-dashboard-toolbar="' + component.key + '"]'
+    );
     const shell = document.createElement('div');
-    shell.innerHTML = markup(tab, component);
+    shell.innerHTML = markup(tab,component);
     const toolbar = shell.firstElementChild;
     if (existing) existing.replaceWith(toolbar); else host.appendChild(toolbar);
     if (tab.adapter && typeof tab.adapter.syncToolbarState === 'function') {
-      tab.adapter.syncToolbarState({ tab:tab, component:component, toolbar:toolbar });
+      tab.adapter.syncToolbarState({tab:tab,component:component,toolbar:toolbar});
     }
     return toolbar;
   }
 
-  function dispatch(button, event){
+  function dispatch(button,event){
     const tab = platform.getTab(button.getAttribute('data-cda-dashboard-tab-key'));
-    const component = componentFor(tab, button.getAttribute('data-cda-dashboard-component-key'));
+    const component = componentFor(tab,button.getAttribute('data-cda-dashboard-component-key'));
     const feature = platform.getFeature(button.getAttribute('data-cda-dashboard-feature-key'));
     if (!tab || !component || !feature) return false;
     event.preventDefault();
     event.stopPropagation();
-    feature.run(contextFor(tab, component, button, event));
+    feature.run(contextFor(tab,component,button,event));
     return true;
   }
 
-  document.addEventListener('click', function(event){
-    const button = event.target && event.target.closest ? event.target.closest('[data-cda-dashboard-feature-key]') : null;
-    if (button) dispatch(button, event);
-  }, true);
+  document.addEventListener('click',function(event){
+    const button = event.target && event.target.closest
+      ? event.target.closest('[data-cda-dashboard-feature-key]')
+      : null;
+    if (button) dispatch(button,event);
+  },true);
 
   window.cdaDashboardToolbarV6548 = Object.freeze({
-    version:'v6.548',
+    version:'v6.550',
+    themeVersion:theme.version,
     contextFor:contextFor,
     markup:markup,
     mount:mount,

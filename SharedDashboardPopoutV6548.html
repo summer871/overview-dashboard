@@ -1,43 +1,49 @@
 <!-- SharedDashboardPopoutV6548.html
-Version: v6.548
+Version: v6.550
 Date: 2026-07-29
-Purpose: One pop-out service for dashboard tables, charts, and custom card content.
+Purpose: One pop-out service and fully theme-driven visual shell for tables, charts, and custom content.
 -->
 <script id="cdaSharedDashboardPopoutControllerV6548">
 (function installSharedDashboardPopoutV6548(){
   'use strict';
 
-  if (window.cdaDashboardPopoutV6548) return;
+  if (window.cdaDashboardPopoutV6548 && window.cdaDashboardPopoutV6548.version === 'v6.550') return;
 
-  function escapeHtmlV6548(value){
-    return String(value == null ? '' : value)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
+  const theme = window.cdaDashboardThemeV6549;
+  if (!theme || theme.version !== 'v6.550') {
+    throw new Error('Dashboard theme v6.550 must load before pop-out.');
   }
 
-  function chartForV6548(context, canvas){
+  function escapeHtml(value){
+    return String(value == null ? '' : value)
+      .replace(/&/g,'&amp;')
+      .replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;')
+      .replace(/'/g,'&#39;');
+  }
+
+  function chartFor(context,canvas){
     if (context.adapter && typeof context.adapter.getChart === 'function') {
       const chart = context.adapter.getChart(context);
       if (chart) return chart;
     }
     try {
-      if (window.Chart && typeof window.Chart.getChart === 'function' && canvas) {
-        return window.Chart.getChart(canvas) || null;
-      }
-    } catch (error) {}
-    return null;
+      return window.Chart && typeof window.Chart.getChart === 'function' && canvas
+        ? window.Chart.getChart(canvas) || null
+        : null;
+    } catch (error) {
+      return null;
+    }
   }
 
-  function chartContentV6548(context, target){
+  function chartContent(context,target){
     const canvas = target && target.tagName === 'CANVAS'
       ? target
       : target && target.querySelector
         ? target.querySelector('canvas')
         : null;
-    const chart = chartForV6548(context, canvas);
+    const chart = chartFor(context,canvas);
     let source = '';
     try {
       source = chart && typeof chart.toBase64Image === 'function'
@@ -49,7 +55,7 @@ Purpose: One pop-out service for dashboard tables, charts, and custom card conte
     return source ? '<img class="cdaPopoutImage" src="' + source + '" alt="">' : '';
   }
 
-  function tableContentV6548(target){
+  function tableContent(target){
     const table = target && target.tagName === 'TABLE'
       ? target
       : target && target.closest
@@ -58,60 +64,67 @@ Purpose: One pop-out service for dashboard tables, charts, and custom card conte
     return table ? table.outerHTML : '';
   }
 
-  function summaryContentV6548(component){
+  function summaryContent(component){
     return (component.summaryIds || []).map(function(id){
       const node = document.getElementById(id);
       return node ? node.outerHTML : '';
     }).join('');
   }
 
-  function customContentV6548(context, target){
+  function content(context){
+    const component = context.component || {};
+    const target = component.targetId ? document.getElementById(component.targetId) : null;
+    if (component.kind === 'chart') return chartContent(context,target);
+    if (component.kind === 'table') return summaryContent(component) + tableContent(target);
     if (context.adapter && typeof context.adapter.popoutContent === 'function') {
       return context.adapter.popoutContent(context) || '';
     }
     return target ? target.outerHTML : '';
   }
 
-  function contentV6548(context){
-    const component = context.component || {};
-    const target = component.targetId ? document.getElementById(component.targetId) : null;
-    if (component.kind === 'chart') return chartContentV6548(context, target);
-    if (component.kind === 'table') return summaryContentV6548(component) + tableContentV6548(target);
-    return customContentV6548(context, target);
+  function documentHtml(title,body){
+    const t = theme.tokens;
+    return '<!doctype html><html><head><meta charset="utf-8">' +
+      '<meta name="viewport" content="width=device-width,initial-scale=1">' +
+      '<title>' + escapeHtml(title) + '</title><style>' +
+      'body{margin:0;padding:20px;background:' + t.page + ';color:' + t.title + ';font-family:' + t.fontUi + '}' +
+      '.cdaPopoutShell{max-width:1400px;margin:0 auto;background:' + t.surface + ';border:1px solid ' + t.borderStrong + ';border-radius:' + t.radiusCard + ';overflow:hidden}' +
+      '.cdaPopoutTitle{padding:12px 14px;border-bottom:1px solid ' + t.divider + ';font:' + t.fontPopoutTitle + '}' +
+      '.cdaPopoutBody{padding:14px;overflow:auto}' +
+      '.cdaPopoutImage{display:block;max-width:100%;height:auto;margin:0 auto}' +
+      'table{width:100%;border-collapse:collapse;background:' + t.surface + ';font:' + t.fontPopoutTable + '}' +
+      'th,td{border:1px solid ' + t.borderStrong + ';padding:7px;text-align:left}' +
+      'th{background:' + t.tableHeader + ';color:' + t.onDark + ';font-weight:900}' +
+      '.num{text-align:right}' +
+      '</style></head><body><main class="cdaPopoutShell"><div class="cdaPopoutTitle">' +
+      escapeHtml(title) + '</div><div class="cdaPopoutBody">' + body +
+      '</div></main></body></html>';
   }
 
-  function documentHtmlV6548(title, content){
-    return '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' +
-      '<title>' + escapeHtmlV6548(title) + '</title><style>' +
-      'body{margin:0;padding:20px;background:#f7f8fa;color:#172033;font-family:Roboto,Arial,sans-serif}' +
-      '.cdaPopoutShell{max-width:1400px;margin:0 auto;background:#fff;border:1px solid #d0d5dd;border-radius:10px;overflow:hidden}' +
-      '.cdaPopoutTitle{padding:12px 14px;border-bottom:1px solid #e4e7ec;font-size:15px;font-weight:900}' +
-      '.cdaPopoutBody{padding:14px;overflow:auto}.cdaPopoutImage{display:block;max-width:100%;height:auto;margin:0 auto}' +
-      'table{width:100%;border-collapse:collapse;background:#fff;font-size:11px}th,td{border:1px solid #d0d5dd;padding:7px;text-align:left}' +
-      'th{background:#203038;color:#fff;font-weight:900}.num{text-align:right}' +
-      '</style></head><body><main class="cdaPopoutShell"><div class="cdaPopoutTitle">' + escapeHtmlV6548(title) +
-      '</div><div class="cdaPopoutBody">' + content + '</div></main></body></html>';
-  }
-
-  function openV6548(context){
+  function open(context){
     if (!context || !context.component) return false;
-    const content = contentV6548(context);
-    if (!content) return false;
+    const body = content(context);
+    if (!body) return false;
     const component = context.component;
-    const popup = window.open('', 'cdaDashboard_' + String(context.tab && context.tab.key || 'tab') + '_' + component.key,
-      'width=1200,height=760,resizable=yes,scrollbars=yes');
+    const popup = window.open(
+      '',
+      'cdaDashboard_' + String(context.tab && context.tab.key || 'tab') + '_' + component.key,
+      'width=1200,height=760,resizable=yes,scrollbars=yes'
+    );
     if (!popup) return false;
     try { popup.opener = null; } catch (error) {}
     popup.document.open();
-    popup.document.write(documentHtmlV6548(component.title || component.key, content));
+    popup.document.write(documentHtml(component.title || component.key,body));
     popup.document.close();
     return true;
   }
 
   window.cdaDashboardPopoutV6548 = Object.freeze({
-    version:'v6.548',
-    open:openV6548,
-    content:contentV6548
+    version:'v6.550',
+    themeVersion:theme.version,
+    open:open,
+    content:content,
+    documentHtml:documentHtml
   });
 })();
 </script>

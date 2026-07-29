@@ -1,6 +1,6 @@
 /**
  * Executive Overview Dashboard Router
- * Version: Code.gs v6.548 shared controls across TAT and Remake
+ * Version: Code.gs v6.550 shared services verified
  * Date: 2026-07-29
  * Purpose: Serve the single Index.html dashboard shell without appending duplicate
  * shared-component scripts after the document has already included them.
@@ -13,8 +13,8 @@ function doGet(e) {
   const template = HtmlService.createTemplateFromFile('Index');
   template.dashboardBaseUrl = getDashboardBaseUrl();
   template.dashboardPresentationMode = presentationMode;
-  template.dashboardPresentationVersion = 'v6.548';
-  template.dashboardPresentationSource = 'Code.gs v6.548 shared controls across TAT and Remake';
+  template.dashboardPresentationVersion = 'v6.550';
+  template.dashboardPresentationSource = 'Code.gs v6.550 shared services verified';
   return HtmlService.createHtmlOutput(template.evaluate().getContent())
     .setTitle('Overview Dashboard')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
@@ -46,13 +46,15 @@ function getDashboardBaseUrl() {
 function renderDashboardDebugPage() {
   const health = debugDashboardServerHealth();
   const html = `<!DOCTYPE html><html><head><base target="_top"><style>body{margin:0;font-family:Arial,sans-serif;background:#f8fafc;color:#172033}.box{margin:20px;padding:18px;border:2px solid #172033;border-radius:10px;background:#fff}pre{white-space:pre-wrap;background:#111827;color:#fff;padding:12px;border-radius:8px;overflow:auto}a{display:inline-block;margin-right:8px;background:#172033;color:#fff;padding:8px 12px;border-radius:8px;text-decoration:none;font-weight:900}</style></head><body><div class="box"><h1>Executive Dashboard Debug</h1><p><a href="?">Open single shell</a></p><pre>${escapeDashboardDebugHtml(JSON.stringify(health,null,2))}</pre></div></body></html>`;
-  return HtmlService.createHtmlOutput(html).setTitle('Executive Dashboard Debug').setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+  return HtmlService.createHtmlOutput(html)
+    .setTitle('Executive Dashboard Debug')
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
 function debugDashboardServerHealth() {
   const health = {
     ok: true,
-    routerVersion: 'Code.gs v6.548 shared controls across TAT and Remake',
+    routerVersion: 'Code.gs v6.550 shared services verified',
     timestamp: new Date().toISOString(),
     scriptTimeZone: Session.getScriptTimeZone(),
     dashboardBaseUrl: getDashboardBaseUrl(),
@@ -67,7 +69,7 @@ function debugDashboardServerHealth() {
   try {
     health.cache = typeof debugOverviewDashboardCacheHealth === 'function'
       ? debugOverviewDashboardCacheHealth()
-      : { ok: false, message: 'debugOverviewDashboardCacheHealth is missing from OverviewDashboardCache.gs' };
+      : { ok:false, message:'debugOverviewDashboardCacheHealth is missing from OverviewDashboardCache.gs' };
   } catch (error) {
     health.cache = {
       ok:false,

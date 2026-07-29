@@ -1,0 +1,158 @@
+<!-- SharedDashboardAuditV6550.html
+Version: v6.550
+Date: 2026-07-29
+Purpose: Audit rendered shared controls, computed style parity, icon ownership, and hidden legacy controls.
+-->
+<script id="cdaSharedDashboardAuditControllerV6550">
+(function installSharedDashboardAuditV6550(){
+  'use strict';
+
+  if (window.cdaDashboardAuditV6550) return;
+
+  function visible(node){
+    if (!node || !window.getComputedStyle) return false;
+    const style = window.getComputedStyle(node);
+    return !node.hidden && style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0';
+  }
+
+  function styleSignature(node){
+    if (!node || !window.getComputedStyle) return '';
+    const style = window.getComputedStyle(node);
+    return [
+      style.height,
+      style.minHeight,
+      style.paddingLeft,
+      style.paddingRight,
+      style.borderWidth,
+      style.borderStyle,
+      style.borderRadius,
+      style.backgroundColor,
+      style.color,
+      style.fontFamily,
+      style.fontSize,
+      style.fontWeight,
+      style.lineHeight
+    ].join('|');
+  }
+
+  function buttonsFor(pageId){
+    const page = document.getElementById(pageId);
+    return page ? Array.from(page.querySelectorAll('.cdaDashboardToolbarV6547 [data-cda-dashboard-feature-key]')) : [];
+  }
+
+  function iconAudit(buttons){
+    const theme = window.cdaDashboardThemeV6549;
+    const failures = [];
+    buttons.forEach(function(button){
+      const iconName = button.getAttribute('data-cda-dashboard-icon');
+      if (!iconName) return;
+      const expected = theme && typeof theme.icon === 'function' ? theme.icon(iconName) : '';
+      if (!expected || button.textContent.trim() !== expected) {
+        failures.push({
+          feature:button.getAttribute('data-cda-dashboard-feature-key'),
+          icon:iconName,
+          expected:expected,
+          actual:button.textContent.trim()
+        });
+      }
+    });
+    return { ok:failures.length === 0, failures:failures };
+  }
+
+  function commonStyleAudit(){
+    const featureKeys = ['columns','popout','reset','more'];
+    const mismatches = [];
+    featureKeys.forEach(function(featureKey){
+      const tat = buttonsFor('tatDashboardPageV6509').filter(function(button){
+        return button.getAttribute('data-cda-dashboard-feature-key') === featureKey && visible(button);
+      })[0];
+      const remake = buttonsFor('remakeFactorPage').filter(function(button){
+        return button.getAttribute('data-cda-dashboard-feature-key') === featureKey && visible(button);
+      })[0];
+      if (!tat || !remake) {
+        mismatches.push({feature:featureKey,reason:'missing-visible-control'});
+        return;
+      }
+      const tatSignature = styleSignature(tat);
+      const remakeSignature = styleSignature(remake);
+      if (tatSignature !== remakeSignature) {
+        mismatches.push({feature:featureKey,tat:tatSignature,remake:remakeSignature});
+      }
+    });
+    return { ok:mismatches.length === 0, mismatches:mismatches };
+  }
+
+  function legacyAudit(){
+    const nodes = Array.from(document.querySelectorAll('.cdaDashboardLegacyControlV6548'));
+    const visibleNodes = nodes.filter(visible).map(function(node){
+      return node.id || node.getAttribute('aria-label') || node.textContent.trim() || node.tagName;
+    });
+    return { total:nodes.length, visible:visibleNodes, ok:visibleNodes.length === 0 };
+  }
+
+  function toolbarOwnershipAudit(){
+    const duplicateCards = [];
+    document.querySelectorAll('#tatDashboardPageV6509 article,#remakeFactorPage .remakeCard').forEach(function(card){
+      const count = card.querySelectorAll('.cdaDashboardToolbarV6547').length;
+      if (count > 1) duplicateCards.push(card.id || card.getAttribute('data-cda-dashboard-component') || 'unnamed-card');
+    });
+    return { ok:duplicateCards.length === 0, duplicateCards:duplicateCards };
+  }
+
+  function cssTokenAudit(){
+    if (!window.getComputedStyle || !document.documentElement) return {ok:false,missing:['computed-style-unavailable']};
+    const root = window.getComputedStyle(document.documentElement);
+    const names = [
+      '--cda-color-text','--cda-color-border','--cda-color-surface','--cda-color-accent',
+      '--cda-control-height','--cda-radius-control','--cda-font-ui'
+    ];
+    const missing = names.filter(function(name){ return !String(root.getPropertyValue(name) || '').trim(); });
+    return {ok:missing.length === 0,missing:missing};
+  }
+
+  function auditAll(){
+    const tatButtons = buttonsFor('tatDashboardPageV6509');
+    const remakeButtons = buttonsFor('remakeFactorPage');
+    const allButtons = tatButtons.concat(remakeButtons);
+    const icons = iconAudit(allButtons);
+    const styles = commonStyleAudit();
+    const legacy = legacyAudit();
+    const ownership = toolbarOwnershipAudit();
+    const cssTokens = cssTokenAudit();
+    const services = {
+      theme:window.cdaDashboardThemeV6549 && window.cdaDashboardThemeV6549.version,
+      columns:window.cdaDashboardColumnsV6548 && window.cdaDashboardColumnsV6548.version,
+      columnsMode:window.cdaDashboardColumnsV6548 && window.cdaDashboardColumnsV6548.mode,
+      popover:window.cdaDashboardPopoverV6547 && window.cdaDashboardPopoverV6547.version,
+      popout:window.cdaDashboardPopoutV6548 && window.cdaDashboardPopoutV6548.version,
+      popoutTheme:window.cdaDashboardPopoutV6548 && window.cdaDashboardPopoutV6548.themeVersion,
+      toolbar:window.cdaDashboardToolbarV6548 && window.cdaDashboardToolbarV6548.version
+    };
+    const serviceVersionsCorrect = services.theme === 'v6.550' &&
+      services.columns === 'v6.550' && services.columnsMode === 'single-shared-chooser' &&
+      services.popover === 'v6.550' && services.popout === 'v6.550' &&
+      services.popoutTheme === 'v6.550' && services.toolbar === 'v6.550';
+    return {
+      version:'v6.550',
+      tatButtonCount:tatButtons.length,
+      remakeButtonCount:remakeButtons.length,
+      bothTabsPresent:tatButtons.length > 0 && remakeButtons.length > 0,
+      services:services,
+      serviceVersionsCorrect:serviceVersionsCorrect,
+      iconOwnership:icons,
+      commonFeatureStyleParity:styles,
+      legacyControlsHidden:legacy,
+      oneToolbarOwnerPerCard:ownership,
+      themeCssVariablesPresent:cssTokens,
+      ok:serviceVersionsCorrect && icons.ok && styles.ok && legacy.ok && ownership.ok && cssTokens.ok
+    };
+  }
+
+  window.cdaDashboardAuditV6550 = Object.freeze({
+    version:'v6.550',
+    visible:visible,
+    styleSignature:styleSignature,
+    audit:auditAll
+  });
+})();
+</script>

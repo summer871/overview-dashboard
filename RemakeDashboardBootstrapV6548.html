@@ -1,5 +1,5 @@
 <!-- RemakeDashboardBootstrapV6548.html
-Version: v6.548
+Version: v6.550
 Date: 2026-07-29
 Purpose: Register, decorate, refresh, and audit Remake shared controls without replacing Remake cards.
 -->
@@ -13,8 +13,9 @@ Purpose: Register, decorate, refresh, and audit Remake shared controls without r
   const platform = window.cdaDashboardPlatformV6547;
   const decorator = window.cdaDashboardDecoratorV6548;
   const definition = window.cdaRemakeDashboardDefinitionV6548;
-  if (!platform || !decorator || !definition) {
-    throw new Error('Remake bootstrap requires registry, renderer, and definition.');
+  const sharedAudit = window.cdaDashboardAuditV6550;
+  if (!platform || !decorator || !definition || !sharedAudit) {
+    throw new Error('Remake bootstrap requires registry, decorator, definition, and shared audit.');
   }
 
   platform.registerTab(definition);
@@ -49,9 +50,12 @@ Purpose: Register, decorate, refresh, and audit Remake shared controls without r
 
   function dependencyAuditV6548(){
     return {
-      sharedColumns:!!window.cdaDashboardColumnsV6548,
-      sharedPopout:!!window.cdaDashboardPopoutV6548,
-      sharedPopover:!!window.cdaDashboardPopoverV6547,
+      sharedTheme:window.cdaDashboardThemeV6549 && window.cdaDashboardThemeV6549.version === 'v6.550',
+      sharedColumns:window.cdaDashboardColumnsV6548 && window.cdaDashboardColumnsV6548.version === 'v6.550',
+      sharedPopout:window.cdaDashboardPopoutV6548 && window.cdaDashboardPopoutV6548.version === 'v6.550',
+      sharedPopover:window.cdaDashboardPopoverV6547 && window.cdaDashboardPopoverV6547.version === 'v6.550',
+      sharedToolbar:window.cdaDashboardToolbarV6548 && window.cdaDashboardToolbarV6548.version === 'v6.550',
+      sharedAudit:window.cdaDashboardAuditV6550 && window.cdaDashboardAuditV6550.version === 'v6.550',
       clearRemakeComponentV6230:typeof window.clearRemakeComponentV6230 === 'function'
     };
   }
@@ -63,20 +67,30 @@ Purpose: Register, decorate, refresh, and audit Remake shared controls without r
     const comparisonButtons = page ? Array.from(page.querySelectorAll(
       '.cdaDashboardToolbarV6547 [data-cda-dashboard-feature-key="comparePriorYear"]'
     )) : [];
-    return Object.assign({}, base, {
+    const sharedControls = sharedAudit.audit();
+    return Object.assign({},base,{
+      version:'v6.550',
       mode:'shared-control-decoration',
       dependencies:dependencies,
-      allRequiredDependenciesPresent:Object.keys(dependencies).every(function(key){ return dependencies[key] === true; }),
+      allRequiredDependenciesPresent:Object.keys(dependencies).every(function(key){
+        return dependencies[key] === true;
+      }),
       noCardReplacement:!!page && !page.hasAttribute('data-cda-dashboard-tab') &&
         page.querySelectorAll('[data-cda-dashboard-component]').length === 0,
-      priorYearLabels:comparisonButtons.filter(function(button){ return !button.hidden; }).map(function(button){ return button.textContent.trim(); }),
+      priorYearLabels:comparisonButtons.filter(function(button){ return !button.hidden; }).map(function(button){
+        return button.textContent.trim();
+      }),
       priorYearLabelsCorrect:comparisonButtons.filter(function(button){ return !button.hidden; }).length > 0 &&
         comparisonButtons.filter(function(button){ return !button.hidden; }).every(function(button){
           return button.textContent.trim() === String(new Date().getFullYear() - 1);
         }),
       plainMoreButtons:!!page && Array.from(page.querySelectorAll(
         '.cdaDashboardToolbarV6547 [data-cda-dashboard-feature-key="more"]'
-      )).every(function(button){ return button.classList.contains('cdaDashboardButtonPlainV6548'); })
+      )).every(function(button){
+        return button.classList.contains('cdaDashboardButtonPlainV6548');
+      }),
+      sharedControls:sharedControls,
+      sharedControlsValidated:sharedControls.ok
     });
   }
 
@@ -93,16 +107,16 @@ Purpose: Register, decorate, refresh, and audit Remake shared controls without r
               return Array.from(record.addedNodes || []).some(relevantNodeV6548);
             })) scheduleV6548();
           });
-          observer.observe(document.getElementById(definition.pageId), { childList:true, subtree:true });
+          observer.observe(document.getElementById(definition.pageId),{childList:true,subtree:true});
         }
       } else if (attempts >= 160) {
         window.clearInterval(timer);
       }
-    }, 25);
+    },25);
   }
 
   window.cdaRemakeDashboardV6548 = Object.freeze({
-    version:'v6.548',
+    version:'v6.550',
     definition:definition,
     decorate:decorateV6548,
     audit:auditV6548,
@@ -110,7 +124,7 @@ Purpose: Register, decorate, refresh, and audit Remake shared controls without r
   });
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', startV6548, { once:true });
+    document.addEventListener('DOMContentLoaded',startV6548,{once:true});
   } else {
     startV6548();
   }

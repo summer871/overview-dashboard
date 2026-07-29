@@ -1,82 +1,82 @@
 <!-- SharedDashboardFeaturesV6547.html
-Version: v6.548
+Version: v6.550
 Date: 2026-07-29
-Purpose: Reusable opt-in dashboard feature catalog shared by TAT, Remake, and future tabs.
+Purpose: Reusable opt-in feature catalog shared by TAT, Remake, and future tabs.
 -->
 <script id="cdaSharedDashboardFeaturesControllerV6547">
 (function installSharedDashboardFeaturesV6547(){
   'use strict';
 
   const platform = window.cdaDashboardPlatformV6547;
-  if (!platform) throw new Error('Dashboard registry must load before features.');
-  if (window.CDA_DASHBOARD_FEATURES_VERSION === 'v6.548') return;
+  const theme = window.cdaDashboardThemeV6549;
+  if (!platform || !theme || theme.version !== 'v6.550') {
+    throw new Error('Dashboard registry and theme v6.550 must load before features.');
+  }
+  if (window.CDA_DASHBOARD_FEATURES_VERSION === 'v6.550') return;
 
-  function callAdapter(context, method){
+  function callAdapter(context,method){
     const fn = context.adapter && context.adapter[method];
-    if (typeof fn === 'function') return fn(context);
-    return false;
+    return typeof fn === 'function' ? fn(context) : false;
   }
 
   platform.registerFeature({
     key:'comparePriorYear', placement:'toolbar', order:10,
-    label:function(context){ return callAdapter(context, 'priorYearLabel') || 'Prior year'; },
+    label:function(context){ return callAdapter(context,'priorYearLabel') || 'Prior year'; },
     title:'Compare with the previous year',
-    run:function(context){ callAdapter(context, 'togglePriorYearComparison'); }
+    run:function(context){ callAdapter(context,'togglePriorYearComparison'); }
   });
 
   platform.registerFeature({
     key:'year', placement:'toolbar', order:15,
-    label:function(context){ return callAdapter(context, 'yearLabel') || 'Year'; },
+    label:function(context){ return callAdapter(context,'yearLabel') || 'Year'; },
     title:'Choose reporting year',
-    run:function(context){ callAdapter(context, 'openYear'); }
+    run:function(context){ callAdapter(context,'openYear'); }
   });
 
   platform.registerFeature({
     key:'columns', placement:'toolbar', order:20,
     label:'Columns', title:'Choose visible content',
-    run:function(context){ callAdapter(context, 'openColumns'); }
+    run:function(context){ callAdapter(context,'openColumns'); }
   });
 
   platform.registerFeature({
     key:'popout', placement:'toolbar', order:30,
-    label:'↗', title:'Open this component in a new window', iconOnly:true,
+    icon:'popout', title:'Open this component in a new window', iconOnly:true,
     run:function(context){
-      if (callAdapter(context, 'popout')) return;
+      if (callAdapter(context,'popout')) return;
       if (window.cdaDashboardPopoutV6548) window.cdaDashboardPopoutV6548.open(context);
     }
   });
 
   platform.registerFeature({
     key:'reset', placement:'toolbar', order:40,
-    label:'↺', title:'Reset this component', iconOnly:true,
-    run:function(context){ callAdapter(context, 'reset'); }
+    icon:'reset', title:'Reset this component', iconOnly:true,
+    run:function(context){ callAdapter(context,'reset'); }
   });
 
   platform.registerFeature({
     key:'more', placement:'toolbar', order:50,
-    label:'⋮', title:'More actions', iconOnly:true, appearance:'plain', ariaHasPopup:'menu',
+    icon:'more', title:'More actions', iconOnly:true, appearance:'plain', ariaHasPopup:'menu',
     run:function(context){
-      const menuFeatures = platform.sortedFeatures(context.component, 'menu');
+      const menuFeatures = platform.sortedFeatures(context.component,'menu');
       if (!context.popover || !menuFeatures.length) return;
       if (context.popover.isOpenFor(context.button)) {
         context.popover.close();
         return;
       }
-      const popover = context.popover.open(context.button, {
-        label:'More actions', role:'menu'
-      });
+      const popover = context.popover.open(context.button,{label:'More actions',role:'menu'});
       menuFeatures.forEach(function(feature){
         const button = document.createElement('button');
         button.type = 'button';
-        button.setAttribute('role', 'menuitem');
+        button.setAttribute('role','menuitem');
         button.textContent = typeof feature.label === 'function'
           ? feature.label(context)
           : feature.label;
-        button.addEventListener('click', function(event){
+        button.addEventListener('click',function(event){
           event.preventDefault();
           event.stopPropagation();
           context.popover.close();
-          feature.run(Object.assign({}, context, { button:button, event:event }));
+          feature.run(Object.assign({},context,{button:button,event:event}));
         });
         popover.appendChild(button);
       });
@@ -86,22 +86,22 @@ Purpose: Reusable opt-in dashboard feature catalog shared by TAT, Remake, and fu
 
   platform.registerFeature({
     key:'collapse', placement:'toolbar', order:60,
-    label:'▾', title:'Collapse or expand this component', iconOnly:true,
-    run:function(context){ callAdapter(context, 'collapse'); }
+    icon:'collapse', title:'Collapse or expand this component', iconOnly:true,
+    run:function(context){ callAdapter(context,'collapse'); }
   });
 
   platform.registerFeature({
     key:'exportCurrent', placement:'menu', order:10,
     label:'Export current', title:'Export the current view',
-    run:function(context){ callAdapter(context, 'exportCurrent'); }
+    run:function(context){ callAdapter(context,'exportCurrent'); }
   });
 
   platform.registerFeature({
     key:'exportAll', placement:'menu', order:20,
     label:'All data', title:'Export all matching data',
-    run:function(context){ callAdapter(context, 'exportAll'); }
+    run:function(context){ callAdapter(context,'exportAll'); }
   });
 
-  window.CDA_DASHBOARD_FEATURES_VERSION = 'v6.548';
+  window.CDA_DASHBOARD_FEATURES_VERSION = 'v6.550';
 })();
 </script>
