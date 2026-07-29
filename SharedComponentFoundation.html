@@ -1,12 +1,9 @@
 <!-- SharedComponentFoundation.html
-Version: v6.545
+Version: v6.546
 Date: 2026-07-29
-Purpose: Load shared primitives once, then install the clean TAT shared-card platform.
-The legacy table registry, DOM adapters, mutation bootstrap, and duplicate TAT chart
-component are intentionally excluded from the active runtime.
+Purpose: Load the existing shared table runtime once, then install the validated single-file TAT platform.
+The legacy registry adapters, mutation bootstrap, duplicate TAT chart component, and split script fragments are excluded.
 -->
-<?!= includeDashboardFile('SharedCardStyles') ?>
-<?!= includeDashboardFile('SharedCardModule') ?>
-<?!= includeDashboardFile('SharedChartStyles') ?>
-<?!= includeDashboardFile('SharedChartModule') ?>
-<?!= includeDashboardFile('SharedTableCardRendererV6544') ?>
+<?!= includeDashboardFile('SharedTableStyles') ?>
+<?!= includeDashboardFile('SharedTableModule') ?>
+<?!= includeDashboardFile('SharedTableCardRendererV6546') ?>
