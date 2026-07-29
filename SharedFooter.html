@@ -1,37 +1,37 @@
 <!-- SharedFooter.html
-Version: v6.546
+Version: v6.547
 Date: 2026-07-29
 Purpose: Shared Remake/TAT status footer and visible deployment stamp.
 -->
-<style id="cdaSharedFooterStylesV6546">
+<style id="cdaSharedFooterStylesV6547">
   #remakeLastRefresh,#tatStampV6509,.remakePageFooterV6338{display:none!important;visibility:hidden!important}
   #cdaSharedAppFooterV6531{width:100%;box-sizing:border-box;display:flex;justify-content:flex-end;align-items:center;flex-wrap:wrap;padding:4px 12px 6px;color:#98a2b3;background:transparent;font:500 8px/1.2 Roboto,Arial,sans-serif;text-align:right;opacity:.78}
   #cdaSharedAppFooterV6531 [data-footer-item]{display:inline-flex;align-items:center;white-space:nowrap}
   #cdaSharedAppFooterV6531 [data-footer-item]+[data-footer-item]::before{content:'\2022';display:inline-block;margin:0 5px;color:#d0d5dd}
   #cdaSharedAppFooterV6531 .cdaSharedFooterIdentityV6531{color:inherit;font-weight:600}
 </style>
-<script id="cdaSharedFooterControllerV6546">
-(function installCdaSharedFooterV6546(){
+<script id="cdaSharedFooterControllerV6547">
+(function installCdaSharedFooterV6547(){
   'use strict';
-  const UI_VERSION_V6546='v6.546';
-  const BUILD_LABEL_V6546='TAT-VALIDATED-SINGLE-FILE-03';
-  const FOOTER_ID_V6546='cdaSharedAppFooterV6531';
-  let frameV6546=0;
-  window.CDA_CURRENT_FRONTEND_VERSION=UI_VERSION_V6546;
-  window.CDA_SHARED_FOOTER_VERSION=UI_VERSION_V6546;
-  window.CDA_SHARED_FOOTER_BUILD=BUILD_LABEL_V6546;
-  function byIdV6546(id){return document.getElementById(id)}
-  function cleanV6546(value){return String(value==null?'':value).replace(/\s+/g,' ').trim()}
-  function simpleStatusV6546(value){const raw=cleanV6546(value);if(!raw)return'Not loaded';if(/loading|waiting|updating/i.test(raw))return'Loading';if(/failed|unavailable/i.test(raw))return'Unavailable';return raw.replace(/^.*?(?:cache|refreshed|updated):\s*/i,'').trim()||raw}
-  function isTatActiveV6546(){const button=byIdV6546('tatTabBtnV6509'),page=byIdV6546('tatDashboardPageV6509');if(button&&button.classList.contains('active'))return true;if(!page||!window.getComputedStyle)return false;const style=window.getComputedStyle(page);return style.display!=='none'&&style.visibility!=='hidden'}
-  function ensureFooterV6546(){let footer=byIdV6546(FOOTER_ID_V6546);if(!footer){footer=document.createElement('footer');footer.id=FOOTER_ID_V6546;footer.setAttribute('aria-label','Dashboard status and build identity');footer.setAttribute('aria-live','polite')}if(footer.parentNode!==document.body||footer!==document.body.lastElementChild)document.body.appendChild(footer);return footer}
-  function appendItemV6546(footer,label,value,identity){const item=document.createElement('span');item.setAttribute('data-footer-item','');if(identity)item.className='cdaSharedFooterIdentityV6531';item.textContent=label+': '+value;footer.appendChild(item)}
-  function routerLabelV6546(){const presentation=window.CDA_SERVER_PRESENTATION||{},source=cleanV6546(presentation.source||''),match=source.match(/Code\.gs\s+v[0-9.]+/i);return match?match[0]:'Router unknown'}
-  function renderV6546(){frameV6546=0;if(!document.body)return;const footer=ensureFooterV6546();footer.replaceChildren();if(isTatActiveV6546()){const tat=byIdV6546('tatStampV6509');appendItemV6546(footer,'Cache',simpleStatusV6546(tat&&tat.textContent),false)}else{const remake=document.querySelector('.remakePageFooterV6338'),refresh=byIdV6546('remakeLastRefresh');appendItemV6546(footer,'Cache',simpleStatusV6546(cleanV6546(remake&&remake.textContent)||cleanV6546(refresh&&refresh.textContent)),false)}appendItemV6546(footer,'UI',UI_VERSION_V6546,true);appendItemV6546(footer,'Router',routerLabelV6546(),true);appendItemV6546(footer,'Build',BUILD_LABEL_V6546,true)}
-  function scheduleV6546(){if(frameV6546)return;frameV6546=window.requestAnimationFrame(renderV6546)}
-  function startV6546(){renderV6546();document.addEventListener('click',function(event){const target=event.target&&event.target.closest?event.target.closest('#remakeFactorTabBtn,#tatTabBtnV6509'):null;if(target)window.setTimeout(scheduleV6546,0)},true);window.addEventListener('pageshow',scheduleV6546);window.addEventListener('resize',scheduleV6546,{passive:true})}
-  window.renderCdaSharedFooterV6531=renderV6546;
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',startV6546,{once:true});else startV6546();
+  const UI_VERSION='v6.547';
+  const BUILD_LABEL='MODULAR-DASHBOARD-PLATFORM-01';
+  const FOOTER_ID='cdaSharedAppFooterV6531';
+  let frame=0;
+  window.CDA_CURRENT_FRONTEND_VERSION=UI_VERSION;
+  window.CDA_SHARED_FOOTER_VERSION=UI_VERSION;
+  window.CDA_SHARED_FOOTER_BUILD=BUILD_LABEL;
+  function byId(id){return document.getElementById(id)}
+  function clean(value){return String(value==null?'':value).replace(/\s+/g,' ').trim()}
+  function simpleStatus(value){const raw=clean(value);if(!raw)return'Not loaded';if(/loading|waiting|updating/i.test(raw))return'Loading';if(/failed|unavailable/i.test(raw))return'Unavailable';return raw.replace(/^.*?(?:cache|refreshed|updated):\s*/i,'').trim()||raw}
+  function isTatActive(){const button=byId('tatTabBtnV6509'),page=byId('tatDashboardPageV6509');if(button&&button.classList.contains('active'))return true;if(!page||!window.getComputedStyle)return false;const style=window.getComputedStyle(page);return style.display!=='none'&&style.visibility!=='hidden'}
+  function ensureFooter(){let footer=byId(FOOTER_ID);if(!footer){footer=document.createElement('footer');footer.id=FOOTER_ID;footer.setAttribute('aria-label','Dashboard status and build identity');footer.setAttribute('aria-live','polite')}if(footer.parentNode!==document.body||footer!==document.body.lastElementChild)document.body.appendChild(footer);return footer}
+  function appendItem(footer,label,value,identity){const item=document.createElement('span');item.setAttribute('data-footer-item','');if(identity)item.className='cdaSharedFooterIdentityV6531';item.textContent=label+': '+value;footer.appendChild(item)}
+  function routerLabel(){const presentation=window.CDA_SERVER_PRESENTATION||{},source=clean(presentation.source||''),match=source.match(/Code\.gs\s+v[0-9.]+/i);return match?match[0]:'Router unknown'}
+  function render(){frame=0;if(!document.body)return;const footer=ensureFooter();footer.replaceChildren();if(isTatActive()){const tat=byId('tatStampV6509');appendItem(footer,'Cache',simpleStatus(tat&&tat.textContent),false)}else{const remake=document.querySelector('.remakePageFooterV6338'),refresh=byId('remakeLastRefresh');appendItem(footer,'Cache',simpleStatus(clean(remake&&remake.textContent)||clean(refresh&&refresh.textContent)),false)}appendItem(footer,'UI',UI_VERSION,true);appendItem(footer,'Router',routerLabel(),true);appendItem(footer,'Build',BUILD_LABEL,true)}
+  function schedule(){if(frame)return;frame=window.requestAnimationFrame(render)}
+  function start(){render();document.addEventListener('click',function(event){const target=event.target&&event.target.closest?event.target.closest('#remakeFactorTabBtn,#tatTabBtnV6509'):null;if(target)window.setTimeout(schedule,0)},true);window.addEventListener('pageshow',schedule);window.addEventListener('resize',schedule,{passive:true})}
+  window.renderCdaSharedFooterV6531=render;
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
 })();
 </script>
 <?!= includeDashboardFile('SharedComponentFoundation') ?>
