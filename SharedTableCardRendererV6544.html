@@ -42,6 +42,7 @@ value nodes. The TAT controller remains the sole data/calculation owner.
 
   function id(value){return document.getElementById(value);}
   function esc(value){return String(value==null?'':value).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+  function yearLabel(){var button=id('tatFilterButton_year_V6509');return String(button&&button.textContent||'Year').trim()||'Year';}
 
   function actionButton(component,action,label,title){
     return '<button class="remakeMiniButtonV6230" type="button" data-tat-action="'+action+'" title="'+esc(title)+'" aria-label="'+esc(title)+'" onclick="cdaTatFrontendActionV6544(\''+component+'\',\''+action+'\',event)">'+label+'</button>';
@@ -50,7 +51,7 @@ value nodes. The TAT controller remains the sole data/calculation owner.
   function toolbar(component,options){
     options=options||{};
     var html='<div class="remakeCardActionsV6230" data-cda-tat-remake-toolbar="'+component+'">'
-      +actionButton(component,'year','Year','Filter by year');
+      +actionButton(component,'year',esc(yearLabel()),'Filter by year');
     if(options.columns)html+=actionButton(component,'columns','Columns','Choose visible columns');
     html+=actionButton(component,'export-current','Export current','Export the current view')
       +actionButton(component,'export-all','All data','Export all matching TAT data')
@@ -109,50 +110,17 @@ value nodes. The TAT controller remains the sole data/calculation owner.
     var nodes={};
     PRESERVE_IDS.forEach(function(name){var node=oldPage.querySelector('#'+name);if(node){nodes[name]=node;node.remove();}});
     TABLE_BODY_IDS.forEach(function(name){var body=oldPage.querySelector('#'+name);var table=body&&body.closest('table');if(table){nodes[name+'__table']=table;table.remove();}});
+    nodes.__collapsed={customers:!!(oldPage.querySelector('#tatCustomerCardV6509')&&oldPage.querySelector('#tatCustomerCardV6509').classList.contains('collapsed')),quality:!!(oldPage.querySelector('#tatQualityCardV6509')&&oldPage.querySelector('#tatQualityCardV6509').classList.contains('collapsed'))};
     return nodes;
   }
 
-  function replaceNode(next,nodes,name){
-    var preserved=nodes[name];var placeholder=next.querySelector('#'+name);
-    if(preserved&&placeholder&&placeholder.parentNode)placeholder.parentNode.replaceChild(preserved,placeholder);
-  }
+  function replaceNode(next,nodes,name){var preserved=nodes[name];var placeholder=next.querySelector('#'+name);if(preserved&&placeholder&&placeholder.parentNode)placeholder.parentNode.replaceChild(preserved,placeholder);}
+  function restorePreserved(next,nodes){PRESERVE_IDS.forEach(function(name){replaceNode(next,nodes,name);});TABLE_BODY_IDS.forEach(function(name){var table=nodes[name+'__table'];var body=next.querySelector('#'+name);var placeholderTable=body&&body.closest('table');if(table&&placeholderTable&&placeholderTable.parentNode)placeholderTable.parentNode.replaceChild(table,placeholderTable);});}
+  function applyCollapsed(next,collapsed){[['customers','tatCustomerCardV6509','tatCustomerCollapseV6509'],['quality','tatQualityCardV6509','tatQualityCollapseV6509']].forEach(function(entry){var isCollapsed=!!(collapsed&&collapsed[entry[0]]);var card=next.querySelector('#'+entry[1]);var button=next.querySelector('#'+entry[2]);if(card)card.classList.toggle('collapsed',isCollapsed);if(button){button.textContent=isCollapsed?'▸':'▾';button.setAttribute('aria-expanded',isCollapsed?'false':'true');}});}
 
-  function restorePreserved(next,nodes){
-    PRESERVE_IDS.forEach(function(name){replaceNode(next,nodes,name);});
-    TABLE_BODY_IDS.forEach(function(name){
-      var table=nodes[name+'__table'];var body=next.querySelector('#'+name);var placeholderTable=body&&body.closest('table');
-      if(table&&placeholderTable&&placeholderTable.parentNode){
-        table.classList.add('remakeTable');
-        table.classList.remove('tatTableV6509');
-        placeholderTable.parentNode.replaceChild(table,placeholderTable);
-      }
-    });
-  }
-
-  function refreshManagedTables(){
-    if(!window.cdaTable||typeof window.cdaTable.config!=='function')return;
-    Object.keys(TABLE_COMPONENTS).forEach(function(component){
-      var key=TABLE_COMPONENTS[component];var cfg=window.cdaTable.config(key);
-      if(!cfg)return;
-      cfg.$table=null;
-      if(typeof window.cdaTable.render==='function')window.cdaTable.render(key);
-    });
-  }
-
-  function applyCollapsedState(){
-    var state=window.cdaTatStateV6509||{};
-    var collapsed=state.collapsed||{};
-    [['customers','tatCustomerCardV6509','tatCustomerCollapseV6509'],['quality','tatQualityCardV6509','tatQualityCollapseV6509']].forEach(function(entry){
-      var isCollapsed=!!collapsed[entry[0]];var cardNode=id(entry[1]);var button=id(entry[2]);
-      if(cardNode)cardNode.classList.toggle('collapsed',isCollapsed);
-      if(button){button.textContent=isCollapsed?'▸':'▾';button.setAttribute('aria-expanded',isCollapsed?'false':'true');}
-    });
-  }
-
-  function resizeCharts(){
-    var state=window.cdaTatStateV6509||{};
-    Object.keys(state.charts||{}).forEach(function(name){var chart=state.charts[name];if(chart&&typeof chart.resize==='function'){try{chart.resize();chart.update('none');}catch(error){}}});
-  }
+  function refreshManagedTables(){if(!window.cdaTable||typeof window.cdaTable.config!=='function')return;Object.keys(TABLE_COMPONENTS).forEach(function(component){var key=TABLE_COMPONENTS[component];var cfg=window.cdaTable.config(key);if(!cfg)return;cfg.$table=null;if(typeof window.cdaTable.render==='function')window.cdaTable.render(key);});}
+  function resizeCharts(){var state=window.cdaTatStateV6509||{};Object.keys(state.charts||{}).forEach(function(name){var chart=state.charts[name];if(chart&&typeof chart.resize==='function'){try{chart.resize();chart.update('none');}catch(error){}}});}
+  function syncYearLabels(){var label=yearLabel();var page=id('tatDashboardPageV6509');if(!page)return;page.querySelectorAll('[data-tat-action="year"]').forEach(function(button){button.textContent=label;});}
 
   function rebuild(){
     if(rebuilding)return null;
@@ -169,56 +137,26 @@ value nodes. The TAT controller remains the sole data/calculation owner.
       next.setAttribute('data-cda-tat-frontend',VERSION);
       next.innerHTML=buildPageMarkup();
       restorePreserved(next,preserved);
+      applyCollapsed(next,preserved.__collapsed);
       parent.replaceChild(next,oldPage);
       if(wasActive){next.classList.add('active');next.style.setProperty('display','block','important');next.style.setProperty('visibility','visible','important');}else{next.style.setProperty('display','none','important');}
-      applyCollapsedState();
       rebuilt=true;
-      window.requestAnimationFrame(function(){refreshManagedTables();resizeCharts();window.dispatchEvent(new Event('resize'));});
+      window.requestAnimationFrame(function(){refreshManagedTables();resizeCharts();syncYearLabels();window.dispatchEvent(new Event('resize'));});
       document.dispatchEvent(new CustomEvent('cdaTatFrontendRebuiltV6544',{detail:{version:VERSION}}));
       return next;
     }finally{rebuilding=false;}
   }
 
-  window.cdaTatFrontendActionV6544=function(component,action,event){
-    if(event){event.preventDefault();event.stopPropagation();}
-    if(action==='year'&&typeof window.toggleTatDropdownV6509==='function')return window.toggleTatDropdownV6509('year',event);
-    if(action==='columns'&&TABLE_COMPONENTS[component]&&window.cdaTable&&typeof window.cdaTable.toggleChooser==='function')return window.cdaTable.toggleChooser(TABLE_COMPONENTS[component],event);
-    if(action==='export-current'&&typeof window.exportTatComponentV6509==='function')return window.exportTatComponentV6509(component);
-    if(action==='export-all'&&typeof window.exportTatAllDataV6509==='function')return window.exportTatAllDataV6509(component);
-    if(action==='popout'&&typeof window.popoutTatComponentV6509==='function')return window.popoutTatComponentV6509(component);
-    if(action==='reset'&&typeof window.clearTatComponentV6509==='function')return window.clearTatComponentV6509(component);
-  };
+  window.cdaTatFrontendActionV6544=function(component,action,event){if(event){event.preventDefault();event.stopPropagation();}if(action==='year'&&typeof window.toggleTatDropdownV6509==='function')return window.toggleTatDropdownV6509('year',event);if(action==='columns'&&TABLE_COMPONENTS[component]&&window.cdaTable&&typeof window.cdaTable.toggleChooser==='function')return window.cdaTable.toggleChooser(TABLE_COMPONENTS[component],event);if(action==='export-current'&&typeof window.exportTatComponentV6509==='function')return window.exportTatComponentV6509(component);if(action==='export-all'&&typeof window.exportTatAllDataV6509==='function')return window.exportTatAllDataV6509(component);if(action==='popout'&&typeof window.popoutTatComponentV6509==='function')return window.popoutTatComponentV6509(component);if(action==='reset'&&typeof window.clearTatComponentV6509==='function')return window.clearTatComponentV6509(component);};
 
-  function audit(){
-    var page=id('tatDashboardPageV6509');
-    var cards=page?Array.prototype.slice.call(page.querySelectorAll('[data-cda-tat-remake-card]')):[];
-    var tableCards=new Set(['department','late','customer','quality']);
-    var state=window.cdaTatStateV6509||{};
-    return {
-      version:VERSION,
-      mode:'rebuilt-shell-preserved-data-surfaces',
-      rebuilt:rebuilt,
-      pagePresent:!!page,
-      pageUsesRemakeContract:!!(page&&page.classList.contains('cleanRemakeV6230')&&!page.classList.contains('tatMirrorRemakeV6512')),
-      cardCount:cards.length,
-      cards:cards.map(function(card){
-        var component=card.getAttribute('data-cda-tat-remake-card');
-        var actions=Array.prototype.slice.call(card.querySelectorAll('[data-tat-action]')).map(function(button){return button.getAttribute('data-tat-action');});
-        var expected=tableCards.has(component)?'year|columns|export-current|export-all|popout|reset':'year|export-current|export-all|popout|reset';
-        return {component:component,remakeCard:card.classList.contains('remakeCard'),actions:actions,correctActions:actions.join('|')===expected};
-      }),
-      dataIdsPreserved:['tatMonthlyChartV6509','tatDepartmentTableV6509','tatDistributionChartV6509','tatLateTableV6509','tatCustomerTableV6509','tatQualityTableV6509'].every(function(name){return !!id(name);}),
-      kpiChooserBound:!!(id('tatKpiChooserButtonV6528')&&id('tatKpiChooserButtonV6528').dataset.boundV6528),
-      managedTablesConnected:Object.keys(TABLE_COMPONENTS).every(function(component){var key=TABLE_COMPONENTS[component];var cfg=window.cdaTable&&typeof window.cdaTable.config==='function'?window.cdaTable.config(key):null;return !!(cfg&&cfg.$table&&cfg.$table.isConnected);}),
-      chartsConnected:Object.keys(state.charts||{}).every(function(name){var chart=state.charts[name];return !!(chart&&chart.canvas&&chart.canvas.isConnected);}),
-      collapsedStateApplied:[['customers','tatCustomerCardV6509'],['quality','tatQualityCardV6509']].every(function(entry){var cardNode=id(entry[1]);return !!cardNode&&cardNode.classList.contains('collapsed')===!!((state.collapsed||{})[entry[0]]);})
-    };
-  }
+  function audit(){var page=id('tatDashboardPageV6509');var cards=page?Array.prototype.slice.call(page.querySelectorAll('[data-cda-tat-remake-card]')):[];var tableCards=new Set(['department','late','customer','quality']);var tableListenerSafe=Object.keys(TABLE_COMPONENTS).every(function(component){var key=TABLE_COMPONENTS[component];var cfg=window.cdaTable&&typeof window.cdaTable.config==='function'?window.cdaTable.config(key):null;return !!(cfg&&cfg.bound===true);});return {version:VERSION,mode:'rebuilt-shell-preserved-data-surfaces',rebuilt:rebuilt,pagePresent:!!page,pageUsesRemakeContract:!!(page&&page.classList.contains('cleanRemakeV6230')&&!page.classList.contains('tatMirrorRemakeV6512')),cardCount:cards.length,cards:cards.map(function(card){var component=card.getAttribute('data-cda-tat-remake-card');var actions=Array.prototype.slice.call(card.querySelectorAll('[data-tat-action]')).map(function(button){return button.getAttribute('data-tat-action');});var expected=tableCards.has(component)?'year|columns|export-current|export-all|popout|reset':'year|export-current|export-all|popout|reset';return {component:component,remakeCard:card.classList.contains('remakeCard'),actions:actions,correctActions:actions.join('|')===expected};}),dataIdsPreserved:['tatMonthlyChartV6509','tatDepartmentTableV6509','tatDistributionChartV6509','tatLateTableV6509','tatCustomerTableV6509','tatQualityTableV6509'].every(function(name){return !!id(name);}),kpiChooserBound:!!(id('tatKpiChooserButtonV6528')&&id('tatKpiChooserButtonV6528').dataset.boundV6528),managedTablesConnected:Object.keys(TABLE_COMPONENTS).every(function(component){var key=TABLE_COMPONENTS[component];var cfg=window.cdaTable&&typeof window.cdaTable.config==='function'?window.cdaTable.config(key):null;return !!(cfg&&cfg.$table&&cfg.$table.isConnected);}),tableListenersPreserved:tableListenerSafe,chartsConnected:Object.keys((window.cdaTatStateV6509&&window.cdaTatStateV6509.charts)||{}).every(function(name){var chart=window.cdaTatStateV6509.charts[name];return !!(chart&&chart.canvas&&chart.canvas.isConnected);}),collapseStateConnected:!!(id('tatCustomerCardV6509')&&id('tatCustomerCollapseV6509')&&id('tatQualityCardV6509')&&id('tatQualityCollapseV6509')),yearLabelsSynchronized:page?Array.prototype.slice.call(page.querySelectorAll('[data-tat-action="year"]')).every(function(button){return button.textContent===yearLabel();}):false};}
 
-  window.cdaSharedTableCardRendererV6544=Object.freeze({version:VERSION,mode:'rebuilt-shell-preserved-data-surfaces',rebuildTatFrontend:rebuild,syncAllToolbars:function(){return[];},toolbarAudit:function(){return audit().cards;},audit:audit});
+  window.cdaSharedTableCardRendererV6544=Object.freeze({version:VERSION,mode:'rebuilt-shell-preserved-data-surfaces',rebuildTatFrontend:rebuild,syncAllToolbars:syncYearLabels,toolbarAudit:function(){return audit().cards;},audit:audit});
   window.auditSharedRemakeTableShellV6544=audit;
 
   function start(){var attempts=0;var timer=window.setInterval(function(){attempts+=1;var page=id('tatDashboardPageV6509');if(page){window.clearInterval(timer);rebuild();}else if(attempts>=100){window.clearInterval(timer);}},25);}
+  document.addEventListener('click',function(event){if(event.target&&event.target.closest&&event.target.closest('#tatFilterPanel_year_V6509,#tatFilterButton_year_V6509'))window.setTimeout(syncYearLabels,0);},true);
+  document.addEventListener('cdaTatFrontendRebuiltV6544',syncYearLabels);
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
 })();
 </script>
