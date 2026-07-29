@@ -1,7 +1,7 @@
 <!-- SharedDashboardRendererV6547.html
-Version: v6.548
+Version: v6.555
 Date: 2026-07-29
-Purpose: Replace-mode tab and card renderer. Existing-tab decoration is owned separately.
+Purpose: Replace-mode tab renderer with explicit component identity and title-side controls.
 -->
 <style id="cdaSharedDashboardRendererStylesV6547">
   [data-cda-dashboard-tab] .remakeTableWrap { width:100%; min-width:0; overflow:auto; }
@@ -11,31 +11,49 @@ Purpose: Replace-mode tab and card renderer. Existing-tab decoration is owned se
 (function installSharedDashboardRendererV6547(){
   'use strict';
 
-  if (window.cdaDashboardRendererV6547) return;
+  if (window.cdaDashboardRendererV6547 && window.cdaDashboardRendererV6547.version === 'v6.555') return;
   const platform = window.cdaDashboardPlatformV6547;
   const toolbar = window.cdaDashboardToolbarV6548;
   if (!platform || !toolbar) throw new Error('Registry and toolbar must load before renderer.');
 
-  function componentFor(tab, componentKey){
+  function componentFor(tab,componentKey){
     return tab && tab.components.find(function(item){ return item.key === componentKey; }) || null;
   }
 
-  function cardMarkup(tab, component){
-    const body = component.renderBody({ tab:tab, component:component, platform:platform });
+  function cardMarkup(tab,component){
+    const body = component.renderBody({tab:tab,component:component,platform:platform});
     const title = typeof component.renderTitle === 'function'
-      ? component.renderTitle({ tab:tab, component:component, platform:platform })
+      ? component.renderTitle({tab:tab,component:component,platform:platform})
       : '<div class="tatCardTitleV6509 remakeCardTitle">' + platform.util.escapeHtml(component.title) + '</div>';
+    const stableId = tab.key + '.' + component.key;
     return '<article' + (component.cardId ? ' id="' + platform.util.escapeHtml(component.cardId) + '"' : '') +
       ' class="tatCardV6509 remakeCard cdaDashboardCardV6547' + (component.wide ? ' tatWideV6509' : '') + '"' +
-      ' data-cda-dashboard-component="' + platform.util.escapeHtml(component.key) + '">' +
+      ' data-cda-dashboard-component="' + platform.util.escapeHtml(component.key) + '"' +
+      ' data-cda-component-id="' + platform.util.escapeHtml(stableId) + '"' +
+      ' data-cda-component-tab="' + platform.util.escapeHtml(tab.key) + '"' +
+      ' data-cda-component-key="' + platform.util.escapeHtml(component.key) + '"' +
+      ' data-cda-component-kind="' + platform.util.escapeHtml(component.kind || 'custom') + '">' +
       '<div class="tatCardHeadV6509 remakeCardHeader cdaDashboardCardHeaderV6547"><div>' + title + '</div>' +
-      toolbar.markup(tab, component) + '</div>' + body + '</article>';
+      toolbar.markup(tab,component) + '</div>' + body + '</article>';
   }
 
-  function renderComponent(tab, componentKey){
-    const component = componentFor(tab, componentKey);
+  function renderComponent(tab,componentKey){
+    const component = componentFor(tab,componentKey);
     if (!component) throw new Error('Unknown component: ' + componentKey);
-    return cardMarkup(tab, component);
+    return cardMarkup(tab,component);
+  }
+
+  function bindComponents(tab,page){
+    const catalog = window.cdaDashboardCatalogV6555;
+    const titleToggle = window.cdaDashboardTitleToggleV6555;
+    tab.components.forEach(function(component){
+      const card = catalog
+        ? catalog.resolveCard(tab.key,component.key)
+        : page.querySelector('[data-cda-dashboard-component="' + component.key + '"]');
+      if (!card) return;
+      if (catalog) catalog.stamp(tab,component,card);
+      if (titleToggle) titleToggle.mount(tab.key,component.key,card);
+    });
   }
 
   function rebuild(tabKey){
@@ -45,27 +63,31 @@ Purpose: Replace-mode tab and card renderer. Existing-tab decoration is owned se
     if (tab.mountMode !== 'replace') throw new Error('Tab is not replace-mode: ' + tabKey);
     const oldPage = document.getElementById(tab.pageId);
     if (!oldPage) return null;
-    if (oldPage.getAttribute('data-cda-dashboard-version') === platform.version) return oldPage;
+    if (oldPage.getAttribute('data-cda-dashboard-version') === platform.version) {
+      bindComponents(tab,oldPage);
+      return oldPage;
+    }
     const wasActive = oldPage.classList.contains('active') || getComputedStyle(oldPage).display !== 'none';
-    if (typeof tab.beforeReplace === 'function') tab.beforeReplace({ oldPage:oldPage, tab:tab });
+    if (typeof tab.beforeReplace === 'function') tab.beforeReplace({oldPage:oldPage,tab:tab});
     const page = document.createElement(oldPage.tagName.toLowerCase());
     page.id = tab.pageId;
     page.className = tab.pageClass || 'tabContent cleanRemakeV6230';
-    page.setAttribute('data-cda-dashboard-tab', tab.key);
-    page.setAttribute('data-cda-dashboard-version', platform.version);
+    page.setAttribute('data-cda-dashboard-tab',tab.key);
+    page.setAttribute('data-cda-dashboard-version',platform.version);
     page.innerHTML = tab.renderLayout({
       tab:tab,
       platform:platform,
-      renderComponent:function(componentKey){ return renderComponent(tab, componentKey); }
+      renderComponent:function(componentKey){ return renderComponent(tab,componentKey); }
     });
-    oldPage.parentNode.replaceChild(page, oldPage);
-    page.style.setProperty('display', wasActive ? 'block' : 'none', 'important');
+    oldPage.parentNode.replaceChild(page,oldPage);
+    page.style.setProperty('display',wasActive ? 'block' : 'none','important');
     if (wasActive) {
       page.classList.add('active');
-      page.style.setProperty('visibility', 'visible', 'important');
+      page.style.setProperty('visibility','visible','important');
     }
-    if (typeof tab.afterReplace === 'function') tab.afterReplace({ page:page, tab:tab, wasActive:wasActive });
-    platform.util.emit('cdaDashboardTabRenderedV6547', { tabKey:tab.key });
+    bindComponents(tab,page);
+    if (typeof tab.afterReplace === 'function') tab.afterReplace({page:page,tab:tab,wasActive:wasActive});
+    platform.util.emit('cdaDashboardTabRenderedV6547',{tabKey:tab.key});
     return page;
   }
 
@@ -86,7 +108,7 @@ Purpose: Replace-mode tab and card renderer. Existing-tab decoration is owned se
     const cards = page ? Array.from(page.querySelectorAll('[data-cda-dashboard-component]')) : [];
     const duplicates = duplicateIds(page);
     return {
-      version:platform.version,
+      version:'v6.555',
       tabKey:tabKey,
       mountMode:'replace',
       validation:validation,
@@ -103,9 +125,10 @@ Purpose: Replace-mode tab and card renderer. Existing-tab decoration is owned se
   }
 
   window.cdaDashboardRendererV6547 = Object.freeze({
-    version:'v6.548',
+    version:'v6.555',
     rebuild:rebuild,
     renderComponent:renderComponent,
+    bindComponents:bindComponents,
     audit:audit
   });
 })();
