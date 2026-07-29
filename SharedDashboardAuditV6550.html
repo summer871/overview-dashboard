@@ -1,13 +1,13 @@
 <!-- SharedDashboardAuditV6550.html
-Version: v6.553
+Version: v6.554
 Date: 2026-07-29
-Purpose: Audit rendered shared controls, computed style parity, stateful icon ownership, and hidden legacy controls.
+Purpose: Audit every visible shared control, toolbar order, visual parity, card coverage, and hidden legacy actions.
 -->
 <script id="cdaSharedDashboardAuditControllerV6550">
 (function installSharedDashboardAuditV6550(){
   'use strict';
 
-  if (window.cdaDashboardAuditV6550 && window.cdaDashboardAuditV6550.version === 'v6.553') return;
+  if (window.cdaDashboardAuditV6550 && window.cdaDashboardAuditV6550.version === 'v6.554') return;
 
   function visible(node){
     if (!node || !window.getComputedStyle) return false;
@@ -19,19 +19,10 @@ Purpose: Audit rendered shared controls, computed style parity, stateful icon ow
     if (!node || !window.getComputedStyle) return '';
     const style = window.getComputedStyle(node);
     return [
-      style.height,
-      style.minHeight,
-      style.paddingLeft,
-      style.paddingRight,
-      style.borderWidth,
-      style.borderStyle,
-      style.borderRadius,
-      style.backgroundColor,
-      style.color,
-      style.fontFamily,
-      style.fontSize,
-      style.fontWeight,
-      style.lineHeight
+      style.width,style.height,style.minWidth,style.minHeight,
+      style.paddingLeft,style.paddingRight,style.borderWidth,style.borderStyle,
+      style.borderRadius,style.backgroundColor,style.color,style.fontFamily,
+      style.fontSize,style.fontWeight,style.lineHeight
     ].join('|');
   }
 
@@ -48,59 +39,155 @@ Purpose: Audit rendered shared controls, computed style parity, stateful icon ow
   function iconAudit(buttons){
     const theme = window.cdaDashboardThemeV6549;
     const failures = [];
-
-    buttons.forEach(function(button){
+    buttons.filter(visible).forEach(function(button){
       const iconName = expectedIconName(button);
       if (!iconName) return;
       const expected = theme && typeof theme.icon === 'function' ? theme.icon(iconName) : '';
       const actual = button.textContent.trim();
       if (!expected || actual !== expected) {
         failures.push({
+          tab:button.getAttribute('data-cda-dashboard-tab-key'),
+          component:button.getAttribute('data-cda-dashboard-component-key'),
           feature:button.getAttribute('data-cda-dashboard-feature-key'),
-          icon:iconName,
-          expected:expected,
-          actual:actual,
-          ariaExpanded:button.getAttribute('aria-expanded')
+          icon:iconName,expected:expected,actual:actual
         });
       }
     });
-
     return {ok:failures.length === 0,failures:failures};
   }
 
-  function commonStyleAudit(){
-    const featureKeys = ['columns','popout','reset','more'];
+  function allInstanceStyleAudit(buttons){
+    const groups = Object.create(null);
     const mismatches = [];
-
-    featureKeys.forEach(function(featureKey){
-      const tat = buttonsFor('tatDashboardPageV6509').filter(function(button){
-        return button.getAttribute('data-cda-dashboard-feature-key') === featureKey && visible(button);
-      })[0];
-      const remake = buttonsFor('remakeFactorPage').filter(function(button){
-        return button.getAttribute('data-cda-dashboard-feature-key') === featureKey && visible(button);
-      })[0];
-
-      if (!tat || !remake) {
-        mismatches.push({feature:featureKey,reason:'missing-visible-control'});
-        return;
-      }
-
-      const tatSignature = styleSignature(tat);
-      const remakeSignature = styleSignature(remake);
-      if (tatSignature !== remakeSignature) {
-        mismatches.push({feature:featureKey,tat:tatSignature,remake:remakeSignature});
-      }
+    buttons.filter(visible).forEach(function(button){
+      const key = button.getAttribute('data-cda-dashboard-feature-key');
+      if (!key) return;
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(button);
     });
-
+    Object.keys(groups).forEach(function(key){
+      const instances = groups[key];
+      const expected = styleSignature(instances[0]);
+      instances.forEach(function(button,index){
+        const actual = styleSignature(button);
+        if (actual !== expected) {
+          mismatches.push({
+            feature:key,index:index,
+            tab:button.getAttribute('data-cda-dashboard-tab-key'),
+            component:button.getAttribute('data-cda-dashboard-component-key'),
+            expected:expected,actual:actual
+          });
+        }
+      });
+    });
     return {ok:mismatches.length === 0,mismatches:mismatches};
   }
 
-  function legacyAudit(){
-    const nodes = Array.from(document.querySelectorAll('.cdaDashboardLegacyControlV6548'));
-    const visibleNodes = nodes.filter(visible).map(function(node){
-      return node.id || node.getAttribute('aria-label') || node.textContent.trim() || node.tagName;
+  function componentCard(tab,component){
+    if (tab.key === 'remake') {
+      if (typeof component.resolveCard === 'function') {
+        try {
+          const custom = component.resolveCard({tab:tab,component:component,page:document.getElementById(tab.pageId)});
+          if (custom) return custom;
+        } catch (error) {}
+      }
+      if (component.cardId) {
+        const byId = document.getElementById(component.cardId);
+        if (byId) return byId;
+      }
+      return document.querySelector('#remakeFactorPage [data-cda-dashboard-decorated-component="' + component.key + '"]');
+    }
+    return document.querySelector('#' + tab.pageId + ' [data-cda-dashboard-component="' + component.key + '"]');
+  }
+
+  function toolbarOrderAudit(){
+    const platform = window.cdaDashboardPlatformV6547;
+    const failures = [];
+    ['tat','remake'].forEach(function(tabKey){
+      const tab = platform && platform.getTab(tabKey);
+      if (!tab) {
+        failures.push({tab:tabKey,reason:'tab-not-registered'});
+        return;
+      }
+      tab.components.forEach(function(component){
+        const card = componentCard(tab,component);
+        const toolbar = card && card.querySelector('.cdaDashboardToolbarV6547[data-cda-dashboard-toolbar="' + component.key + '"]');
+        if (!toolbar) {
+          failures.push({tab:tabKey,component:component.key,reason:'toolbar-missing'});
+          return;
+        }
+        const actual = Array.from(toolbar.querySelectorAll('[data-cda-dashboard-feature-key]'))
+          .filter(visible)
+          .map(function(button){ return button.getAttribute('data-cda-dashboard-feature-key'); });
+        const expected = platform.sortedFeatures(component,'toolbar').map(function(feature){ return feature.key; })
+          .filter(function(key){
+            const button = toolbar.querySelector('[data-cda-dashboard-feature-key="' + key + '"]');
+            return !!(button && visible(button));
+          });
+        if (actual.join('|') !== expected.join('|')) {
+          failures.push({tab:tabKey,component:component.key,reason:'order-mismatch',expected:expected,actual:actual});
+        }
+      });
     });
-    return {total:nodes.length,visible:visibleNodes,ok:visibleNodes.length === 0};
+    return {ok:failures.length === 0,failures:failures};
+  }
+
+  function legacyActionAudit(){
+    const bridge = window.cdaRemakeLegacyBridgeV6554;
+    const page = document.getElementById('remakeFactorPage');
+    const failures = [];
+    if (!page || !bridge) return {ok:false,failures:[{reason:'bridge-or-page-missing'}]};
+    page.querySelectorAll('.remakeCardHeader button').forEach(function(button){
+      if (!visible(button) || button.closest('.cdaDashboardToolbarV6547')) return;
+      const action = bridge.action(button);
+      if (action) {
+        const card = button.closest('.remakeCard,article');
+        const title = card && card.querySelector('.remakeCardTitle,.tatCardTitleV6509');
+        failures.push({
+          action:action,
+          id:button.id || '',
+          label:bridge.label(button),
+          card:card ? (card.id || (title && title.textContent.trim()) || 'unnamed-card') : 'unknown-card'
+        });
+      }
+    });
+    return {ok:failures.length === 0,failures:failures};
+  }
+
+  function remakeCardCoverageAudit(){
+    const tab = window.cdaDashboardPlatformV6547 && window.cdaDashboardPlatformV6547.getTab('remake');
+    const page = document.getElementById('remakeFactorPage');
+    const visibleAnalyticsCards = page ? Array.from(page.querySelectorAll('.remakeCard,article')).filter(function(card){
+      return visible(card) && !!card.querySelector('.remakeCardHeader,.tatCardHeadV6509') &&
+        !!card.querySelector('table,canvas,.remakeTrendCanvasWrapV6230');
+    }) : [];
+    const registeredCards = tab ? tab.components.map(function(component){ return componentCard(tab,component); }).filter(Boolean) : [];
+    const missingToolbars = visibleAnalyticsCards.filter(function(card){
+      return card.querySelectorAll('.cdaDashboardToolbarV6547').length !== 1;
+    }).map(function(card){
+      const title = card.querySelector('.remakeCardTitle,.tatCardTitleV6509');
+      return title ? title.textContent.trim() : card.id || 'unnamed-card';
+    });
+    return {
+      visibleCardCount:visibleAnalyticsCards.length,
+      registeredCardCount:registeredCards.length,
+      expectedCardCount:tab ? tab.components.length : 0,
+      missingToolbars:missingToolbars,
+      ok:!!tab && registeredCards.length === tab.components.length &&
+        visibleAnalyticsCards.length === tab.components.length && missingToolbars.length === 0
+    };
+  }
+
+  function kpiOverflowAudit(){
+    const controls = Array.from(document.querySelectorAll('.remakeKpiChooserButtonV6403')).filter(visible);
+    const reference = document.querySelector('.cdaDashboardToolbarV6547 [data-cda-dashboard-feature-key="more"]');
+    const expected = styleSignature(reference);
+    const failures = controls.filter(function(button){
+      return button.textContent.trim() !== '⋮' || styleSignature(button) !== expected;
+    }).map(function(button){
+      return {text:button.textContent.trim(),expected:expected,actual:styleSignature(button)};
+    });
+    return {count:controls.length,ok:controls.length >= 2 && !!expected && failures.length === 0,failures:failures};
   }
 
   function toolbarOwnershipAudit(){
@@ -113,17 +200,10 @@ Purpose: Audit rendered shared controls, computed style parity, stateful icon ow
   }
 
   function cssTokenAudit(){
-    if (!window.getComputedStyle || !document.documentElement) {
-      return {ok:false,missing:['computed-style-unavailable']};
-    }
+    if (!window.getComputedStyle || !document.documentElement) return {ok:false,missing:['computed-style-unavailable']};
     const root = window.getComputedStyle(document.documentElement);
-    const names = [
-      '--cda-color-text','--cda-color-border','--cda-color-surface','--cda-color-accent',
-      '--cda-control-height','--cda-radius-control','--cda-font-ui'
-    ];
-    const missing = names.filter(function(name){
-      return !String(root.getPropertyValue(name) || '').trim();
-    });
+    const names = ['--cda-color-text','--cda-color-border','--cda-color-surface','--cda-color-accent','--cda-control-height','--cda-radius-control','--cda-font-ui'];
+    const missing = names.filter(function(name){ return !String(root.getPropertyValue(name) || '').trim(); });
     return {ok:missing.length === 0,missing:missing};
   }
 
@@ -131,11 +211,6 @@ Purpose: Audit rendered shared controls, computed style parity, stateful icon ow
     const tatButtons = buttonsFor('tatDashboardPageV6509');
     const remakeButtons = buttonsFor('remakeFactorPage');
     const allButtons = tatButtons.concat(remakeButtons);
-    const icons = iconAudit(allButtons);
-    const styles = commonStyleAudit();
-    const legacy = legacyAudit();
-    const ownership = toolbarOwnershipAudit();
-    const cssTokens = cssTokenAudit();
     const services = {
       theme:window.cdaDashboardThemeV6549 && window.cdaDashboardThemeV6549.version,
       columns:window.cdaDashboardColumnsV6548 && window.cdaDashboardColumnsV6548.version,
@@ -143,35 +218,44 @@ Purpose: Audit rendered shared controls, computed style parity, stateful icon ow
       popover:window.cdaDashboardPopoverV6547 && window.cdaDashboardPopoverV6547.version,
       popout:window.cdaDashboardPopoutV6548 && window.cdaDashboardPopoutV6548.version,
       popoutTheme:window.cdaDashboardPopoutV6548 && window.cdaDashboardPopoutV6548.themeVersion,
-      toolbar:window.cdaDashboardToolbarV6548 && window.cdaDashboardToolbarV6548.version
+      toolbar:window.cdaDashboardToolbarV6548 && window.cdaDashboardToolbarV6548.version,
+      bridge:window.cdaRemakeLegacyBridgeV6554 && window.cdaRemakeLegacyBridgeV6554.version
     };
-    const serviceVersionsCorrect = services.theme === 'v6.550' &&
-      services.columns === 'v6.550' && services.columnsMode === 'single-shared-chooser' &&
-      services.popover === 'v6.550' && services.popout === 'v6.550' &&
-      services.popoutTheme === 'v6.550' && services.toolbar === 'v6.550';
-
+    const serviceVersionsCorrect = services.theme === 'v6.550' && services.columns === 'v6.550' &&
+      services.columnsMode === 'single-shared-chooser' && services.popover === 'v6.550' &&
+      services.popout === 'v6.550' && services.popoutTheme === 'v6.550' &&
+      services.toolbar === 'v6.550' && services.bridge === 'v6.554';
+    const icons = iconAudit(allButtons);
+    const styles = allInstanceStyleAudit(allButtons);
+    const order = toolbarOrderAudit();
+    const legacy = legacyActionAudit();
+    const coverage = remakeCardCoverageAudit();
+    const kpi = kpiOverflowAudit();
+    const ownership = toolbarOwnershipAudit();
+    const cssTokens = cssTokenAudit();
     return {
-      version:'v6.553',
+      version:'v6.554',
       tatButtonCount:tatButtons.length,
       remakeButtonCount:remakeButtons.length,
       bothTabsPresent:tatButtons.length > 0 && remakeButtons.length > 0,
       services:services,
       serviceVersionsCorrect:serviceVersionsCorrect,
       iconOwnership:icons,
-      commonFeatureStyleParity:styles,
-      legacyControlsHidden:legacy,
+      everyFeatureInstanceStyleParity:styles,
+      toolbarActionOrder:order,
+      visibleLegacyHeaderActions:legacy,
+      remakeVisibleCardCoverage:coverage,
+      kpiOverflowParity:kpi,
       oneToolbarOwnerPerCard:ownership,
       themeCssVariablesPresent:cssTokens,
-      ok:serviceVersionsCorrect && icons.ok && styles.ok && legacy.ok && ownership.ok && cssTokens.ok
+      ok:serviceVersionsCorrect && icons.ok && styles.ok && order.ok && legacy.ok &&
+        coverage.ok && kpi.ok && ownership.ok && cssTokens.ok
     };
   }
 
   window.cdaDashboardAuditV6550 = Object.freeze({
-    version:'v6.553',
-    visible:visible,
-    styleSignature:styleSignature,
-    expectedIconName:expectedIconName,
-    audit:auditAll
+    version:'v6.554',visible:visible,styleSignature:styleSignature,
+    expectedIconName:expectedIconName,audit:auditAll
   });
 })();
 </script>
