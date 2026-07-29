@@ -1,50 +1,35 @@
 <!-- TatDashboardBindingsV6547.html
-Version: v6.553
+Version: v6.555
 Date: 2026-07-29
-Purpose: Bind TAT components to stable controller IDs and theme-owned stateful icons.
+Purpose: Keep TAT title-side collapse controls synchronized with controller state.
 -->
 <script id="cdaTatDashboardBindingsControllerV6547">
 (function installTatDashboardBindingsV6547(){
   'use strict';
 
   if (window.cdaTatDashboardBindingsV6547 &&
-      window.cdaTatDashboardBindingsV6547.version === 'v6.553') return;
+      window.cdaTatDashboardBindingsV6547.version === 'v6.555') return;
 
-  const theme = window.cdaDashboardThemeV6549;
-  if (!theme) throw new Error('TAT dashboard bindings require the shared dashboard theme.');
-
-  const COLLAPSE_BINDINGS = [
-    {component:'customer',buttonId:'tatCustomerCollapseV6509',stateKey:'customers'},
-    {component:'quality',buttonId:'tatQualityCollapseV6509',stateKey:'quality'}
-  ];
-
-  function applyCollapseBindings(){
-    const state = window.cdaTatStateV6509 || {};
-    const collapsed = state.collapsed || {};
-
-    COLLAPSE_BINDINGS.forEach(function(binding){
-      const selector = '[data-cda-dashboard-component-key="' + binding.component + '"]' +
-        '[data-cda-dashboard-feature-key="collapse"]';
-      const button = document.querySelector('#tatDashboardPageV6509 ' + selector);
-      if (!button) return;
-
-      const isCollapsed = !!collapsed[binding.stateKey];
-      const iconName = isCollapsed ? 'expand' : 'collapse';
-
-      button.id = binding.buttonId;
-      button.textContent = theme.icon(iconName);
-      button.setAttribute('data-cda-dashboard-icon-state',iconName);
-      button.setAttribute('aria-expanded',isCollapsed ? 'false' : 'true');
-    });
+  function apply(){
+    if (window.cdaDashboardTitleToggleV6555) {
+      window.cdaDashboardTitleToggleV6555.syncAll('tat');
+    }
   }
 
   document.addEventListener('cdaDashboardTabRenderedV6547',function(event){
-    if (event && event.detail && event.detail.tabKey === 'tat') applyCollapseBindings();
+    if (event && event.detail && event.detail.tabKey === 'tat') apply();
   });
 
+  document.addEventListener('click',function(event){
+    const button = event.target && event.target.closest
+      ? event.target.closest('#tatDashboardPageV6509 [data-cda-dashboard-title-toggle="true"]')
+      : null;
+    if (button) window.setTimeout(apply,0);
+  },true);
+
   window.cdaTatDashboardBindingsV6547 = Object.freeze({
-    version:'v6.553',
-    apply:applyCollapseBindings
+    version:'v6.555',
+    apply:apply
   });
 })();
 </script>
