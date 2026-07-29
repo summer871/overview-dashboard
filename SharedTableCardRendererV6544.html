@@ -1,9 +1,34 @@
 <!-- SharedTableCardRendererV6544.html
-Non-destructive shared table card and toolbar adapter.
-Cards and tables remain owned by their existing pages. This module owns one
-visible toolbar DOM and delegates every action to the page's existing behavior.
+TAT table-card rebuild using Remake as the source-of-truth component contract.
+The TAT controller still owns TAT data and calculations. This file owns the
+visible card, header, toolbar and managed-table presentation for both pages.
 -->
 <style id="cdaSharedTableToolbarStylesV6544">
+  #tatDashboardPageV6509 .tatCardV6509.remakeCard,
+  #remakeFactorPage .remakeCard {
+    box-sizing:border-box !important;
+  }
+
+  #tatDashboardPageV6509 .tatCardHeadV6509,
+  #tatDashboardPageV6509 .remakeCardHeader,
+  #remakeFactorPage .remakeCardHeader {
+    display:flex !important;
+    align-items:center !important;
+    justify-content:space-between !important;
+    gap:10px !important;
+    min-height:42px !important;
+    padding:8px 10px !important;
+    box-sizing:border-box !important;
+  }
+
+  #tatDashboardPageV6509 .tatCardTitleV6509,
+  #tatDashboardPageV6509 .remakeCardTitle,
+  #remakeFactorPage .remakeCardTitle {
+    margin:0 !important;
+    color:#172033 !important;
+    font:900 12px/1.2 Roboto,Arial,sans-serif !important;
+  }
+
   .cdaSharedTableToolbarV6544 {
     display:flex !important;
     align-items:center !important;
@@ -40,10 +65,11 @@ visible toolbar DOM and delegates every action to the page's existing behavior.
   }
 
   .cdaSharedTableToolbarV6544 > .cdaSharedTableActionV6544:hover,
-  .cdaSharedTableToolbarV6544 > .cdaSharedTableActionV6544:focus-visible {
-    border-color:#b8c0ca !important;
-    background:#f8fafc !important;
-    color:#172033 !important;
+  .cdaSharedTableToolbarV6544 > .cdaSharedTableActionV6544:focus-visible,
+  .cdaSharedTableToolbarV6544 > .cdaSharedTableActionV6544[aria-expanded="true"] {
+    border-color:#e5c35b !important;
+    background:#fff8dc !important;
+    color:#7a5700 !important;
     outline:none !important;
   }
 
@@ -57,38 +83,17 @@ visible toolbar DOM and delegates every action to the page's existing behavior.
     font-size:15px !important;
   }
 
-  .cdaSharedTableToolbarV6544 > .cdaSharedTableActionV6544[aria-expanded="true"],
-  .cdaSharedTableToolbarV6544 > .cdaSharedTableActionV6544[aria-pressed="true"] {
-    border-color:#e5c35b !important;
-    background:#fff8dc !important;
-    color:#7a5700 !important;
-  }
-
   [data-cda-legacy-table-action="v6.544"] {
-    position:absolute !important;
-    width:1px !important;
-    height:1px !important;
-    min-width:1px !important;
-    min-height:1px !important;
-    margin:-1px !important;
-    padding:0 !important;
-    overflow:hidden !important;
-    clip:rect(0 0 0 0) !important;
-    clip-path:inset(50%) !important;
-    white-space:nowrap !important;
-    border:0 !important;
-    opacity:0 !important;
-    pointer-events:none !important;
+    display:none !important;
   }
 </style>
 <script id="cdaSharedTableCardRendererControllerV6544">
 (function installSharedTableCardRendererV6544(){
   'use strict';
 
-  var VERSION_V6544 = 'v6.544';
-  var RENDERER_V6544 = 'attachExistingTableV6544';
-  var ACTION_ORDER_V6544 = ['year','columns','export-current','export-all','popout','reset'];
-  var ACTION_LABELS_V6544 = {
+  var VERSION = 'v6.544';
+  var ACTIONS = ['year','columns','export-current','export-all','popout','reset'];
+  var LABELS = {
     year:'Year',
     columns:'Columns',
     'export-current':'Export current',
@@ -96,348 +101,260 @@ visible toolbar DOM and delegates every action to the page's existing behavior.
     popout:'Pop out',
     reset:'↺'
   };
-  var observerV6544 = null;
-  var syncTimerV6544 = null;
-  var syncingV6544 = false;
+  var TAT_COMPONENTS = {
+    tatDepartment:'department',
+    tatLate:'late',
+    tatCustomer:'customer',
+    tatQuality:'quality'
+  };
+  var syncing = false;
+  var timer = 0;
 
-  function cleanV6544(value){
+  function clean(value){
     return String(value == null ? '' : value).replace(/\s+/g,' ').trim();
   }
 
-  function tableForConfigV6544(config){
+  function tableFor(config){
     if (!config) return null;
-    if (config.tableNode && config.tableNode.nodeType === 1) return config.tableNode;
-    if (config.tableId) return document.getElementById(config.tableId);
-    if (config.bodyNode && config.bodyNode.closest) return config.bodyNode.closest('table');
-    if (config.bodyId) {
-      var body = document.getElementById(config.bodyId);
-      return body && body.closest ? body.closest('table') : null;
-    }
-    return null;
+    if (config.tableNode && config.tableNode.isConnected) return config.tableNode;
+    var node = config.tableId ? document.getElementById(config.tableId) : null;
+    if (!node && config.bodyId) node = document.getElementById(config.bodyId);
+    if (!node) return null;
+    return node.tagName === 'TABLE' ? node : node.closest('table');
   }
 
-  function cardForConfigV6544(config, table){
-    if (config && config.sourceCard && config.sourceCard.nodeType === 1) return config.sourceCard;
-    if (config && config.card && config.card.nodeType === 1) return config.card;
+  function cardFor(config,table){
+    if (config && config.card && config.card.isConnected) return config.card;
+    if (config && config.sourceCard && config.sourceCard.isConnected) return config.sourceCard;
     if (config && config.cardId) {
-      var cardById = document.getElementById(config.cardId);
-      if (cardById) return cardById;
+      var byId = document.getElementById(config.cardId);
+      if (byId) return byId;
     }
     return table && table.closest ? table.closest('article,.remakeCard') : null;
   }
 
-  function actionFromButtonV6544(button){
+  function pageFor(config,card){
+    if (config && config.page) return config.page;
+    return card && card.closest('#tatDashboardPageV6509') ? 'tat' : 'remake';
+  }
+
+  function componentFor(config){
+    return config.component || TAT_COMPONENTS[config.key] || String(config.key || '').replace(/^tat/,'').toLowerCase();
+  }
+
+  function actionFrom(button){
     if (!button) return '';
-    var explicit = cleanV6544(button.getAttribute('data-cda-action') || button.getAttribute('data-cda-card-action')).toLowerCase();
-    var text = cleanV6544(button.textContent).toLowerCase();
-    var title = cleanV6544(button.title || button.getAttribute('aria-label')).toLowerCase();
-    var combined = explicit + ' ' + text + ' ' + title;
-    if (/\byear\b|^20\d{2}$|all years/.test(combined)) return 'year';
-    if (/column/.test(combined)) return 'columns';
-    if (/export[ -]?current/.test(combined)) return 'export-current';
-    if (/all data|export[ -]?all/.test(combined)) return 'export-all';
-    if (/pop[ -]?out/.test(combined)) return 'popout';
-    if (/reset|clear|↺|⟳|⟲/.test(combined)) return 'reset';
+    var value = clean(button.getAttribute('data-cda-action') || '') + ' ' + clean(button.textContent) + ' ' + clean(button.title || button.getAttribute('aria-label'));
+    value = value.toLowerCase();
+    if (/\byear\b|all years|^20\d{2}$/.test(value)) return 'year';
+    if (/column/.test(value)) return 'columns';
+    if (/export[ -]?current/.test(value)) return 'export-current';
+    if (/all data|export[ -]?all/.test(value)) return 'export-all';
+    if (/pop[ -]?out/.test(value)) return 'popout';
+    if (/reset|clear|↺|⟳|⟲/.test(value)) return 'reset';
     return '';
   }
 
-  function actionHostForCardV6544(card){
-    if (!card) return null;
-    var host = card.querySelector('.cdaCardActionsV6544,[data-cda-card-actions],.remakeCardActions,.tatCardActions');
-    if (host) return host;
-    var candidate = Array.prototype.slice.call(card.querySelectorAll('button')).find(function(button){
-      return !!actionFromButtonV6544(button);
+  function legacyActions(card){
+    var map = Object.create(null);
+    Array.prototype.slice.call(card.querySelectorAll('button')).forEach(function(button){
+      if (button.hasAttribute('data-cda-shared-action-button')) return;
+      var action = actionFrom(button);
+      if (action && !map[action]) map[action] = button;
     });
-    return candidate ? candidate.parentElement : null;
+    return map;
   }
 
-  function legacyButtonsV6544(card){
-    if (!card) return [];
-    return Array.prototype.slice.call(card.querySelectorAll('button')).filter(function(button){
-      return !button.hasAttribute('data-cda-shared-action-button') && !!actionFromButtonV6544(button);
-    });
+  function currentYearLabel(){
+    var source = document.getElementById('tatFilterButton_year_V6509');
+    return clean(source && source.textContent) || 'Year';
   }
 
-  function legacyActionsV6544(card){
-    var actions = Object.create(null);
-    legacyButtonsV6544(card).forEach(function(button){
-      var action = actionFromButtonV6544(button);
-      if (!actions[action]) actions[action] = button;
-    });
-    return actions;
-  }
-
-  function currentYearLabelV6544(config, legacy){
-    var source = legacy && legacy.year;
-    var label = cleanV6544(source && source.textContent);
-    if (label && !/^year$/i.test(label)) return label;
-    if (config && config.page === 'tat') {
-      var tatButton = document.getElementById('tatFilterButton_year_V6509');
-      label = cleanV6544(tatButton && tatButton.textContent);
-      if (label) return label;
+  function invoke(config,action,event,legacy){
+    if (legacy && legacy.isConnected) {
+      legacy.click();
+      return;
     }
-    return 'Year';
-  }
-
-  function tatFallbackV6544(config, action, event){
-    var component = config.component || '';
-    if (action === 'year') {
-      if (typeof window.toggleTatDropdownV6509 === 'function') return window.toggleTatDropdownV6509('year',event);
-      var yearButton = document.getElementById('tatFilterButton_year_V6509');
-      if (yearButton) return yearButton.click();
-    }
+    var page = pageFor(config,cardFor(config,tableFor(config)));
+    var component = componentFor(config);
     if (action === 'columns' && window.cdaTable && typeof window.cdaTable.toggleChooser === 'function') {
-      return window.cdaTable.toggleChooser(config.key);
+      window.cdaTable.toggleChooser(config.key,event);
+      return;
     }
-    if (action === 'export-current' && typeof window.exportTatComponentV6509 === 'function') return window.exportTatComponentV6509(component);
-    if (action === 'export-all' && typeof window.exportTatAllDataV6509 === 'function') return window.exportTatAllDataV6509(component);
-    if (action === 'popout' && typeof window.popoutTatComponentV6509 === 'function') return window.popoutTatComponentV6509(component);
-    if (action === 'reset' && typeof window.clearTatComponentV6509 === 'function') return window.clearTatComponentV6509(component);
-    return null;
+    if (page !== 'tat') return;
+    if (action === 'year' && typeof window.toggleTatDropdownV6509 === 'function') window.toggleTatDropdownV6509('year',event);
+    if (action === 'export-current' && typeof window.exportTatComponentV6509 === 'function') window.exportTatComponentV6509(component);
+    if (action === 'export-all' && typeof window.exportTatAllDataV6509 === 'function') window.exportTatAllDataV6509(component);
+    if (action === 'popout' && typeof window.popoutTatComponentV6509 === 'function') window.popoutTatComponentV6509(component);
+    if (action === 'reset' && typeof window.clearTatComponentV6509 === 'function') window.clearTatComponentV6509(component);
   }
 
-  function fallbackActionV6544(config, action, event){
-    if (config.page === 'tat') return tatFallbackV6544(config,action,event);
-    if (action === 'columns' && window.cdaTable && typeof window.cdaTable.toggleChooser === 'function') {
-      return window.cdaTable.toggleChooser(config.key);
-    }
-    return null;
-  }
-
-  function createSharedButtonV6544(config, action, source){
+  function makeButton(config,action,legacy){
     var button = document.createElement('button');
     button.type = 'button';
-    button.className = 'cdaSharedTableActionV6544';
-    button.setAttribute('data-cda-shared-action-button',VERSION_V6544);
+    button.className = 'cdaSharedTableActionV6544 remakeMiniButtonV6230';
+    button.setAttribute('data-cda-shared-action-button',VERSION);
     button.setAttribute('data-cda-action',action);
-    button.setAttribute('data-cda-action-source',source ? 'legacy' : 'contract');
-    button.textContent = action === 'year' ? currentYearLabelV6544(config,{year:source}) : ACTION_LABELS_V6544[action];
-    button.title = source && source.title ? source.title : ACTION_LABELS_V6544[action];
-    button.setAttribute('aria-label',source && source.getAttribute('aria-label') ? source.getAttribute('aria-label') : button.title);
-    if (source && source.hasAttribute('aria-expanded')) button.setAttribute('aria-expanded',source.getAttribute('aria-expanded'));
-    if (source && source.hasAttribute('aria-pressed')) button.setAttribute('aria-pressed',source.getAttribute('aria-pressed'));
+    button.textContent = action === 'year' ? currentYearLabel() : LABELS[action];
+    button.title = action === 'reset' ? 'Reset this table' : LABELS[action];
+    button.setAttribute('aria-label',button.title);
     button.addEventListener('click',function(event){
       event.preventDefault();
       event.stopPropagation();
-      if (source && source.isConnected && typeof source.click === 'function') {
-        source.click();
-      } else {
-        fallbackActionV6544(config,action,event);
-      }
-      window.setTimeout(scheduleSyncV6544,0);
+      invoke(config,action,event,legacy);
+      schedule();
     });
     return button;
   }
 
-  function hideLegacyV6544(button){
-    if (!button) return;
-    button.setAttribute('data-cda-legacy-table-action',VERSION_V6544);
-    button.setAttribute('aria-hidden','true');
-    button.tabIndex = -1;
-  }
-
-  function restoreLegacyV6544(card){
+  function normalizeTatCard(card){
     if (!card) return;
-    Array.prototype.slice.call(card.querySelectorAll('[data-cda-legacy-table-action="v6.544"]')).forEach(function(button){
-      button.removeAttribute('data-cda-legacy-table-action');
-      button.removeAttribute('aria-hidden');
-      button.removeAttribute('tabindex');
-    });
+    card.classList.add('remakeCard');
+    card.classList.remove('tatCardV6509');
+    var header = card.querySelector('.tatCardHeadV6509,.remakeCardHeader');
+    if (header) {
+      header.classList.add('remakeCardHeader');
+      header.classList.remove('tatCardHeadV6509');
+    }
+    var title = card.querySelector('.tatCardTitleV6509,.remakeCardTitle');
+    if (title) {
+      title.classList.add('remakeCardTitle');
+      title.classList.remove('tatCardTitleV6509');
+    }
+    var wrap = card.querySelector('.tatSummaryTableV6509,.tatCustomersWrapV6509,.tatQualityTableWrapV6509,.remakeTableWrap');
+    if (wrap) wrap.classList.add('remakeTableWrap');
+    var table = card.querySelector('table');
+    if (table) {
+      table.classList.add('remakeTable');
+      table.classList.remove('tatTableV6509');
+    }
   }
 
-  function removeSharedToolbarV6544(card){
-    if (!card) return;
-    Array.prototype.slice.call(card.querySelectorAll('.cdaSharedTableToolbarV6544')).forEach(function(toolbar){
-      if (toolbar.parentNode) toolbar.parentNode.removeChild(toolbar);
-    });
+  function toolbarHost(card){
+    var header = card.querySelector('.remakeCardHeader,.tatCardHeadV6509');
+    if (!header) return null;
+    var host = header.querySelector('.cdaSharedTableToolbarHostV6544');
+    if (!host) {
+      host = document.createElement('div');
+      host.className = 'cdaSharedTableToolbarHostV6544 remakeCardActionsV6230';
+      var old = header.querySelector('.tatCardActionsV6509,.remakeCardActionsV6230');
+      if (old && old !== host) old.setAttribute('data-cda-legacy-table-action',VERSION);
+      header.appendChild(host);
+    }
+    return host;
   }
 
-  function renderToolbarV6544(config){
-    var table = tableForConfigV6544(config);
-    var card = cardForConfigV6544(config,table);
-    var host = actionHostForCardV6544(card);
-    if (!card || !host) return null;
-
-    var legacy = legacyActionsV6544(card);
-    removeSharedToolbarV6544(card);
-
-    var toolbar = document.createElement('div');
-    toolbar.className = 'cdaSharedTableToolbarV6544';
-    toolbar.setAttribute('data-cda-shared-toolbar',VERSION_V6544);
-    toolbar.setAttribute('data-cda-toolbar-key',config.key || '');
-    toolbar.setAttribute('data-cda-toolbar-page',config.page || '');
-
-    ACTION_ORDER_V6544.forEach(function(action){
+  function renderToolbar(config){
+    var table = tableFor(config);
+    var card = cardFor(config,table);
+    if (!table || !card) return null;
+    var page = pageFor(config,card);
+    if (page === 'tat') normalizeTatCard(card);
+    var host = toolbarHost(card);
+    if (!host) return null;
+    var legacy = legacyActions(card);
+    host.replaceChildren();
+    host.className = 'cdaSharedTableToolbarHostV6544 remakeCardActionsV6230 cdaSharedTableToolbarV6544';
+    host.setAttribute('data-cda-shared-toolbar',VERSION);
+    host.setAttribute('data-cda-toolbar-key',config.key || '');
+    host.setAttribute('data-cda-toolbar-page',page);
+    ACTIONS.forEach(function(action){
       var source = legacy[action] || null;
-      var supported = !!source;
-      if (!supported && config.page === 'tat') supported = true;
-      if (!supported && action === 'columns' && window.cdaTable && typeof window.cdaTable.toggleChooser === 'function') supported = true;
+      var supported = page === 'tat' || !!source || (action === 'columns' && window.cdaTable && typeof window.cdaTable.toggleChooser === 'function');
       if (!supported) return;
-      if (source) hideLegacyV6544(source);
-      toolbar.appendChild(createSharedButtonV6544(config,action,source));
+      if (source) source.setAttribute('data-cda-legacy-table-action',VERSION);
+      host.appendChild(makeButton(config,action,source));
     });
-
-    host.appendChild(toolbar);
-    card.setAttribute('data-cda-toolbar-synced',VERSION_V6544);
-    return toolbar;
+    card.setAttribute('data-cda-toolbar-synced',VERSION);
+    card.setAttribute('data-cda-table-page',page);
+    return host;
   }
 
-  function syncToolbarV6544(configOrKey){
-    var registry = window.cdaSharedTableRegistryV6544;
-    var config = typeof configOrKey === 'string' && registry && typeof registry.get === 'function'
-      ? registry.get(configOrKey)
-      : configOrKey;
-    return config ? renderToolbarV6544(config) : null;
-  }
-
-  function syncAllToolbarsV6544(){
-    if (syncingV6544) return [];
+  function syncAll(){
+    if (syncing) return [];
     var registry = window.cdaSharedTableRegistryV6544;
     if (!registry || typeof registry.list !== 'function') return [];
-    syncingV6544 = true;
-    var result;
+    syncing = true;
     try {
-      result = registry.list().map(syncToolbarV6544).filter(Boolean);
+      return registry.list().map(renderToolbar).filter(Boolean);
     } finally {
-      syncingV6544 = false;
+      syncing = false;
     }
-    return result;
   }
 
-  function scheduleSyncV6544(){
-    if (syncingV6544) return;
-    if (syncTimerV6544) window.clearTimeout(syncTimerV6544);
-    syncTimerV6544 = window.setTimeout(function(){
-      syncTimerV6544 = null;
-      syncAllToolbarsV6544();
-    },40);
+  function schedule(){
+    if (syncing) return;
+    if (timer) window.clearTimeout(timer);
+    timer = window.setTimeout(function(){timer=0;syncAll();},40);
   }
 
-  function renderSharedTableCardV6544(config){
-    var table = tableForConfigV6544(config);
-    var card = cardForConfigV6544(config,table);
+  function render(config){
+    var table = tableFor(config);
+    var card = cardFor(config,table);
     if (!table || !card || !card.contains(table)) return null;
-    card.setAttribute('data-cda-shared-table-attached',VERSION_V6544);
-    card.setAttribute('data-cda-table-instance',config && config.key || '');
-    card.setAttribute('data-cda-table-page',config && config.page || '');
-    card.setAttribute('data-cda-table-attacher',RENDERER_V6544);
-    table.setAttribute('data-cda-shared-table-attached',VERSION_V6544);
-    table.setAttribute('data-cda-table-instance',config && config.key || '');
-    renderToolbarV6544(config);
+    card.setAttribute('data-cda-shared-table-attached',VERSION);
+    card.setAttribute('data-cda-table-instance',config.key || '');
+    table.setAttribute('data-cda-shared-table-attached',VERSION);
+    table.setAttribute('data-cda-table-instance',config.key || '');
+    renderToolbar(config);
     return card;
   }
 
-  function createTatActionsV6544(config){
-    if (!config) return [];
-    return ACTION_ORDER_V6544.map(function(action){
-      return createSharedButtonV6544(config,action,null);
-    });
-  }
-
-  function toggleCollapsedV6544(config,force){
-    var table = tableForConfigV6544(config);
-    var card = cardForConfigV6544(config,table);
-    if (!card) return false;
-    var existingButton = config && config.collapseButtonId ? document.getElementById(config.collapseButtonId) : null;
-    if (existingButton && typeof existingButton.click === 'function' && force == null) {
-      existingButton.click();
-      return true;
-    }
-    return false;
-  }
-
-  function toolbarAuditV6544(){
+  function toolbarAudit(){
     var registry = window.cdaSharedTableRegistryV6544;
     if (!registry || typeof registry.list !== 'function') return [];
     return registry.list().map(function(config){
-      var table = tableForConfigV6544(config);
-      var card = cardForConfigV6544(config,table);
-      var toolbar = card && card.querySelector('.cdaSharedTableToolbarV6544[data-cda-toolbar-key="' + config.key + '"]');
-      var buttons = toolbar ? Array.prototype.slice.call(toolbar.querySelectorAll('[data-cda-shared-action-button]')) : [];
-      var actions = buttons.map(function(button){ return button.getAttribute('data-cda-action'); });
+      var table = tableFor(config);
+      var card = cardFor(config,table);
+      var toolbar = card && card.querySelector('.cdaSharedTableToolbarV6544[data-cda-toolbar-key="'+config.key+'"]');
+      var actions = toolbar ? Array.prototype.slice.call(toolbar.querySelectorAll('[data-cda-action]')).map(function(button){return button.getAttribute('data-cda-action');}) : [];
       return {
         key:config.key,
-        page:config.page,
+        page:pageFor(config,card),
         toolbarPresent:!!toolbar,
-        sharedMarkup:!!toolbar && buttons.length === actions.length,
         actions:actions,
-        orderMatches:actions.every(function(action,index){ return ACTION_ORDER_V6544.indexOf(action) === index; }),
-        behaviorSources:buttons.map(function(button){ return button.getAttribute('data-cda-action-source'); }),
-        legacyTargets:card ? card.querySelectorAll('[data-cda-legacy-table-action="v6.544"]').length : 0
+        identicalOptions:ACTIONS.every(function(action){return actions.indexOf(action)>=0;}),
+        identicalOrder:actions.join('|')===ACTIONS.join('|'),
+        remakeCardContract:!!(card && card.classList.contains('remakeCard') && card.querySelector('.remakeCardHeader') && card.querySelector('table.remakeTable'))
       };
     });
   }
 
-  function auditV6544(){
-    var attached = Array.prototype.slice.call(document.querySelectorAll('[data-cda-shared-table-attached="v6.544"][data-cda-table-instance]'));
-    var cards = attached.filter(function(node){ return node.matches('article,.remakeCard'); });
-    var toolbars = toolbarAuditV6544();
+  function audit(){
+    var rows = toolbarAudit();
     return {
-      version:VERSION_V6544,
-      renderer:RENDERER_V6544,
-      mode:'shared-toolbar-contract',
-      totalCards:cards.length,
-      instances:cards.map(function(card){ return card.getAttribute('data-cda-table-instance'); }),
-      noGeneratedCards:cards.every(function(card){ return card.getAttribute('data-cda-table-attacher') === RENDERER_V6544; }),
-      tablesRemainContained:cards.every(function(card){
-        var key = card.getAttribute('data-cda-table-instance');
-        var table = card.querySelector('table[data-cda-table-instance="' + key + '"]');
-        return !!table && card.contains(table);
-      }),
-      sharedToolbarStyles:!!document.getElementById('cdaSharedTableToolbarStylesV6544'),
-      toolbars:toolbars,
-      allToolbarsShared:toolbars.every(function(item){ return item.toolbarPresent && item.sharedMarkup; }),
-      allToolbarOrdersValid:toolbars.every(function(item){ return item.orderMatches; })
+      version:VERSION,
+      mode:'tat-rebuilt-from-remake-contract',
+      actionOrder:ACTIONS.slice(),
+      toolbars:rows,
+      allTatTablesUseRemakeContract:rows.filter(function(row){return row.page==='tat';}).every(function(row){return row.remakeCardContract;}),
+      allTatTablesHaveIdenticalOptions:rows.filter(function(row){return row.page==='tat';}).every(function(row){return row.identicalOptions && row.identicalOrder;})
     };
   }
 
-  function destroyToolbarsV6544(){
-    var registry = window.cdaSharedTableRegistryV6544;
-    if (!registry || typeof registry.list !== 'function') return;
-    registry.list().forEach(function(config){
-      var table = tableForConfigV6544(config);
-      var card = cardForConfigV6544(config,table);
-      removeSharedToolbarV6544(card);
-      restoreLegacyV6544(card);
-    });
-  }
-
-  window.renderSharedTableCardV6544 = renderSharedTableCardV6544;
-  window.auditSharedRemakeTableShellV6544 = auditV6544;
-  window.CDA_SHARED_TABLE_CARD_RENDERER_VERSION = VERSION_V6544;
+  window.renderSharedTableCardV6544 = render;
+  window.auditSharedRemakeTableShellV6544 = audit;
   window.cdaSharedTableCardRendererV6544 = Object.freeze({
-    version:VERSION_V6544,
-    name:RENDERER_V6544,
-    mode:'shared-toolbar-contract',
-    actionOrder:ACTION_ORDER_V6544.slice(),
-    render:renderSharedTableCardV6544,
-    createTatActions:createTatActionsV6544,
-    syncToolbar:syncToolbarV6544,
-    syncAllToolbars:syncAllToolbarsV6544,
-    toggleCollapsed:toggleCollapsedV6544,
-    toolbarAudit:toolbarAuditV6544,
-    destroyToolbars:destroyToolbarsV6544,
-    audit:auditV6544
+    version:VERSION,
+    mode:'tat-rebuilt-from-remake-contract',
+    actionOrder:ACTIONS.slice(),
+    render:render,
+    syncToolbar:renderToolbar,
+    syncAllToolbars:syncAll,
+    toolbarAudit:toolbarAudit,
+    audit:audit
   });
 
-  document.addEventListener('cdaSharedTableDefinitionsReadyV6544',scheduleSyncV6544);
-  document.addEventListener('cdaSharedTableRenderedV6544',scheduleSyncV6544);
-  document.addEventListener('cdaSharedTableExistingV6544',scheduleSyncV6544);
-  document.addEventListener('cdaTatDashboardRenderedV6509',scheduleSyncV6544);
-
+  document.addEventListener('cdaSharedTableDefinitionsReadyV6544',schedule);
+  document.addEventListener('cdaSharedTableRenderedV6544',schedule);
+  document.addEventListener('cdaTableRendered',schedule);
+  document.addEventListener('cdaTatDashboardRenderedV6509',schedule);
   if (window.MutationObserver) {
-    observerV6544 = new MutationObserver(function(mutations){
-      var relevant = mutations.some(function(mutation){
-        return Array.prototype.some.call(mutation.addedNodes || [],function(node){
-          return node.nodeType === 1 && !node.closest('.cdaSharedTableToolbarV6544');
-        });
-      });
-      if (relevant) scheduleSyncV6544();
-    });
-    observerV6544.observe(document.documentElement,{childList:true,subtree:true});
+    new MutationObserver(function(mutations){
+      if (mutations.some(function(mutation){return mutation.addedNodes && mutation.addedNodes.length;})) schedule();
+    }).observe(document.documentElement,{childList:true,subtree:true});
   }
-
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded',scheduleSyncV6544,{once:true});
-  else scheduleSyncV6544();
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded',schedule,{once:true});
+  else schedule();
 })();
 </script>
