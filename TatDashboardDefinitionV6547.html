@@ -1,0 +1,150 @@
+<!-- TatDashboardDefinitionV6547.html
+Version: v6.547
+Date: 2026-07-29
+Purpose: Declarative TAT tab definition: components, opted-in features, markup, and KPI configuration.
+-->
+<script id="cdaTatDashboardDefinitionControllerV6547">
+(function installTatDashboardDefinitionV6547(){
+  'use strict';
+
+  if (window.cdaTatDashboardDefinitionV6547) return;
+
+  const platform = window.cdaDashboardPlatformV6547;
+  const adapter = window.cdaTatDashboardAdapterV6547;
+  if (!platform || !adapter) throw new Error('TAT definition requires the dashboard registry and TAT adapter.');
+
+  const STANDARD_FEATURES = ['year','columns','popout','reset','more','exportCurrent','exportAll'];
+
+  function table(bodyId, headers, extraClass){
+    const cells = headers.map(function(header){
+      return '<th' + (header.numeric ? ' class="num"' : '') + '>' + platform.util.escapeHtml(header.label) + '</th>';
+    }).join('');
+    return '<div class="remakeTableWrap ' + platform.util.escapeHtml(extraClass || '') + '"><table class="tatTableV6509 remakeTable">' +
+      '<thead><tr>' + cells + '</tr></thead><tbody id="' + platform.util.escapeHtml(bodyId) + '"></tbody></table></div>';
+  }
+
+  const components = [
+    {
+      key:'monthly', title:'Monthly TAT Comparison', kind:'chart', chartKey:'monthly', targetId:'tatMonthlyChartV6509',
+      features:STANDARD_FEATURES.slice(),
+      renderBody:function(){ return '<div class="tatChartV6509 remakeTrendCanvasWrapV6230"><canvas id="tatMonthlyChartV6509"></canvas></div>'; }
+    },
+    {
+      key:'department', title:'Department Summary', kind:'table', tableKey:'tatDepartment', targetId:'tatDepartmentTableV6509',
+      features:STANDARD_FEATURES.slice(),
+      renderBody:function(){
+        return table('tatDepartmentTableV6509', [
+          {label:'Department / Product'}, {label:'Sold Units',numeric:true}, {label:'Remake Units',numeric:true},
+          {label:'Remake %',numeric:true}, {label:'Avg TAT',numeric:true}, {label:'OTP',numeric:true}, {label:'Avg Days Late',numeric:true}
+        ]);
+      }
+    },
+    {
+      key:'distribution', title:'TAT Distribution', kind:'chart', chartKey:'distribution', targetId:'tatDistributionChartV6509',
+      features:STANDARD_FEATURES.slice(),
+      renderBody:function(){
+        return '<div id="tatDistributionSubV6509" class="tatSrOnlyV6513">Percent of eligible cases by business-day bucket</div>' +
+          '<div class="tatChartV6509 remakeTrendCanvasWrapV6230"><canvas id="tatDistributionChartV6509"></canvas></div>';
+      }
+    },
+    {
+      key:'late', title:'Promise Performance', kind:'table', tableKey:'tatLate', targetId:'tatLateTableV6509',
+      features:STANDARD_FEATURES.slice(),
+      renderBody:function(){
+        return table('tatLateTableV6509', [
+          {label:'Performance'}, {label:'Cases',numeric:true}, {label:'Share',numeric:true}
+        ]);
+      }
+    },
+    {
+      key:'customer', title:'Customers', kind:'table', tableKey:'tatCustomer', targetId:'tatCustomerTableV6509',
+      cardId:'tatCustomerCardV6509', wide:true, collapseSection:'customers',
+      features:STANDARD_FEATURES.concat(['collapse']),
+      renderBody:function(){
+        return '<div class="tatCollapsibleBodyV6509">' + table('tatCustomerTableV6509', [
+          {label:'Customer'}, {label:'Cases',numeric:true}, {label:'Sold Units',numeric:true}, {label:'Remake Units',numeric:true},
+          {label:'Remake %',numeric:true}, {label:'Avg TAT',numeric:true}, {label:'OTP',numeric:true}, {label:'Avg Days Late',numeric:true}
+        ]) + '</div>';
+      }
+    },
+    {
+      key:'quality', title:'Data Quality & Coverage', kind:'table', tableKey:'tatQuality', targetId:'tatQualityTableV6509',
+      cardId:'tatQualityCardV6509', wide:true, collapseSection:'quality',
+      features:STANDARD_FEATURES.concat(['collapse']),
+      renderTitle:function(){
+        return '<div class="tatQualityTitleRowV6513"><div class="tatCardTitleV6509 remakeCardTitle">Data Quality &amp; Coverage</div>' +
+          '<div id="tatQualityCoverageV6513" class="tatQualityCoverageV6513"></div></div>';
+      },
+      renderBody:function(){
+        return '<div class="tatCollapsibleBodyV6509 tatQualityBodyV6509"><div id="tatIssueSummaryV6509" class="tatIssueSummaryV6509"></div>' +
+          table('tatQualityTableV6509', [
+            {label:'Issue'}, {label:'Case'}, {label:'Customer'}, {label:'Departments'}, {label:'Invoice Date'}, {label:'Date In'},
+            {label:'TAT End'}, {label:'TAT Days',numeric:true}, {label:'Units',numeric:true}, {label:'Remake Units',numeric:true}
+          ], 'tatQualityTableWrapV6509') + '</div>';
+      }
+    }
+  ];
+
+  const kpiConfig = {
+    tabKey:'tat',
+    buttonId:'tatKpiChooserButtonV6528',
+    storageKey:'cdaTatKpiVisibility.v6528',
+    stripSelector:'#tatDashboardPageV6509 .tatKpisV6509',
+    items:[
+      {key:'avgTat',valueId:'tatKpiAvgV6509',label:'Average TAT'},
+      {key:'otp',valueId:'tatKpiOtpV6509',label:'On Time to Promise'},
+      {key:'avgLate',valueId:'tatKpiLateV6509',label:'Average Days Late'},
+      {key:'soldUnits',valueId:'tatKpi31V6509',label:'Sold Units'},
+      {key:'remakePct',valueId:'tatKpiRemakePctV6523',label:'Remake %'}
+    ]
+  };
+
+  function kpiMarkup(){
+    const items = [
+      ['avgTat','Average TAT','tatKpiAvgV6509','tatKpiAvgSubV6509','Eligible cases'],
+      ['otp','On Time to Promise','tatKpiOtpV6509','tatKpiOtpSubV6509','Due-date eligible'],
+      ['avgLate','Average Days Late','tatKpiLateV6509','tatKpiLateSubV6509','Late cases only'],
+      ['soldUnits','Sold Units','tatKpi31V6509','tatKpi31SubV6509','Included units'],
+      ['remakePct','Remake %','tatKpiRemakePctV6523','tatKpiRemakePctSubV6523','Remake units / sold units']
+    ];
+    return items.map(function(item){
+      return '<div class="tatKpiV6509 remakeKpi" data-tat-kpi-key-v6528="' + item[0] + '"><div class="label">' + item[1] +
+        '</div><div id="' + item[2] + '" class="value">-</div><div id="' + item[3] + '" class="sub">' + item[4] + '</div></div>';
+    }).join('');
+  }
+
+  function renderLayout(context){
+    return '<div class="tatKpiStageV6509"><div class="remakeKpiAreaV6406 tatKpiAreaV6528">' +
+      '<div class="remakeKpiToolbarV6403"><button id="tatKpiChooserButtonV6528" class="remakeKpiChooserButtonV6403" type="button"' +
+      ' aria-label="Choose KPI cards" aria-haspopup="dialog" aria-expanded="false">⋮</button></div>' +
+      '<div class="tatKpisV6509 remakeKpisV6230">' + kpiMarkup() + '</div></div><div id="tatStampV6509" class="tatStampV6509">Loading</div></div>' +
+      '<div class="tatShellV6509"><div id="tatNoticeV6509" class="tatNoticeV6509"></div>' +
+      '<div id="tatCoverageV6509" class="tatCoverageV6509" hidden>' +
+      '<div class="tatCoverageMetricV6509"><span>Total Cases</span><strong id="tatCoverageCasesV6509">-</strong></div>' +
+      '<div class="tatCoverageMetricV6509"><span>Total Units</span><strong id="tatCoverageUnitsV6509">-</strong></div>' +
+      '<div class="tatCoverageMetricV6509"><span>TAT Eligible</span><strong id="tatCoverageEligibleV6509">-</strong></div>' +
+      '<div class="tatCoverageMetricV6509"><span>Coverage</span><strong id="tatCoveragePctV6509">-</strong></div>' +
+      '<div class="tatCoverageMetricV6509"><span>Excluded Cases</span><strong id="tatCoverageExcludedV6509">-</strong></div>' +
+      '<div id="tatCoverageNoteV6509" class="tatCoverageNoteV6509"></div></div>' +
+      '<div id="tatPillsV6509" class="tatPillsV6509"></div><div class="tatGridV6509 remakeGridV6230">' +
+      components.map(function(component){ return context.renderComponent(component.key); }).join('') + '</div></div>';
+  }
+
+  const definition = {
+    key:'tat',
+    pageId:'tatDashboardPageV6509',
+    pageClass:'tabContent cleanRemakeV6230',
+    adapter:adapter,
+    components:components,
+    renderLayout:renderLayout,
+    beforeReplace:function(){ adapter.beforeReplace(); },
+    afterReplace:function(){
+      window.cdaDashboardKpiV6547.bind(kpiConfig);
+      adapter.afterReplace();
+    },
+    kpiConfig:kpiConfig
+  };
+
+  window.cdaTatDashboardDefinitionV6547 = definition;
+})();
+</script>
