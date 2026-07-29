@@ -1,7 +1,7 @@
 <!-- SharedDashboardIsolationV6555.html
 Version: v6.555
 Date: 2026-07-29
-Purpose: Open and isolate the same live dashboard component in a separate application window.
+Purpose: Open and isolate the same live dashboard component in the current dev or production application window.
 -->
 <style id="cdaSharedDashboardIsolationStylesV6555">
   html.cdaDashboardIsolatedV6555,
@@ -40,13 +40,20 @@ Purpose: Open and isolate the same live dashboard component in a separate applic
     const parts=value.split('.');
     return parts.length===2&&parts[0]&&parts[1]?{tabKey:parts[0],componentKey:parts[1],id:value}:null;
   }
+  function visibleWebAppUrl(){
+    const candidates=[];
+    try{candidates.push(String(document.referrer||'').trim());}catch(error){}
+    for(let index=0;index<candidates.length;index+=1){
+      const match=candidates[index].match(/^(https:\/\/script\.google\.com\/macros\/s\/[^/?#]+\/(?:dev|exec))/i);
+      if(match)return match[1];
+    }
+    return '';
+  }
   function baseUrl(){
+    const visible=visibleWebAppUrl();
+    if(visible)return visible;
     const direct=String(serverConfig().baseUrl||'').trim();
     if(direct)return direct;
-    try{
-      const match=String(document.referrer||'').trim().match(/^(https:\/\/script\.google\.com\/macros\/s\/[^/?#]+\/(?:dev|exec))/i);
-      if(match)return match[1];
-    }catch(error){}
     return '';
   }
   function buildUrl(tabKey,componentKey){
@@ -126,8 +133,10 @@ Purpose: Open and isolate the same live dashboard component in a separate applic
   }
 
   window.cdaDashboardIsolationV6555=Object.freeze({
-    version:'v6.555',route:route,baseUrl:baseUrl,buildUrl:buildUrl,open:open,isolate:isolate
+    version:'v6.555',mode:'same-deployment-live-component',route:route,
+    visibleWebAppUrl:visibleWebAppUrl,baseUrl:baseUrl,buildUrl:buildUrl,open:open,isolate:isolate
   });
+
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});
   else start();
 })();
