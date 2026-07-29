@@ -141,8 +141,8 @@ if (!remakeBootstrap.includes('base.toolbarCount === base.expectedToolbarCount')
 if (!remakeBootstrap.includes('priorYearLabelsCorrect')) fail('Remake audit does not validate prior-year labels.');
 
 if (!tatBootstrap.includes("version:'v6.554'")) fail('TAT bootstrap is not stamped v6.554.');
-if (!tatBootstrap.includes("sharedToolbarV6548.version === 'v6.554'")) fail('TAT does not require the v6.554 shared toolbar.');
-if (!tatBootstrap.includes("sharedAuditV6550.version === 'v6.554'")) fail('TAT does not require the v6.554 visual audit.');
+if (!tatBootstrap.includes("cdaDashboardToolbarV6548.version === 'v6.554'")) fail('TAT does not require the v6.554 shared toolbar.');
+if (!tatBootstrap.includes("cdaDashboardAuditV6550.version === 'v6.554'")) fail('TAT does not require the v6.554 visual audit.');
 if (!tatBindings.includes("version:'v6.553'")) fail('TAT stateful icon binding is missing.');
 if (/STANDARD_FEATURES\s*=\s*\[[^\]]*['"]year['"]/.test(tatDefinition)) fail('TAT still opts into the year feature.');
 
