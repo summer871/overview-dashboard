@@ -1,79 +1,65 @@
 <!-- RemakeDashboardDefinitionV6548.html
-Version: v6.552
+Version: v6.554
 Date: 2026-07-29
-Purpose: Declarative shared-control definition for the five Remake cards rendered by the active dashboard.
+Purpose: Declarative shared-control definition for every visible Remake analytics card.
 -->
 <script id="cdaRemakeDashboardDefinitionControllerV6548">
 (function installRemakeDashboardDefinitionV6548(){
   'use strict';
 
   if (window.cdaRemakeDashboardDefinitionV6548 &&
-      window.cdaRemakeDashboardDefinitionV6548.version === 'v6.552') return;
+      window.cdaRemakeDashboardDefinitionV6548.version === 'v6.554') return;
 
   const adapter = window.cdaRemakeDashboardAdapterV6548;
   if (!window.cdaDashboardPlatformV6547 || !adapter) {
     throw new Error('Remake definition requires the shared dashboard registry and Remake adapter.');
   }
 
-  const TABLE_FEATURES = ['comparePriorYear','columns','popout','reset','more','exportCurrent'];
-  const STANDARD_TABLE_FEATURES = ['columns','popout','reset','more','exportCurrent'];
+  const TABLE_FEATURES = ['comparePriorYear','columns','popout','reset','more','exportCurrent','exportAll'];
+  const STANDARD_TABLE_FEATURES = ['columns','popout','reset','more','exportCurrent','exportAll'];
+
+  function monthlyCardV6554(){
+    const page = document.getElementById('remakeFactorPage');
+    if (!page) return null;
+    return Array.from(page.querySelectorAll('.remakeCard,article')).find(function(card){
+      const title = card.querySelector('.remakeCardTitle,.tatCardTitleV6509');
+      return !!(title && /monthly\s+remake\s+(?:comparison|rate)/i.test(title.textContent || ''));
+    }) || null;
+  }
 
   window.cdaRemakeDashboardDefinitionV6548 = {
-    version:'v6.552',
+    version:'v6.554',
     key:'remake',
     mountMode:'decorate',
     pageId:'remakeFactorPage',
     adapter:adapter,
     components:[
       {
-        key:'reason',
-        legacyKey:'reason',
-        title:'Remake Reasons',
-        kind:'table',
-        cardId:'remakeReasonCardV6230',
-        targetId:'remakeReasonTable',
-        tableIds:['remakeReasonTable'],
-        features:TABLE_FEATURES.slice()
+        key:'monthly', legacyKey:'trend', title:'Monthly Remake Comparison', kind:'chart',
+        resolveCard:monthlyCardV6554,
+        features:['popout','reset','more','exportCurrent','exportAll']
       },
       {
-        key:'department',
-        legacyKey:'department',
-        title:'Departments',
-        kind:'table',
-        cardId:'remakeDepartmentCardV6230',
-        targetId:'remakeDepartmentTable',
-        tableIds:['remakeDepartmentTable'],
-        features:TABLE_FEATURES.slice()
+        key:'reason', legacyKey:'reason', title:'Remake Reasons', kind:'table', cardId:'remakeReasonCardV6230',
+        targetId:'remakeReasonTable', tableIds:['remakeReasonTable'], features:TABLE_FEATURES.slice()
       },
       {
-        key:'product',
-        legacyKey:'product',
-        title:'Products',
-        kind:'table',
-        cardId:'remakeProductCardV6230',
-        targetId:'remakeProductTable',
-        tableIds:['remakeProductTable'],
-        features:TABLE_FEATURES.slice()
+        key:'department', legacyKey:'department', title:'Departments', kind:'table', cardId:'remakeDepartmentCardV6230',
+        targetId:'remakeDepartmentTable', tableIds:['remakeDepartmentTable'], features:TABLE_FEATURES.slice()
       },
       {
-        key:'customer',
-        legacyKey:'customer',
-        title:'Customers',
-        kind:'table',
-        cardId:'remakeCustomerCardV6230',
-        targetId:'remakeCustomerTable',
-        tableIds:['remakeCustomerTable'],
-        features:TABLE_FEATURES.slice()
+        key:'product', legacyKey:'product', title:'Products', kind:'table', cardId:'remakeProductCardV6230',
+        targetId:'remakeProductTable', tableIds:['remakeProductTable'], features:TABLE_FEATURES.slice()
       },
       {
-        key:'ceramist',
-        legacyKey:'ceramist',
-        title:'Technicians',
-        kind:'table',
-        cardId:'remakeCeramistCardV6342',
-        targetId:'remakeCeramistTableV6342',
-        tableIds:['remakeCeramistTableV6342','remakeCeramistDetailTableV6343'],
-        features:STANDARD_TABLE_FEATURES.slice()
+        key:'customer', legacyKey:'customer', title:'Customers', kind:'table', cardId:'remakeCustomerCardV6230',
+        targetId:'remakeCustomerTable', tableIds:['remakeCustomerTable'], collapseKey:'customer',
+        features:TABLE_FEATURES.concat(['collapse'])
+      },
+      {
+        key:'ceramist', legacyKey:'ceramist', title:'Technicians', kind:'table', cardId:'remakeCeramistCardV6342',
+        targetId:'remakeCeramistTableV6342', tableIds:['remakeCeramistTableV6342','remakeCeramistDetailTableV6343'],
+        collapseKey:'technician', features:STANDARD_TABLE_FEATURES.concat(['collapse'])
       }
     ]
   };
