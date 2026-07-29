@@ -1,14 +1,14 @@
 <!-- TatDashboardBootstrapV6547.html
-Version: v6.553
+Version: v6.554
 Date: 2026-07-29
-Purpose: Register, validate, render, and audit TAT on the shared dashboard platform.
+Purpose: Register, validate, render, and audit TAT on the complete shared dashboard platform.
 -->
 <script id="cdaTatDashboardBootstrapControllerV6547">
 (function installTatDashboardBootstrapV6547(){
   'use strict';
 
-  if (window.__cdaTatDashboardBootstrapV6553) return;
-  window.__cdaTatDashboardBootstrapV6553 = true;
+  if (window.__cdaTatDashboardBootstrapV6554) return;
+  window.__cdaTatDashboardBootstrapV6554 = true;
 
   const platform = window.cdaDashboardPlatformV6547;
   const renderer = window.cdaDashboardRendererV6547;
@@ -31,8 +31,8 @@ Purpose: Register, validate, render, and audit TAT on the shared dashboard platf
       sharedColumns:window.cdaDashboardColumnsV6548 && window.cdaDashboardColumnsV6548.version === 'v6.550',
       sharedPopout:window.cdaDashboardPopoutV6548 && window.cdaDashboardPopoutV6548.version === 'v6.550',
       sharedPopover:window.cdaDashboardPopoverV6547 && window.cdaDashboardPopoverV6547.version === 'v6.550',
-      sharedToolbar:window.cdaDashboardToolbarV6548 && window.cdaDashboardToolbarV6548.version === 'v6.550',
-      sharedAudit:window.cdaDashboardAuditV6550 && window.cdaDashboardAuditV6550.version === 'v6.553',
+      sharedToolbar:window.cdaDashboardToolbarV6548 && window.cdaDashboardToolbarV6548.version === 'v6.554',
+      sharedAudit:window.cdaDashboardAuditV6550 && window.cdaDashboardAuditV6550.version === 'v6.554',
       bindings:window.cdaTatDashboardBindingsV6547 && window.cdaTatDashboardBindingsV6547.version === 'v6.553',
       kpi:!!window.cdaDashboardKpiV6547,
       clearTatComponentV6509:typeof window.clearTatComponentV6509 === 'function',
@@ -50,7 +50,7 @@ Purpose: Register, validate, render, and audit TAT on the shared dashboard platf
       return dependencies[key] === true;
     });
     return Object.assign({},base,{
-      version:'v6.553',
+      version:'v6.554',
       mode:'configuration-driven-dashboard-platform',
       registeredFeatures:platform.listFeatures(),
       registeredTabs:platform.listTabs(),
@@ -85,7 +85,7 @@ Purpose: Register, validate, render, and audit TAT on the shared dashboard platf
   }
 
   window.cdaTatDashboardV6547 = Object.freeze({
-    version:'v6.553',
+    version:'v6.554',
     definition:definition,
     render:renderV6547,
     audit:auditV6547,
