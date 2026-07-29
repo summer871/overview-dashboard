@@ -1,0 +1,151 @@
+<!-- SharedDashboardPopoverV6547.html
+Version: v6.547
+Date: 2026-07-29
+Purpose: Single owner for dashboard menus, choosers, positioning, focus, and dismissal.
+-->
+<style id="cdaSharedDashboardPopoverStylesV6547">
+  .cdaDashboardPopoverV6547 {
+    position:fixed;
+    z-index:9600;
+    min-width:190px;
+    max-width:300px;
+    max-height:min(390px,calc(100vh - 20px));
+    overflow:auto;
+    box-sizing:border-box;
+    padding:7px;
+    border:1px solid #d0d5dd;
+    border-radius:8px;
+    background:#fff;
+    box-shadow:0 7px 24px rgba(16,24,40,.18);
+    color:#344054;
+    font:700 11px/1.35 Roboto,Arial,sans-serif;
+  }
+  .cdaDashboardPopoverV6547 button {
+    display:flex;
+    width:100%;
+    padding:8px;
+    border:0;
+    border-radius:6px;
+    background:#fff;
+    color:#344054;
+    font:800 11px/1.2 Roboto,Arial,sans-serif;
+    text-align:left;
+    cursor:pointer;
+  }
+  .cdaDashboardPopoverV6547 button:hover,
+  .cdaDashboardPopoverV6547 button:focus-visible {
+    background:#f5f7fa;
+    outline:none;
+  }
+  .cdaDashboardPopoverV6547 label {
+    display:flex;
+    align-items:center;
+    gap:8px;
+    padding:7px 6px;
+    border-radius:6px;
+    cursor:pointer;
+  }
+  .cdaDashboardPopoverV6547 label:hover { background:#f5f7fa; }
+  .cdaDashboardPopoverV6547 input { margin:0; accent-color:#d89b00; }
+  .cdaDashboardPopoverTitleV6547 {
+    padding:4px 6px 7px;
+    color:#172033;
+    font-weight:900;
+  }
+</style>
+<script id="cdaSharedDashboardPopoverControllerV6547">
+(function installSharedDashboardPopoverV6547(){
+  'use strict';
+
+  if (window.cdaDashboardPopoverV6547) return;
+
+  let activePopoverV6547 = null;
+  let activeButtonV6547 = null;
+
+  function closeV6547(options){
+    const settings = options || {};
+    const button = activeButtonV6547;
+    if (activePopoverV6547 && activePopoverV6547.parentNode) {
+      activePopoverV6547.parentNode.removeChild(activePopoverV6547);
+    }
+    if (button && button.isConnected) {
+      button.setAttribute('aria-expanded', 'false');
+      button.removeAttribute('aria-controls');
+    }
+    activePopoverV6547 = null;
+    activeButtonV6547 = null;
+    if (settings.returnFocus && button && button.isConnected && button.focus) {
+      button.focus();
+    }
+  }
+
+  function positionV6547(){
+    if (!activePopoverV6547 || !activeButtonV6547 || !activeButtonV6547.isConnected) return;
+    const rect = activeButtonV6547.getBoundingClientRect();
+    const width = Math.min(300, Math.max(190, window.innerWidth - 16));
+    activePopoverV6547.style.width = width + 'px';
+    activePopoverV6547.style.left = Math.max(
+      8,
+      Math.min(window.innerWidth - width - 8, rect.right - width)
+    ) + 'px';
+    const height = Math.min(activePopoverV6547.scrollHeight || 280, window.innerHeight - 20);
+    const below = rect.bottom + 6;
+    activePopoverV6547.style.top = (
+      below + height <= window.innerHeight - 8
+        ? below
+        : Math.max(8, rect.top - height - 6)
+    ) + 'px';
+  }
+
+  function openV6547(button, options){
+    const settings = options || {};
+    if (!button) return null;
+    closeV6547();
+    const popover = document.createElement('div');
+    popover.className = 'cdaDashboardPopoverV6547';
+    popover.id = settings.id || ('cdaDashboardPopoverV6547-' + Date.now());
+    popover.setAttribute('role', settings.role || 'dialog');
+    popover.setAttribute('aria-label', settings.label || 'Dashboard options');
+    popover.addEventListener('click', function(event){ event.stopPropagation(); });
+    document.body.appendChild(popover);
+    activePopoverV6547 = popover;
+    activeButtonV6547 = button;
+    button.setAttribute('aria-expanded', 'true');
+    button.setAttribute('aria-controls', popover.id);
+    if (settings.title) {
+      const title = document.createElement('div');
+      title.className = 'cdaDashboardPopoverTitleV6547';
+      title.textContent = settings.title;
+      popover.appendChild(title);
+    }
+    positionV6547();
+    return popover;
+  }
+
+  function isOpenForV6547(button){
+    return !!(activePopoverV6547 && activeButtonV6547 === button);
+  }
+
+  document.addEventListener('click', function(event){
+    if (!activePopoverV6547) return;
+    const inside = event.target && event.target.closest
+      ? event.target.closest('.cdaDashboardPopoverV6547,[data-cda-dashboard-popover-trigger="true"]')
+      : null;
+    if (!inside) closeV6547();
+  });
+  document.addEventListener('keydown', function(event){
+    if (event.key === 'Escape' && activePopoverV6547) closeV6547({ returnFocus:true });
+  });
+  document.addEventListener('scroll', positionV6547, true);
+  window.addEventListener('resize', positionV6547, { passive:true });
+
+  window.cdaDashboardPopoverV6547 = Object.freeze({
+    version:'v6.547',
+    open:openV6547,
+    close:closeV6547,
+    position:positionV6547,
+    isOpenFor:isOpenForV6547,
+    active:function(){ return activePopoverV6547; }
+  });
+})();
+</script>
