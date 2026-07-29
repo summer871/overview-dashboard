@@ -1,0 +1,195 @@
+<!-- SharedDashboardIsolationV6555.html
+Version: v6.555
+Date: 2026-07-29
+Purpose: Open and isolate the same live dashboard component in a separate application window.
+-->
+<style id="cdaSharedDashboardIsolationStylesV6555">
+  html.cdaDashboardIsolatedV6555,
+  html.cdaDashboardIsolatedV6555 body {
+    min-height:100%!important;
+    background:var(--cda-color-page)!important;
+  }
+  html.cdaDashboardIsolatedV6555 body {
+    margin:0!important;
+    padding:12px!important;
+    overflow:auto!important;
+  }
+  html.cdaDashboardIsolatedV6555 .managerTabs,
+  html.cdaDashboardIsolatedV6555 #cdaSharedAppFooterV6531,
+  html.cdaDashboardIsolatedV6555 .remakeStickyTopV6245,
+  html.cdaDashboardIsolatedV6555 .tatKpiStageV6509,
+  html.cdaDashboardIsolatedV6555 .remakePillsV6230,
+  html.cdaDashboardIsolatedV6555 .tatPillsV6509,
+  html.cdaDashboardIsolatedV6555 .remakeNotice,
+  html.cdaDashboardIsolatedV6555 .tatNoticeV6509,
+  html.cdaDashboardIsolatedV6555 [data-cda-dashboard-feature-key="popout"] {
+    display:none!important;
+  }
+  html.cdaDashboardIsolatedV6555 .tabPage,
+  html.cdaDashboardIsolatedV6555 #tatDashboardPageV6509,
+  html.cdaDashboardIsolatedV6555 #remakeFactorPage {
+    display:none!important;
+  }
+  html.cdaDashboardIsolatedV6555 [data-cda-isolated-page="true"] {
+    display:block!important;
+    visibility:visible!important;
+    max-width:none!important;
+    min-height:0!important;
+    padding:0!important;
+    margin:0!important;
+    background:transparent!important;
+  }
+  html.cdaDashboardIsolatedV6555 [data-cda-isolated-page="true"] .remakeShellV6230,
+  html.cdaDashboardIsolatedV6555 [data-cda-isolated-page="true"] .tatShellV6509 {
+    max-width:none!important;
+    padding:0!important;
+    margin:0!important;
+  }
+  html.cdaDashboardIsolatedV6555 [data-cda-isolated-page="true"] .remakeGridV6230,
+  html.cdaDashboardIsolatedV6555 [data-cda-isolated-page="true"] .remakeGrid,
+  html.cdaDashboardIsolatedV6555 [data-cda-isolated-page="true"] .tatGridV6509 {
+    display:block!important;
+    margin:0!important;
+    padding:0!important;
+  }
+  html.cdaDashboardIsolatedV6555 [data-cda-isolated-page="true"] .remakeCard,
+  html.cdaDashboardIsolatedV6555 [data-cda-isolated-page="true"] article {
+    display:none!important;
+  }
+  html.cdaDashboardIsolatedV6555 [data-cda-isolated-component="true"] {
+    display:block!important;
+    width:100%!important;
+    max-width:none!important;
+    min-height:calc(100vh - 24px)!important;
+    margin:0!important;
+  }
+</style>
+<script id="cdaSharedDashboardIsolationControllerV6555">
+(function installSharedDashboardIsolationV6555(){
+  'use strict';
+
+  if (window.cdaDashboardIsolationV6555) return;
+
+  function serverConfig(){
+    return window.CDA_SERVER_PRESENTATION || {};
+  }
+
+  function route(){
+    const value = String(serverConfig().componentRoute || '').trim();
+    const parts = value.split('.');
+    return parts.length === 2 && parts[0] && parts[1]
+      ? {tabKey:parts[0],componentKey:parts[1],id:value}
+      : null;
+  }
+
+  function baseUrl(){
+    const config = serverConfig();
+    const direct = String(config.baseUrl || '').trim();
+    if (direct) return direct;
+    try {
+      const referrer = String(document.referrer || '').trim();
+      const match = referrer.match(/^(https:\/\/script\.google\.com\/macros\/s\/[^/?#]+\/(?:dev|exec))/i);
+      if (match) return match[1];
+    } catch (error) {}
+    return '';
+  }
+
+  function buildUrl(tabKey,componentKey){
+    const urlText = baseUrl();
+    if (!urlText) return '';
+    try {
+      const url = new URL(urlText);
+      url.searchParams.set('presentation','all');
+      url.searchParams.set('component',String(tabKey) + '.' + String(componentKey));
+      url.searchParams.set('popout','1');
+      return url.toString();
+    } catch (error) {
+      return '';
+    }
+  }
+
+  function open(context){
+    if (!context || !context.tab || !context.component) return false;
+    const url = buildUrl(context.tab.key,context.component.key);
+    if (!url) return false;
+    const name = 'cdaDashboard_' + context.tab.key + '_' + context.component.key;
+    const popup = window.open(url,name,'width=1200,height=780,resizable=yes,scrollbars=yes');
+    if (!popup) return false;
+    try { popup.focus(); } catch (error) {}
+    return true;
+  }
+
+  function activateTab(tab){
+    if (!tab) return;
+    if (tab.tabButtonId) {
+      const button = document.getElementById(tab.tabButtonId);
+      if (button && typeof button.click === 'function') {
+        try { button.click(); } catch (error) {}
+      }
+    }
+    const page = document.getElementById(tab.pageId);
+    if (page) {
+      page.classList.add('active');
+      page.style.setProperty('display','block','important');
+      page.style.setProperty('visibility','visible','important');
+    }
+  }
+
+  function isolate(tabKey,componentKey){
+    const catalog = window.cdaDashboardCatalogV6555;
+    const platform = window.cdaDashboardPlatformV6547;
+    if (!catalog || !platform) return Promise.reject(new Error('Dashboard catalog is unavailable.'));
+    const tab = platform.getTab(tabKey);
+    if (!tab) return Promise.reject(new Error('Unknown dashboard tab: ' + tabKey));
+    activateTab(tab);
+    return catalog.waitFor(tabKey,componentKey,{timeoutMs:30000}).then(function(result){
+      const card = result.card;
+      const page = document.getElementById(tab.pageId);
+      if (!card || !page) throw new Error('Component card or page is unavailable.');
+      document.documentElement.classList.add('cdaDashboardIsolatedV6555');
+      document.documentElement.setAttribute('data-cda-isolated-component-id',result.descriptor.id);
+      page.setAttribute('data-cda-isolated-page','true');
+      card.setAttribute('data-cda-isolated-component','true');
+      document.title = result.descriptor.title + ' — Dashboard';
+      window.requestAnimationFrame(function(){
+        window.dispatchEvent(new Event('resize'));
+        try { card.scrollIntoView({block:'start'}); } catch (error) {}
+      });
+      return result.descriptor;
+    });
+  }
+
+  function start(){
+    const currentRoute = route();
+    if (!currentRoute) return;
+    let attempts = 0;
+    const timer = window.setInterval(function(){
+      attempts += 1;
+      if (window.cdaDashboardCatalogV6555 && window.cdaDashboardPlatformV6547) {
+        window.clearInterval(timer);
+        isolate(currentRoute.tabKey,currentRoute.componentKey).catch(function(error){
+          console.error('Component isolation failed:',error);
+        });
+      } else if (attempts >= 400) {
+        window.clearInterval(timer);
+        console.error('Component isolation dependencies did not load.');
+      }
+    },25);
+  }
+
+  window.cdaDashboardIsolationV6555 = Object.freeze({
+    version:'v6.555',
+    route:route,
+    baseUrl:baseUrl,
+    buildUrl:buildUrl,
+    open:open,
+    isolate:isolate
+  });
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded',start,{once:true});
+  } else {
+    start();
+  }
+})();
+</script>
