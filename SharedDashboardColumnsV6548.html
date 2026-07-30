@@ -1,7 +1,7 @@
 <!-- SharedDashboardColumnsV6548.html
-Version: v6.550
-Date: 2026-07-29
-Purpose: One visible column chooser and persistence service for managed and existing DOM tables.
+Version: v6.558
+Date: 2026-07-30
+Purpose: One document-aware column chooser and persistence service for managed and existing DOM tables.
 -->
 <style id="cdaSharedDashboardColumnsStylesV6548">
   .cdaDashboardColumnHiddenV6548 { display:none!important; }
@@ -14,9 +14,17 @@ Purpose: One visible column chooser and persistence service for managed and exis
 (function installSharedDashboardColumnsV6548(){
   'use strict';
 
-  if (window.cdaDashboardColumnsV6548 && window.cdaDashboardColumnsV6548.version === 'v6.550') return;
+  if (window.cdaDashboardColumnsV6548 &&
+      window.cdaDashboardColumnsV6548.version === 'v6.558') return;
 
   const storageKey = 'cdaDashboardColumns.v6550';
+
+  function documentFor(context){
+    return context && context.document ||
+      context && context.card && context.card.ownerDocument ||
+      context && context.button && context.button.ownerDocument ||
+      document;
+  }
 
   function readState(){
     try {
@@ -44,8 +52,28 @@ Purpose: One visible column chooser and persistence service for managed and exis
     return [];
   }
 
-  function resolveTable(id){
-    const node = document.getElementById(id);
+  function escapeId(id,doc){
+    const view = doc && doc.defaultView;
+    try {
+      if (view && view.CSS && typeof view.CSS.escape === 'function') return '#' + view.CSS.escape(String(id));
+      if (window.CSS && typeof window.CSS.escape === 'function') return '#' + window.CSS.escape(String(id));
+    } catch (error) {}
+    return '[id="' + String(id).replace(/\\/g,'\\\\').replace(/"/g,'\\"') + '"]';
+  }
+
+  function resolveTable(id,context){
+    const doc = documentFor(context);
+    const card = context && context.card;
+    let node = null;
+    if (card && card.querySelector) {
+      if (card.id === String(id)) node = card;
+      else {
+        try { node = card.querySelector(escapeId(id,doc)); }
+        catch (error) {}
+      }
+    }
+    if (!node && doc && typeof doc.getElementById === 'function') node = doc.getElementById(id);
+    if (!node && doc !== document) node = document.getElementById(id);
     if (!node) return null;
     return node.tagName === 'TABLE' ? node : node.closest ? node.closest('table') : null;
   }
@@ -132,7 +160,7 @@ Purpose: One visible column chooser and persistence service for managed and exis
 
   function domSources(context){
     return tableIds(context.component).map(function(tableId){
-      const table = resolveTable(tableId);
+      const table = resolveTable(tableId,context);
       if (!table) return null;
       const hidden = domHidden(context,tableId);
       return {
@@ -218,19 +246,21 @@ Purpose: One visible column chooser and persistence service for managed and exis
     const sources = describe(context);
     if (!sources.length) return false;
     const panel = context.popover.open(context.button,{label:'Choose visible columns',title:'Columns'});
+    if (!panel) return false;
+    const doc = panel.ownerDocument || documentFor(context);
     sources.forEach(function(source){
-      const section = document.createElement('div');
+      const section = doc.createElement('div');
       section.className = 'cdaDashboardColumnSectionV6548';
       if (sources.length > 1) {
-        const heading = document.createElement('div');
+        const heading = doc.createElement('div');
         heading.className = 'cdaDashboardColumnSectionTitleV6548';
         heading.textContent = source.title;
         section.appendChild(heading);
       }
       source.columns.forEach(function(column){
-        const label = document.createElement('label');
-        const input = document.createElement('input');
-        const text = document.createElement('span');
+        const label = doc.createElement('label');
+        const input = doc.createElement('input');
+        const text = doc.createElement('span');
         input.type = 'checkbox';
         input.checked = column.visible;
         input.disabled = !column.hideable;
@@ -251,13 +281,13 @@ Purpose: One visible column chooser and persistence service for managed and exis
       });
       panel.appendChild(section);
     });
-    const footer = document.createElement('div');
+    const footer = doc.createElement('div');
     footer.className = 'cdaDashboardColumnFooterV6548';
-    const show = document.createElement('button');
+    const show = doc.createElement('button');
     show.type = 'button';
     show.textContent = 'Show all';
     show.addEventListener('click',function(){ showAll(context); context.popover.close(); });
-    const done = document.createElement('button');
+    const done = doc.createElement('button');
     done.type = 'button';
     done.textContent = 'Done';
     done.addEventListener('click',function(){ context.popover.close(); });
@@ -268,14 +298,16 @@ Purpose: One visible column chooser and persistence service for managed and exis
   }
 
   window.cdaDashboardColumnsV6548 = Object.freeze({
-    version:'v6.550',
+    version:'v6.558',
     mode:'single-shared-chooser',
     open:open,
     apply:apply,
     reset:showAll,
     describe:describe,
     setVisible:setVisible,
-    showAll:showAll
+    showAll:showAll,
+    resolveTable:resolveTable,
+    documentFor:documentFor
   });
 })();
 </script>
