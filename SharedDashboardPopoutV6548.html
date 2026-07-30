@@ -1,28 +1,31 @@
 <!-- SharedDashboardPopoutV6548.html
-Version: v6.559
+Version: v6.560
 Date: 2026-07-30
-Purpose: Open the actual live dashboard card in a separate same-origin window and restore it on close.
+Purpose: Open the actual live dashboard card in a full-table same-origin window and restore it on close.
 -->
 <script id="cdaSharedDashboardPopoutControllerV6548">
 (function installSharedDashboardPopoutV6548(){
   'use strict';
 
   if (window.cdaDashboardPopoutV6548 &&
-      window.cdaDashboardPopoutV6548.version === 'v6.559') return;
+      window.cdaDashboardPopoutV6548.version === 'v6.560') return;
 
   const isolation = window.cdaDashboardIsolationV6555;
-  if (!isolation || isolation.version !== 'v6.559') {
-    throw new Error('Dashboard isolation v6.559 must load before pop-out.');
+  if (!isolation || isolation.version !== 'v6.560') {
+    throw new Error('Dashboard isolation v6.560 must load before pop-out.');
   }
 
   function open(context){ return isolation.open(context); }
 
   window.cdaDashboardPopoutV6548 = Object.freeze({
-    version:'v6.559',
+    version:'v6.560',
     mode:'detached-live-component',
+    tableMode:'full-table',
     open:open,
     restore:isolation.restore,
     active:isolation.active,
+    session:isolation.session,
+    card:isolation.card,
     lastAttempt:isolation.lastAttempt
   });
 })();
