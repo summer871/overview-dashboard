@@ -64,7 +64,7 @@ Purpose: Open and isolate the same live dashboard component using the active web
 
   function frameUrlFrom(value){
     const text=String(value||'').trim();
-    return /^https:\/\/[^/]+\.script\.googleusercontent\.com\//i.test(text)?text:'';
+    return /^https:\/\/[^/]+(?:-|\.)script\.googleusercontent\.com\//i.test(text)?text:'';
   }
 
   function visibleWebAppUrl(){
