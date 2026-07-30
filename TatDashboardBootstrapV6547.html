@@ -1,14 +1,14 @@
 <!-- TatDashboardBootstrapV6547.html
-Version: v6.560
+Version: v6.561
 Date: 2026-07-30
-Purpose: Register, render, and audit TAT on the shared component platform with complete-table detached live-card pop-outs.
+Purpose: Register, render, and audit TAT on the shared component platform with popup-window-only vertical scrolling.
 -->
 <script id="cdaTatDashboardBootstrapControllerV6547">
 (function installTatDashboardBootstrapV6547(){
   'use strict';
 
-  if (window.__cdaTatDashboardBootstrapV6560) return;
-  window.__cdaTatDashboardBootstrapV6560 = true;
+  if (window.__cdaTatDashboardBootstrapV6561) return;
+  window.__cdaTatDashboardBootstrapV6561 = true;
 
   const platform = window.cdaDashboardPlatformV6547;
   const renderer = window.cdaDashboardRendererV6547;
@@ -24,7 +24,7 @@ Purpose: Register, render, and audit TAT on the shared component platform with c
     throw new Error('TAT definition is invalid:\n' + registrationAudit.errors.join('\n'));
   }
 
-  function dependencyAuditV6560(){
+  function dependencyAuditV6561(){
     return {
       tableModule:!!window.cdaTable,
       sharedTheme:window.cdaDashboardThemeV6549 && window.cdaDashboardThemeV6549.version === 'v6.550',
@@ -32,13 +32,14 @@ Purpose: Register, render, and audit TAT on the shared component platform with c
       sharedPopover:window.cdaDashboardPopoverV6547 && window.cdaDashboardPopoverV6547.version === 'v6.558',
       sharedToolbar:window.cdaDashboardToolbarV6548 && window.cdaDashboardToolbarV6548.version === 'v6.558',
       componentCatalog:window.cdaDashboardCatalogV6555 && window.cdaDashboardCatalogV6555.version === 'v6.555',
-      componentIsolation:window.cdaDashboardIsolationV6555 && window.cdaDashboardIsolationV6555.version === 'v6.560',
-      livePopout:window.cdaDashboardPopoutV6548 && window.cdaDashboardPopoutV6548.version === 'v6.560' &&
+      componentIsolation:window.cdaDashboardIsolationV6555 && window.cdaDashboardIsolationV6555.version === 'v6.561' &&
+        window.cdaDashboardIsolationV6555.tableMode === 'window-scroll-full-table',
+      livePopout:window.cdaDashboardPopoutV6548 && window.cdaDashboardPopoutV6548.version === 'v6.561' &&
         window.cdaDashboardPopoutV6548.mode === 'detached-live-component' &&
-        window.cdaDashboardPopoutV6548.tableMode === 'full-table',
+        window.cdaDashboardPopoutV6548.tableMode === 'window-scroll-full-table',
       titleToggle:window.cdaDashboardTitleToggleV6555 && window.cdaDashboardTitleToggleV6555.version === 'v6.556',
       renderer:renderer.version === 'v6.555',
-      sharedAudit:sharedAudit.version === 'v6.560',
+      sharedAudit:sharedAudit.version === 'v6.561',
       adapter:window.cdaTatDashboardAdapterV6547 && window.cdaTatDashboardAdapterV6547.version === 'v6.558',
       definition:definition.version === 'v6.555',
       bindings:window.cdaTatDashboardBindingsV6547 && window.cdaTatDashboardBindingsV6547.version === 'v6.555',
@@ -50,17 +51,17 @@ Purpose: Register, render, and audit TAT on the shared component platform with c
     };
   }
 
-  function auditV6560(){
+  function auditV6561(){
     const base = renderer.audit('tat');
-    const dependencies = dependencyAuditV6560();
+    const dependencies = dependencyAuditV6561();
     const sharedControls = sharedAudit.audit();
     const catalog = window.cdaDashboardCatalogV6555.audit();
     const allRequiredDependenciesPresent = Object.keys(dependencies).every(function(key){
       return dependencies[key] === true;
     });
     return Object.assign({},base,{
-      version:'v6.560',
-      mode:'shared-platform-with-complete-table-detached-popouts',
+      version:'v6.561',
+      mode:'shared-platform-with-popup-window-only-vertical-scroll',
       registeredFeatures:platform.listFeatures(),
       registeredTabs:platform.listTabs(),
       dependencies:dependencies,
@@ -79,32 +80,32 @@ Purpose: Register, render, and audit TAT on the shared component platform with c
     });
   }
 
-  function renderV6560(){ return renderer.rebuild('tat'); }
+  function renderV6561(){ return renderer.rebuild('tat'); }
 
-  function startV6560(){
+  function startV6561(){
     let attempts = 0;
     const timer = window.setInterval(function(){
       attempts += 1;
       if (document.getElementById(definition.pageId) && window.cdaTable) {
         window.clearInterval(timer);
-        renderV6560();
+        renderV6561();
       } else if (attempts >= 160) window.clearInterval(timer);
     },25);
   }
 
   window.cdaTatDashboardV6547 = Object.freeze({
-    version:'v6.560',
+    version:'v6.561',
     definition:definition,
-    render:renderV6560,
-    audit:auditV6560,
-    dependencyAudit:dependencyAuditV6560
+    render:renderV6561,
+    audit:auditV6561,
+    dependencyAudit:dependencyAuditV6561
   });
-  window.auditSharedRemakeTableShellV6544 = auditV6560;
+  window.auditSharedRemakeTableShellV6544 = auditV6561;
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded',startV6560,{once:true});
+    document.addEventListener('DOMContentLoaded',startV6561,{once:true});
   } else {
-    startV6560();
+    startV6561();
   }
 })();
 </script>
