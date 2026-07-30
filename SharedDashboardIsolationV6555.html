@@ -1,7 +1,7 @@
 <!-- SharedDashboardIsolationV6555.html
-Version: v6.559
+Version: v6.560
 Date: 2026-07-30
-Purpose: Move the actual live dashboard card into a full-width same-origin popup, expanding collapsed cards temporarily and restoring the same node and state on close.
+Purpose: Move the actual live dashboard card into a full-width same-origin popup, show complete tables without internal vertical scrolling, and restore the same node and state on close.
 -->
 <style id="cdaSharedDashboardIsolationStylesV6555">
   .cdaDashboardPopoutPlaceholderV6558 {
@@ -32,23 +32,23 @@ Purpose: Move the actual live dashboard card into a full-width same-origin popup
   'use strict';
 
   if (window.cdaDashboardIsolationV6555 &&
-      window.cdaDashboardIsolationV6555.version === 'v6.559') return;
+      window.cdaDashboardIsolationV6555.version === 'v6.560') return;
 
-  const sessionsV6559 = new Map();
-  let lastAttemptV6559 = null;
+  const sessionsV6560 = new Map();
+  let lastAttemptV6560 = null;
 
-  function componentIdV6559(context){
+  function componentIdV6560(context){
     const tabKey = context && context.tab && context.tab.key;
     const componentKey = context && context.component && context.component.key;
     return tabKey && componentKey ? String(tabKey) + '.' + String(componentKey) : '';
   }
 
-  function sessionV6559(id){ return sessionsV6559.get(String(id || '')) || null; }
-  function cardV6559(id){ const session = sessionV6559(id); return session && session.card || null; }
+  function sessionV6560(id){ return sessionsV6560.get(String(id || '')) || null; }
+  function cardV6560(id){ const session = sessionV6560(id); return session && session.card || null; }
 
-  function resolveCardV6559(context){
-    const id = componentIdV6559(context);
-    const active = cardV6559(id);
+  function resolveCardV6560(context){
+    const id = componentIdV6560(context);
+    const active = cardV6560(id);
     if (active) return active;
     const parts = id.split('.');
     const catalog = window.cdaDashboardCatalogV6555;
@@ -65,21 +65,23 @@ Purpose: Move the actual live dashboard card into a full-width same-origin popup
     return target && target.closest ? target.closest('.remakeCard,article') : null;
   }
 
-  function copyStylesV6559(sourceDocument,targetDocument){
+  function copyStylesV6560(sourceDocument,targetDocument){
     Array.from(sourceDocument.querySelectorAll('style,link[rel="stylesheet"]')).forEach(function(node){
       try { targetDocument.head.appendChild(node.cloneNode(true)); } catch (error) {}
     });
     const style = targetDocument.createElement('style');
-    style.id = 'cdaDashboardDetachedWindowStylesV6559';
+    style.id = 'cdaDashboardDetachedWindowStylesV6560';
     style.textContent = [
       'html,body{width:100%;min-width:0;min-height:100%;margin:0;background:var(--cda-color-page,#f7f8fa);}',
-      'body{box-sizing:border-box;padding:12px;overflow:auto;}',
+      'body{box-sizing:border-box;padding:12px;overflow-x:hidden;overflow-y:auto;}',
       '#cdaDashboardPopoutMountV6558{display:block;width:100%;max-width:none;min-width:0;min-height:calc(100vh - 24px);}',
-      '[data-cda-popout-ancestor="true"]{display:block!important;visibility:visible!important;box-sizing:border-box!important;float:none!important;max-width:none!important;min-width:0!important;width:100%!important;height:auto!important;min-height:0!important;margin:0!important;padding:0!important;}',
+      '[data-cda-popout-ancestor="true"]{display:block!important;visibility:visible!important;box-sizing:border-box!important;float:none!important;max-width:none!important;min-width:0!important;width:100%!important;height:auto!important;max-height:none!important;min-height:0!important;margin:0!important;padding:0!important;overflow:visible!important;}',
       '[data-cda-popout-ancestor="true"].remakeGridV6230,[data-cda-popout-ancestor="true"].remakeGrid,[data-cda-popout-ancestor="true"].tatGridV6509{display:block!important;grid-template-columns:minmax(0,1fr)!important;}',
-      '[data-cda-detached-component="true"]{display:block!important;visibility:visible!important;box-sizing:border-box!important;float:none!important;grid-column:1 / -1!important;flex:1 1 auto!important;width:100%!important;max-width:none!important;min-width:0!important;height:auto!important;min-height:0!important;margin:0!important;}',
-      '[data-cda-detached-component="true"] .remakeTableWrap,[data-cda-detached-component="true"] .tatSummaryTableV6509,[data-cda-detached-component="true"] .tatCustomersWrapV6509,[data-cda-detached-component="true"] .tatQualityTableWrapV6509,[data-cda-detached-component="true"] .cdaTableFrameV6542{box-sizing:border-box!important;width:100%!important;max-width:none!important;min-width:0!important;}',
-      '[data-cda-detached-component="true"] table{width:100%!important;max-width:none!important;}',
+      '[data-cda-detached-component="true"]{display:block!important;visibility:visible!important;box-sizing:border-box!important;float:none!important;grid-column:1 / -1!important;flex:1 1 auto!important;width:100%!important;max-width:none!important;min-width:0!important;height:auto!important;max-height:none!important;min-height:0!important;margin:0!important;overflow:visible!important;}',
+      '[data-cda-detached-component="true"] :is(.remakeTableWrap,.remakeDepartmentTableWrapV6230,.remakeProductTableWrapV6230,.remakeCustomerTableWrapV6230,.ceramistPreviewTableWrapV6342,.tatSummaryTableV6509,.tatCustomersWrapV6509,.tatQualityTableWrapV6509,.cdaTableFrameV6542,.cdaTableViewportV6542,.cdaTableBodyV6542,.tableScroll,[class*="TableWrap"],[class*="tableWrap"],[class*="TableFrame"],[class*="tableFrame"],[class*="TableViewport"],[class*="tableViewport"]){display:block!important;box-sizing:border-box!important;width:100%!important;max-width:none!important;min-width:0!important;height:auto!important;max-height:none!important;min-height:0!important;overflow-x:auto!important;overflow-y:visible!important;}',
+      '[data-cda-detached-component="true"] :is(.remakeCardBody,.tatCardBodyV6509,[class*="CardBody"],[class*="cardBody"]){height:auto!important;max-height:none!important;min-height:0!important;overflow:visible!important;}',
+      '[data-cda-detached-component="true"] table{width:100%!important;max-width:none!important;height:auto!important;max-height:none!important;}',
+      '[data-cda-detached-component="true"] tbody{height:auto!important;max-height:none!important;overflow:visible!important;}',
       '[data-cda-detached-component="true"] canvas{max-width:100%!important;}',
       '[data-cda-detached-component="true"] [data-cda-dashboard-feature-key="popout"]{display:none!important;}',
       '#cdaSharedAppFooterV6531,.managerTabs,.remakeStickyTopV6245,.tatKpiStageV6509{display:none!important;}'
@@ -87,7 +89,7 @@ Purpose: Move the actual live dashboard card into a full-width same-origin popup
     targetDocument.head.appendChild(style);
   }
 
-  function buildAncestorShellV6559(card,context,targetDocument,mount){
+  function buildAncestorShellV6560(card,context,targetDocument,mount){
     const tab = context && context.tab;
     const page = tab && tab.pageId ? card.ownerDocument.getElementById(tab.pageId) : null;
     const path = [];
@@ -109,7 +111,10 @@ Purpose: Move the actual live dashboard card into a full-width same-origin popup
         clone.style.removeProperty('max-width');
         clone.style.removeProperty('min-width');
         clone.style.removeProperty('height');
+        clone.style.removeProperty('max-height');
         clone.style.removeProperty('min-height');
+        clone.style.removeProperty('overflow');
+        clone.style.removeProperty('overflow-y');
       }
       parent.appendChild(clone);
       parent = clone;
@@ -117,7 +122,7 @@ Purpose: Move the actual live dashboard card into a full-width same-origin popup
     return parent;
   }
 
-  function exposeInlineGlobalsV6559(popup,card){
+  function exposeInlineGlobalsV6560(popup,card){
     const names = new Set([
       'cdaTableSortV6540','cdaTableSortV6539','cdaTableSortV6542',
       'cdaTable','CdaSharedTableModule','Chart','google'
@@ -141,7 +146,7 @@ Purpose: Move the actual live dashboard card into a full-width same-origin popup
     });
   }
 
-  function bridgeSharedEventsV6559(popup){
+  function bridgeSharedEventsV6560(popup){
     popup.document.addEventListener('click',function(event){
       const button = event.target && event.target.closest
         ? event.target.closest('[data-cda-dashboard-feature-key]')
@@ -155,7 +160,7 @@ Purpose: Move the actual live dashboard card into a full-width same-origin popup
     });
   }
 
-  function contextWithCardV6559(context,card){
+  function contextWithCardV6560(context,card){
     const doc = card && card.ownerDocument || document;
     return Object.assign({},context,{
       card:card,
@@ -164,25 +169,25 @@ Purpose: Move the actual live dashboard card into a full-width same-origin popup
     });
   }
 
-  function collapsedV6559(context,card){
+  function collapsedV6560(context,card){
     const adapter = context && context.adapter;
     if (!adapter || typeof adapter.isCollapsed !== 'function') return false;
-    try { return !!adapter.isCollapsed(contextWithCardV6559(context,card)); }
+    try { return !!adapter.isCollapsed(contextWithCardV6560(context,card)); }
     catch (error) { return false; }
   }
 
-  function toggleCollapseV6559(context,card){
+  function toggleCollapseV6560(context,card){
     const adapter = context && context.adapter;
     if (!adapter || typeof adapter.collapse !== 'function') return false;
-    try { return adapter.collapse(contextWithCardV6559(context,card)) !== false; }
+    try { return adapter.collapse(contextWithCardV6560(context,card)) !== false; }
     catch (error) { return false; }
   }
 
-  function refreshMovedComponentV6559(context,card,popup){
+  function refreshMovedComponentV6560(context,card,popup){
     window.setTimeout(function(){
       try {
         const adapter = context && context.adapter;
-        const movedContext = contextWithCardV6559(context,card);
+        const movedContext = contextWithCardV6560(context,card);
         const chart = adapter && typeof adapter.getChart === 'function'
           ? adapter.getChart(movedContext)
           : null;
@@ -195,15 +200,15 @@ Purpose: Move the actual live dashboard card into a full-width same-origin popup
     },0);
   }
 
-  function restoreOriginalCollapseV6559(session){
+  function restoreOriginalCollapseV6560(session){
     if (!session || !session.wasCollapsed) return;
-    if (!collapsedV6559(session.context,session.card)) {
-      toggleCollapseV6559(session.context,session.card);
+    if (!collapsedV6560(session.context,session.card)) {
+      toggleCollapseV6560(session.context,session.card);
     }
   }
 
-  function restoreV6559(id,reason){
-    const session = sessionsV6559.get(id);
+  function restoreV6560(id,reason){
+    const session = sessionsV6560.get(id);
     if (!session || session.restoring) return false;
     session.restoring = true;
     if (session.poller) window.clearInterval(session.poller);
@@ -212,17 +217,18 @@ Purpose: Move the actual live dashboard card into a full-width same-origin popup
         session.sourceDocument.adoptNode(session.card);
       }
       session.card.removeAttribute('data-cda-detached-component');
+      session.card.removeAttribute('data-cda-popout-full-table');
       if (session.placeholder && session.placeholder.parentNode) {
         session.placeholder.replaceWith(session.card);
       } else if (session.parent && session.parent.isConnected) {
         session.parent.insertBefore(session.card,session.nextSibling && session.nextSibling.isConnected
           ? session.nextSibling : null);
       }
-      restoreOriginalCollapseV6559(session);
+      restoreOriginalCollapseV6560(session);
     } catch (error) {
       console.error('Dashboard component restoration failed.',error);
     }
-    sessionsV6559.delete(id);
+    sessionsV6560.delete(id);
     if (reason !== 'popup-closed' && session.popup && !session.popup.closed) {
       try { session.popup.close(); } catch (error) {}
     }
@@ -230,7 +236,7 @@ Purpose: Move the actual live dashboard card into a full-width same-origin popup
     return true;
   }
 
-  function placeholderV6559(sourceDocument,id,title,popup){
+  function placeholderV6560(sourceDocument,id,title,popup){
     const placeholder = sourceDocument.createElement('div');
     placeholder.className = 'cdaDashboardPopoutPlaceholderV6558';
     placeholder.setAttribute('data-cda-popout-placeholder',id);
@@ -243,24 +249,24 @@ Purpose: Move the actual live dashboard card into a full-width same-origin popup
     const restore = sourceDocument.createElement('button');
     restore.type = 'button';
     restore.textContent = 'Restore';
-    restore.addEventListener('click',function(){ restoreV6559(id,'manual-restore'); });
+    restore.addEventListener('click',function(){ restoreV6560(id,'manual-restore'); });
     placeholder.append(text,focus,restore);
     return placeholder;
   }
 
-  function openV6559(context){
-    const id = componentIdV6559(context);
+  function openV6560(context){
+    const id = componentIdV6560(context);
     if (!id) return false;
-    const existing = sessionsV6559.get(id);
+    const existing = sessionsV6560.get(id);
     if (existing && existing.popup && !existing.popup.closed) {
       try { existing.popup.focus(); } catch (error) {}
       return true;
     }
 
-    const card = resolveCardV6559(context);
+    const card = resolveCardV6560(context);
     if (!card || !card.parentNode) return false;
-    const wasCollapsed = collapsedV6559(context,card);
-    if (wasCollapsed) toggleCollapseV6559(context,card);
+    const wasCollapsed = collapsedV6560(context,card);
+    if (wasCollapsed) toggleCollapseV6560(context,card);
 
     const sourceDocument = card.ownerDocument;
     const parent = card.parentNode;
@@ -270,22 +276,23 @@ Purpose: Move the actual live dashboard card into a full-width same-origin popup
     try { popup = window.open('',popupName,'width=1200,height=780,resizable=yes,scrollbars=yes'); }
     catch (error) {}
 
-    lastAttemptV6559 = {
+    lastAttemptV6560 = {
       componentId:id,
       popupCreated:!!popup,
       success:false,
       reason:'',
       wasCollapsed:wasCollapsed,
+      fullTable:true,
       timestamp:new Date().toISOString()
     };
 
     if (!popup) {
-      if (wasCollapsed && !collapsedV6559(context,card)) toggleCollapseV6559(context,card);
-      lastAttemptV6559.reason = 'popup-blocked';
+      if (wasCollapsed && !collapsedV6560(context,card)) toggleCollapseV6560(context,card);
+      lastAttemptV6560.reason = 'popup-blocked';
       return false;
     }
 
-    const placeholder = placeholderV6559(sourceDocument,id,context.component.title,popup);
+    const placeholder = placeholderV6560(sourceDocument,id,context.component.title,popup);
     const height = Math.max(84,Math.round(card.getBoundingClientRect().height || 0));
     placeholder.style.minHeight = height + 'px';
     parent.insertBefore(placeholder,card);
@@ -296,52 +303,53 @@ Purpose: Move the actual live dashboard card into a full-width same-origin popup
       popup.document.write('<!doctype html><html><head><meta charset="utf-8"><title></title></head><body><main id="cdaDashboardPopoutMountV6558"></main></body></html>');
       popup.document.close();
       popup.document.title = String(context.component.title || id) + ' — Dashboard';
-      copyStylesV6559(sourceDocument,popup.document);
+      copyStylesV6560(sourceDocument,popup.document);
       const mount = popup.document.getElementById('cdaDashboardPopoutMountV6558');
-      const shell = buildAncestorShellV6559(card,context,popup.document,mount);
+      const shell = buildAncestorShellV6560(card,context,popup.document,mount);
       popup.document.adoptNode(card);
       card.setAttribute('data-cda-detached-component','true');
+      card.setAttribute('data-cda-popout-full-table','true');
       shell.appendChild(card);
-      exposeInlineGlobalsV6559(popup,card);
-      bridgeSharedEventsV6559(popup);
+      exposeInlineGlobalsV6560(popup,card);
+      bridgeSharedEventsV6560(popup);
 
       const session = {
         id:id,context:context,card:card,popup:popup,sourceDocument:sourceDocument,
         parent:parent,nextSibling:nextSibling,placeholder:placeholder,poller:0,
-        restoring:false,wasCollapsed:wasCollapsed
+        restoring:false,wasCollapsed:wasCollapsed,fullTable:true
       };
-      sessionsV6559.set(id,session);
-      popup.addEventListener('beforeunload',function(){ restoreV6559(id,'popup-closed'); },{once:true});
+      sessionsV6560.set(id,session);
+      popup.addEventListener('beforeunload',function(){ restoreV6560(id,'popup-closed'); },{once:true});
       session.poller = window.setInterval(function(){
-        if (!session.popup || session.popup.closed) restoreV6559(id,'popup-closed');
+        if (!session.popup || session.popup.closed) restoreV6560(id,'popup-closed');
       },250);
       popup.focus();
-      refreshMovedComponentV6559(context,card,popup);
-      lastAttemptV6559.success = true;
+      refreshMovedComponentV6560(context,card,popup);
+      lastAttemptV6560.success = true;
       return true;
     } catch (error) {
-      lastAttemptV6559.reason = error && error.message ? error.message : String(error);
+      lastAttemptV6560.reason = error && error.message ? error.message : String(error);
       console.error('Dashboard live component pop-out failed.',error);
       const temporary = {
         id:id,context:context,card:card,popup:popup,sourceDocument:sourceDocument,
         parent:parent,nextSibling:nextSibling,placeholder:placeholder,poller:0,
-        restoring:false,wasCollapsed:wasCollapsed
+        restoring:false,wasCollapsed:wasCollapsed,fullTable:true
       };
-      sessionsV6559.set(id,temporary);
-      restoreV6559(id,'setup-failed');
+      sessionsV6560.set(id,temporary);
+      restoreV6560(id,'setup-failed');
       return false;
     }
   }
 
   window.cdaDashboardIsolationV6555 = Object.freeze({
-    version:'v6.559',
+    version:'v6.560',
     mode:'detached-live-component',
-    open:openV6559,
-    restore:restoreV6559,
-    active:function(){ return Array.from(sessionsV6559.keys()); },
-    session:sessionV6559,
-    card:cardV6559,
-    lastAttempt:function(){ return lastAttemptV6559 ? Object.assign({},lastAttemptV6559) : null; }
+    open:openV6560,
+    restore:restoreV6560,
+    active:function(){ return Array.from(sessionsV6560.keys()); },
+    session:sessionV6560,
+    card:cardV6560,
+    lastAttempt:function(){ return lastAttemptV6560 ? Object.assign({},lastAttemptV6560) : null; }
   });
 })();
 </script>
