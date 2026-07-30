@@ -1,7 +1,7 @@
 <!-- SharedDashboardInteractionAuditV6557.html
-Version: v6.557
+Version: v6.558
 Date: 2026-07-30
-Purpose: Extend the shared dashboard audit with current pointer-host and same-build pop-out checks.
+Purpose: Extend the dashboard audit with native Remake header ownership and detached live-card pop-out checks.
 -->
 <script id="cdaSharedDashboardInteractionAuditControllerV6557">
 (function installSharedDashboardInteractionAuditV6557(){
@@ -11,7 +11,7 @@ Purpose: Extend the shared dashboard audit with current pointer-host and same-bu
   if (!baseAuditService || typeof baseAuditService.audit !== 'function') {
     throw new Error('Base dashboard audit must load before interaction audit.');
   }
-  if (baseAuditService.version === 'v6.557') return;
+  if (baseAuditService.version === 'v6.558') return;
 
   function visible(node){
     if (!node || !window.getComputedStyle) return false;
@@ -19,24 +19,26 @@ Purpose: Extend the shared dashboard audit with current pointer-host and same-bu
     return !node.hidden && style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0';
   }
 
-  function remakePointerHosts(){
+  function remakeActionHosts(){
     const page = document.getElementById('remakeFactorPage');
     const failures = [];
     if (!page) return {ok:false,failures:[{reason:'remake-page-missing'}]};
 
     page.querySelectorAll('.cdaDashboardToolbarV6547').forEach(function(toolbar){
       const host = toolbar.parentElement;
-      const header = host && host.parentElement;
       const style = host && window.getComputedStyle ? window.getComputedStyle(host) : null;
-      const directSharedHost = !!(host && host.matches('.cdaDashboardDecoratedActionsV6548[data-cda-dashboard-shared-host="true"]'));
-      const directHeaderChild = !!(header && header.matches('.remakeCardHeader') && host.parentElement === header);
-      const pointerEnabled = !!(style && style.pointerEvents !== 'none' && style.visibility !== 'hidden' && style.display !== 'none');
-      if (!directSharedHost || !directHeaderChild || !pointerEnabled || !visible(toolbar)) {
+      const nativeHost = !!(host && host.matches(
+        '.remakeCardActionsV6230[data-cda-dashboard-shared-host="native-remake-actions"]'
+      ));
+      const pointerEnabled = !!(style && style.pointerEvents !== 'none' &&
+        style.visibility !== 'hidden' && style.display !== 'none');
+      const staleSibling = !!(toolbar.closest('.cdaDashboardDecoratedActionsV6548[data-cda-dashboard-shared-host="true"]'));
+      if (!nativeHost || !pointerEnabled || staleSibling || !visible(toolbar)) {
         failures.push({
           component:toolbar.getAttribute('data-cda-dashboard-toolbar') || '',
-          directSharedHost:directSharedHost,
-          directHeaderChild:directHeaderChild,
+          nativeHost:nativeHost,
           pointerEvents:style ? style.pointerEvents : '',
+          staleSibling:staleSibling,
           visible:visible(toolbar)
         });
       }
@@ -45,32 +47,68 @@ Purpose: Extend the shared dashboard audit with current pointer-host and same-bu
     return {ok:failures.length === 0,failures:failures};
   }
 
-  function sameBuildPopout(){
+  function titleOwnership(){
+    const platform = window.cdaDashboardPlatformV6547;
+    const catalog = window.cdaDashboardCatalogV6555;
+    const failures = [];
+    if (!platform || !catalog) return {ok:false,failures:[{reason:'platform-or-catalog-missing'}]};
+
+    const tat = platform.getTab('tat');
+    if (tat) {
+      tat.components.forEach(function(component){
+        if ((component.features || []).indexOf('collapse') < 0) return;
+        const card = catalog.resolveCard('tat',component.key);
+        const shared = card ? card.querySelectorAll('[data-cda-dashboard-title-toggle="true"]') : [];
+        if (!card || shared.length !== 1) {
+          failures.push({component:'tat.' + component.key,owner:'shared',count:shared.length});
+        }
+      });
+    }
+
+    const remake = platform.getTab('remake');
+    if (remake) {
+      remake.components.forEach(function(component){
+        if ((component.features || []).indexOf('collapse') < 0) return;
+        const card = catalog.resolveCard('remake',component.key);
+        const title = card && card.querySelector('.remakeCardTitle');
+        const shared = card ? card.querySelectorAll('[data-cda-dashboard-title-toggle="true"]') : [];
+        const arrows = title ? (String(title.textContent || '').match(/[▾▸▼▲▶◀⌄⌃˅˄]/g) || []).length : 0;
+        if (!card || !title || shared.length !== 0 || arrows > 1) {
+          failures.push({
+            component:'remake.' + component.key,
+            owner:'native-remake',
+            titlePresent:!!title,
+            sharedToggleCount:shared.length,
+            arrowCount:arrows
+          });
+        }
+      });
+    }
+
+    return {ok:failures.length === 0,failures:failures};
+  }
+
+  function detachedLivePopout(){
     const service = window.cdaDashboardPopoutV6548;
     const isolation = window.cdaDashboardIsolationV6555;
-    const testUrl = isolation && typeof isolation.buildUrl === 'function'
-      ? isolation.buildUrl('tat','monthly')
-      : '';
-    const routePresent = /(?:[?&#]|%23)component=(?:tat(?:\.|%2E)monthly)/i.test(testUrl);
-    const supportedUrl = /^https:\/\//i.test(testUrl);
     return {
       serviceVersion:service && service.version,
       isolationVersion:isolation && isolation.version,
       mode:service && service.mode,
-      testUrl:testUrl,
-      routePresent:routePresent,
-      supportedUrl:supportedUrl,
-      ok:!!service && service.version === 'v6.557' &&
-        service.mode === 'same-build-live-component' &&
-        !!isolation && isolation.version === 'v6.557' &&
-        supportedUrl && routePresent
+      active:service && typeof service.active === 'function' ? service.active() : [],
+      lastAttempt:service && typeof service.lastAttempt === 'function' ? service.lastAttempt() : null,
+      ok:!!service && service.version === 'v6.558' &&
+        service.mode === 'detached-live-component' &&
+        typeof service.open === 'function' && typeof service.restore === 'function' &&
+        typeof service.active === 'function' &&
+        !!isolation && isolation.version === 'v6.558' &&
+        isolation.mode === 'detached-live-component'
     };
   }
 
   function baseBehaviorOk(base){
     const checks = [
       base.componentCatalog,
-      base.titleSideCollapse,
       base.iconOwnership,
       base.everyFeatureInstanceStyleParity,
       base.toolbarActionOrder,
@@ -85,39 +123,45 @@ Purpose: Extend the shared dashboard audit with current pointer-host and same-bu
 
   function audit(){
     const base = baseAuditService.audit();
-    const pointerHosts = remakePointerHosts();
-    const popout = sameBuildPopout();
+    const actionHosts = remakeActionHosts();
+    const titles = titleOwnership();
+    const popout = detachedLivePopout();
     const services = Object.assign({},base.services || {},{
       isolation:window.cdaDashboardIsolationV6555 && window.cdaDashboardIsolationV6555.version,
       popout:window.cdaDashboardPopoutV6548 && window.cdaDashboardPopoutV6548.version,
-      adapter:window.cdaRemakeDashboardAdapterV6548 && window.cdaRemakeDashboardAdapterV6548.version
+      adapter:window.cdaRemakeDashboardAdapterV6548 && window.cdaRemakeDashboardAdapterV6548.version,
+      decorator:window.cdaDashboardDecoratorV6548 && window.cdaDashboardDecoratorV6548.version
     });
     const serviceVersionsCorrect = !!(
       services.theme === 'v6.550' && services.columns === 'v6.550' &&
       services.popover === 'v6.550' && services.toolbar === 'v6.554' &&
       services.bridge === 'v6.555' && services.catalog === 'v6.555' &&
-      services.isolation === 'v6.557' && services.popout === 'v6.557' &&
-      services.titleToggle === 'v6.556' && services.adapter === 'v6.557'
+      services.isolation === 'v6.558' && services.popout === 'v6.558' &&
+      services.titleToggle === 'v6.556' && services.adapter === 'v6.558' &&
+      services.decorator === 'v6.558'
     );
     return Object.assign({},base,{
-      version:'v6.557',
+      version:'v6.558',
       services:services,
       serviceVersionsCorrect:serviceVersionsCorrect,
-      remakePointerHosts:pointerHosts,
-      sameBuildPopout:popout,
+      remakeActionHosts:actionHosts,
+      titleOwnership:titles,
+      detachedLivePopout:popout,
       livePopoutContract:popout,
-      ok:serviceVersionsCorrect && baseBehaviorOk(base) && pointerHosts.ok && popout.ok
+      titleSideCollapse:titles,
+      ok:serviceVersionsCorrect && baseBehaviorOk(base) && actionHosts.ok && titles.ok && popout.ok
     });
   }
 
   window.cdaDashboardAuditV6550 = Object.freeze({
-    version:'v6.557',
+    version:'v6.558',
     visible:baseAuditService.visible,
     styleSignature:baseAuditService.styleSignature,
     expectedIconName:baseAuditService.expectedIconName,
     audit:audit,
-    remakePointerHosts:remakePointerHosts,
-    sameBuildPopout:sameBuildPopout
+    remakeActionHosts:remakeActionHosts,
+    titleOwnership:titleOwnership,
+    detachedLivePopout:detachedLivePopout
   });
 })();
 </script>
