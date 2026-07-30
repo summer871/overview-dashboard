@@ -43,8 +43,13 @@ Purpose: Move the actual live dashboard card into a same-origin popup and restor
     return tabKey && componentKey ? String(tabKey) + '.' + String(componentKey) : '';
   }
 
+  function sessionV6558(id){ return sessionsV6558.get(String(id || '')) || null; }
+  function cardV6558(id){ const session = sessionV6558(id); return session && session.card || null; }
+
   function resolveCardV6558(context){
     const id = componentIdV6558(context);
+    const active = cardV6558(id);
+    if (active) return active;
     const parts = id.split('.');
     const catalog = window.cdaDashboardCatalogV6555;
     if (catalog && parts.length === 2) {
@@ -288,6 +293,8 @@ Purpose: Move the actual live dashboard card into a same-origin popup and restor
     open:openV6558,
     restore:restoreV6558,
     active:function(){ return Array.from(sessionsV6558.keys()); },
+    session:sessionV6558,
+    card:cardV6558,
     lastAttempt:function(){ return lastAttemptV6558 ? Object.assign({},lastAttemptV6558) : null; }
   });
 })();
