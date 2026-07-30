@@ -59,7 +59,8 @@ Purpose: Shared left-side title interaction with one canonical title and one can
   if (!platform || !theme) throw new Error('Dashboard registry and theme must load before title toggles.');
 
   const ARROW_EDGE_PATTERN_V6556 = /^[\s▾▸▼▲▶◀⌄⌃˅˄]+|[\s▾▸▼▲▶◀⌄⌃˅˄]+$/g;
-  const ARROW_ANY_PATTERN_V6556 = /[▾▸▼▲▶◀⌄⌃˅˄]/g;
+  const ARROW_REPLACE_PATTERN_V6556 = /[▾▸▼▲▶◀⌄⌃˅˄]/g;
+  const ARROW_TEST_PATTERN_V6556 = /[▾▸▼▲▶◀⌄⌃˅˄]/;
 
   function cleanTitleText(value){
     return String(value == null ? '' : value)
@@ -140,7 +141,7 @@ Purpose: Shared left-side title interaction with one canonical title and one can
     button.setAttribute('data-cda-dashboard-tab-key',tab.key);
     button.setAttribute('data-cda-dashboard-component-key',component.key);
     const text = button.querySelector('.cdaDashboardTitleTextV6555');
-    if (text) text.textContent = titleText.replace(ARROW_ANY_PATTERN_V6556,'').trim();
+    if (text) text.textContent = titleText.replace(ARROW_REPLACE_PATTERN_V6556,'').trim();
 
     title.replaceChildren(button);
     bind(button,tab,component);
@@ -166,7 +167,7 @@ Purpose: Shared left-side title interaction with one canonical title and one can
     return {
       chevronCount:chevrons.length,
       text:text ? text.textContent.trim() : '',
-      textContainsArrow:!!(text && ARROW_ANY_PATTERN_V6556.test(text.textContent || ''))
+      textContainsArrow:!!(text && ARROW_TEST_PATTERN_V6556.test(text.textContent || ''))
     };
   }
 
