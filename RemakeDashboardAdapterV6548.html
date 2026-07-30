@@ -1,24 +1,22 @@
 <!-- RemakeDashboardAdapterV6548.html
-Version: v6.557
+Version: v6.558
 Date: 2026-07-30
-Purpose: Bridge shared dashboard capabilities to existing Remake calculations with a dedicated shared-control host.
+Purpose: Connect shared feature behavior to existing Remake calculations without replacing native header layout or title interactions.
 -->
 <style id="cdaRemakeDashboardAdapterStylesV6548">
-  #remakeFactorPage .cdaDashboardDecoratedActionsV6548 {
+  #remakeFactorPage .remakeCardActionsV6230 {
     position:relative!important;
     z-index:20!important;
-    display:flex!important;
-    align-items:center!important;
-    justify-content:flex-end!important;
-    gap:var(--cda-control-gap)!important;
-    margin-left:auto!important;
     pointer-events:auto!important;
     visibility:visible!important;
     opacity:1!important;
   }
-  #remakeFactorPage .cdaDashboardDecoratedActionsV6548 .cdaDashboardToolbarV6547,
-  #remakeFactorPage .cdaDashboardDecoratedActionsV6548 .cdaDashboardButtonV6547 {
+  #remakeFactorPage .remakeCardActionsV6230 > .cdaDashboardToolbarV6547,
+  #remakeFactorPage .remakeCardActionsV6230 .cdaDashboardButtonV6547 {
     pointer-events:auto!important;
+  }
+  #remakeFactorPage .cdaDashboardDecoratedActionsV6548[data-cda-dashboard-shared-host="true"] {
+    display:none!important;
   }
 </style>
 <script id="cdaRemakeDashboardAdapterControllerV6548">
@@ -26,7 +24,7 @@ Purpose: Bridge shared dashboard capabilities to existing Remake calculations wi
   'use strict';
 
   if (window.cdaRemakeDashboardAdapterV6548 &&
-      window.cdaRemakeDashboardAdapterV6548.version === 'v6.557') return;
+      window.cdaRemakeDashboardAdapterV6548.version === 'v6.558') return;
 
   const bridge = window.cdaRemakeLegacyBridgeV6554;
   if (!bridge) throw new Error('Remake adapter requires the legacy bridge.');
@@ -38,10 +36,14 @@ Purpose: Bridge shared dashboard capabilities to existing Remake calculations wi
       ? component.tableIds[0]
       : component.targetId;
     const target = id && document.getElementById(id);
-    return target && target.tagName === 'TABLE' ? target : target && target.closest ? target.closest('table') : null;
+    return target && target.tagName === 'TABLE'
+      ? target
+      : target && target.closest ? target.closest('table') : null;
   }
 
-  function legacyCompareButtonV6548(component){ return bridge.provider(component,'comparePriorYear'); }
+  function legacyCompareButtonV6548(component){
+    return bridge.provider(component,'comparePriorYear');
+  }
 
   function comparisonActiveV6548(component){
     const table = targetTableV6548(component);
@@ -68,17 +70,18 @@ Purpose: Bridge shared dashboard capabilities to existing Remake calculations wi
     if (compare) {
       const provider = legacyCompareButtonV6548(context.component);
       compare.hidden = !provider;
-      if (provider) compare.setAttribute('aria-pressed',comparisonActiveV6548(context.component) ? 'true' : 'false');
+      if (provider) {
+        compare.setAttribute('aria-pressed',comparisonActiveV6548(context.component) ? 'true' : 'false');
+      }
     }
   }
 
   function syncComponentV6548(component){
     const card = cardV6548(component);
-    const toolbar = card && card.querySelector('.cdaDashboardToolbarV6547[data-cda-dashboard-toolbar="' + component.key + '"]');
+    const toolbar = card && card.querySelector(
+      '.cdaDashboardToolbarV6547[data-cda-dashboard-toolbar="' + component.key + '"]'
+    );
     if (toolbar) syncToolbarStateV6548({component:component,toolbar:toolbar});
-    if (card && window.cdaDashboardTitleToggleV6555) {
-      window.cdaDashboardTitleToggleV6555.mount('remake',component.key,card);
-    }
   }
 
   function togglePriorYearComparisonV6548(context){
@@ -116,7 +119,9 @@ Purpose: Bridge shared dashboard capabilities to existing Remake calculations wi
     return true;
   }
 
-  function exportCurrentV6548(context){ return bridge.invoke(context.component,'exportCurrent'); }
+  function exportCurrentV6548(context){
+    return bridge.invoke(context.component,'exportCurrent');
+  }
 
   function exportAllV6548(context){
     if (bridge.invoke(context.component,'exportAll')) return true;
@@ -139,24 +144,31 @@ Purpose: Bridge shared dashboard capabilities to existing Remake calculations wi
     const header = context.card.querySelector('.remakeCardHeader');
     if (header) header.classList.add('cdaDashboardCardHeaderV6547');
     bridge.prepare(context.component);
+
+    const staleHost = header && header.querySelector(
+      ':scope > .cdaDashboardDecoratedActionsV6548[data-cda-dashboard-shared-host="true"]'
+    );
+    if (staleHost) staleHost.remove();
   }
 
   function resolveToolbarHostV6548(context){
     const header = context.header;
-    let host = header.querySelector(':scope > .cdaDashboardDecoratedActionsV6548');
+    let host = header.querySelector('.remakeCardActionsV6230');
     if (!host) {
       host = document.createElement('div');
-      host.className = 'cdaDashboardDecoratedActionsV6548';
-      host.setAttribute('data-cda-dashboard-shared-host','true');
+      host.className = 'remakeCardActionsV6230';
       header.appendChild(host);
     }
+    host.setAttribute('data-cda-dashboard-shared-host','native-remake-actions');
     return host;
   }
 
   function applyColumnsV6548(tab){
     if (!window.cdaDashboardColumnsV6548) return;
     tab.components.forEach(function(component){
-      if (component.kind === 'table') window.cdaDashboardColumnsV6548.apply({tab:tab,component:component});
+      if (component.kind === 'table') {
+        window.cdaDashboardColumnsV6548.apply({tab:tab,component:component});
+      }
     });
   }
 
@@ -169,7 +181,8 @@ Purpose: Bridge shared dashboard capabilities to existing Remake calculations wi
   }
 
   window.cdaRemakeDashboardAdapterV6548 = Object.freeze({
-    version:'v6.557',
+    version:'v6.558',
+    nativeTitleToggle:true,
     priorYearLabel:priorYearLabelV6548,
     togglePriorYearComparison:togglePriorYearComparisonV6548,
     openColumns:openColumnsV6548,
