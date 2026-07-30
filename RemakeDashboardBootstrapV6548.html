@@ -1,14 +1,14 @@
 <!-- RemakeDashboardBootstrapV6548.html
-Version: v6.559
+Version: v6.560
 Date: 2026-07-30
-Purpose: Register, reconcile, and audit all six Remake components with native title controls and normalized live pop-outs.
+Purpose: Register, reconcile, and audit all six Remake components with native title controls and complete-table live pop-outs.
 -->
 <script id="cdaRemakeDashboardBootstrapControllerV6548">
 (function installRemakeDashboardBootstrapV6548(){
   'use strict';
 
-  if (window.__cdaRemakeDashboardBootstrapV6559) return;
-  window.__cdaRemakeDashboardBootstrapV6559 = true;
+  if (window.__cdaRemakeDashboardBootstrapV6560) return;
+  window.__cdaRemakeDashboardBootstrapV6560 = true;
 
   const platform = window.cdaDashboardPlatformV6547;
   const decorator = window.cdaDashboardDecoratorV6548;
@@ -26,47 +26,47 @@ Purpose: Register, reconcile, and audit all six Remake components with native ti
     throw new Error('Remake definition is invalid:\n' + registrationAudit.errors.join('\n'));
   }
 
-  let scheduledV6559 = false;
-  let reconciliationTimerV6559 = 0;
-  let reconciliationAttemptsV6559 = 0;
-  const MAX_RECONCILIATION_ATTEMPTS_V6559 = 80;
+  let scheduledV6560 = false;
+  let reconciliationTimerV6560 = 0;
+  let reconciliationAttemptsV6560 = 0;
+  const MAX_RECONCILIATION_ATTEMPTS_V6560 = 80;
 
-  function baseAuditV6559(){ return decorator.audit('remake'); }
+  function baseAuditV6560(){ return decorator.audit('remake'); }
 
-  function decorateV6559(){
-    scheduledV6559 = false;
+  function decorateV6560(){
+    scheduledV6560 = false;
     const page = decorator.decorate('remake');
-    const audit = baseAuditV6559();
-    if (audit.pagePresent && !audit.allComponentsDecorated) scheduleReconciliationV6559();
+    const audit = baseAuditV6560();
+    if (audit.pagePresent && !audit.allComponentsDecorated) scheduleReconciliationV6560();
     return page;
   }
 
-  function scheduleV6559(){
-    if (scheduledV6559) return;
-    scheduledV6559 = true;
-    window.requestAnimationFrame(decorateV6559);
+  function scheduleV6560(){
+    if (scheduledV6560) return;
+    scheduledV6560 = true;
+    window.requestAnimationFrame(decorateV6560);
   }
 
-  function stopReconciliationV6559(){
-    if (reconciliationTimerV6559) window.clearTimeout(reconciliationTimerV6559);
-    reconciliationTimerV6559 = 0;
-    reconciliationAttemptsV6559 = 0;
+  function stopReconciliationV6560(){
+    if (reconciliationTimerV6560) window.clearTimeout(reconciliationTimerV6560);
+    reconciliationTimerV6560 = 0;
+    reconciliationAttemptsV6560 = 0;
   }
 
-  function scheduleReconciliationV6559(){
-    if (reconciliationTimerV6559 ||
-        reconciliationAttemptsV6559 >= MAX_RECONCILIATION_ATTEMPTS_V6559) return;
-    reconciliationTimerV6559 = window.setTimeout(function(){
-      reconciliationTimerV6559 = 0;
-      reconciliationAttemptsV6559 += 1;
+  function scheduleReconciliationV6560(){
+    if (reconciliationTimerV6560 ||
+        reconciliationAttemptsV6560 >= MAX_RECONCILIATION_ATTEMPTS_V6560) return;
+    reconciliationTimerV6560 = window.setTimeout(function(){
+      reconciliationTimerV6560 = 0;
+      reconciliationAttemptsV6560 += 1;
       decorator.decorate('remake');
-      const audit = baseAuditV6559();
-      if (audit.allComponentsDecorated) stopReconciliationV6559();
-      else scheduleReconciliationV6559();
+      const audit = baseAuditV6560();
+      if (audit.allComponentsDecorated) stopReconciliationV6560();
+      else scheduleReconciliationV6560();
     },50);
   }
 
-  function relevantNodeV6559(node){
+  function relevantNodeV6560(node){
     if (!node || node.nodeType !== 1) return false;
     const selector = [
       '#remakeReasonCardV6230','#remakeDepartmentCardV6230','#remakeProductCardV6230',
@@ -78,17 +78,18 @@ Purpose: Register, reconcile, and audit all six Remake components with native ti
     return !!(node.querySelector && node.querySelector(selector));
   }
 
-  function dependencyAuditV6559(){
+  function dependencyAuditV6560(){
     return {
       sharedTheme:window.cdaDashboardThemeV6549 && window.cdaDashboardThemeV6549.version === 'v6.550',
       sharedColumns:window.cdaDashboardColumnsV6548 && window.cdaDashboardColumnsV6548.version === 'v6.558',
       sharedPopover:window.cdaDashboardPopoverV6547 && window.cdaDashboardPopoverV6547.version === 'v6.558',
       sharedToolbar:window.cdaDashboardToolbarV6548 && window.cdaDashboardToolbarV6548.version === 'v6.558',
       componentCatalog:window.cdaDashboardCatalogV6555 && window.cdaDashboardCatalogV6555.version === 'v6.555',
-      componentIsolation:window.cdaDashboardIsolationV6555 && window.cdaDashboardIsolationV6555.version === 'v6.559',
-      livePopout:window.cdaDashboardPopoutV6548 && window.cdaDashboardPopoutV6548.version === 'v6.559' &&
-        window.cdaDashboardPopoutV6548.mode === 'detached-live-component',
-      sharedAudit:sharedAudit.version === 'v6.559',
+      componentIsolation:window.cdaDashboardIsolationV6555 && window.cdaDashboardIsolationV6555.version === 'v6.560',
+      livePopout:window.cdaDashboardPopoutV6548 && window.cdaDashboardPopoutV6548.version === 'v6.560' &&
+        window.cdaDashboardPopoutV6548.mode === 'detached-live-component' &&
+        window.cdaDashboardPopoutV6548.tableMode === 'full-table',
+      sharedAudit:sharedAudit.version === 'v6.560',
       decorator:decorator.version === 'v6.558',
       bridge:bridge.version === 'v6.559',
       adapter:adapter.version === 'v6.558',
@@ -100,9 +101,9 @@ Purpose: Register, reconcile, and audit all six Remake components with native ti
     };
   }
 
-  function auditV6559(){
-    const base = baseAuditV6559();
-    const dependencies = dependencyAuditV6559();
+  function auditV6560(){
+    const base = baseAuditV6560();
+    const dependencies = dependencyAuditV6560();
     const page = document.getElementById('remakeFactorPage');
     const comparisonButtons = page ? Array.from(page.querySelectorAll(
       '.cdaDashboardToolbarV6547 [data-cda-dashboard-feature-key="comparePriorYear"]'
@@ -116,8 +117,8 @@ Purpose: Register, reconcile, and audit all six Remake components with native ti
     const sharedControlsValidated = sharedControls.ok && expectedActiveComponents && catalog.ok &&
       base.allComponentsDecorated && base.toolbarCount === base.expectedToolbarCount;
     return Object.assign({},base,{
-      version:'v6.559',
-      mode:'native-remake-header-with-normalized-live-popouts',
+      version:'v6.560',
+      mode:'native-remake-header-with-complete-table-popouts',
       activeComponentCount:definition.components.length,
       expectedActiveComponents:6,
       activeComponentModelCorrect:expectedActiveComponents,
@@ -143,19 +144,19 @@ Purpose: Register, reconcile, and audit all six Remake components with native ti
     });
   }
 
-  function startV6559(){
+  function startV6560(){
     let attempts = 0;
     const timer = window.setInterval(function(){
       attempts += 1;
       if (document.getElementById(definition.pageId)) {
         window.clearInterval(timer);
-        decorateV6559();
-        scheduleReconciliationV6559();
+        decorateV6560();
+        scheduleReconciliationV6560();
         if (window.MutationObserver) {
           const observer = new MutationObserver(function(records){
             if (records.some(function(record){
-              return Array.from(record.addedNodes || []).some(relevantNodeV6559);
-            })) scheduleV6559();
+              return Array.from(record.addedNodes || []).some(relevantNodeV6560);
+            })) scheduleV6560();
           });
           observer.observe(document.getElementById(definition.pageId),{childList:true,subtree:true});
         }
@@ -164,18 +165,18 @@ Purpose: Register, reconcile, and audit all six Remake components with native ti
   }
 
   window.cdaRemakeDashboardV6548 = Object.freeze({
-    version:'v6.559',
+    version:'v6.560',
     definition:definition,
-    decorate:decorateV6559,
-    audit:auditV6559,
-    dependencyAudit:dependencyAuditV6559,
-    reconcile:scheduleReconciliationV6559
+    decorate:decorateV6560,
+    audit:auditV6560,
+    dependencyAudit:dependencyAuditV6560,
+    reconcile:scheduleReconciliationV6560
   });
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded',startV6559,{once:true});
+    document.addEventListener('DOMContentLoaded',startV6560,{once:true});
   } else {
-    startV6559();
+    startV6560();
   }
 })();
 </script>
