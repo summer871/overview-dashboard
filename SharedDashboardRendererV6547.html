@@ -1,23 +1,37 @@
 <!-- SharedDashboardRendererV6547.html
-Version: v6.555
-Date: 2026-07-29
-Purpose: Replace-mode tab renderer with explicit component identity and title-side controls.
+Version: v6.562
+Date: 2026-07-30
+Purpose: Replace-mode tab renderer with explicit component identity, optional shared header controls, and title-side controls.
 -->
 <style id="cdaSharedDashboardRendererStylesV6547">
   [data-cda-dashboard-tab] .remakeTableWrap { width:100%; min-width:0; overflow:auto; }
   [data-cda-dashboard-tab] table.remakeTable { width:100%; }
+  .cdaDashboardHeaderActionsV6562 {
+    display:flex!important;
+    align-items:center!important;
+    justify-content:flex-end!important;
+    flex-wrap:wrap!important;
+    gap:var(--cda-control-gap)!important;
+    margin-left:auto!important;
+    min-width:0!important;
+  }
 </style>
 <script id="cdaSharedDashboardRendererControllerV6547">
 (function installSharedDashboardRendererV6547(){
   'use strict';
 
-  if (window.cdaDashboardRendererV6547 && window.cdaDashboardRendererV6547.version === 'v6.555') return;
+  if (window.cdaDashboardRendererV6547 && window.cdaDashboardRendererV6547.version === 'v6.562') return;
   const platform = window.cdaDashboardPlatformV6547;
   const toolbar = window.cdaDashboardToolbarV6548;
   if (!platform || !toolbar) throw new Error('Registry and toolbar must load before renderer.');
 
   function componentFor(tab,componentKey){
     return tab && tab.components.find(function(item){ return item.key === componentKey; }) || null;
+  }
+
+  function headerControlsMarkup(tab,component){
+    if (typeof component.renderHeaderControls !== 'function') return '';
+    return component.renderHeaderControls({tab:tab,component:component,platform:platform}) || '';
   }
 
   function cardMarkup(tab,component){
@@ -34,7 +48,8 @@ Purpose: Replace-mode tab renderer with explicit component identity and title-si
       ' data-cda-component-key="' + platform.util.escapeHtml(component.key) + '"' +
       ' data-cda-component-kind="' + platform.util.escapeHtml(component.kind || 'custom') + '">' +
       '<div class="tatCardHeadV6509 remakeCardHeader cdaDashboardCardHeaderV6547"><div>' + title + '</div>' +
-      toolbar.markup(tab,component) + '</div>' + body + '</article>';
+      '<div class="cdaDashboardHeaderActionsV6562">' + headerControlsMarkup(tab,component) +
+      toolbar.markup(tab,component) + '</div></div>' + body + '</article>';
   }
 
   function renderComponent(tab,componentKey){
@@ -108,7 +123,7 @@ Purpose: Replace-mode tab renderer with explicit component identity and title-si
     const cards = page ? Array.from(page.querySelectorAll('[data-cda-dashboard-component]')) : [];
     const duplicates = duplicateIds(page);
     return {
-      version:'v6.555',
+      version:'v6.562',
       tabKey:tabKey,
       mountMode:'replace',
       validation:validation,
@@ -120,12 +135,17 @@ Purpose: Replace-mode tab renderer with explicit component identity and title-si
       duplicateIds:duplicates,
       oneCardPerComponent:!!tab && tab.components.every(function(component){
         return !!page && page.querySelectorAll('[data-cda-dashboard-component="' + component.key + '"]').length === 1;
+      }),
+      headerControlsOwned:!!tab && tab.components.every(function(component){
+        if (typeof component.renderHeaderControls !== 'function') return true;
+        const card = page && page.querySelector('[data-cda-dashboard-component="' + component.key + '"]');
+        return !!(card && card.querySelector('.cdaDashboardHeaderActionsV6562'));
       })
     };
   }
 
   window.cdaDashboardRendererV6547 = Object.freeze({
-    version:'v6.555',
+    version:'v6.562',
     rebuild:rebuild,
     renderComponent:renderComponent,
     bindComponents:bindComponents,
