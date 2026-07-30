@@ -1,16 +1,16 @@
 <!-- TatDashboardAdapterV6547.html
-Version: v6.558
+Version: v6.562
 Date: 2026-07-30
-Purpose: TAT bridge from shared dashboard capabilities to the existing controller, including detached live cards.
+Purpose: TAT bridge from shared dashboard capabilities to the existing controller, including the separate Products / Groups table and detached live cards.
 -->
 <script id="cdaTatDashboardAdapterControllerV6547">
 (function installTatDashboardAdapterV6547(){
   'use strict';
 
   if (window.cdaTatDashboardAdapterV6547 &&
-      window.cdaTatDashboardAdapterV6547.version === 'v6.558') return;
+      window.cdaTatDashboardAdapterV6547.version === 'v6.562') return;
 
-  const TABLE_KEYS_V6547 = ['tatDepartment','tatLate','tatCustomer','tatQuality'];
+  const TABLE_KEYS_V6547 = ['tatDepartment','tatProduct','tatLate','tatCustomer','tatQuality'];
 
   function stateV6547(){ return window.cdaTatStateV6509 || null; }
 
@@ -203,12 +203,13 @@ Purpose: TAT bridge from shared dashboard capabilities to the existing controlle
     window.requestAnimationFrame(function(){
       if (typeof window.setTatDistributionModeV6509 === 'function') window.setTatDistributionModeV6509();
       if (window.cdaDashboardTitleToggleV6555) window.cdaDashboardTitleToggleV6555.syncAll('tat');
+      if (window.cdaTatProductTableV6562) window.cdaTatProductTableV6562.afterReplace();
       window.dispatchEvent(new Event('resize'));
     });
   }
 
   window.cdaTatDashboardAdapterV6547 = Object.freeze({
-    version:'v6.558',
+    version:'v6.562',
     getChart:getChartV6547,
     openColumns:openColumnsV6547,
     popout:popoutV6547,
