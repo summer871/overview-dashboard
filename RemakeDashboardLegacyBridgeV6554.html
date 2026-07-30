@@ -1,10 +1,11 @@
 <!-- RemakeDashboardLegacyBridgeV6554.html
-Version: v6.555
-Date: 2026-07-29
-Purpose: Locate active Remake cards and preserve legacy behavior behind hidden shared-control providers.
+Version: v6.559
+Date: 2026-07-30
+Purpose: Preserve legacy Remake behavior behind shared controls while leaving native title-collapse controls visible and authoritative.
 -->
 <style id="cdaRemakeDashboardLegacyBridgeStylesV6554">
-  #remakeFactorPage .cdaDashboardLegacyControlV6548 {
+  #remakeFactorPage .cdaDashboardLegacyControlV6548,
+  [data-cda-detached-component="true"] .cdaDashboardLegacyControlV6548 {
     display:none!important;
     visibility:hidden!important;
     pointer-events:none!important;
@@ -14,7 +15,8 @@ Purpose: Locate active Remake cards and preserve legacy behavior behind hidden s
 (function installRemakeDashboardLegacyBridgeV6554(){
   'use strict';
 
-  if (window.cdaRemakeLegacyBridgeV6554 && window.cdaRemakeLegacyBridgeV6554.version === 'v6.555') return;
+  if (window.cdaRemakeLegacyBridgeV6554 &&
+      window.cdaRemakeLegacyBridgeV6554.version === 'v6.559') return;
 
   function pageV6554(){ return document.getElementById('remakeFactorPage'); }
 
@@ -42,7 +44,7 @@ Purpose: Locate active Remake cards and preserve legacy behavior behind hidden s
 
   function actionV6554(button){
     if (!button || !button.matches || button.closest('.cdaDashboardToolbarV6547')) return '';
-    if (button.matches('[data-remake-section-toggle-v6402]')) return 'collapse';
+    if (button.matches('[data-remake-section-toggle-v6402]')) return '';
     if (button.matches('[data-column-chooser-v6357]')) return 'columns';
     if (button.matches('.tableCompareToggleV6297')) return 'comparePriorYear';
     if (button.matches('.clearComponentButtonV6304')) return 'reset';
@@ -61,26 +63,36 @@ Purpose: Locate active Remake cards and preserve legacy behavior behind hidden s
     button.setAttribute('data-cda-dashboard-legacy-action',action);
   }
 
-  function normalizeCollapseTitleV6554(component,card){
+  function restoreNativeCollapseControlsV6559(card){
+    if (!card || !card.querySelectorAll) return;
+    card.querySelectorAll('[data-remake-section-toggle-v6402]').forEach(function(button){
+      button.classList.remove('cdaDashboardLegacyControlV6548');
+      button.removeAttribute('data-cda-dashboard-legacy-provider');
+      button.removeAttribute('data-cda-dashboard-legacy-action');
+      button.hidden = false;
+      button.style.removeProperty('display');
+      button.style.removeProperty('visibility');
+      button.style.removeProperty('pointer-events');
+    });
+  }
+
+  function preserveNativeCollapseTitleV6559(component,card){
     if (!component || !component.collapseKey || !card) return;
     const title = card.querySelector('.remakeCardTitle');
     if (!title) return;
     title.classList.remove('cdaDashboardCollapseTitleV6554');
-    title.removeAttribute('role');
-    title.removeAttribute('tabindex');
-    title.removeAttribute('aria-expanded');
-    title.removeAttribute('aria-label');
-    title.removeAttribute('title');
   }
 
   function prepareV6554(component){
     const card = cardV6554(component);
     if (!card || !card.querySelectorAll) return card;
+    restoreNativeCollapseControlsV6559(card);
     card.querySelectorAll('button').forEach(function(button){
       const action = actionV6554(button);
       if (action) markV6554(button,action);
     });
-    normalizeCollapseTitleV6554(component,card);
+    restoreNativeCollapseControlsV6559(card);
+    preserveNativeCollapseTitleV6559(component,card);
     return card;
   }
 
@@ -97,8 +109,15 @@ Purpose: Locate active Remake cards and preserve legacy behavior behind hidden s
   }
 
   window.cdaRemakeLegacyBridgeV6554 = Object.freeze({
-    version:'v6.555',page:pageV6554,card:cardV6554,label:labelV6554,
-    action:actionV6554,prepare:prepareV6554,provider:providerV6554,invoke:invokeV6554
+    version:'v6.559',
+    page:pageV6554,
+    card:cardV6554,
+    label:labelV6554,
+    action:actionV6554,
+    prepare:prepareV6554,
+    provider:providerV6554,
+    invoke:invokeV6554,
+    restoreNativeCollapseControls:restoreNativeCollapseControlsV6559
   });
 })();
 </script>
