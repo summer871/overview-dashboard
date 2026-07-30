@@ -1,232 +1,294 @@
 <!-- SharedDashboardIsolationV6555.html
-Version: v6.557
+Version: v6.558
 Date: 2026-07-30
-Purpose: Open and isolate the same live dashboard component using the active web-app or current Apps Script frame URL.
+Purpose: Move the actual live dashboard card into a same-origin popup and restore the same node when it closes.
 -->
 <style id="cdaSharedDashboardIsolationStylesV6555">
-  html.cdaDashboardIsolatedV6555,
-  html.cdaDashboardIsolatedV6555 body{min-height:100%!important;background:var(--cda-color-page)!important}
-  html.cdaDashboardIsolatedV6555 body{margin:0!important;padding:12px!important;overflow:auto!important}
-  html.cdaDashboardIsolatedV6555 .managerTabs,
-  html.cdaDashboardIsolatedV6555 #cdaSharedAppFooterV6531,
-  html.cdaDashboardIsolatedV6555 .remakeStickyTopV6245,
-  html.cdaDashboardIsolatedV6555 .tatKpiStageV6509,
-  html.cdaDashboardIsolatedV6555 .remakePillsV6230,
-  html.cdaDashboardIsolatedV6555 .tatPillsV6509,
-  html.cdaDashboardIsolatedV6555 .remakeNotice,
-  html.cdaDashboardIsolatedV6555 .tatNoticeV6509,
-  html.cdaDashboardIsolatedV6555 [data-cda-dashboard-feature-key="popout"]{display:none!important}
-  html.cdaDashboardIsolatedV6555 .tabPage,
-  html.cdaDashboardIsolatedV6555 #tatDashboardPageV6509,
-  html.cdaDashboardIsolatedV6555 #remakeFactorPage{display:none!important}
-  html.cdaDashboardIsolatedV6555 [data-cda-isolated-page="true"]{display:block!important;visibility:visible!important;max-width:none!important;min-height:0!important;padding:0!important;margin:0!important;background:transparent!important}
-  html.cdaDashboardIsolatedV6555 [data-cda-isolated-page="true"] .remakeShellV6230,
-  html.cdaDashboardIsolatedV6555 [data-cda-isolated-page="true"] .tatShellV6509{max-width:none!important;padding:0!important;margin:0!important}
-  html.cdaDashboardIsolatedV6555 [data-cda-isolated-page="true"] .remakeGridV6230,
-  html.cdaDashboardIsolatedV6555 [data-cda-isolated-page="true"] .remakeGrid,
-  html.cdaDashboardIsolatedV6555 [data-cda-isolated-page="true"] .tatGridV6509{display:block!important;margin:0!important;padding:0!important}
-  html.cdaDashboardIsolatedV6555 [data-cda-isolated-page="true"] .remakeCard,
-  html.cdaDashboardIsolatedV6555 [data-cda-isolated-page="true"] article{display:none!important}
-  html.cdaDashboardIsolatedV6555 [data-cda-isolated-component="true"]{display:block!important;width:100%!important;max-width:none!important;min-height:calc(100vh - 24px)!important;margin:0!important}
+  .cdaDashboardPopoutPlaceholderV6558 {
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    min-height:84px;
+    box-sizing:border-box;
+    border:1px dashed var(--cda-color-border-strong);
+    border-radius:var(--cda-radius-card);
+    background:var(--cda-color-surface-muted);
+    color:var(--cda-color-muted);
+    font:var(--cda-font-menu);
+  }
+  .cdaDashboardPopoutPlaceholderV6558 button {
+    border:1px solid var(--cda-color-border);
+    border-radius:var(--cda-radius-control);
+    background:var(--cda-color-surface);
+    color:var(--cda-color-text);
+    padding:6px 10px;
+    font:var(--cda-font-menu-action);
+    cursor:pointer;
+  }
 </style>
 <script id="cdaSharedDashboardIsolationControllerV6555">
 (function installSharedDashboardIsolationV6555(){
   'use strict';
-  if(window.cdaDashboardIsolationV6555 && window.cdaDashboardIsolationV6555.version === 'v6.557')return;
 
-  let lastAttemptV6557 = null;
+  if (window.cdaDashboardIsolationV6555 &&
+      window.cdaDashboardIsolationV6555.version === 'v6.558') return;
 
-  function serverConfig(){return window.CDA_SERVER_PRESENTATION||{};}
+  const sessionsV6558 = new Map();
+  let lastAttemptV6558 = null;
 
-  function validComponentRoute(value){
-    const normalized=String(value||'').trim().toLowerCase();
-    return /^(?:remake|tat)\.[a-z0-9_-]+$/.test(normalized)?normalized:'';
+  function componentIdV6558(context){
+    const tabKey = context && context.tab && context.tab.key;
+    const componentKey = context && context.component && context.component.key;
+    return tabKey && componentKey ? String(tabKey) + '.' + String(componentKey) : '';
   }
 
-  function hashRoute(){
-    try{
-      const params=new URLSearchParams(String(window.location&&window.location.hash||'').replace(/^#/,''));
-      return validComponentRoute(params.get('component')||params.get('cdaComponent'));
-    }catch(error){return '';}
-  }
-
-  function route(){
-    const value=validComponentRoute(serverConfig().componentRoute)||hashRoute();
-    const parts=value.split('.');
-    return parts.length===2&&parts[0]&&parts[1]?{tabKey:parts[0],componentKey:parts[1],id:value}:null;
-  }
-
-  function webAppUrlFrom(value){
-    const text=String(value||'').trim();
-    const match=text.match(/^(https:\/\/script\.google\.com\/(?:a\/macros\/[^/]+\/|macros\/)s\/[^/?#]+\/(?:dev|exec))/i);
-    return match?match[1]:'';
-  }
-
-  function frameUrlFrom(value){
-    const text=String(value||'').trim();
-    return /^https:\/\/[^/]+(?:-|\.)script\.googleusercontent\.com\//i.test(text)?text:'';
-  }
-
-  function visibleWebAppUrl(){
-    const candidates=[];
-    try{candidates.push(document.referrer);}catch(error){}
-    try{
-      const origins=window.location&&window.location.ancestorOrigins;
-      if(origins&&origins.length)candidates.push(origins[0]);
-    }catch(error){}
-    for(let index=0;index<candidates.length;index+=1){
-      const value=webAppUrlFrom(candidates[index]);
-      if(value)return value;
+  function resolveCardV6558(context){
+    const id = componentIdV6558(context);
+    const parts = id.split('.');
+    const catalog = window.cdaDashboardCatalogV6555;
+    if (catalog && parts.length === 2) {
+      const card = catalog.resolveCard(parts[0],parts[1]);
+      if (card) return card;
     }
-    return '';
+    const component = context && context.component;
+    if (component && component.cardId) {
+      const byId = document.getElementById(component.cardId);
+      if (byId) return byId;
+    }
+    const target = component && component.targetId && document.getElementById(component.targetId);
+    return target && target.closest ? target.closest('.remakeCard,article') : null;
   }
 
-  function currentFrameUrl(){
-    try{return frameUrlFrom(window.location&&window.location.href);}catch(error){return '';}
+  function copyStylesV6558(sourceDocument,targetDocument){
+    Array.from(sourceDocument.querySelectorAll('style,link[rel="stylesheet"]')).forEach(function(node){
+      try { targetDocument.head.appendChild(node.cloneNode(true)); } catch (error) {}
+    });
+    const style = targetDocument.createElement('style');
+    style.id = 'cdaDashboardDetachedWindowStylesV6558';
+    style.textContent = [
+      'html,body{min-height:100%;margin:0;background:var(--cda-color-page,#f7f8fa);}',
+      'body{box-sizing:border-box;padding:12px;overflow:auto;}',
+      '#cdaDashboardPopoutMountV6558{width:100%;min-height:calc(100vh - 24px);}',
+      '[data-cda-popout-ancestor="true"]{display:block!important;visibility:visible!important;max-width:none!important;min-width:0!important;width:100%!important;margin:0!important;padding:0!important;}',
+      '[data-cda-popout-ancestor="true"].remakeGridV6230,[data-cda-popout-ancestor="true"].remakeGrid,[data-cda-popout-ancestor="true"].tatGridV6509{display:block!important;grid-template-columns:1fr!important;}',
+      '[data-cda-detached-component="true"]{display:block!important;visibility:visible!important;width:100%!important;max-width:none!important;min-width:0!important;min-height:calc(100vh - 24px)!important;margin:0!important;}',
+      '[data-cda-detached-component="true"] [data-cda-dashboard-feature-key="popout"]{display:none!important;}',
+      '#cdaSharedAppFooterV6531,.managerTabs,.remakeStickyTopV6245,.tatKpiStageV6509{display:none!important;}'
+    ].join('\n');
+    targetDocument.head.appendChild(style);
   }
 
-  function baseUrl(){
-    const visible=visibleWebAppUrl();
-    if(visible)return visible;
-    const direct=webAppUrlFrom(serverConfig().baseUrl);
-    if(direct)return direct;
-    return currentFrameUrl();
-  }
-
-  function buildUrl(tabKey,componentKey){
-    const routeValue=validComponentRoute(String(tabKey)+'.'+String(componentKey));
-    const urlText=baseUrl();
-    if(!routeValue||!urlText)return '';
-    try{
-      const url=new URL(urlText);
-      if(frameUrlFrom(urlText)){
-        const hashParams=new URLSearchParams();
-        hashParams.set('component',routeValue);
-        hashParams.set('popout','1');
-        url.hash=hashParams.toString();
-      }else{
-        url.searchParams.set('presentation','all');
-        url.searchParams.set('component',routeValue);
-        url.searchParams.set('popout','1');
+  function buildAncestorShellV6558(card,context,targetDocument,mount){
+    const tab = context && context.tab;
+    const page = tab && tab.pageId ? card.ownerDocument.getElementById(tab.pageId) : null;
+    const path = [];
+    let node = card.parentElement;
+    while (node) {
+      path.unshift(node);
+      if (node === page) break;
+      node = node.parentElement;
+    }
+    let parent = mount;
+    path.forEach(function(source){
+      const clone = source.cloneNode(false);
+      clone.removeAttribute('hidden');
+      clone.setAttribute('data-cda-popout-ancestor','true');
+      if (clone.style) {
+        clone.style.removeProperty('display');
+        clone.style.removeProperty('visibility');
       }
-      return url.toString();
-    }catch(error){return '';}
+      parent.appendChild(clone);
+      parent = clone;
+    });
+    return parent;
   }
 
-  function writeFailure(popup,message){
-    if(!popup)return;
-    try{
-      popup.document.open();
-      popup.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Dashboard pop-out unavailable</title></head><body style="margin:0;padding:24px;font-family:Arial,sans-serif;background:#f7f8fa;color:#172033"><div style="max-width:720px;margin:0 auto;padding:18px;border:1px solid #d0d5dd;border-radius:10px;background:#fff"><h1 style="font-size:18px;margin:0 0 10px">Dashboard pop-out unavailable</h1><p style="margin:0;line-height:1.5">'+String(message||'The live component URL could not be opened.').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')+'</p></div></body></html>');
-      popup.document.close();
-    }catch(error){}
-  }
-
-  function open(context){
-    const tabKey=context&&context.tab&&context.tab.key;
-    const componentKey=context&&context.component&&context.component.key;
-    const name='cdaDashboard_'+String(tabKey||'tab')+'_'+String(componentKey||'component');
-    let popup=null;
-    try{popup=window.open('about:blank',name,'width=1200,height=780,resizable=yes,scrollbars=yes');}catch(error){}
-
-    const url=tabKey&&componentKey?buildUrl(tabKey,componentKey):'';
-    const launchMode=frameUrlFrom(url)?'current-frame':webAppUrlFrom(url)?'web-app':'unavailable';
-    lastAttemptV6557={
-      tabKey:String(tabKey||''),componentKey:String(componentKey||''),url:url,launchMode:launchMode,
-      popupCreated:!!popup,timestamp:new Date().toISOString(),success:false,reason:''
-    };
-
-    if(!popup){
-      lastAttemptV6557.reason='popup-blocked';
-      console.error('Dashboard pop-out was blocked by the browser.',lastAttemptV6557);
-      return false;
-    }
-    if(!url){
-      lastAttemptV6557.reason='live-frame-url-unavailable';
-      writeFailure(popup,'The dashboard could not determine a live Apps Script frame or web-app URL.');
-      console.error('Dashboard pop-out URL is unavailable.',lastAttemptV6557);
-      return false;
-    }
-
-    try{
-      popup.location.replace(url);
-      popup.focus();
-      lastAttemptV6557.success=true;
-      return true;
-    }catch(error){
-      lastAttemptV6557.reason=error&&error.message?error.message:String(error);
-      writeFailure(popup,'The dashboard could not navigate to the live component.');
-      console.error('Dashboard pop-out navigation failed.',lastAttemptV6557,error);
-      return false;
-    }
-  }
-
-  function activateTab(tab){
-    if(!tab)return;
-    if(tab.tabButtonId){
-      const button=document.getElementById(tab.tabButtonId);
-      if(button&&typeof button.click==='function'){try{button.click();}catch(error){}}
-    }
-    const page=document.getElementById(tab.pageId);
-    if(page){
-      page.classList.add('active');
-      page.style.setProperty('display','block','important');
-      page.style.setProperty('visibility','visible','important');
-    }
-  }
-
-  function isolate(tabKey,componentKey){
-    const catalog=window.cdaDashboardCatalogV6555;
-    const platform=window.cdaDashboardPlatformV6547;
-    if(!catalog||!platform)return Promise.reject(new Error('Dashboard catalog is unavailable.'));
-    const tab=platform.getTab(tabKey);
-    if(!tab)return Promise.reject(new Error('Unknown dashboard tab: '+tabKey));
-    activateTab(tab);
-    return catalog.waitFor(tabKey,componentKey,{timeoutMs:30000}).then(function(result){
-      const card=result.card;
-      const page=document.getElementById(tab.pageId);
-      if(!card||!page)throw new Error('Component card or page is unavailable.');
-      document.documentElement.classList.add('cdaDashboardIsolatedV6555');
-      document.documentElement.setAttribute('data-cda-isolated-component-id',result.descriptor.id);
-      page.setAttribute('data-cda-isolated-page','true');
-      card.setAttribute('data-cda-isolated-component','true');
-      document.title=result.descriptor.title+' — Dashboard';
-      window.requestAnimationFrame(function(){
-        window.dispatchEvent(new Event('resize'));
-        try{card.scrollIntoView({block:'start'});}catch(error){}
+  function exposeInlineGlobalsV6558(popup,card){
+    const names = new Set([
+      'cdaTableSortV6540','cdaTableSortV6539','cdaTableSortV6542',
+      'cdaTable','CdaSharedTableModule','Chart','google'
+    ]);
+    const attributes = ['onclick','onchange','oninput','onkeydown','onkeyup','ondblclick'];
+    const nodes = [card].concat(Array.from(card.querySelectorAll('*')));
+    nodes.forEach(function(node){
+      attributes.forEach(function(attribute){
+        const source = node.getAttribute && node.getAttribute(attribute);
+        if (!source) return;
+        const pattern = /(?:^|[^A-Za-z0-9_$])([A-Za-z_$][A-Za-z0-9_$]*)\s*\(/g;
+        let match;
+        while ((match = pattern.exec(source))) names.add(match[1]);
       });
-      return result.descriptor;
+    });
+    names.forEach(function(name){
+      try {
+        if (name in window && !(name in popup)) popup[name] = window[name];
+        else if (typeof window[name] === 'function') popup[name] = window[name];
+      } catch (error) {}
     });
   }
 
-  function start(){
-    const currentRoute=route();
-    if(!currentRoute)return;
-    let attempts=0;
-    const timer=window.setInterval(function(){
-      attempts+=1;
-      const platform=window.cdaDashboardPlatformV6547;
-      const catalog=window.cdaDashboardCatalogV6555;
-      const tab=platform&&platform.getTab(currentRoute.tabKey);
-      const component=tab&&tab.components&&tab.components.find(function(item){return item.key===currentRoute.componentKey;});
-      if(catalog&&tab&&component){
-        window.clearInterval(timer);
-        isolate(currentRoute.tabKey,currentRoute.componentKey).catch(function(error){console.error('Component isolation failed:',error);});
-      }else if(attempts>=1200){
-        window.clearInterval(timer);
-        console.error('Routed dashboard component did not register.');
-      }
-    },25);
+  function bridgeSharedEventsV6558(popup){
+    popup.document.addEventListener('click',function(event){
+      const button = event.target && event.target.closest
+        ? event.target.closest('[data-cda-dashboard-feature-key]')
+        : null;
+      if (!button) return;
+      const toolbar = window.cdaDashboardToolbarV6548;
+      if (toolbar && typeof toolbar.dispatch === 'function') toolbar.dispatch(button,event);
+    },true);
+    popup.document.addEventListener('keydown',function(event){
+      if (event.key === 'Escape') popup.close();
+    });
   }
 
-  window.cdaDashboardIsolationV6555=Object.freeze({
-    version:'v6.557',mode:'same-build-live-component',route:route,hashRoute:hashRoute,
-    webAppUrlFrom:webAppUrlFrom,frameUrlFrom:frameUrlFrom,visibleWebAppUrl:visibleWebAppUrl,
-    currentFrameUrl:currentFrameUrl,baseUrl:baseUrl,buildUrl:buildUrl,open:open,isolate:isolate,
-    lastAttempt:function(){return lastAttemptV6557?Object.assign({},lastAttemptV6557):null;}
-  });
+  function refreshMovedComponentV6558(context,card,popup){
+    window.setTimeout(function(){
+      try {
+        const adapter = context && context.adapter;
+        const chart = adapter && typeof adapter.getChart === 'function'
+          ? adapter.getChart(context)
+          : null;
+        if (chart && typeof chart.resize === 'function') chart.resize();
+        if (chart && typeof chart.update === 'function') chart.update('none');
+      } catch (error) {}
+      try { popup.dispatchEvent(new popup.Event('resize')); } catch (error) {}
+      try { window.dispatchEvent(new Event('resize')); } catch (error) {}
+      try { card.scrollIntoView({block:'start'}); } catch (error) {}
+    },0);
+  }
 
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});
-  else start();
+  function restoreV6558(id,reason){
+    const session = sessionsV6558.get(id);
+    if (!session || session.restoring) return false;
+    session.restoring = true;
+    if (session.poller) window.clearInterval(session.poller);
+    try {
+      if (session.card && session.card.ownerDocument !== session.sourceDocument) {
+        session.sourceDocument.adoptNode(session.card);
+      }
+      session.card.removeAttribute('data-cda-detached-component');
+      if (session.placeholder && session.placeholder.parentNode) {
+        session.placeholder.replaceWith(session.card);
+      } else if (session.parent && session.parent.isConnected) {
+        session.parent.insertBefore(session.card,session.nextSibling && session.nextSibling.isConnected
+          ? session.nextSibling : null);
+      }
+    } catch (error) {
+      console.error('Dashboard component restoration failed.',error);
+    }
+    sessionsV6558.delete(id);
+    if (reason !== 'popup-closed' && session.popup && !session.popup.closed) {
+      try { session.popup.close(); } catch (error) {}
+    }
+    try { window.dispatchEvent(new Event('resize')); } catch (error) {}
+    return true;
+  }
+
+  function placeholderV6558(sourceDocument,id,title,popup){
+    const placeholder = sourceDocument.createElement('div');
+    placeholder.className = 'cdaDashboardPopoutPlaceholderV6558';
+    placeholder.setAttribute('data-cda-popout-placeholder',id);
+    const text = sourceDocument.createElement('span');
+    text.textContent = String(title || 'Dashboard component') + ' is open in a separate window.';
+    const focus = sourceDocument.createElement('button');
+    focus.type = 'button';
+    focus.textContent = 'Show window';
+    focus.addEventListener('click',function(){ try { popup.focus(); } catch (error) {} });
+    const restore = sourceDocument.createElement('button');
+    restore.type = 'button';
+    restore.textContent = 'Restore';
+    restore.addEventListener('click',function(){ restoreV6558(id,'manual-restore'); });
+    placeholder.append(text,focus,restore);
+    return placeholder;
+  }
+
+  function openV6558(context){
+    const id = componentIdV6558(context);
+    if (!id) return false;
+    const existing = sessionsV6558.get(id);
+    if (existing && existing.popup && !existing.popup.closed) {
+      try { existing.popup.focus(); } catch (error) {}
+      return true;
+    }
+
+    const card = resolveCardV6558(context);
+    if (!card || !card.parentNode) return false;
+    const sourceDocument = card.ownerDocument;
+    const parent = card.parentNode;
+    const nextSibling = card.nextSibling;
+    const popupName = 'cdaDashboard_' + id.replace(/[^a-z0-9_-]/gi,'_');
+    let popup = null;
+    try { popup = window.open('',popupName,'width=1200,height=780,resizable=yes,scrollbars=yes'); }
+    catch (error) {}
+
+    lastAttemptV6558 = {
+      componentId:id,
+      popupCreated:!!popup,
+      success:false,
+      reason:'',
+      timestamp:new Date().toISOString()
+    };
+
+    if (!popup) {
+      lastAttemptV6558.reason = 'popup-blocked';
+      return false;
+    }
+
+    const placeholder = placeholderV6558(sourceDocument,id,context.component.title,popup);
+    const height = Math.max(84,Math.round(card.getBoundingClientRect().height || 0));
+    placeholder.style.minHeight = height + 'px';
+    parent.insertBefore(placeholder,card);
+
+    try {
+      if (window.cdaDashboardPopoverV6547) window.cdaDashboardPopoverV6547.close();
+      popup.document.open();
+      popup.document.write('<!doctype html><html><head><meta charset="utf-8"><title></title></head><body><main id="cdaDashboardPopoutMountV6558"></main></body></html>');
+      popup.document.close();
+      popup.document.title = String(context.component.title || id) + ' — Dashboard';
+      copyStylesV6558(sourceDocument,popup.document);
+      const mount = popup.document.getElementById('cdaDashboardPopoutMountV6558');
+      const shell = buildAncestorShellV6558(card,context,popup.document,mount);
+      popup.document.adoptNode(card);
+      card.setAttribute('data-cda-detached-component','true');
+      shell.appendChild(card);
+      exposeInlineGlobalsV6558(popup,card);
+      bridgeSharedEventsV6558(popup);
+
+      const session = {
+        id:id,context:context,card:card,popup:popup,sourceDocument:sourceDocument,
+        parent:parent,nextSibling:nextSibling,placeholder:placeholder,poller:0,restoring:false
+      };
+      sessionsV6558.set(id,session);
+      popup.addEventListener('beforeunload',function(){ restoreV6558(id,'popup-closed'); },{once:true});
+      session.poller = window.setInterval(function(){
+        if (!session.popup || session.popup.closed) restoreV6558(id,'popup-closed');
+      },250);
+      popup.focus();
+      refreshMovedComponentV6558(context,card,popup);
+      lastAttemptV6558.success = true;
+      lastAttemptV6558.reason = '';
+      return true;
+    } catch (error) {
+      lastAttemptV6558.reason = error && error.message ? error.message : String(error);
+      console.error('Dashboard live component pop-out failed.',error);
+      const temporary = {
+        id:id,context:context,card:card,popup:popup,sourceDocument:sourceDocument,
+        parent:parent,nextSibling:nextSibling,placeholder:placeholder,poller:0,restoring:false
+      };
+      sessionsV6558.set(id,temporary);
+      restoreV6558(id,'setup-failed');
+      return false;
+    }
+  }
+
+  window.cdaDashboardIsolationV6555 = Object.freeze({
+    version:'v6.558',
+    mode:'detached-live-component',
+    open:openV6558,
+    restore:restoreV6558,
+    active:function(){ return Array.from(sessionsV6558.keys()); },
+    lastAttempt:function(){ return lastAttemptV6558 ? Object.assign({},lastAttemptV6558) : null; }
+  });
 })();
 </script>
