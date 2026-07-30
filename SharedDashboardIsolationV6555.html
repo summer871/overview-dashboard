@@ -1,7 +1,7 @@
 <!-- SharedDashboardIsolationV6555.html
-Version: v6.556
+Version: v6.557
 Date: 2026-07-30
-Purpose: Open and isolate the same live dashboard component in the current development or production application.
+Purpose: Open and isolate the same live dashboard component using the active web-app or current Apps Script frame URL.
 -->
 <style id="cdaSharedDashboardIsolationStylesV6555">
   html.cdaDashboardIsolatedV6555,
@@ -32,22 +32,39 @@ Purpose: Open and isolate the same live dashboard component in the current devel
 <script id="cdaSharedDashboardIsolationControllerV6555">
 (function installSharedDashboardIsolationV6555(){
   'use strict';
-  if(window.cdaDashboardIsolationV6555 && window.cdaDashboardIsolationV6555.version === 'v6.556')return;
+  if(window.cdaDashboardIsolationV6555 && window.cdaDashboardIsolationV6555.version === 'v6.557')return;
 
-  let lastAttemptV6556 = null;
+  let lastAttemptV6557 = null;
 
   function serverConfig(){return window.CDA_SERVER_PRESENTATION||{};}
 
+  function validComponentRoute(value){
+    const normalized=String(value||'').trim().toLowerCase();
+    return /^(?:remake|tat)\.[a-z0-9_-]+$/.test(normalized)?normalized:'';
+  }
+
+  function hashRoute(){
+    try{
+      const params=new URLSearchParams(String(window.location&&window.location.hash||'').replace(/^#/,''));
+      return validComponentRoute(params.get('component')||params.get('cdaComponent'));
+    }catch(error){return '';}
+  }
+
   function route(){
-    const value=String(serverConfig().componentRoute||'').trim();
+    const value=validComponentRoute(serverConfig().componentRoute)||hashRoute();
     const parts=value.split('.');
     return parts.length===2&&parts[0]&&parts[1]?{tabKey:parts[0],componentKey:parts[1],id:value}:null;
   }
 
   function webAppUrlFrom(value){
     const text=String(value||'').trim();
-    const match=text.match(/^(https:\/\/script\.google\.com\/macros\/s\/[^/?#]+\/(?:dev|exec))/i);
+    const match=text.match(/^(https:\/\/script\.google\.com\/(?:a\/macros\/[^/]+\/|macros\/)s\/[^/?#]+\/(?:dev|exec))/i);
     return match?match[1]:'';
+  }
+
+  function frameUrlFrom(value){
+    const text=String(value||'').trim();
+    return /^https:\/\/[^/]+\.script\.googleusercontent\.com\//i.test(text)?text:'';
   }
 
   function visibleWebAppUrl(){
@@ -64,22 +81,34 @@ Purpose: Open and isolate the same live dashboard component in the current devel
     return '';
   }
 
+  function currentFrameUrl(){
+    try{return frameUrlFrom(window.location&&window.location.href);}catch(error){return '';}
+  }
+
   function baseUrl(){
     const visible=visibleWebAppUrl();
     if(visible)return visible;
     const direct=webAppUrlFrom(serverConfig().baseUrl);
     if(direct)return direct;
-    return '';
+    return currentFrameUrl();
   }
 
   function buildUrl(tabKey,componentKey){
+    const routeValue=validComponentRoute(String(tabKey)+'.'+String(componentKey));
     const urlText=baseUrl();
-    if(!urlText)return '';
+    if(!routeValue||!urlText)return '';
     try{
       const url=new URL(urlText);
-      url.searchParams.set('presentation','all');
-      url.searchParams.set('component',String(tabKey)+'.'+String(componentKey));
-      url.searchParams.set('popout','1');
+      if(frameUrlFrom(urlText)){
+        const hashParams=new URLSearchParams();
+        hashParams.set('component',routeValue);
+        hashParams.set('popout','1');
+        url.hash=hashParams.toString();
+      }else{
+        url.searchParams.set('presentation','all');
+        url.searchParams.set('component',routeValue);
+        url.searchParams.set('popout','1');
+      }
       return url.toString();
     }catch(error){return '';}
   }
@@ -98,42 +127,36 @@ Purpose: Open and isolate the same live dashboard component in the current devel
     const componentKey=context&&context.component&&context.component.key;
     const name='cdaDashboard_'+String(tabKey||'tab')+'_'+String(componentKey||'component');
     let popup=null;
-    try{
-      popup=window.open('about:blank',name,'width=1200,height=780,resizable=yes,scrollbars=yes');
-    }catch(error){}
+    try{popup=window.open('about:blank',name,'width=1200,height=780,resizable=yes,scrollbars=yes');}catch(error){}
 
     const url=tabKey&&componentKey?buildUrl(tabKey,componentKey):'';
-    lastAttemptV6556={
-      tabKey:String(tabKey||''),
-      componentKey:String(componentKey||''),
-      url:url,
-      popupCreated:!!popup,
-      timestamp:new Date().toISOString(),
-      success:false,
-      reason:''
+    const launchMode=frameUrlFrom(url)?'current-frame':webAppUrlFrom(url)?'web-app':'unavailable';
+    lastAttemptV6557={
+      tabKey:String(tabKey||''),componentKey:String(componentKey||''),url:url,launchMode:launchMode,
+      popupCreated:!!popup,timestamp:new Date().toISOString(),success:false,reason:''
     };
 
     if(!popup){
-      lastAttemptV6556.reason='popup-blocked';
-      console.error('Dashboard pop-out was blocked by the browser.',lastAttemptV6556);
+      lastAttemptV6557.reason='popup-blocked';
+      console.error('Dashboard pop-out was blocked by the browser.',lastAttemptV6557);
       return false;
     }
     if(!url){
-      lastAttemptV6556.reason='web-app-url-unavailable';
-      writeFailure(popup,'The dashboard could not determine its /dev or /exec web-app URL.');
-      console.error('Dashboard pop-out URL is unavailable.',lastAttemptV6556);
+      lastAttemptV6557.reason='live-frame-url-unavailable';
+      writeFailure(popup,'The dashboard could not determine a live Apps Script frame or web-app URL.');
+      console.error('Dashboard pop-out URL is unavailable.',lastAttemptV6557);
       return false;
     }
 
     try{
       popup.location.replace(url);
       popup.focus();
-      lastAttemptV6556.success=true;
+      lastAttemptV6557.success=true;
       return true;
     }catch(error){
-      lastAttemptV6556.reason=error&&error.message?error.message:String(error);
+      lastAttemptV6557.reason=error&&error.message?error.message:String(error);
       writeFailure(popup,'The dashboard could not navigate to the live component.');
-      console.error('Dashboard pop-out navigation failed.',lastAttemptV6556,error);
+      console.error('Dashboard pop-out navigation failed.',lastAttemptV6557,error);
       return false;
     }
   }
@@ -197,16 +220,10 @@ Purpose: Open and isolate the same live dashboard component in the current devel
   }
 
   window.cdaDashboardIsolationV6555=Object.freeze({
-    version:'v6.556',
-    mode:'same-deployment-live-component',
-    route:route,
-    webAppUrlFrom:webAppUrlFrom,
-    visibleWebAppUrl:visibleWebAppUrl,
-    baseUrl:baseUrl,
-    buildUrl:buildUrl,
-    open:open,
-    isolate:isolate,
-    lastAttempt:function(){return lastAttemptV6556?Object.assign({},lastAttemptV6556):null;}
+    version:'v6.557',mode:'same-build-live-component',route:route,hashRoute:hashRoute,
+    webAppUrlFrom:webAppUrlFrom,frameUrlFrom:frameUrlFrom,visibleWebAppUrl:visibleWebAppUrl,
+    currentFrameUrl:currentFrameUrl,baseUrl:baseUrl,buildUrl:buildUrl,open:open,isolate:isolate,
+    lastAttempt:function(){return lastAttemptV6557?Object.assign({},lastAttemptV6557):null;}
   });
 
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});
