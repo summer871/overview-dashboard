@@ -1,0 +1,433 @@
+<!-- TatProductTableV6562.html
+Version: v6.562
+Date: 2026-07-30
+Purpose: Keep TAT departments department-only and provide a separate shared Products table with Products / Groups modes.
+-->
+<style id="cdaTatProductTableStylesV6562">
+  .cdaDashboardHeaderControlsV6562 {
+    display:flex!important;
+    align-items:center!important;
+    justify-content:flex-end!important;
+    flex-wrap:wrap!important;
+    gap:var(--cda-control-gap)!important;
+    min-width:0!important;
+  }
+  .cdaDashboardModeToggleV6562 {
+    display:inline-flex!important;
+    align-items:center!important;
+    gap:2px!important;
+    box-sizing:border-box!important;
+    padding:2px!important;
+    border:1px solid var(--cda-color-border)!important;
+    border-radius:999px!important;
+    background:var(--cda-color-surface-muted)!important;
+  }
+  .cdaDashboardModeButtonV6562 {
+    display:inline-flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    box-sizing:border-box!important;
+    min-width:0!important;
+    height:calc(var(--cda-control-height) - 4px)!important;
+    min-height:calc(var(--cda-control-height) - 4px)!important;
+    margin:0!important;
+    padding:0 9px!important;
+    border:0!important;
+    border-radius:999px!important;
+    background:transparent!important;
+    color:var(--cda-color-muted)!important;
+    box-shadow:none!important;
+    font:var(--cda-font-control)!important;
+    cursor:pointer!important;
+    white-space:nowrap!important;
+  }
+  .cdaDashboardModeButtonV6562:hover,
+  .cdaDashboardModeButtonV6562:focus-visible {
+    color:var(--cda-color-accent)!important;
+    outline:none!important;
+  }
+  .cdaDashboardModeButtonV6562.active,
+  .cdaDashboardModeButtonV6562[aria-pressed="true"] {
+    background:var(--cda-color-accent-surface)!important;
+    color:var(--cda-color-accent)!important;
+    box-shadow:inset 0 0 0 1px var(--cda-color-accent-border)!important;
+  }
+</style>
+<script id="cdaTatProductTableControllerV6562">
+(function installTatProductTableV6562(){
+  'use strict';
+
+  if (window.cdaTatProductTableV6562 &&
+      window.cdaTatProductTableV6562.version === 'v6.562') return;
+
+  const TABLE_KEY = 'tatProduct';
+  const TABLE_ID = 'tatProductTableV6562';
+  const MODE_STORAGE_KEY = 'cdaTatProductTableMode.v6562';
+  const VALID_MODES = new Set(['product','group']);
+  let latestDepartmentRows = [];
+  let renderFrame = 0;
+  let bridgesInstalled = false;
+
+  function stateV6562(){ return window.cdaTatStateV6509 || null; }
+  function numV6562(value){ const parsed = Number(value); return Number.isFinite(parsed) ? parsed : 0; }
+  function avgV6562(values){
+    const clean = (values || []).map(Number).filter(Number.isFinite);
+    return clean.length ? clean.reduce(function(total,value){ return total + value; },0) / clean.length : 0;
+  }
+
+  function readModeV6562(){
+    const current = stateV6562();
+    const stateMode = current && current.tatProductTableModeV6562;
+    if (VALID_MODES.has(stateMode)) return stateMode;
+    try {
+      const saved = String(localStorage.getItem(MODE_STORAGE_KEY) || '').toLowerCase();
+      if (VALID_MODES.has(saved)) return saved;
+    } catch (error) {}
+    return 'product';
+  }
+
+  function writeModeV6562(mode){
+    const normalized = VALID_MODES.has(mode) ? mode : 'product';
+    const current = stateV6562();
+    if (current) current.tatProductTableModeV6562 = normalized;
+    try { localStorage.setItem(MODE_STORAGE_KEY,normalized); } catch (error) {}
+    return normalized;
+  }
+
+  function modeV6562(){ return writeModeV6562(readModeV6562()); }
+  function filterTypeV6562(){ return modeV6562() === 'group' ? 'productGroup' : 'product'; }
+
+  function aggregateCasesV6562(rows){
+    const map = new Map();
+    (rows || []).forEach(function(row){
+      const key = String(row && (row.caseId || row.caseNumber) || '');
+      if (!key) return;
+      let item = map.get(key);
+      if (!item) {
+        item = {
+          key:key,
+          tatEligible:!!row.tatEligible,
+          businessTatDays:row.businessTatDays,
+          otpEligible:!!row.otpEligible,
+          onTimeToPromise:row.onTimeToPromise,
+          daysLate:numV6562(row.daysLate),
+          units:0,
+          remakeUnits:0
+        };
+        map.set(key,item);
+      }
+      item.units += numV6562(row.soldUnits);
+      item.remakeUnits += numV6562(row.remakeUnits);
+      item.tatEligible = item.tatEligible || !!row.tatEligible;
+      item.otpEligible = item.otpEligible || !!row.otpEligible;
+    });
+    return Array.from(map.values());
+  }
+
+  function metricsV6562(rows){
+    const cases = aggregateCasesV6562(rows);
+    const eligible = cases.filter(function(row){
+      return row.tatEligible && Number.isFinite(Number(row.businessTatDays));
+    });
+    const otp = eligible.filter(function(row){ return row.otpEligible; });
+    const late = otp.filter(function(row){ return numV6562(row.daysLate) > 0; });
+    return {
+      cases:cases.length,
+      units:cases.reduce(function(total,row){ return total + numV6562(row.units); },0),
+      remakeUnits:cases.reduce(function(total,row){ return total + numV6562(row.remakeUnits); },0),
+      eligibleCases:eligible.length,
+      avgTat:avgV6562(eligible.map(function(row){ return row.businessTatDays; })),
+      otpPct:otp.length ? otp.filter(function(row){ return row.onTimeToPromise === true; }).length / otp.length : NaN,
+      avgLate:late.length ? avgV6562(late.map(function(row){ return row.daysLate; })) : 0
+    };
+  }
+
+  function productKeyV6562(row){
+    return String(row && (row.productId || row.productsDescription || row.productsGroup) || '') + '||' +
+      String(row && (row.productsDescription || row.productId || row.productsGroup) || '');
+  }
+
+  function productLabelV6562(row){
+    const id = String(row && row.productId || '').trim();
+    const name = String(row && row.productsDescription || '').trim();
+    return id && name ? id + ' - ' + name : (name || id || 'Unknown product');
+  }
+
+  function groupKeyV6562(row){
+    return String(row && row.productsGroup || 'Unassigned').trim() || 'Unassigned';
+  }
+
+  function groupRowsV6562(rows,mode){
+    const map = new Map();
+    (rows || []).forEach(function(row){
+      const key = mode === 'group' ? groupKeyV6562(row) : productKeyV6562(row);
+      if (!key) return;
+      let group = map.get(key);
+      if (!group) {
+        group = {
+          key:key,
+          label:mode === 'group' ? groupKeyV6562(row) : productLabelV6562(row),
+          rows:[]
+        };
+        map.set(key,group);
+      }
+      group.rows.push(row);
+    });
+    return Array.from(map.values()).map(function(group){
+      return Object.assign(group,metricsV6562(group.rows));
+    }).sort(function(a,b){
+      return b.units - a.units || a.label.localeCompare(b.label,undefined,{numeric:true,sensitivity:'base'});
+    });
+  }
+
+  function flattenDepartmentRowsV6562(groups){
+    const rows = [];
+    (groups || []).forEach(function(group){
+      (group && Array.isArray(group.rows) ? group.rows : []).forEach(function(row){ rows.push(row); });
+    });
+    return rows;
+  }
+
+  function fmtNumV6562(value,digits){
+    return numV6562(value).toLocaleString(undefined,{maximumFractionDigits:digits == null ? 1 : digits});
+  }
+
+  function fmtPctV6562(value){
+    return Number.isFinite(Number(value)) ? (Number(value) * 100).toFixed(1) + '%' : '-';
+  }
+
+  function columnsV6562(){
+    return [
+      {field:'label',label:'Product',title:'Product',hideable:false},
+      {field:'units',label:'Sold Units',title:'Sold Units',type:'decimal',decimals:1,format:function(value){ return fmtNumV6562(value,1); }},
+      {field:'remakeUnits',label:'Remake Units',title:'Remake Units',type:'decimal',decimals:1,format:function(value){ return fmtNumV6562(value,1); }},
+      {field:'remakePct',label:'Remake %',title:'Remake %',type:'percent',value:function(row){ return row.units ? row.remakeUnits / row.units : NaN; },format:function(value){ return fmtPctV6562(value); }},
+      {field:'avgTat',label:'Avg TAT',title:'Average TAT',type:'decimal',decimals:2,format:function(value,row){ return row && !row.eligibleCases ? '-' : fmtNumV6562(value,2); }},
+      {field:'otpPct',label:'OTP',title:'On Time to Promise',type:'percent',format:function(value){ return fmtPctV6562(value); }},
+      {field:'avgLate',label:'Avg Days Late',title:'Average Days Late',type:'decimal',decimals:2,format:function(value){ return fmtNumV6562(value,2); }}
+    ];
+  }
+
+  function exclusiveSelectionV6562(type){
+    const current = stateV6562();
+    const selected = current && current.selected && current.selected[type];
+    const mode = current && current.modes && current.modes[type];
+    return mode === 'CUSTOM' && selected instanceof Set && selected.size === 1
+      ? Array.from(selected)[0]
+      : '';
+  }
+
+  function rowClickV6562(row,key,event,additive){
+    const type = filterTypeV6562();
+    if (!key) return false;
+    if (additive && typeof window.toggleTatOptionV6509 === 'function') {
+      window.toggleTatOptionV6509(type,key);
+    } else if (typeof window.onlyTatOptionV6509 === 'function') {
+      window.onlyTatOptionV6509(type,key,event);
+    }
+    return false;
+  }
+
+  function ensureDepartmentOnlyV6562(){
+    if (!window.cdaTable || typeof window.cdaTable.config !== 'function') return false;
+    const config = window.cdaTable.config('tatDepartment');
+    if (!config) return false;
+    config.childRows = null;
+    config.childRowClass = '';
+    if (config.columns && config.columns[0]) {
+      config.columns[0].label = 'Department';
+      config.columns[0].title = 'Department';
+    }
+    return true;
+  }
+
+  function ensureRegisteredV6562(){
+    if (!window.cdaTable) return false;
+    if (!window.cdaTable.registered(TABLE_KEY)) {
+      window.cdaTable.register({
+        key:TABLE_KEY,
+        tableId:TABLE_ID,
+        columns:columnsV6562(),
+        rowKey:function(row){ return row.key; },
+        defaultSort:{field:'units',dir:'desc'},
+        limit:1000,
+        filterKind:'product',
+        manageSelection:false,
+        emptyText:'No products match the filters.',
+        onRowClick:rowClickV6562
+      });
+    }
+    const config = window.cdaTable.config(TABLE_KEY);
+    if (config) {
+      config.tableId = TABLE_ID;
+      config.onRowClick = rowClickV6562;
+      config.manageSelection = false;
+      config.autoTools = false;
+    }
+    return !!config;
+  }
+
+  function syncModeButtonsV6562(){
+    const currentMode = modeV6562();
+    const documents = [document];
+    const isolation = window.cdaDashboardIsolationV6555;
+    const detached = isolation && typeof isolation.card === 'function' ? isolation.card('tat.product') : null;
+    if (detached && detached.ownerDocument && documents.indexOf(detached.ownerDocument) < 0) {
+      documents.push(detached.ownerDocument);
+    }
+    documents.forEach(function(doc){
+      doc.querySelectorAll('[data-tat-product-mode-v6562]').forEach(function(button){
+        const buttonMode = button.getAttribute('data-tat-product-mode-v6562');
+        const active = buttonMode === currentMode;
+        button.classList.toggle('active',active);
+        button.setAttribute('aria-pressed',active ? 'true' : 'false');
+      });
+    });
+  }
+
+  function renderV6562(departmentRows){
+    if (Array.isArray(departmentRows)) latestDepartmentRows = departmentRows.slice();
+    if (!ensureRegisteredV6562()) return false;
+    ensureDepartmentOnlyV6562();
+    const currentMode = modeV6562();
+    const config = window.cdaTable.config(TABLE_KEY);
+    if (config && config.columns && config.columns[0]) {
+      const label = currentMode === 'group' ? 'Group' : 'Product';
+      config.columns[0].label = label;
+      config.columns[0].title = label;
+      config.filterKind = currentMode === 'group' ? 'productGroup' : 'product';
+      config.emptyText = currentMode === 'group'
+        ? 'No product groups match the filters.'
+        : 'No products match the filters.';
+    }
+    const rawRows = flattenDepartmentRowsV6562(latestDepartmentRows);
+    const rows = groupRowsV6562(rawRows,currentMode);
+    const selected = exclusiveSelectionV6562(currentMode === 'group' ? 'productGroup' : 'product');
+    window.cdaTable.setSelection(TABLE_KEY,selected ? [selected] : [],{render:false});
+    window.cdaTable.setRows(TABLE_KEY,rows);
+    syncModeButtonsV6562();
+    return true;
+  }
+
+  function scheduleRenderV6562(rows){
+    if (Array.isArray(rows)) latestDepartmentRows = rows.slice();
+    if (renderFrame) return;
+    renderFrame = window.requestAnimationFrame(function(){
+      renderFrame = 0;
+      renderV6562(latestDepartmentRows);
+    });
+  }
+
+  function patchTableRowsV6562(){
+    if (!window.cdaTable || window.cdaTable.__tatProductRowsPatchedV6562) return;
+    const original = window.cdaTable.setRows.bind(window.cdaTable);
+    window.cdaTable.setRows = function(key,rows,options){
+      const result = original(key,rows,options);
+      if (key === 'tatDepartment') {
+        latestDepartmentRows = Array.isArray(rows) ? rows.slice() : [];
+        ensureDepartmentOnlyV6562();
+        scheduleRenderV6562(latestDepartmentRows);
+      }
+      return result;
+    };
+    window.cdaTable.__tatProductRowsPatchedV6562 = true;
+  }
+
+  function installControllerBridgesV6562(){
+    if (bridgesInstalled) return;
+    bridgesInstalled = true;
+
+    const originalClear = window.clearTatComponentV6509;
+    if (typeof originalClear === 'function' && !originalClear.__tatProductWrappedV6562) {
+      const wrappedClear = function(component){
+        if (component === 'product') {
+          const type = filterTypeV6562();
+          if (typeof window.resetTatFilterV6509 === 'function') window.resetTatFilterV6509(type);
+          return;
+        }
+        return originalClear.apply(this,arguments);
+      };
+      wrappedClear.__tatProductWrappedV6562 = true;
+      window.clearTatComponentV6509 = wrappedClear;
+    }
+
+    const originalExportAll = window.exportTatAllDataV6509;
+    if (typeof originalExportAll === 'function' && !originalExportAll.__tatProductWrappedV6562) {
+      const wrappedExport = function(component){
+        if (component === 'product' && window.cdaTable) {
+          window.cdaTable.exportCsv(TABLE_KEY,
+            modeV6562() === 'group' ? 'tat_product_groups_all.csv' : 'tat_products_all.csv');
+          return;
+        }
+        return originalExportAll.apply(this,arguments);
+      };
+      wrappedExport.__tatProductWrappedV6562 = true;
+      window.exportTatAllDataV6509 = wrappedExport;
+    }
+  }
+
+  function setModeV6562(next,event){
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    const normalized = VALID_MODES.has(String(next)) ? String(next) : 'product';
+    writeModeV6562(normalized);
+    renderV6562(window.cdaTable ? window.cdaTable.getRows('tatDepartment') : latestDepartmentRows);
+    return false;
+  }
+
+  function headerMarkupV6562(){
+    const currentMode = modeV6562();
+    return '<div class="cdaDashboardModeToggleV6562 remakeProductModeBarV6264" role="group" aria-label="Product table grouping">' +
+      '<button id="tatProductModeProductsBtnV6562" class="cdaDashboardModeButtonV6562' +
+      (currentMode === 'product' ? ' active' : '') + '" type="button" data-tat-product-mode-v6562="product"' +
+      ' aria-pressed="' + (currentMode === 'product' ? 'true' : 'false') + '"' +
+      ' onclick="return setTatProductTableModeV6562(\'product\',event)">Products</button>' +
+      '<button id="tatProductModeGroupsBtnV6562" class="cdaDashboardModeButtonV6562' +
+      (currentMode === 'group' ? ' active' : '') + '" type="button" data-tat-product-mode-v6562="group"' +
+      ' aria-pressed="' + (currentMode === 'group' ? 'true' : 'false') + '"' +
+      ' onclick="return setTatProductTableModeV6562(\'group\',event)">Groups</button></div>';
+  }
+
+  function afterReplaceV6562(){
+    ensureRegisteredV6562();
+    ensureDepartmentOnlyV6562();
+    installControllerBridgesV6562();
+    const rows = window.cdaTable ? window.cdaTable.getRows('tatDepartment') : latestDepartmentRows;
+    scheduleRenderV6562(rows);
+  }
+
+  function startV6562(){
+    patchTableRowsV6562();
+    ensureRegisteredV6562();
+    ensureDepartmentOnlyV6562();
+    installControllerBridgesV6562();
+    if (window.cdaTable) latestDepartmentRows = window.cdaTable.getRows('tatDepartment');
+    scheduleRenderV6562(latestDepartmentRows);
+  }
+
+  window.setTatProductTableModeV6562 = setModeV6562;
+  window.cdaTatProductTableV6562 = Object.freeze({
+    version:'v6.562',
+    tableKey:TABLE_KEY,
+    tableId:TABLE_ID,
+    mode:modeV6562,
+    setMode:setModeV6562,
+    render:renderV6562,
+    headerMarkup:headerMarkupV6562,
+    ensureDepartmentOnly:ensureDepartmentOnlyV6562,
+    afterReplace:afterReplaceV6562
+  });
+
+  window.addEventListener('cdaDashboardTabRenderedV6547',function(event){
+    if (event && event.detail && event.detail.tabKey === 'tat') afterReplaceV6562();
+  });
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded',startV6562,{once:true});
+  } else {
+    startV6562();
+  }
+})();
+</script>
