@@ -1,8 +1,8 @@
 /**
  * Executive Overview Dashboard Router
- * Version: Code.gs v6.557 shared interaction recovery
+ * Version: Code.gs v6.558 detached live components
  * Date: 2026-07-30
- * Purpose: Serve the dashboard shell and inject presentation metadata for shared live components.
+ * Purpose: Serve the dashboard shell and inject presentation metadata.
  */
 function doGet(e) {
   const params = e && e.parameter ? e.parameter : {};
@@ -10,31 +10,28 @@ function doGet(e) {
   if (page === 'debug' || params.debug === '1') return renderDashboardDebugPage();
 
   const presentationMode = getDashboardPresentationMode(e);
-  const componentRoute = getDashboardComponentRoute(e);
   const template = HtmlService.createTemplateFromFile('Index');
   template.dashboardBaseUrl = getDashboardBaseUrl();
   template.dashboardPresentationMode = presentationMode;
-  template.dashboardPresentationVersion = 'v6.557';
-  template.dashboardPresentationSource = 'Code.gs v6.557 shared interaction recovery';
+  template.dashboardPresentationVersion = 'v6.558';
+  template.dashboardPresentationSource = 'Code.gs v6.558 detached live components';
 
   const presentation = {
     mode: presentationMode,
-    version: 'v6.557',
-    source: 'Code.gs v6.557 shared interaction recovery',
-    baseUrl: getDashboardBaseUrl(),
-    componentRoute: componentRoute,
-    isComponentWindow: Boolean(componentRoute)
+    version: 'v6.558',
+    source: 'Code.gs v6.558 detached live components',
+    baseUrl: getDashboardBaseUrl()
   };
 
   let html = template.evaluate().getContent();
-  const configScript = '<script id="cdaServerPresentationV6557">window.CDA_SERVER_PRESENTATION=' +
+  const configScript = '<script id="cdaServerPresentationV6558">window.CDA_SERVER_PRESENTATION=' +
     JSON.stringify(presentation).replace(/</g, '\\u003c') + ';</script>';
   html = html.indexOf('</head>') >= 0
     ? html.replace('</head>', configScript + '</head>')
     : configScript + html;
 
   return HtmlService.createHtmlOutput(html)
-    .setTitle(componentRoute ? 'Dashboard Component' : 'Overview Dashboard')
+    .setTitle('Overview Dashboard')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
@@ -57,12 +54,6 @@ function getDashboardPresentationMode(e) {
   return 'remake';
 }
 
-function getDashboardComponentRoute(e) {
-  const params = e && e.parameter ? e.parameter : {};
-  const value = String(params.component || '').trim().toLowerCase();
-  return /^(?:remake|tat)\.[a-z0-9_-]+$/.test(value) ? value : '';
-}
-
 function getDashboardBaseUrl() {
   try { return ScriptApp.getService().getUrl() || ''; } catch (error) { return ''; }
 }
@@ -78,7 +69,7 @@ function renderDashboardDebugPage() {
 function debugDashboardServerHealth() {
   const health = {
     ok: true,
-    routerVersion: 'Code.gs v6.557 shared interaction recovery',
+    routerVersion: 'Code.gs v6.558 detached live components',
     timestamp: new Date().toISOString(),
     scriptTimeZone: Session.getScriptTimeZone(),
     dashboardBaseUrl: getDashboardBaseUrl(),
