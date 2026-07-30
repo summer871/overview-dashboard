@@ -1,21 +1,23 @@
 <!-- TatDashboardBootstrapV6547.html
-Version: v6.561
+Version: v6.562
 Date: 2026-07-30
-Purpose: Register, render, and audit TAT on the shared component platform with popup-window-only vertical scrolling.
+Purpose: Register, render, and audit TAT with department-only and separate Products / Groups tables.
 -->
 <script id="cdaTatDashboardBootstrapControllerV6547">
 (function installTatDashboardBootstrapV6547(){
   'use strict';
 
-  if (window.__cdaTatDashboardBootstrapV6561) return;
-  window.__cdaTatDashboardBootstrapV6561 = true;
+  if (window.__cdaTatDashboardBootstrapV6562) return;
+  window.__cdaTatDashboardBootstrapV6562 = true;
 
   const platform = window.cdaDashboardPlatformV6547;
   const renderer = window.cdaDashboardRendererV6547;
   const definition = window.cdaTatDashboardDefinitionV6547;
   const sharedAudit = window.cdaDashboardAuditV6550;
-  if (!platform || !renderer || !definition || !sharedAudit) {
-    throw new Error('TAT bootstrap requires registry, renderer, definition, and shared audit.');
+  const productTable = window.cdaTatProductTableV6562;
+  const productAudit = window.cdaTatProductAuditV6562;
+  if (!platform || !renderer || !definition || !sharedAudit || !productTable || !productAudit) {
+    throw new Error('TAT bootstrap requires registry, renderer, definition, shared audit, product table, and product audit.');
   }
 
   platform.registerTab(definition);
@@ -24,7 +26,7 @@ Purpose: Register, render, and audit TAT on the shared component platform with p
     throw new Error('TAT definition is invalid:\n' + registrationAudit.errors.join('\n'));
   }
 
-  function dependencyAuditV6561(){
+  function dependencyAuditV6562(){
     return {
       tableModule:!!window.cdaTable,
       sharedTheme:window.cdaDashboardThemeV6549 && window.cdaDashboardThemeV6549.version === 'v6.550',
@@ -32,16 +34,18 @@ Purpose: Register, render, and audit TAT on the shared component platform with p
       sharedPopover:window.cdaDashboardPopoverV6547 && window.cdaDashboardPopoverV6547.version === 'v6.558',
       sharedToolbar:window.cdaDashboardToolbarV6548 && window.cdaDashboardToolbarV6548.version === 'v6.558',
       componentCatalog:window.cdaDashboardCatalogV6555 && window.cdaDashboardCatalogV6555.version === 'v6.555',
-      componentIsolation:window.cdaDashboardIsolationV6555 && window.cdaDashboardIsolationV6555.version === 'v6.561' &&
-        window.cdaDashboardIsolationV6555.tableMode === 'window-scroll-full-table',
+      componentIsolation:window.cdaDashboardIsolationV6555 && window.cdaDashboardIsolationV6555.version === 'v6.561',
       livePopout:window.cdaDashboardPopoutV6548 && window.cdaDashboardPopoutV6548.version === 'v6.561' &&
         window.cdaDashboardPopoutV6548.mode === 'detached-live-component' &&
         window.cdaDashboardPopoutV6548.tableMode === 'window-scroll-full-table',
       titleToggle:window.cdaDashboardTitleToggleV6555 && window.cdaDashboardTitleToggleV6555.version === 'v6.556',
-      renderer:renderer.version === 'v6.555',
+      renderer:renderer.version === 'v6.562',
       sharedAudit:sharedAudit.version === 'v6.561',
-      adapter:window.cdaTatDashboardAdapterV6547 && window.cdaTatDashboardAdapterV6547.version === 'v6.558',
-      definition:definition.version === 'v6.555',
+      adapter:window.cdaTatDashboardAdapterV6547 && window.cdaTatDashboardAdapterV6547.version === 'v6.562',
+      definition:definition.version === 'v6.562',
+      productTable:productTable.version === 'v6.562',
+      productAudit:productAudit.version === 'v6.562',
+      sevenComponents:definition.components.length === 7,
       bindings:window.cdaTatDashboardBindingsV6547 && window.cdaTatDashboardBindingsV6547.version === 'v6.555',
       kpi:!!window.cdaDashboardKpiV6547,
       clearTatComponentV6509:typeof window.clearTatComponentV6509 === 'function',
@@ -51,22 +55,26 @@ Purpose: Register, render, and audit TAT on the shared component platform with p
     };
   }
 
-  function auditV6561(){
+  function auditV6562(){
     const base = renderer.audit('tat');
-    const dependencies = dependencyAuditV6561();
+    const dependencies = dependencyAuditV6562();
     const sharedControls = sharedAudit.audit();
     const catalog = window.cdaDashboardCatalogV6555.audit();
+    const productContract = productAudit.audit();
     const allRequiredDependenciesPresent = Object.keys(dependencies).every(function(key){
       return dependencies[key] === true;
     });
     return Object.assign({},base,{
-      version:'v6.561',
-      mode:'shared-platform-with-popup-window-only-vertical-scroll',
+      version:'v6.562',
+      mode:'shared-platform-with-separate-department-and-products-tables',
       registeredFeatures:platform.listFeatures(),
       registeredTabs:platform.listTabs(),
       dependencies:dependencies,
       allRequiredDependenciesPresent:allRequiredDependenciesPresent,
       componentCatalog:catalog,
+      productContract:productContract,
+      departmentOnly:productContract.departmentOnly,
+      productGroupsToggle:productContract.modeButtonCount === 2 && productContract.oneActiveMode,
       noRemakeCardReplacement:document.querySelectorAll(
         '#remakeFactorPage [data-cda-dashboard-tab],#remakeFactorPage [data-cda-dashboard-component]'
       ).length === 0,
@@ -76,36 +84,38 @@ Purpose: Register, render, and audit TAT on the shared component platform with p
       sharedControls:sharedControls,
       sharedControlsValidated:sharedControls.ok,
       ok:base.validation && base.validation.ok && allRequiredDependenciesPresent && catalog.ok &&
-        base.noDuplicateIds && base.oneCardPerComponent && sharedControls.ok
+        base.noDuplicateIds && base.oneCardPerComponent && base.headerControlsOwned &&
+        productContract.ok && sharedControls.ok
     });
   }
 
-  function renderV6561(){ return renderer.rebuild('tat'); }
+  function renderV6562(){ return renderer.rebuild('tat'); }
 
-  function startV6561(){
+  function startV6562(){
     let attempts = 0;
     const timer = window.setInterval(function(){
       attempts += 1;
       if (document.getElementById(definition.pageId) && window.cdaTable) {
         window.clearInterval(timer);
-        renderV6561();
+        renderV6562();
+        productTable.afterReplace();
       } else if (attempts >= 160) window.clearInterval(timer);
     },25);
   }
 
   window.cdaTatDashboardV6547 = Object.freeze({
-    version:'v6.561',
+    version:'v6.562',
     definition:definition,
-    render:renderV6561,
-    audit:auditV6561,
-    dependencyAudit:dependencyAuditV6561
+    render:renderV6562,
+    audit:auditV6562,
+    dependencyAudit:dependencyAuditV6562
   });
-  window.auditSharedRemakeTableShellV6544 = auditV6561;
+  window.auditSharedRemakeTableShellV6544 = auditV6562;
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded',startV6561,{once:true});
+    document.addEventListener('DOMContentLoaded',startV6562,{once:true});
   } else {
-    startV6561();
+    startV6562();
   }
 })();
 </script>
