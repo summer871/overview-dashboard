@@ -1,7 +1,7 @@
 <!-- SharedDashboardInteractionAuditV6557.html
 Version: v6.557
 Date: 2026-07-30
-Purpose: Extend the shared dashboard audit with pointer-host and same-build pop-out checks.
+Purpose: Extend the shared dashboard audit with current pointer-host and same-build pop-out checks.
 -->
 <script id="cdaSharedDashboardInteractionAuditControllerV6557">
 (function installSharedDashboardInteractionAuditV6557(){
@@ -67,16 +67,46 @@ Purpose: Extend the shared dashboard audit with pointer-host and same-build pop-
     };
   }
 
+  function baseBehaviorOk(base){
+    const checks = [
+      base.componentCatalog,
+      base.titleSideCollapse,
+      base.iconOwnership,
+      base.everyFeatureInstanceStyleParity,
+      base.toolbarActionOrder,
+      base.visibleLegacyHeaderActions,
+      base.remakeVisibleCardCoverage,
+      base.kpiOverflowParity,
+      base.oneToolbarOwnerPerCard,
+      base.themeCssVariablesPresent
+    ];
+    return checks.every(function(check){ return !!(check && check.ok); });
+  }
+
   function audit(){
     const base = baseAuditService.audit();
     const pointerHosts = remakePointerHosts();
     const popout = sameBuildPopout();
+    const services = Object.assign({},base.services || {},{
+      isolation:window.cdaDashboardIsolationV6555 && window.cdaDashboardIsolationV6555.version,
+      popout:window.cdaDashboardPopoutV6548 && window.cdaDashboardPopoutV6548.version,
+      adapter:window.cdaRemakeDashboardAdapterV6548 && window.cdaRemakeDashboardAdapterV6548.version
+    });
+    const serviceVersionsCorrect = !!(
+      services.theme === 'v6.550' && services.columns === 'v6.550' &&
+      services.popover === 'v6.550' && services.toolbar === 'v6.554' &&
+      services.bridge === 'v6.555' && services.catalog === 'v6.555' &&
+      services.isolation === 'v6.557' && services.popout === 'v6.557' &&
+      services.titleToggle === 'v6.556' && services.adapter === 'v6.557'
+    );
     return Object.assign({},base,{
       version:'v6.557',
+      services:services,
+      serviceVersionsCorrect:serviceVersionsCorrect,
       remakePointerHosts:pointerHosts,
       sameBuildPopout:popout,
       livePopoutContract:popout,
-      ok:!!base.ok && pointerHosts.ok && popout.ok
+      ok:serviceVersionsCorrect && baseBehaviorOk(base) && pointerHosts.ok && popout.ok
     });
   }
 
