@@ -1,26 +1,24 @@
 <!-- SharedDashboardPopoutV6548.html
-Version: v6.556
+Version: v6.557
 Date: 2026-07-30
-Purpose: Open the same live dashboard component in a separate application window.
+Purpose: Open the same live dashboard component in a separate window through the shared isolation service.
 -->
 <script id="cdaSharedDashboardPopoutControllerV6548">
 (function installSharedDashboardPopoutV6548(){
   'use strict';
 
-  if (window.cdaDashboardPopoutV6548 && window.cdaDashboardPopoutV6548.version === 'v6.556') return;
+  if (window.cdaDashboardPopoutV6548 && window.cdaDashboardPopoutV6548.version === 'v6.557') return;
 
   const isolation = window.cdaDashboardIsolationV6555;
-  if (!isolation || isolation.version !== 'v6.556') {
-    throw new Error('Dashboard isolation v6.556 must load before pop-out.');
+  if (!isolation || isolation.version !== 'v6.557') {
+    throw new Error('Dashboard isolation v6.557 must load before pop-out.');
   }
 
-  function open(context){
-    return isolation.open(context);
-  }
+  function open(context){ return isolation.open(context); }
 
   window.cdaDashboardPopoutV6548 = Object.freeze({
-    version:'v6.556',
-    mode:'same-application-live-component',
+    version:'v6.557',
+    mode:'same-build-live-component',
     open:open,
     buildUrl:isolation.buildUrl,
     lastAttempt:isolation.lastAttempt
