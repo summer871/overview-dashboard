@@ -32,6 +32,12 @@ Purpose: Connect shared features to the clicked Remake card without replacing na
   const bridge = window.cdaRemakeLegacyBridgeV6554;
   if (!bridge) throw new Error('Remake adapter requires the legacy bridge.');
 
+  const COLLAPSE_STORAGE_KEY_V6558 = 'cdaRemakeCollapsedSections.v6402';
+  const DETACHED_COMPONENT_BY_SECTION_V6558 = {
+    customer:'remake.customer',
+    technician:'remake.ceramist'
+  };
+
   function cardV6548(component,context){
     return context && context.card || bridge.card(component);
   }
@@ -90,6 +96,52 @@ Purpose: Connect shared features to the clicked Remake card without replacing na
   function isCollapsedV6555(context){
     const card = cardV6548(context.component,context);
     return !!(card && card.classList.contains('remakeSectionCollapsedV6402'));
+  }
+
+  function readCollapseStateV6558(key){
+    try {
+      const state = JSON.parse(localStorage.getItem(COLLAPSE_STORAGE_KEY_V6558) || '{}');
+      return typeof state[key] === 'boolean' ? state[key] : true;
+    } catch (error) {
+      return true;
+    }
+  }
+
+  function syncDetachedNativeCollapseV6558(key){
+    const componentId = DETACHED_COMPONENT_BY_SECTION_V6558[key];
+    const isolation = window.cdaDashboardIsolationV6555;
+    const card = componentId && isolation && typeof isolation.card === 'function'
+      ? isolation.card(componentId)
+      : null;
+    if (!card) return false;
+    const collapsed = readCollapseStateV6558(key);
+    card.classList.toggle('remakeSectionCollapsedV6402',collapsed);
+    card.setAttribute('data-remake-section-collapsed-v6402',collapsed ? '1' : '0');
+    const title = card.querySelector('.remakeCardTitle');
+    if (title) {
+      title.setAttribute('aria-expanded',collapsed ? 'false' : 'true');
+      title.setAttribute('aria-label',(collapsed ? 'Expand ' : 'Collapse ') + title.textContent.replace(/[▾▸▼▲▶◀⌄⌃˅˄]/g,'').trim() + ' section');
+    }
+    const button = card.querySelector('[data-remake-section-toggle-v6402="' + key + '"]');
+    if (button) {
+      button.setAttribute('aria-expanded',collapsed ? 'false' : 'true');
+      button.setAttribute('aria-label',(collapsed ? 'Expand ' : 'Collapse ') + key + ' section');
+      button.setAttribute('title',(collapsed ? 'Expand ' : 'Collapse ') + key + ' section');
+    }
+    return true;
+  }
+
+  function installNativeCollapseBridgeV6558(){
+    const current = window.toggleRemakeSectionV6402;
+    if (typeof current !== 'function' || current.__cdaDetachedAwareV6558) return;
+    const wrapped = function(key){
+      const result = current.apply(this,arguments);
+      syncDetachedNativeCollapseV6558(String(key || ''));
+      return result;
+    };
+    wrapped.__cdaDetachedAwareV6558 = true;
+    wrapped.__cdaOriginalV6558 = current;
+    window.toggleRemakeSectionV6402 = wrapped;
   }
 
   function syncToolbarStateV6548(context){
@@ -162,10 +214,7 @@ Purpose: Connect shared features to the clicked Remake card without replacing na
     const key = context.component.collapseKey;
     if (!key || typeof window.toggleRemakeSectionV6402 !== 'function') return false;
     window.toggleRemakeSectionV6402(key);
-    window.setTimeout(function(){
-      bridge.prepare(context.component);
-      syncComponentV6548(context.component,context.card);
-    },0);
+    window.setTimeout(function(){ syncComponentV6548(context.component,context.card); },0);
     return true;
   }
 
@@ -184,7 +233,8 @@ Purpose: Connect shared features to the clicked Remake card without replacing na
     const header = context.header;
     let host = header.querySelector('.remakeCardActionsV6230');
     if (!host) {
-      host = document.createElement('div');
+      const doc = header.ownerDocument || document;
+      host = doc.createElement('div');
       host.className = 'remakeCardActionsV6230';
       header.appendChild(host);
     }
@@ -197,18 +247,26 @@ Purpose: Connect shared features to the clicked Remake card without replacing na
     tab.components.forEach(function(component){
       if (component.kind === 'table') {
         const card = cardV6548(component,null);
-        window.cdaDashboardColumnsV6548.apply({tab:tab,component:component,card:card});
+        window.cdaDashboardColumnsV6548.apply({
+          tab:tab,
+          component:component,
+          card:card,
+          document:card && card.ownerDocument || document
+        });
       }
     });
   }
 
   function afterDecorateV6548(context){
+    installNativeCollapseBridgeV6558();
     applyColumnsV6548(context.tab);
     context.tab.components.forEach(function(component){
       bridge.prepare(component);
       syncComponentV6548(component,null);
     });
   }
+
+  installNativeCollapseBridgeV6558();
 
   window.cdaRemakeDashboardAdapterV6548 = Object.freeze({
     version:'v6.558',
@@ -227,7 +285,8 @@ Purpose: Connect shared features to the clicked Remake card without replacing na
     resolveToolbarHost:resolveToolbarHostV6548,
     syncToolbarState:syncToolbarStateV6548,
     afterDecorate:afterDecorateV6548,
-    comparisonActive:comparisonActiveV6548
+    comparisonActive:comparisonActiveV6548,
+    syncDetachedNativeCollapse:syncDetachedNativeCollapseV6558
   });
 })();
 </script>
