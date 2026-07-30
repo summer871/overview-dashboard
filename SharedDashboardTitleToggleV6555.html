@@ -1,9 +1,14 @@
 <!-- SharedDashboardTitleToggleV6555.html
-Version: v6.555
-Date: 2026-07-29
-Purpose: Shared left-side title interaction for collapsible dashboard components.
+Version: v6.556
+Date: 2026-07-30
+Purpose: Shared left-side title interaction with one canonical title and one canonical chevron.
 -->
 <style id="cdaSharedDashboardTitleToggleStylesV6555">
+  .cdaDashboardTitleHostV6556::before,
+  .cdaDashboardTitleHostV6556::after {
+    content:none!important;
+    display:none!important;
+  }
   .cdaDashboardTitleToggleV6555 {
     display:inline-flex!important;
     align-items:center!important;
@@ -46,11 +51,29 @@ Purpose: Shared left-side title interaction for collapsible dashboard components
 (function installSharedDashboardTitleToggleV6555(){
   'use strict';
 
-  if (window.cdaDashboardTitleToggleV6555) return;
+  if (window.cdaDashboardTitleToggleV6555 &&
+      window.cdaDashboardTitleToggleV6555.version === 'v6.556') return;
 
   const platform = window.cdaDashboardPlatformV6547;
   const theme = window.cdaDashboardThemeV6549;
   if (!platform || !theme) throw new Error('Dashboard registry and theme must load before title toggles.');
+
+  const ARROW_EDGE_PATTERN_V6556 = /^[\s▾▸▼▲▶◀⌄⌃˅˄]+|[\s▾▸▼▲▶◀⌄⌃˅˄]+$/g;
+  const ARROW_ANY_PATTERN_V6556 = /[▾▸▼▲▶◀⌄⌃˅˄]/g;
+
+  function cleanTitleText(value){
+    return String(value == null ? '' : value)
+      .replace(/\s+/g,' ')
+      .replace(ARROW_EDGE_PATTERN_V6556,'')
+      .trim();
+  }
+
+  function canonicalTitle(component,title){
+    return cleanTitleText(component && component.title) ||
+      cleanTitleText(title && title.textContent) ||
+      cleanTitleText(component && component.key) ||
+      'Dashboard component';
+  }
 
   function isCollapsed(context){
     const adapter = context.tab && context.tab.adapter;
@@ -69,6 +92,26 @@ Purpose: Shared left-side title interaction for collapsible dashboard components
     button.title = (collapsed ? 'Expand ' : 'Collapse ') + context.component.title;
   }
 
+  function bind(button,tab,component){
+    if (!button || button.getAttribute('data-cda-dashboard-title-bound') === 'true') return;
+    button.setAttribute('data-cda-dashboard-title-bound','true');
+    button.addEventListener('click',function(event){
+      event.preventDefault();
+      event.stopPropagation();
+      const adapter = tab.adapter || {};
+      if (typeof adapter.collapse !== 'function') return;
+      adapter.collapse({
+        tab:tab,
+        component:component,
+        button:button,
+        event:event,
+        adapter:adapter,
+        platform:platform
+      });
+      window.setTimeout(function(){ sync({tab:tab,component:component},button); },0);
+    });
+  }
+
   function mount(tabKey,componentKey,card){
     const tab = platform.getTab(tabKey);
     const component = tab && tab.components.find(function(item){ return item.key === componentKey; });
@@ -77,41 +120,30 @@ Purpose: Shared left-side title interaction for collapsible dashboard components
     const title = card.querySelector('.remakeCardTitle,.tatCardTitleV6509');
     if (!title) return null;
 
+    title.classList.add('cdaDashboardTitleHostV6556');
+    const titleText = canonicalTitle(component,title);
     let button = title.querySelector(':scope > .cdaDashboardTitleToggleV6555');
+
     if (!button) {
-      const originalText = String(title.textContent || component.title || component.key).replace(/\s+/g,' ').trim();
-      title.replaceChildren();
       button = document.createElement('button');
       button.type = 'button';
       button.className = 'cdaDashboardTitleToggleV6555';
-      button.setAttribute('data-cda-dashboard-title-toggle','true');
-      button.setAttribute('data-cda-dashboard-tab-key',tab.key);
-      button.setAttribute('data-cda-dashboard-component-key',component.key);
       const chevron = document.createElement('span');
       chevron.className = 'cdaDashboardTitleChevronV6555';
       chevron.setAttribute('aria-hidden','true');
       const text = document.createElement('span');
       text.className = 'cdaDashboardTitleTextV6555';
-      text.textContent = originalText;
       button.append(chevron,text);
-      title.appendChild(button);
-      button.addEventListener('click',function(event){
-        event.preventDefault();
-        event.stopPropagation();
-        const adapter = tab.adapter || {};
-        if (typeof adapter.collapse !== 'function') return;
-        adapter.collapse({
-          tab:tab,
-          component:component,
-          button:button,
-          event:event,
-          adapter:adapter,
-          platform:platform
-        });
-        window.setTimeout(function(){ sync({tab:tab,component:component},button); },0);
-      });
     }
 
+    button.setAttribute('data-cda-dashboard-title-toggle','true');
+    button.setAttribute('data-cda-dashboard-tab-key',tab.key);
+    button.setAttribute('data-cda-dashboard-component-key',component.key);
+    const text = button.querySelector('.cdaDashboardTitleTextV6555');
+    if (text) text.textContent = titleText.replace(ARROW_ANY_PATTERN_V6556,'').trim();
+
+    title.replaceChildren(button);
+    bind(button,tab,component);
     sync({tab:tab,component:component},button);
     return button;
   }
@@ -128,12 +160,24 @@ Purpose: Shared left-side title interaction for collapsible dashboard components
     });
   }
 
+  function inspect(button){
+    const text = button && button.querySelector('.cdaDashboardTitleTextV6555');
+    const chevrons = button ? button.querySelectorAll('.cdaDashboardTitleChevronV6555') : [];
+    return {
+      chevronCount:chevrons.length,
+      text:text ? text.textContent.trim() : '',
+      textContainsArrow:!!(text && ARROW_ANY_PATTERN_V6556.test(text.textContent || ''))
+    };
+  }
+
   window.cdaDashboardTitleToggleV6555 = Object.freeze({
-    version:'v6.555',
+    version:'v6.556',
     mount:mount,
     sync:sync,
     syncAll:syncAll,
-    isCollapsed:isCollapsed
+    isCollapsed:isCollapsed,
+    cleanTitleText:cleanTitleText,
+    inspect:inspect
   });
 })();
 </script>
