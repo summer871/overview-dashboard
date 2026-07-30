@@ -1,21 +1,21 @@
 <!-- SharedFooter.html
-Version: v6.557
+Version: v6.558
 Date: 2026-07-30
 Purpose: Shared Remake/TAT status footer and visible deployment stamp.
 -->
-<style id="cdaSharedFooterStylesV6557">
+<style id="cdaSharedFooterStylesV6558">
   #remakeLastRefresh,#tatStampV6509,.remakePageFooterV6338{display:none!important;visibility:hidden!important}
   #cdaSharedAppFooterV6531{width:100%;box-sizing:border-box;display:flex;justify-content:flex-end;align-items:center;flex-wrap:wrap;padding:4px 12px 6px;color:#98a2b3;background:transparent;font:500 8px/1.2 Roboto,Arial,sans-serif;text-align:right;opacity:.78}
   #cdaSharedAppFooterV6531 [data-footer-item]{display:inline-flex;align-items:center;white-space:nowrap}
   #cdaSharedAppFooterV6531 [data-footer-item]+[data-footer-item]::before{content:'\2022';display:inline-block;margin:0 5px;color:#d0d5dd}
   #cdaSharedAppFooterV6531 .cdaSharedFooterIdentityV6531{color:inherit;font-weight:600}
 </style>
-<script id="cdaSharedFooterControllerV6557">
-(function installCdaSharedFooterV6557(){
+<script id="cdaSharedFooterControllerV6558">
+(function installCdaSharedFooterV6558(){
   'use strict';
 
-  const UI_VERSION = 'v6.557';
-  const BUILD_LABEL = 'SHARED-INTERACTION-RECOVERY-09';
+  const UI_VERSION = 'v6.558';
+  const BUILD_LABEL = 'DETACHED-LIVE-COMPONENTS-10';
   const FOOTER_ID = 'cdaSharedAppFooterV6531';
   let frame = 0;
 
@@ -48,7 +48,9 @@ Purpose: Shared Remake/TAT status footer and visible deployment stamp.
       footer.setAttribute('aria-label','Dashboard status and build identity');
       footer.setAttribute('aria-live','polite');
     }
-    if (footer.parentNode !== document.body || footer !== document.body.lastElementChild) document.body.appendChild(footer);
+    if (footer.parentNode !== document.body || footer !== document.body.lastElementChild) {
+      document.body.appendChild(footer);
+    }
     return footer;
   }
   function appendItem(footer,label,value,identity){
@@ -98,8 +100,11 @@ Purpose: Shared Remake/TAT status footer and visible deployment stamp.
   }
 
   window.renderCdaSharedFooterV6531 = render;
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded',start,{once:true});
-  else start();
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded',start,{once:true});
+  } else {
+    start();
+  }
 })();
 </script>
 <?!= includeDashboardFile('SharedComponentFoundation') ?>
