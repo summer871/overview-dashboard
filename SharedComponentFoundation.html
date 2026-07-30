@@ -1,7 +1,7 @@
 <!-- SharedComponentFoundation.html
-Version: v6.561
+Version: v6.562
 Date: 2026-07-30
-Purpose: Load the shared dashboard catalog, popup-window-scroll live-detach services, audits, and tab integrations.
+Purpose: Load shared dashboard services, separate TAT Department and Products components, audits, and tab integrations.
 Every included file is a complete independently valid Apps Script HTML partial.
 -->
 <?!= includeDashboardFile('SharedTableStyles') ?>
@@ -22,9 +22,11 @@ Every included file is a complete independently valid Apps Script HTML partial.
 <?!= includeDashboardFile('SharedDashboardTableIntegrationV6547') ?>
 <?!= includeDashboardFile('SharedDashboardAuditV6550') ?>
 <?!= includeDashboardFile('SharedDashboardInteractionAuditV6557') ?>
+<?!= includeDashboardFile('TatProductTableV6562') ?>
 <?!= includeDashboardFile('TatDashboardAdapterV6547') ?>
 <?!= includeDashboardFile('TatDashboardDefinitionV6547') ?>
 <?!= includeDashboardFile('TatDashboardBindingsV6547') ?>
+<?!= includeDashboardFile('TatProductAuditV6562') ?>
 <?!= includeDashboardFile('RemakeDashboardLegacyBridgeV6554') ?>
 <?!= includeDashboardFile('RemakeDashboardAdapterV6548') ?>
 <?!= includeDashboardFile('RemakeDashboardDefinitionV6548') ?>
