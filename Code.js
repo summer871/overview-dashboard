@@ -1,6 +1,6 @@
 /**
  * Executive Overview Dashboard Router
- * Version: Code.gs v6.560 full-table live popouts
+ * Version: Code.gs v6.561 popup-window scroll live popouts
  * Date: 2026-07-30
  * Purpose: Serve the dashboard shell and inject presentation metadata.
  */
@@ -13,18 +13,18 @@ function doGet(e) {
   const template = HtmlService.createTemplateFromFile('Index');
   template.dashboardBaseUrl = getDashboardBaseUrl();
   template.dashboardPresentationMode = presentationMode;
-  template.dashboardPresentationVersion = 'v6.560';
-  template.dashboardPresentationSource = 'Code.gs v6.560 full-table live popouts';
+  template.dashboardPresentationVersion = 'v6.561';
+  template.dashboardPresentationSource = 'Code.gs v6.561 popup-window scroll live popouts';
 
   const presentation = {
     mode: presentationMode,
-    version: 'v6.560',
-    source: 'Code.gs v6.560 full-table live popouts',
+    version: 'v6.561',
+    source: 'Code.gs v6.561 popup-window scroll live popouts',
     baseUrl: getDashboardBaseUrl()
   };
 
   let html = template.evaluate().getContent();
-  const configScript = '<script id="cdaServerPresentationV6560">window.CDA_SERVER_PRESENTATION=' +
+  const configScript = '<script id="cdaServerPresentationV6561">window.CDA_SERVER_PRESENTATION=' +
     JSON.stringify(presentation).replace(/</g, '\\u003c') + ';</script>';
   html = html.indexOf('</head>') >= 0
     ? html.replace('</head>', configScript + '</head>')
@@ -69,7 +69,7 @@ function renderDashboardDebugPage() {
 function debugDashboardServerHealth() {
   const health = {
     ok: true,
-    routerVersion: 'Code.gs v6.560 full-table live popouts',
+    routerVersion: 'Code.gs v6.561 popup-window scroll live popouts',
     timestamp: new Date().toISOString(),
     scriptTimeZone: Session.getScriptTimeZone(),
     dashboardBaseUrl: getDashboardBaseUrl(),
