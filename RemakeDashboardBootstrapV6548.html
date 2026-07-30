@@ -1,5 +1,5 @@
 <!-- RemakeDashboardBootstrapV6548.html
-Version: v6.556
+Version: v6.557
 Date: 2026-07-30
 Purpose: Register, reconcile, and audit all six identifiable live Remake components.
 -->
@@ -7,8 +7,8 @@ Purpose: Register, reconcile, and audit all six identifiable live Remake compone
 (function installRemakeDashboardBootstrapV6548(){
   'use strict';
 
-  if (window.__cdaRemakeDashboardBootstrapV6556) return;
-  window.__cdaRemakeDashboardBootstrapV6556 = true;
+  if (window.__cdaRemakeDashboardBootstrapV6557) return;
+  window.__cdaRemakeDashboardBootstrapV6557 = true;
 
   const platform = window.cdaDashboardPlatformV6547;
   const decorator = window.cdaDashboardDecoratorV6548;
@@ -24,46 +24,46 @@ Purpose: Register, reconcile, and audit all six identifiable live Remake compone
   const registrationAudit = platform.validateTab('remake');
   if (!registrationAudit.ok) throw new Error('Remake definition is invalid:\n' + registrationAudit.errors.join('\n'));
 
-  let scheduledV6556 = false;
-  let reconciliationTimerV6556 = 0;
-  let reconciliationAttemptsV6556 = 0;
-  const MAX_RECONCILIATION_ATTEMPTS_V6556 = 80;
+  let scheduledV6557 = false;
+  let reconciliationTimerV6557 = 0;
+  let reconciliationAttemptsV6557 = 0;
+  const MAX_RECONCILIATION_ATTEMPTS_V6557 = 80;
 
-  function baseAuditV6556(){ return decorator.audit('remake'); }
+  function baseAuditV6557(){ return decorator.audit('remake'); }
 
-  function decorateV6556(){
-    scheduledV6556 = false;
+  function decorateV6557(){
+    scheduledV6557 = false;
     const page = decorator.decorate('remake');
-    const audit = baseAuditV6556();
-    if (audit.pagePresent && !audit.allComponentsDecorated) scheduleReconciliationV6556();
+    const audit = baseAuditV6557();
+    if (audit.pagePresent && !audit.allComponentsDecorated) scheduleReconciliationV6557();
     return page;
   }
 
-  function scheduleV6556(){
-    if (scheduledV6556) return;
-    scheduledV6556 = true;
-    window.requestAnimationFrame(decorateV6556);
+  function scheduleV6557(){
+    if (scheduledV6557) return;
+    scheduledV6557 = true;
+    window.requestAnimationFrame(decorateV6557);
   }
 
-  function stopReconciliationV6556(){
-    if (reconciliationTimerV6556) window.clearTimeout(reconciliationTimerV6556);
-    reconciliationTimerV6556 = 0;
-    reconciliationAttemptsV6556 = 0;
+  function stopReconciliationV6557(){
+    if (reconciliationTimerV6557) window.clearTimeout(reconciliationTimerV6557);
+    reconciliationTimerV6557 = 0;
+    reconciliationAttemptsV6557 = 0;
   }
 
-  function scheduleReconciliationV6556(){
-    if (reconciliationTimerV6556 || reconciliationAttemptsV6556 >= MAX_RECONCILIATION_ATTEMPTS_V6556) return;
-    reconciliationTimerV6556 = window.setTimeout(function(){
-      reconciliationTimerV6556 = 0;
-      reconciliationAttemptsV6556 += 1;
+  function scheduleReconciliationV6557(){
+    if (reconciliationTimerV6557 || reconciliationAttemptsV6557 >= MAX_RECONCILIATION_ATTEMPTS_V6557) return;
+    reconciliationTimerV6557 = window.setTimeout(function(){
+      reconciliationTimerV6557 = 0;
+      reconciliationAttemptsV6557 += 1;
       decorator.decorate('remake');
-      const audit = baseAuditV6556();
-      if (audit.allComponentsDecorated) stopReconciliationV6556();
-      else scheduleReconciliationV6556();
+      const audit = baseAuditV6557();
+      if (audit.allComponentsDecorated) stopReconciliationV6557();
+      else scheduleReconciliationV6557();
     },50);
   }
 
-  function relevantNodeV6556(node){
+  function relevantNodeV6557(node){
     if (!node || node.nodeType !== 1) return false;
     const selector = [
       '#remakeReasonCardV6230','#remakeDepartmentCardV6230','#remakeProductCardV6230',
@@ -75,29 +75,29 @@ Purpose: Register, reconcile, and audit all six identifiable live Remake compone
     return !!(node.querySelector && node.querySelector(selector));
   }
 
-  function dependencyAuditV6556(){
+  function dependencyAuditV6557(){
     return {
       sharedTheme:window.cdaDashboardThemeV6549 && window.cdaDashboardThemeV6549.version === 'v6.550',
       sharedColumns:window.cdaDashboardColumnsV6548 && window.cdaDashboardColumnsV6548.version === 'v6.550',
       sharedPopover:window.cdaDashboardPopoverV6547 && window.cdaDashboardPopoverV6547.version === 'v6.550',
       sharedToolbar:window.cdaDashboardToolbarV6548 && window.cdaDashboardToolbarV6548.version === 'v6.554',
       componentCatalog:window.cdaDashboardCatalogV6555 && window.cdaDashboardCatalogV6555.version === 'v6.555',
-      componentIsolation:window.cdaDashboardIsolationV6555 && window.cdaDashboardIsolationV6555.version === 'v6.556',
-      livePopout:window.cdaDashboardPopoutV6548 && window.cdaDashboardPopoutV6548.version === 'v6.556' &&
-        window.cdaDashboardPopoutV6548.mode === 'same-application-live-component',
+      componentIsolation:window.cdaDashboardIsolationV6555 && window.cdaDashboardIsolationV6555.version === 'v6.557',
+      livePopout:window.cdaDashboardPopoutV6548 && window.cdaDashboardPopoutV6548.version === 'v6.557' &&
+        window.cdaDashboardPopoutV6548.mode === 'same-build-live-component',
       titleToggle:window.cdaDashboardTitleToggleV6555 && window.cdaDashboardTitleToggleV6555.version === 'v6.556',
-      sharedAudit:sharedAudit.version === 'v6.556',
+      sharedAudit:sharedAudit.version === 'v6.557',
       decorator:decorator.version === 'v6.555',
       bridge:bridge.version === 'v6.555',
-      adapter:adapter.version === 'v6.555',
+      adapter:adapter.version === 'v6.557',
       definition:definition.version === 'v6.555',
       clearRemakeComponentV6230:typeof window.clearRemakeComponentV6230 === 'function'
     };
   }
 
-  function auditV6556(){
-    const base = baseAuditV6556();
-    const dependencies = dependencyAuditV6556();
+  function auditV6557(){
+    const base = baseAuditV6557();
+    const dependencies = dependencyAuditV6557();
     const page = document.getElementById('remakeFactorPage');
     const comparisonButtons = page ? Array.from(page.querySelectorAll(
       '.cdaDashboardToolbarV6547 [data-cda-dashboard-feature-key="comparePriorYear"]'
@@ -111,7 +111,7 @@ Purpose: Register, reconcile, and audit all six identifiable live Remake compone
     const sharedControlsValidated = sharedControls.ok && expectedActiveComponents && catalog.ok &&
       base.allComponentsDecorated && base.toolbarCount === base.expectedToolbarCount;
     return Object.assign({},base,{
-      version:'v6.556',
+      version:'v6.557',
       mode:'identifiable-live-component-decoration',
       activeComponentCount:definition.components.length,
       expectedActiveComponents:6,
@@ -138,19 +138,19 @@ Purpose: Register, reconcile, and audit all six identifiable live Remake compone
     });
   }
 
-  function startV6556(){
+  function startV6557(){
     let attempts = 0;
     const timer = window.setInterval(function(){
       attempts += 1;
       if (document.getElementById(definition.pageId)) {
         window.clearInterval(timer);
-        decorateV6556();
-        scheduleReconciliationV6556();
+        decorateV6557();
+        scheduleReconciliationV6557();
         if (window.MutationObserver) {
           const observer = new MutationObserver(function(records){
             if (records.some(function(record){
-              return Array.from(record.addedNodes || []).some(relevantNodeV6556);
-            })) scheduleV6556();
+              return Array.from(record.addedNodes || []).some(relevantNodeV6557);
+            })) scheduleV6557();
           });
           observer.observe(document.getElementById(definition.pageId),{childList:true,subtree:true});
         }
@@ -159,11 +159,11 @@ Purpose: Register, reconcile, and audit all six identifiable live Remake compone
   }
 
   window.cdaRemakeDashboardV6548 = Object.freeze({
-    version:'v6.556',definition:definition,decorate:decorateV6556,audit:auditV6556,
-    dependencyAudit:dependencyAuditV6556,reconcile:scheduleReconciliationV6556
+    version:'v6.557',definition:definition,decorate:decorateV6557,audit:auditV6557,
+    dependencyAudit:dependencyAuditV6557,reconcile:scheduleReconciliationV6557
   });
 
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded',startV6556,{once:true});
-  else startV6556();
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded',startV6557,{once:true});
+  else startV6557();
 })();
 </script>
