@@ -1,0 +1,124 @@
+<!-- TatProductAuditV6562.html
+Version: v6.562
+Date: 2026-07-30
+Purpose: Extend the shared audit with TAT department-only and Products / Groups component contracts without changing the shared audit compatibility version.
+-->
+<script id="cdaTatProductAuditControllerV6562">
+(function installTatProductAuditV6562(){
+  'use strict';
+
+  const previous = window.cdaDashboardAuditV6550;
+  if (!previous || typeof previous.audit !== 'function') {
+    throw new Error('Shared dashboard audit must load before the TAT product audit.');
+  }
+  if (window.cdaTatProductAuditV6562) return;
+
+  function auditProductContractV6562(){
+    const platform = window.cdaDashboardPlatformV6547;
+    const definition = window.cdaTatDashboardDefinitionV6547;
+    const service = window.cdaTatProductTableV6562;
+    const tableApi = window.cdaTable;
+    const page = document.getElementById('tatDashboardPageV6509');
+    const departmentConfig = tableApi && typeof tableApi.config === 'function'
+      ? tableApi.config('tatDepartment')
+      : null;
+    const productConfig = tableApi && typeof tableApi.config === 'function'
+      ? tableApi.config('tatProduct')
+      : null;
+    const departmentComponent = definition && definition.components
+      ? definition.components.find(function(item){ return item.key === 'department'; })
+      : null;
+    const productComponent = definition && definition.components
+      ? definition.components.find(function(item){ return item.key === 'product'; })
+      : null;
+    const productCard = page && page.querySelector('[data-cda-dashboard-component="product"]');
+    const modeButtons = productCard
+      ? Array.from(productCard.querySelectorAll('[data-tat-product-mode-v6562]'))
+      : [];
+    const activeModes = modeButtons.filter(function(button){
+      return button.getAttribute('aria-pressed') === 'true';
+    });
+    const departmentOnly = !!departmentConfig && !departmentConfig.childRows && !departmentConfig.childRowClass;
+    const noProductRowsInsideDepartment = !page ||
+      page.querySelectorAll('[data-cda-dashboard-component="department"] .tatProductDetailRowV6523').length === 0;
+    const productTablePresent = !!(productCard && document.getElementById('tatProductTableV6562'));
+    const definitionCorrect = !!definition && definition.version === 'v6.562' &&
+      definition.components.length === 7 && !!departmentComponent && !!productComponent &&
+      departmentComponent.tableKey === 'tatDepartment' && productComponent.tableKey === 'tatProduct';
+    const serviceCorrect = !!service && service.version === 'v6.562' &&
+      service.tableKey === 'tatProduct' && typeof service.setMode === 'function';
+    const rendererCorrect = !!window.cdaDashboardRendererV6547 &&
+      window.cdaDashboardRendererV6547.version === 'v6.562';
+    const adapterCorrect = !!window.cdaTatDashboardAdapterV6547 &&
+      window.cdaTatDashboardAdapterV6547.version === 'v6.562';
+    return {
+      registeredTab:!!(platform && platform.getTab('tat')),
+      definitionCorrect:definitionCorrect,
+      serviceCorrect:serviceCorrect,
+      rendererCorrect:rendererCorrect,
+      adapterCorrect:adapterCorrect,
+      departmentOnly:departmentOnly,
+      noProductRowsInsideDepartment:noProductRowsInsideDepartment,
+      productTablePresent:productTablePresent,
+      productTableRegistered:!!productConfig,
+      modeButtonCount:modeButtons.length,
+      oneActiveMode:activeModes.length === 1,
+      mode:service && service.mode(),
+      ok:definitionCorrect && serviceCorrect && rendererCorrect && adapterCorrect &&
+        departmentOnly && noProductRowsInsideDepartment && productTablePresent &&
+        !!productConfig && modeButtons.length === 2 && activeModes.length === 1
+    };
+  }
+
+  function auditV6562(){
+    const base = previous.audit();
+    const product = auditProductContractV6562();
+    const services = Object.assign({},base.services || {},{
+      tatAdapter:window.cdaTatDashboardAdapterV6547 && window.cdaTatDashboardAdapterV6547.version,
+      tatProduct:window.cdaTatProductTableV6562 && window.cdaTatProductTableV6562.version,
+      renderer:window.cdaDashboardRendererV6547 && window.cdaDashboardRendererV6547.version
+    });
+    const otherServicesCorrect = !!base.serviceVersionsCorrect ||
+      (services.theme === 'v6.550' && services.columns === 'v6.558' &&
+       services.popover === 'v6.558' && services.toolbar === 'v6.558' &&
+       services.bridge === 'v6.559' && services.catalog === 'v6.555' &&
+       services.isolation === 'v6.561' && services.popout === 'v6.561' &&
+       services.titleToggle === 'v6.556' && services.adapter === 'v6.558' &&
+       services.decorator === 'v6.558');
+    const serviceVersionsCorrect = otherServicesCorrect &&
+      services.tatAdapter === 'v6.562' && services.tatProduct === 'v6.562' &&
+      services.renderer === 'v6.562';
+    const baseBehaviorOk = [
+      base.componentCatalog,base.iconOwnership,base.everyFeatureInstanceStyleParity,
+      base.toolbarActionOrder,base.visibleLegacyHeaderActions,base.remakeVisibleCardCoverage,
+      base.kpiOverflowParity,base.oneToolbarOwnerPerCard,base.themeCssVariablesPresent,
+      base.remakeActionHosts,base.titleOwnership,base.detachedLivePopout
+    ].every(function(check){ return !check || check.ok; });
+    return Object.assign({},base,{
+      services:services,
+      serviceVersionsCorrect:serviceVersionsCorrect,
+      tatProductContract:product,
+      ok:serviceVersionsCorrect && baseBehaviorOk && product.ok
+    });
+  }
+
+  window.cdaTatProductAuditV6562 = Object.freeze({
+    version:'v6.562',
+    audit:auditProductContractV6562
+  });
+
+  window.cdaDashboardAuditV6550 = Object.freeze({
+    version:'v6.561',
+    visible:previous.visible,
+    styleSignature:previous.styleSignature,
+    expectedIconName:previous.expectedIconName,
+    audit:auditV6562,
+    remakeActionHosts:previous.remakeActionHosts,
+    titleOwnership:previous.titleOwnership,
+    detachedLivePopout:previous.detachedLivePopout,
+    detachedFullTables:previous.detachedFullTables,
+    detachedButtonParity:previous.detachedButtonParity,
+    tatProductContract:auditProductContractV6562
+  });
+})();
+</script>
