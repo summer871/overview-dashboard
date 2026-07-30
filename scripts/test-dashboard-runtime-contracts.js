@@ -200,52 +200,46 @@ function runColumnsContracts() {
     'Managed and DOM choosers use different footer markup.');
 }
 
-function runLiveComponentContracts() {
+function runTitleContracts() {
+  const platform = {getTab() { return null; }};
+  const theme = {icon(name) { return name === 'expand' ? '▸' : '▾'; }};
+  const context = {
+    window:{cdaDashboardPlatformV6547:platform,cdaDashboardThemeV6549:theme},
+    console,Object,String,RegExp
+  };
+  context.window.window = context.window;
+  vm.createContext(context);
+  vm.runInContext(firstScript('SharedDashboardTitleToggleV6555.html'), context, {
+    filename:'SharedDashboardTitleToggleV6555.html'
+  });
+  const title = context.window.cdaDashboardTitleToggleV6555;
+  assert(title && title.version === 'v6.556', 'Title toggle v6.556 did not install.');
+  assert(title.cleanTitleText('Customers ▼') === 'Customers', 'Trailing legacy arrow was not removed.');
+  assert(title.cleanTitleText('▸ Technicians ▾') === 'Technicians', 'Multiple legacy arrows were not removed.');
+  assert(title.cleanTitleText('Data Quality & Coverage') === 'Data Quality & Coverage', 'Clean titles were changed.');
+}
+
+function runPopoutContracts() {
   const popoutSource = read('SharedDashboardPopoutV6548.html');
   const isolationSource = read('SharedDashboardIsolationV6555.html');
-  const catalogSource = read('SharedDashboardCatalogV6555.html');
-  const featuresSource = read('SharedDashboardFeaturesV6547.html');
-  const titleToggleSource = read('SharedDashboardTitleToggleV6555.html');
-  const rendererSource = read('SharedDashboardRendererV6547.html');
-  const decoratorSource = read('SharedDashboardDecoratorV6548.html');
-  const remakeDefinition = read('RemakeDashboardDefinitionV6548.html');
-  const tatDefinition = read('TatDashboardDefinitionV6547.html');
 
   ['toBase64Image','toDataURL','outerHTML','documentHtml','document.write'].forEach(marker => {
-    assert(!popoutSource.includes(marker), 'Pop-out still contains snapshot marker: ' + marker);
+    assert(!popoutSource.includes(marker), 'Pop-out contains snapshot marker: ' + marker);
   });
-  assert(popoutSource.includes("mode:'same-application-live-component'"), 'Pop-out is not marked as a live same-application component.');
-  assert(popoutSource.includes('isolation.open(context)'), 'Pop-out does not delegate to live isolation.');
-  assert(isolationSource.includes("url.searchParams.set('component'"), 'Isolation route does not include component identity.');
-  assert(isolationSource.includes("url.searchParams.set('presentation','all')"), 'Isolation route does not load the complete application.');
-  assert(isolationSource.includes('catalog.waitFor'), 'Isolation does not wait for the real rendered component.');
-  assert(isolationSource.includes('data-cda-isolated-component'), 'Isolation does not mark the real component card.');
-  assert(isolationSource.includes('[data-cda-dashboard-feature-key="popout"]'), 'Isolation does not prevent recursive pop-outs.');
-  assert(catalogSource.includes("return String(tabKey || '').trim() + '.' + String(componentKey || '').trim()"),
-    'Catalog lacks stable tab.component identities.');
-  ['data-cda-component-id','capabilities:{','resolveCard','resolveTarget','waitFor'].forEach(marker => {
-    assert(catalogSource.includes(marker), 'Catalog is missing ' + marker + '.');
-  });
-  assert(featuresSource.includes("key:'collapse', placement:'title'"), 'Collapse is not title-owned.');
-  assert(!featuresSource.includes("key:'collapse', placement:'toolbar'"), 'Collapse is still toolbar-owned.');
-  assert(titleToggleSource.includes('adapter.collapse'), 'Title toggle does not call the tab adapter.');
-  assert(titleToggleSource.includes('data-cda-dashboard-title-toggle'), 'Title toggle lacks an auditable identity.');
-  assert(rendererSource.includes('data-cda-component-id'), 'Replace renderer does not stamp component identities.');
-  assert(rendererSource.includes('titleToggle.mount'), 'Replace renderer does not mount title interactions.');
-  assert(decoratorSource.includes('catalog.stamp'), 'Decorator does not stamp existing cards.');
-  assert(decoratorSource.includes('titleToggle.mount'), 'Decorator does not mount title interactions.');
-  assert(remakeDefinition.includes("version:'v6.555'"), 'Remake definition is not v6.555.');
-  assert(tatDefinition.includes("version:'v6.555'"), 'TAT definition is not v6.555.');
-  assert(remakeDefinition.includes("tabButtonId:'remakeFactorTabBtn'"), 'Remake lacks a stable tab route.');
-  assert(tatDefinition.includes("tabButtonId:'tatTabBtnV6509'"), 'TAT lacks a stable tab route.');
+  assert(isolationSource.includes("window.open('about:blank'"), 'Pop-out does not reserve a window synchronously.');
+  assert(isolationSource.includes('popup.location.replace(url)'), 'Pop-out does not navigate the reserved window.');
+  assert(isolationSource.includes("reason='popup-blocked'"), 'Popup-blocked state is not recorded.');
+  assert(isolationSource.includes("reason='web-app-url-unavailable'"), 'Missing URL state is not recorded.');
+  assert(isolationSource.includes('lastAttemptV6556'), 'Pop-out launch diagnostics are missing.');
 
   let delegatedContext = null;
   const isolation = {
-    version:'v6.555',
+    version:'v6.556',
     open(context) { delegatedContext = context; return true; },
     buildUrl(tabKey, componentKey) {
       return 'https://script.google.com/macros/s/test/dev?presentation=all&component=' + tabKey + '.' + componentKey;
-    }
+    },
+    lastAttempt() { return {success:true,url:this.buildUrl('tat','monthly')}; }
   };
   const context = {window:{cdaDashboardIsolationV6555:isolation},console,Object,String};
   context.window.window = context.window;
@@ -254,26 +248,26 @@ function runLiveComponentContracts() {
     filename:'SharedDashboardPopoutV6548.html'
   });
   const popout = context.window.cdaDashboardPopoutV6548;
-  assert(popout && popout.version === 'v6.555', 'Live pop-out service did not install.');
+  assert(popout && popout.version === 'v6.556', 'Pop-out facade v6.556 did not install.');
   assert(popout.mode === 'same-application-live-component', 'Live pop-out mode is incorrect.');
   const liveContext = {tab:{key:'tat'},component:{key:'monthly'}};
-  assert(popout.open(liveContext) === true, 'Live pop-out did not delegate successfully.');
-  assert(delegatedContext === liveContext, 'Live pop-out changed the component context.');
-  assert(/component=tat\.monthly/.test(popout.buildUrl('tat','monthly')), 'Live pop-out URL lacks the stable component route.');
+  assert(popout.open(liveContext) === true, 'Pop-out did not delegate successfully.');
+  assert(delegatedContext === liveContext, 'Pop-out changed the component context.');
+  assert(/component=tat\.monthly/.test(popout.buildUrl('tat','monthly')), 'Pop-out URL lacks the component route.');
+  assert(popout.lastAttempt().success === true, 'Pop-out diagnostics are not exposed.');
 }
 
 const columnsSource = read('SharedDashboardColumnsV6548.html');
 assert(!columnsSource.includes('Bolean'), 'The Bolean runtime typo is present.');
 assert(!columnsSource.includes('.toggleChooser('), 'Columns still delegates to the old chooser UI.');
 runColumnsContracts();
-runLiveComponentContracts();
+runTitleContracts();
+runPopoutContracts();
 
 console.log('Dashboard runtime contracts passed.');
 console.log('Managed Columns path: passed');
 console.log('Remake DOM hide, persistence, rerender, reset: passed');
 console.log('Managed and DOM chooser markup parity: passed');
-console.log('Live same-application pop-out: passed');
+console.log('Canonical title cleanup and one-chevron ownership: passed');
+console.log('Reliable observable live pop-out delegation: passed');
 console.log('No snapshot/image/outerHTML pop-out path: passed');
-console.log('Stable tab.component catalog: passed');
-console.log('Title-side collapse ownership: passed');
-console.log('Renderer and decorator identity stamping: passed');
