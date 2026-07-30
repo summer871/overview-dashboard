@@ -1,7 +1,7 @@
 <!-- SharedDashboardInteractionAuditV6557.html
-Version: v6.558
+Version: v6.559
 Date: 2026-07-30
-Purpose: Extend the dashboard audit with native Remake ownership and document-aware detached live-card checks.
+Purpose: Extend the dashboard audit with native Remake ownership and normalized detached live-card checks.
 -->
 <script id="cdaSharedDashboardInteractionAuditControllerV6557">
 (function installSharedDashboardInteractionAuditV6557(){
@@ -11,7 +11,7 @@ Purpose: Extend the dashboard audit with native Remake ownership and document-aw
   if (!baseAuditService || typeof baseAuditService.audit !== 'function') {
     throw new Error('Base dashboard audit must load before interaction audit.');
   }
-  if (baseAuditService.version === 'v6.558') return;
+  if (baseAuditService.version === 'v6.559') return;
 
   function visible(node){
     if (!node || !window.getComputedStyle) return false;
@@ -74,15 +74,17 @@ Purpose: Extend the dashboard audit with native Remake ownership and document-aw
         const card = catalog.resolveCard('remake',component.key);
         const title = card && card.querySelector('.remakeCardTitle');
         const shared = card ? card.querySelectorAll('[data-cda-dashboard-title-toggle="true"]') : [];
-        const nativeButtons = card ? card.querySelectorAll('[data-remake-section-toggle-v6402]') : [];
+        const nativeButtons = card ? Array.from(card.querySelectorAll('[data-remake-section-toggle-v6402]')) : [];
+        const visibleNative = nativeButtons.filter(visible);
         if (!card || !title || shared.length !== 0 || nativeButtons.length !== 1 ||
-            title.getAttribute('role') !== 'button') {
+            visibleNative.length !== 1 || title.getAttribute('role') !== 'button') {
           failures.push({
             component:'remake.' + component.key,
             owner:'native-remake',
             titlePresent:!!title,
             sharedToggleCount:shared.length,
             nativeButtonCount:nativeButtons.length,
+            visibleNativeButtonCount:visibleNative.length,
             titleRole:title ? title.getAttribute('role') : ''
           });
         }
@@ -116,11 +118,13 @@ Purpose: Extend the dashboard audit with native Remake ownership and document-aw
         typeof tatAdapter.applyDetachedCollapse === 'function',
       remakeDetachedCollapse:!!remakeAdapter && remakeAdapter.version === 'v6.558' &&
         typeof remakeAdapter.syncDetachedNativeCollapse === 'function',
-      ok:!!service && service.version === 'v6.558' &&
+      normalizedLayout:!!isolation && isolation.version === 'v6.559' &&
+        typeof isolation.session === 'function' && typeof isolation.card === 'function',
+      ok:!!service && service.version === 'v6.559' &&
         service.mode === 'detached-live-component' &&
         typeof service.open === 'function' && typeof service.restore === 'function' &&
         typeof service.active === 'function' &&
-        !!isolation && isolation.version === 'v6.558' &&
+        !!isolation && isolation.version === 'v6.559' &&
         isolation.mode === 'detached-live-component' &&
         typeof isolation.card === 'function' &&
         !!columns && columns.version === 'v6.558' &&
@@ -157,6 +161,7 @@ Purpose: Extend the dashboard audit with native Remake ownership and document-aw
       toolbar:window.cdaDashboardToolbarV6548 && window.cdaDashboardToolbarV6548.version,
       isolation:window.cdaDashboardIsolationV6555 && window.cdaDashboardIsolationV6555.version,
       popout:window.cdaDashboardPopoutV6548 && window.cdaDashboardPopoutV6548.version,
+      bridge:window.cdaRemakeLegacyBridgeV6554 && window.cdaRemakeLegacyBridgeV6554.version,
       adapter:window.cdaRemakeDashboardAdapterV6548 && window.cdaRemakeDashboardAdapterV6548.version,
       tatAdapter:window.cdaTatDashboardAdapterV6547 && window.cdaTatDashboardAdapterV6547.version,
       decorator:window.cdaDashboardDecoratorV6548 && window.cdaDashboardDecoratorV6548.version
@@ -164,13 +169,13 @@ Purpose: Extend the dashboard audit with native Remake ownership and document-aw
     const serviceVersionsCorrect = !!(
       services.theme === 'v6.550' && services.columns === 'v6.558' &&
       services.popover === 'v6.558' && services.toolbar === 'v6.558' &&
-      services.bridge === 'v6.555' && services.catalog === 'v6.555' &&
-      services.isolation === 'v6.558' && services.popout === 'v6.558' &&
+      services.bridge === 'v6.559' && services.catalog === 'v6.555' &&
+      services.isolation === 'v6.559' && services.popout === 'v6.559' &&
       services.titleToggle === 'v6.556' && services.adapter === 'v6.558' &&
       services.tatAdapter === 'v6.558' && services.decorator === 'v6.558'
     );
     return Object.assign({},base,{
-      version:'v6.558',
+      version:'v6.559',
       services:services,
       serviceVersionsCorrect:serviceVersionsCorrect,
       remakeActionHosts:actionHosts,
@@ -183,7 +188,7 @@ Purpose: Extend the dashboard audit with native Remake ownership and document-aw
   }
 
   window.cdaDashboardAuditV6550 = Object.freeze({
-    version:'v6.558',
+    version:'v6.559',
     visible:baseAuditService.visible,
     styleSignature:baseAuditService.styleSignature,
     expectedIconName:baseAuditService.expectedIconName,
