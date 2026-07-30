@@ -1,13 +1,13 @@
 <!-- SharedDashboardAuditV6550.html
-Version: v6.555
-Date: 2026-07-29
-Purpose: Audit component identity, live pop-outs, title collapse, visual parity, order, and hidden legacy controls.
+Version: v6.556
+Date: 2026-07-30
+Purpose: Audit component identity, live pop-outs, single title chevrons, visual parity, order, and hidden legacy controls.
 -->
 <script id="cdaSharedDashboardAuditControllerV6550">
 (function installSharedDashboardAuditV6550(){
   'use strict';
 
-  if (window.cdaDashboardAuditV6550 && window.cdaDashboardAuditV6550.version === 'v6.555') return;
+  if (window.cdaDashboardAuditV6550 && window.cdaDashboardAuditV6550.version === 'v6.556') return;
 
   function visible(node){
     if (!node || !window.getComputedStyle) return false;
@@ -117,6 +117,7 @@ Purpose: Audit component identity, live pop-outs, title collapse, visual parity,
     const platform = window.cdaDashboardPlatformV6547;
     const catalog = window.cdaDashboardCatalogV6555;
     const theme = window.cdaDashboardThemeV6549;
+    const titleService = window.cdaDashboardTitleToggleV6555;
     const failures = [];
     ['tat','remake'].forEach(function(tabKey){
       const tab = platform && platform.getTab(tabKey);
@@ -132,10 +133,16 @@ Purpose: Audit component identity, live pop-outs, title collapse, visual parity,
         const icon = button && button.querySelector('.cdaDashboardTitleChevronV6555');
         const iconName = button && button.getAttribute('data-cda-dashboard-icon-state');
         const expectedIcon = theme && iconName ? theme.icon(iconName) : '';
-        if (!card || titleButtons.length !== 1 || toolbarButtons.length !== 0 || !icon ||
+        const inspection = titleService && button && typeof titleService.inspect === 'function'
+          ? titleService.inspect(button)
+          : {chevronCount:icon ? 1 : 0,text:'',textContainsArrow:false};
+        if (!card || titleButtons.length !== 1 || toolbarButtons.length !== 0 ||
+            inspection.chevronCount !== 1 || inspection.textContainsArrow || !icon ||
             !expectedIcon || icon.textContent.trim() !== expectedIcon) {
           failures.push({component:tab.key + '.' + component.key,cardPresent:!!card,
             titleButtonCount:titleButtons.length,toolbarCollapseCount:toolbarButtons.length,
+            chevronCount:inspection.chevronCount,titleText:inspection.text,
+            titleTextContainsArrow:inspection.textContainsArrow,
             expectedIcon:expectedIcon,actualIcon:icon ? icon.textContent.trim() : ''});
         }
       });
@@ -149,18 +156,21 @@ Purpose: Audit component identity, live pop-outs, title collapse, visual parity,
     const catalog = window.cdaDashboardCatalogV6555;
     const testUrl = isolation && typeof isolation.buildUrl === 'function'
       ? isolation.buildUrl('tat','monthly') : '';
+    const componentRouteCorrect = /[?&]component=tat(?:\.|%2E)monthly(?:&|$)/i.test(testUrl);
     return {
       serviceVersion:service && service.version,
       mode:service && service.mode,
       isolationVersion:isolation && isolation.version,
       catalogVersion:catalog && catalog.version,
+      baseUrl:isolation && typeof isolation.baseUrl === 'function' ? isolation.baseUrl() : '',
       testUrl:testUrl,
-      componentRouteCorrect:!testUrl || /[?&]component=tat(?:\.|%2E)monthly(?:&|$)/i.test(testUrl),
-      ok:!!service && service.version === 'v6.555' &&
+      componentRouteCorrect:componentRouteCorrect,
+      lastAttempt:service && typeof service.lastAttempt === 'function' ? service.lastAttempt() : null,
+      ok:!!service && service.version === 'v6.556' &&
         service.mode === 'same-application-live-component' &&
-        !!isolation && isolation.version === 'v6.555' &&
+        !!isolation && isolation.version === 'v6.556' &&
         !!catalog && catalog.version === 'v6.555' &&
-        (!testUrl || /[?&]component=tat(?:\.|%2E)monthly(?:&|$)/i.test(testUrl))
+        !!testUrl && componentRouteCorrect
     };
   }
 
@@ -239,8 +249,8 @@ Purpose: Audit component identity, live pop-outs, title collapse, visual parity,
     };
     const serviceVersionsCorrect = services.theme === 'v6.550' && services.columns === 'v6.550' &&
       services.popover === 'v6.550' && services.toolbar === 'v6.554' && services.bridge === 'v6.555' &&
-      services.catalog === 'v6.555' && services.isolation === 'v6.555' && services.popout === 'v6.555' &&
-      services.titleToggle === 'v6.555';
+      services.catalog === 'v6.555' && services.isolation === 'v6.556' && services.popout === 'v6.556' &&
+      services.titleToggle === 'v6.556';
     const icons = iconAudit(allButtons);
     const styles = allInstanceStyleAudit(allButtons);
     const order = toolbarOrderAudit();
@@ -252,7 +262,7 @@ Purpose: Audit component identity, live pop-outs, title collapse, visual parity,
     const ownership = toolbarOwnershipAudit();
     const cssTokens = cssTokenAudit();
     return {
-      version:'v6.555',tatButtonCount:tatButtons.length,remakeButtonCount:remakeButtons.length,
+      version:'v6.556',tatButtonCount:tatButtons.length,remakeButtonCount:remakeButtons.length,
       bothTabsPresent:tatButtons.length > 0 && remakeButtons.length > 0,
       services:services,serviceVersionsCorrect:serviceVersionsCorrect,componentCatalog:catalog,
       livePopoutContract:popout,titleSideCollapse:collapse,iconOwnership:icons,
@@ -265,7 +275,7 @@ Purpose: Audit component identity, live pop-outs, title collapse, visual parity,
   }
 
   window.cdaDashboardAuditV6550 = Object.freeze({
-    version:'v6.555',visible:visible,styleSignature:styleSignature,
+    version:'v6.556',visible:visible,styleSignature:styleSignature,
     expectedIconName:expectedIconName,audit:auditAll
   });
 })();
