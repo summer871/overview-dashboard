@@ -1,17 +1,20 @@
 <!-- TatDashboardDefinitionV6547.html
-Version: v6.555
-Date: 2026-07-29
-Purpose: Declarative TAT components, stable identities, and opt-in shared capabilities.
+Version: v6.562
+Date: 2026-07-30
+Purpose: Declarative TAT components with separate Department and Products / Groups tables.
 -->
 <script id="cdaTatDashboardDefinitionControllerV6547">
 (function installTatDashboardDefinitionV6547(){
   'use strict';
 
-  if (window.cdaTatDashboardDefinitionV6547 && window.cdaTatDashboardDefinitionV6547.version === 'v6.555') return;
+  if (window.cdaTatDashboardDefinitionV6547 && window.cdaTatDashboardDefinitionV6547.version === 'v6.562') return;
 
   const platform = window.cdaDashboardPlatformV6547;
   const adapter = window.cdaTatDashboardAdapterV6547;
-  if (!platform || !adapter) throw new Error('TAT definition requires the dashboard registry and TAT adapter.');
+  const productTable = window.cdaTatProductTableV6562;
+  if (!platform || !adapter || !productTable) {
+    throw new Error('TAT definition requires the dashboard registry, TAT adapter, and TAT product table service.');
+  }
 
   const STANDARD_FEATURES = ['columns','popout','reset','more','exportCurrent','exportAll'];
 
@@ -23,6 +26,12 @@ Purpose: Declarative TAT components, stable identities, and opt-in shared capabi
       '<thead><tr>' + cells + '</tr></thead><tbody id="' + platform.util.escapeHtml(bodyId) + '"></tbody></table></div>';
   }
 
+  const TAT_METRIC_HEADERS = [
+    {label:'Sold Units',numeric:true},{label:'Remake Units',numeric:true},
+    {label:'Remake %',numeric:true},{label:'Avg TAT',numeric:true},
+    {label:'OTP',numeric:true},{label:'Avg Days Late',numeric:true}
+  ];
+
   const components = [
     {
       key:'monthly',title:'Monthly TAT Comparison',kind:'chart',chartKey:'monthly',targetId:'tatMonthlyChartV6509',
@@ -33,10 +42,15 @@ Purpose: Declarative TAT components, stable identities, and opt-in shared capabi
       key:'department',title:'Department Summary',kind:'table',tableKey:'tatDepartment',targetId:'tatDepartmentTableV6509',
       features:STANDARD_FEATURES.slice(),
       renderBody:function(){
-        return tableV6547('tatDepartmentTableV6509',[
-          {label:'Department / Product'},{label:'Sold Units',numeric:true},{label:'Remake Units',numeric:true},
-          {label:'Remake %',numeric:true},{label:'Avg TAT',numeric:true},{label:'OTP',numeric:true},{label:'Avg Days Late',numeric:true}
-        ]);
+        return tableV6547('tatDepartmentTableV6509',[{label:'Department'}].concat(TAT_METRIC_HEADERS));
+      }
+    },
+    {
+      key:'product',title:'Products',kind:'table',tableKey:'tatProduct',targetId:'tatProductTableV6562',
+      features:STANDARD_FEATURES.slice(),
+      renderHeaderControls:function(){ return productTable.headerMarkup(); },
+      renderBody:function(){
+        return tableV6547('tatProductTableV6562',[{label:'Product'}].concat(TAT_METRIC_HEADERS),'tatProductTableWrapV6562');
       }
     },
     {
@@ -130,7 +144,7 @@ Purpose: Declarative TAT components, stable identities, and opt-in shared capabi
   }
 
   window.cdaTatDashboardDefinitionV6547 = {
-    version:'v6.555',
+    version:'v6.562',
     key:'tat',
     pageId:'tatDashboardPageV6509',
     tabButtonId:'tatTabBtnV6509',
@@ -142,6 +156,7 @@ Purpose: Declarative TAT components, stable identities, and opt-in shared capabi
     afterReplace:function(){
       window.cdaDashboardKpiV6547.bind(kpiConfig);
       adapter.afterReplace();
+      productTable.afterReplace();
     },
     kpiConfig:kpiConfig
   };
