@@ -1,7 +1,7 @@
 <!-- SharedDashboardInteractionAuditV6557.html
-Version: v6.560
+Version: v6.561
 Date: 2026-07-30
-Purpose: Extend the dashboard audit with native Remake ownership, complete detached tables, and cross-window shared-control parity.
+Purpose: Extend the dashboard audit with native Remake ownership, popup-window-only vertical scrolling, and cross-window shared-control parity.
 -->
 <script id="cdaSharedDashboardInteractionAuditControllerV6557">
 (function installSharedDashboardInteractionAuditV6557(){
@@ -11,7 +11,7 @@ Purpose: Extend the dashboard audit with native Remake ownership, complete detac
   if (!baseAuditService || typeof baseAuditService.audit !== 'function') {
     throw new Error('Base dashboard audit must load before interaction audit.');
   }
-  if (baseAuditService.version === 'v6.560') return;
+  if (baseAuditService.version === 'v6.561') return;
 
   function viewFor(node){
     return node && node.ownerDocument && node.ownerDocument.defaultView || window;
@@ -155,47 +155,67 @@ Purpose: Extend the dashboard audit with native Remake ownership, complete detac
     return {active:active,ok:failures.length === 0,failures:failures};
   }
 
+  function isInternalVerticalScrollOwner(node){
+    const style = styleFor(node);
+    if (!style || !visible(node)) return false;
+    const overflowY = String(style.overflowY || '').toLowerCase();
+    return /auto|scroll|overlay|hidden|clip/.test(overflowY) &&
+      node.scrollHeight > node.clientHeight + 2;
+  }
+
   function detachedFullTables(){
     const isolation = window.cdaDashboardIsolationV6555;
     const failures = [];
     const active = isolation && typeof isolation.active === 'function' ? isolation.active() : [];
-    const wrapperSelector = [
-      '.remakeTableWrap','.remakeDepartmentTableWrapV6230','.remakeProductTableWrapV6230',
-      '.remakeCustomerTableWrapV6230','.ceramistPreviewTableWrapV6342','.tatSummaryTableV6509',
-      '.tatCustomersWrapV6509','.tatQualityTableWrapV6509','.cdaTableFrameV6542',
-      '.cdaTableViewportV6542','.cdaTableBodyV6542','.tableScroll',
-      '[class*="TableWrap"]','[class*="tableWrap"]','[class*="TableFrame"]',
-      '[class*="tableFrame"]','[class*="TableViewport"]','[class*="tableViewport"]'
-    ].join(',');
 
     active.forEach(function(id){
+      const session = typeof isolation.session === 'function' ? isolation.session(id) : null;
       const card = isolation.card(id);
-      if (!card) {
-        failures.push({component:id,reason:'detached-card-missing'});
+      if (!card || !session) {
+        failures.push({component:id,reason:'detached-card-or-session-missing'});
         return;
       }
       if (card.getAttribute('data-cda-popout-full-table') !== 'true') {
         failures.push({component:id,reason:'full-table-marker-missing'});
       }
-      card.querySelectorAll(wrapperSelector).forEach(function(wrapper){
-        const style = styleFor(wrapper);
-        const verticalScroll = !!style && ['auto','scroll','hidden','clip'].indexOf(style.overflowY) >= 0 &&
-          wrapper.scrollHeight > wrapper.clientHeight + 2;
-        const capped = !!style && style.maxHeight !== 'none' && style.maxHeight !== '0px';
-        if (verticalScroll || capped) {
-          failures.push({
-            component:id,
-            reason:'internal-table-height-cap',
-            className:wrapper.className || '',
-            overflowY:style ? style.overflowY : '',
-            maxHeight:style ? style.maxHeight : '',
-            clientHeight:wrapper.clientHeight,
-            scrollHeight:wrapper.scrollHeight
-          });
-        }
+      if (!session.fullTableNormalized) {
+        failures.push({component:id,reason:'runtime-normalization-not-confirmed'});
+      }
+
+      [card].concat(Array.from(card.querySelectorAll('*'))).forEach(function(node){
+        if (!isInternalVerticalScrollOwner(node)) return;
+        const style = styleFor(node);
+        failures.push({
+          component:id,
+          reason:'internal-vertical-scroll-owner',
+          tagName:node.tagName || '',
+          id:node.id || '',
+          className:typeof node.className === 'string' ? node.className : '',
+          overflowY:style ? style.overflowY : '',
+          maxHeight:style ? style.maxHeight : '',
+          clientHeight:node.clientHeight,
+          scrollHeight:node.scrollHeight
+        });
       });
+
+      const doc = card.ownerDocument;
+      const rootStyle = doc && doc.documentElement ? styleFor(doc.documentElement) : null;
+      const bodyStyle = doc && doc.body ? styleFor(doc.body) : null;
+      const rootOwnsScroll = !!rootStyle && /auto|scroll|overlay/.test(String(rootStyle.overflowY || '').toLowerCase());
+      const bodyOwnsScroll = !!bodyStyle && /auto|scroll|overlay/.test(String(bodyStyle.overflowY || '').toLowerCase()) &&
+        doc.body.scrollHeight > doc.body.clientHeight + 2;
+      if (!rootOwnsScroll || bodyOwnsScroll) {
+        failures.push({
+          component:id,
+          reason:'popup-window-not-sole-scroll-owner',
+          rootOverflowY:rootStyle ? rootStyle.overflowY : '',
+          bodyOverflowY:bodyStyle ? bodyStyle.overflowY : '',
+          rootOwnsScroll:rootOwnsScroll,
+          bodyOwnsScroll:bodyOwnsScroll
+        });
+      }
     });
-    return {active:active,ok:failures.length === 0,failures:failures};
+    return {active:active,scrollOwner:'popup-window',ok:failures.length === 0,failures:failures};
   }
 
   function detachedLivePopout(){
@@ -208,12 +228,15 @@ Purpose: Extend the dashboard audit with native Remake ownership, complete detac
     const remakeAdapter = window.cdaRemakeDashboardAdapterV6548;
     const fullTables = detachedFullTables();
     const buttonParity = detachedButtonParity();
-    const serviceOk = !!service && service.version === 'v6.560' &&
-      service.mode === 'detached-live-component' && service.tableMode === 'full-table' &&
+    const serviceOk = !!service && service.version === 'v6.561' &&
+      service.mode === 'detached-live-component' &&
+      service.tableMode === 'window-scroll-full-table' &&
       typeof service.open === 'function' && typeof service.restore === 'function' &&
-      typeof service.active === 'function';
-    const isolationOk = !!isolation && isolation.version === 'v6.560' &&
-      isolation.mode === 'detached-live-component' && typeof isolation.card === 'function';
+      typeof service.active === 'function' && typeof service.normalizeFullTable === 'function';
+    const isolationOk = !!isolation && isolation.version === 'v6.561' &&
+      isolation.mode === 'detached-live-component' &&
+      isolation.tableMode === 'window-scroll-full-table' &&
+      typeof isolation.card === 'function' && typeof isolation.normalizeFullTable === 'function';
     return {
       serviceVersion:service && service.version,
       isolationVersion:isolation && isolation.version,
@@ -270,12 +293,12 @@ Purpose: Extend the dashboard audit with native Remake ownership, complete detac
       services.theme === 'v6.550' && services.columns === 'v6.558' &&
       services.popover === 'v6.558' && services.toolbar === 'v6.558' &&
       services.bridge === 'v6.559' && services.catalog === 'v6.555' &&
-      services.isolation === 'v6.560' && services.popout === 'v6.560' &&
+      services.isolation === 'v6.561' && services.popout === 'v6.561' &&
       services.titleToggle === 'v6.556' && services.adapter === 'v6.558' &&
       services.tatAdapter === 'v6.558' && services.decorator === 'v6.558'
     );
     return Object.assign({},base,{
-      version:'v6.560',
+      version:'v6.561',
       services:services,
       serviceVersionsCorrect:serviceVersionsCorrect,
       remakeActionHosts:actionHosts,
@@ -290,7 +313,7 @@ Purpose: Extend the dashboard audit with native Remake ownership, complete detac
   }
 
   window.cdaDashboardAuditV6550 = Object.freeze({
-    version:'v6.560',
+    version:'v6.561',
     visible:baseAuditService.visible,
     styleSignature:baseAuditService.styleSignature,
     expectedIconName:baseAuditService.expectedIconName,
