@@ -1,7 +1,7 @@
 /**
  * Executive Overview Dashboard Router
- * Version: Code.gs v6.555 live component isolation
- * Date: 2026-07-29
+ * Version: Code.gs v6.556 reliable live pop-out
+ * Date: 2026-07-30
  * Purpose: Serve the dashboard shell and inject a stable component route for live pop-out windows.
  */
 function doGet(e) {
@@ -14,21 +14,21 @@ function doGet(e) {
   const template = HtmlService.createTemplateFromFile('Index');
   template.dashboardBaseUrl = getDashboardBaseUrl();
   template.dashboardPresentationMode = presentationMode;
-  template.dashboardPresentationVersion = 'v6.555';
-  template.dashboardPresentationSource = 'Code.gs v6.555 live component isolation';
+  template.dashboardPresentationVersion = 'v6.556';
+  template.dashboardPresentationSource = 'Code.gs v6.556 reliable live pop-out';
 
   const presentation = {
     mode: presentationMode,
-    version: 'v6.555',
-    source: 'Code.gs v6.555 live component isolation',
+    version: 'v6.556',
+    source: 'Code.gs v6.556 reliable live pop-out',
     baseUrl: getDashboardBaseUrl(),
     componentRoute: componentRoute,
     isComponentWindow: Boolean(componentRoute)
   };
 
   let html = template.evaluate().getContent();
-  const configScript = '<script id="cdaServerPresentationV6555">window.CDA_SERVER_PRESENTATION=' +
-    JSON.stringify(presentation).replace(/</g, '\\u003c') + ';</script>';
+  const configScript = '<script id="cdaServerPresentationV6556">window.CDA_SERVER_PRESENTATION=' +
+    JSON.stringify(presentation).replace(/</g, '\u003c') + ';</script>';
   html = html.indexOf('</head>') >= 0
     ? html.replace('</head>', configScript + '</head>')
     : configScript + html;
@@ -78,7 +78,7 @@ function renderDashboardDebugPage() {
 function debugDashboardServerHealth() {
   const health = {
     ok: true,
-    routerVersion: 'Code.gs v6.555 live component isolation',
+    routerVersion: 'Code.gs v6.556 reliable live pop-out',
     timestamp: new Date().toISOString(),
     scriptTimeZone: Session.getScriptTimeZone(),
     dashboardBaseUrl: getDashboardBaseUrl(),
