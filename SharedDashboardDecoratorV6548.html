@@ -1,13 +1,14 @@
 <!-- SharedDashboardDecoratorV6548.html
-Version: v6.555
-Date: 2026-07-29
-Purpose: Decorate existing dashboard cards with shared controls, identity, and title interactions.
+Version: v6.558
+Date: 2026-07-30
+Purpose: Decorate existing dashboard cards with shared controls and identity while respecting native title interactions.
 -->
 <script id="cdaSharedDashboardDecoratorControllerV6548">
 (function installSharedDashboardDecoratorV6548(){
   'use strict';
 
-  if (window.cdaDashboardDecoratorV6548 && window.cdaDashboardDecoratorV6548.version === 'v6.555') return;
+  if (window.cdaDashboardDecoratorV6548 &&
+      window.cdaDashboardDecoratorV6548.version === 'v6.558') return;
 
   const platform = window.cdaDashboardPlatformV6547;
   const toolbar = window.cdaDashboardToolbarV6548;
@@ -50,7 +51,9 @@ Purpose: Decorate existing dashboard cards with shared controls, identity, and t
 
   function componentState(tab,component,page){
     const card = resolveCard(tab,component,page);
-    const header = card && card.querySelector ? card.querySelector('.remakeCardHeader,.tatCardHeadV6509') : null;
+    const header = card && card.querySelector
+      ? card.querySelector('.remakeCardHeader,.tatCardHeadV6509')
+      : null;
     const toolbarCount = card && card.querySelectorAll
       ? card.querySelectorAll('.cdaDashboardToolbarV6547[data-cda-dashboard-toolbar="' + component.key + '"]').length
       : 0;
@@ -97,8 +100,11 @@ Purpose: Decorate existing dashboard cards with shared controls, identity, and t
       }
       const mountedToolbar = toolbar.mount(tab.key,component.key,host);
       if (!mountedToolbar) return;
+
       const titleToggle = window.cdaDashboardTitleToggleV6555;
-      if (titleToggle) titleToggle.mount(tab.key,component.key,card);
+      const nativeTitle = !!(tab.adapter && tab.adapter.nativeTitleToggle);
+      if (titleToggle && !nativeTitle) titleToggle.mount(tab.key,component.key,card);
+
       mounted += 1;
       card.setAttribute('data-cda-dashboard-decorated-component',component.key);
     });
@@ -126,11 +132,13 @@ Purpose: Decorate existing dashboard cards with shared controls, identity, and t
     const validation = platform.validateTab(tabKey);
     const page = tab ? document.getElementById(tab.pageId) : null;
     const duplicates = duplicateIds(page);
-    const states = tab ? tab.components.map(function(component){ return componentState(tab,component,page); }) : [];
+    const states = tab ? tab.components.map(function(component){
+      return componentState(tab,component,page);
+    }) : [];
     const missing = states.filter(function(state){ return !state.decorated; });
     const toolbars = page ? Array.from(page.querySelectorAll('.cdaDashboardToolbarV6547')) : [];
     return {
-      version:'v6.555',
+      version:'v6.558',
       tabKey:tabKey,
       mountMode:'decorate',
       validation:validation,
@@ -146,7 +154,7 @@ Purpose: Decorate existing dashboard cards with shared controls, identity, and t
   }
 
   window.cdaDashboardDecoratorV6548 = Object.freeze({
-    version:'v6.555',
+    version:'v6.558',
     decorate:decorate,
     audit:audit,
     resolveCard:resolveCard,
