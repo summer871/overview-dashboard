@@ -7,7 +7,7 @@ const vm = require('vm');
 const childProcess = require('child_process');
 
 const root = path.resolve(__dirname, '..');
-const requiredVersion = 'v6.557';
+const requiredVersion = 'v6.558';
 
 function fail(message) {
   console.error('ERROR: ' + message);
@@ -28,8 +28,12 @@ function count(text, regex) {
 }
 
 function validateHtml(fileName, text) {
-  if (count(text, /<script\b/gi) !== count(text, /<\/script>/gi)) fail(fileName + ' has mismatched script tags.');
-  if (count(text, /<style\b/gi) !== count(text, /<\/style>/gi)) fail(fileName + ' has mismatched style tags.');
+  if (count(text, /<script\b/gi) !== count(text, /<\/script>/gi)) {
+    fail(fileName + ' has mismatched script tags.');
+  }
+  if (count(text, /<style\b/gi) !== count(text, /<\/style>/gi)) {
+    fail(fileName + ' has mismatched style tags.');
+  }
   Array.from(text.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/gi)).forEach((match, index) => {
     try {
       new vm.Script(match[1], {filename:fileName + '#script-' + (index + 1)});
@@ -40,7 +44,9 @@ function validateHtml(fileName, text) {
 }
 
 const foundation = read('SharedComponentFoundation.html');
-if (!foundation.includes(requiredVersion)) fail('SharedComponentFoundation.html is not ' + requiredVersion + '.');
+if (!foundation.includes(requiredVersion)) {
+  fail('SharedComponentFoundation.html is not ' + requiredVersion + '.');
+}
 
 const includes = Array.from(
   foundation.matchAll(/includeDashboardFile\(['"]([A-Za-z0-9_-]+)['"]\)/g)
@@ -56,10 +62,13 @@ requiredIncludes.forEach(name => {
 });
 
 const duplicateIncludes = includes.filter((name, index) => includes.indexOf(name) !== index);
-if (duplicateIncludes.length) fail('Duplicate includes: ' + Array.from(new Set(duplicateIncludes)).join(', '));
+if (duplicateIncludes.length) {
+  fail('Duplicate includes: ' + Array.from(new Set(duplicateIncludes)).join(', '));
+}
 
 function requireBefore(first, second) {
-  if (includes.indexOf(first) < 0 || includes.indexOf(second) < 0 || includes.indexOf(first) >= includes.indexOf(second)) {
+  if (includes.indexOf(first) < 0 || includes.indexOf(second) < 0 ||
+      includes.indexOf(first) >= includes.indexOf(second)) {
     fail(first + ' must load before ' + second + '.');
   }
 }
@@ -80,7 +89,7 @@ const footer = read('SharedFooter.html');
 const router = read('Code.js');
 const isolation = read('SharedDashboardIsolationV6555.html');
 const popout = read('SharedDashboardPopoutV6548.html');
-const titleToggle = read('SharedDashboardTitleToggleV6555.html');
+const decorator = read('SharedDashboardDecoratorV6548.html');
 const interactionAudit = read('SharedDashboardInteractionAuditV6557.html');
 const remakeAdapter = read('RemakeDashboardAdapterV6548.html');
 const remakeBootstrap = read('RemakeDashboardBootstrapV6548.html');
@@ -93,48 +102,57 @@ try {
   fail(error.message);
 }
 
-if (!footer.includes("'v6.557'")) fail('SharedFooter.html is not v6.557.');
-if (!footer.includes('SHARED-INTERACTION-RECOVERY-09')) fail('SharedFooter build label is incorrect.');
-if (!router.includes("'v6.557'")) fail('Code.js is not v6.557.');
+if (!footer.includes("'v6.558'")) fail('SharedFooter.html is not v6.558.');
+if (!footer.includes('DETACHED-LIVE-COMPONENTS-10')) fail('SharedFooter build label is incorrect.');
+if (!router.includes("'v6.558'")) fail('Code.js is not v6.558.');
 
-if (!isolation.includes("version:'v6.557'")) fail('Isolation service is not v6.557.');
-if (!isolation.includes("mode:'same-build-live-component'")) fail('Isolation mode is incorrect.');
-if (!isolation.includes('frameUrlFrom')) fail('Isolation lacks current-frame URL fallback.');
-if (!isolation.includes("url.hash=hashParams.toString()")) fail('Isolation lacks hash routing for frame URLs.');
-if (!isolation.includes('hashRoute')) fail('Isolation cannot read client-side component routes.');
-if (!isolation.includes("window.open('about:blank'")) fail('Isolation does not reserve a popup synchronously.');
-if (!isolation.includes('lastAttemptV6557')) fail('Isolation launch diagnostics are missing.');
-
-if (!popout.includes("version:'v6.557'")) fail('Pop-out facade is not v6.557.');
-if (!popout.includes("mode:'same-build-live-component'")) fail('Pop-out facade mode is incorrect.');
-['toBase64Image','toDataURL','outerHTML','documentHtml'].forEach(marker => {
-  if (popout.includes(marker)) fail('Pop-out contains static snapshot marker: ' + marker);
+if (!isolation.includes("version:'v6.558'")) fail('Isolation service is not v6.558.');
+if (!isolation.includes("mode:'detached-live-component'")) fail('Isolation mode is incorrect.');
+if (!isolation.includes('popup.document.adoptNode(card)')) fail('Isolation does not move the actual card node.');
+if (!isolation.includes('placeholder.replaceWith(session.card)')) fail('Isolation does not restore the actual card node.');
+if (!isolation.includes('bridgeSharedEventsV6558(popup)')) fail('Isolation lacks shared event bridging.');
+if (!isolation.includes("window.open('',popupName")) fail('Isolation does not use a same-origin blank popup.');
+['buildUrl','frameUrlFrom','hashRoute','userCodeAppPanel','toBase64Image','toDataURL','outerHTML'].forEach(marker => {
+  if (isolation.includes(marker)) fail('Obsolete pop-out marker remains: ' + marker);
 });
 
-if (!titleToggle.includes("version:'v6.556'")) fail('Title toggle is not the canonical v6.556 implementation.');
-if (!titleToggle.includes('title.replaceChildren(button)')) fail('Title toggle does not replace legacy title content.');
-if (!titleToggle.includes('ARROW_REPLACE_PATTERN_V6556')) fail('Title toggle does not remove legacy arrows.');
+if (!popout.includes("version:'v6.558'")) fail('Pop-out facade is not v6.558.');
+if (!popout.includes("mode:'detached-live-component'")) fail('Pop-out facade mode is incorrect.');
 
-if (!remakeAdapter.includes("version:'v6.557'")) fail('Remake adapter is not v6.557.');
-if (!remakeAdapter.includes("data-cda-dashboard-shared-host','true'")) fail('Remake dedicated shared host marker is missing.');
-if (!remakeAdapter.includes("header.querySelector(':scope > .cdaDashboardDecoratedActionsV6548')")) {
-  fail('Remake toolbar is not mounted directly under the header.');
+if (!decorator.includes("version:'v6.558'")) fail('Decorator is not v6.558.');
+if (!decorator.includes('if (titleToggle && !nativeTitle)')) {
+  fail('Decorator does not respect native title ownership.');
 }
-if (remakeAdapter.includes("header.querySelector('.remakeCardActionsV6230')")) {
-  fail('Remake toolbar still uses the legacy action host.');
+
+if (!remakeAdapter.includes("version:'v6.558'")) fail('Remake adapter is not v6.558.');
+if (!remakeAdapter.includes('nativeTitleToggle:true')) fail('Remake native title ownership is missing.');
+if (!remakeAdapter.includes("header.querySelector('.remakeCardActionsV6230')")) {
+  fail('Remake toolbar does not reuse the native action host.');
 }
-if (!remakeAdapter.includes('pointer-events:auto!important')) fail('Remake shared host does not own pointer events.');
+if (!remakeAdapter.includes("data-cda-dashboard-shared-host','native-remake-actions'")) {
+  fail('Native Remake action-host marker is missing.');
+}
+if (remakeAdapter.includes("header.querySelector(':scope > .cdaDashboardDecoratedActionsV6548')")) {
+  fail('Separate Remake action host remains active.');
+}
 
-if (!interactionAudit.includes("version:'v6.557'")) fail('Interaction audit is not v6.557.');
-if (!interactionAudit.includes('remakePointerHosts')) fail('Interaction audit lacks Remake pointer-host checks.');
-if (!interactionAudit.includes('sameBuildPopout')) fail('Interaction audit lacks same-build pop-out checks.');
+const relevantSelectorBlock = remakeBootstrap.match(/function relevantNodeV6558[\s\S]*?\n  }/)?.[0] || '';
+if (!relevantSelectorBlock || relevantSelectorBlock.includes('.remakeCardTitle')) {
+  fail('Remake bootstrap still watches title mutations.');
+}
+if (!remakeBootstrap.includes("version:'v6.558'")) fail('Remake bootstrap is not v6.558.');
+if (!tatBootstrap.includes("version:'v6.558'")) fail('TAT bootstrap is not v6.558.');
 
-if (!remakeBootstrap.includes("version:'v6.557'")) fail('Remake bootstrap is not v6.557.');
-if (!tatBootstrap.includes("version:'v6.557'")) fail('TAT bootstrap is not v6.557.');
+if (!interactionAudit.includes("version:'v6.558'")) fail('Interaction audit is not v6.558.');
+if (!interactionAudit.includes('remakeActionHosts')) fail('Interaction audit lacks native Remake host checks.');
+if (!interactionAudit.includes('titleOwnership')) fail('Interaction audit lacks title ownership checks.');
+if (!interactionAudit.includes('detachedLivePopout')) fail('Interaction audit lacks detached pop-out checks.');
 
 if (!process.exitCode) {
   try {
-    childProcess.execFileSync(process.execPath, [path.join(root, 'scripts', 'test-dashboard-runtime-contracts.js')], {
+    childProcess.execFileSync(process.execPath, [
+      path.join(root, 'scripts', 'test-dashboard-runtime-contracts.js')
+    ], {
       cwd:root,
       stdio:'inherit'
     });
@@ -146,10 +164,10 @@ if (!process.exitCode) {
 if (!process.exitCode) {
   console.log('Dashboard platform validation passed.');
   console.log('Version: ' + requiredVersion);
-  console.log('Dedicated Remake shared pointer host: passed');
-  console.log('Same-build frame pop-out fallback: passed');
-  console.log('Canonical title cleanup: passed');
-  console.log('Static snapshot pop-out guard: passed');
+  console.log('Actual live card detach and restore: passed');
+  console.log('Native Remake header ownership: passed');
+  console.log('No Remake title mutation loop: passed');
+  console.log('Static snapshot and URL-route guards: passed');
   console.log('Active includes: ' + includes.length);
   includes.forEach(name => console.log('  - ' + name + '.html'));
 }
