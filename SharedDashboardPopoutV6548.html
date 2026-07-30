@@ -1,5 +1,5 @@
 <!-- SharedDashboardPopoutV6548.html
-Version: v6.558
+Version: v6.559
 Date: 2026-07-30
 Purpose: Open the actual live dashboard card in a separate same-origin window and restore it on close.
 -->
@@ -8,17 +8,17 @@ Purpose: Open the actual live dashboard card in a separate same-origin window an
   'use strict';
 
   if (window.cdaDashboardPopoutV6548 &&
-      window.cdaDashboardPopoutV6548.version === 'v6.558') return;
+      window.cdaDashboardPopoutV6548.version === 'v6.559') return;
 
   const isolation = window.cdaDashboardIsolationV6555;
-  if (!isolation || isolation.version !== 'v6.558') {
-    throw new Error('Dashboard isolation v6.558 must load before pop-out.');
+  if (!isolation || isolation.version !== 'v6.559') {
+    throw new Error('Dashboard isolation v6.559 must load before pop-out.');
   }
 
   function open(context){ return isolation.open(context); }
 
   window.cdaDashboardPopoutV6548 = Object.freeze({
-    version:'v6.558',
+    version:'v6.559',
     mode:'detached-live-component',
     open:open,
     restore:isolation.restore,
