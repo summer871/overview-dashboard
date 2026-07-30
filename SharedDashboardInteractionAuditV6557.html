@@ -1,7 +1,7 @@
 <!-- SharedDashboardInteractionAuditV6557.html
 Version: v6.558
 Date: 2026-07-30
-Purpose: Extend the dashboard audit with native Remake header ownership and detached live-card pop-out checks.
+Purpose: Extend the dashboard audit with native Remake ownership and document-aware detached live-card checks.
 -->
 <script id="cdaSharedDashboardInteractionAuditControllerV6557">
 (function installSharedDashboardInteractionAuditV6557(){
@@ -32,7 +32,9 @@ Purpose: Extend the dashboard audit with native Remake header ownership and deta
       ));
       const pointerEnabled = !!(style && style.pointerEvents !== 'none' &&
         style.visibility !== 'hidden' && style.display !== 'none');
-      const staleSibling = !!(toolbar.closest('.cdaDashboardDecoratedActionsV6548[data-cda-dashboard-shared-host="true"]'));
+      const staleSibling = !!(toolbar.closest(
+        '.cdaDashboardDecoratedActionsV6548[data-cda-dashboard-shared-host="true"]'
+      ));
       if (!nativeHost || !pointerEnabled || staleSibling || !visible(toolbar)) {
         failures.push({
           component:toolbar.getAttribute('data-cda-dashboard-toolbar') || '',
@@ -72,14 +74,16 @@ Purpose: Extend the dashboard audit with native Remake header ownership and deta
         const card = catalog.resolveCard('remake',component.key);
         const title = card && card.querySelector('.remakeCardTitle');
         const shared = card ? card.querySelectorAll('[data-cda-dashboard-title-toggle="true"]') : [];
-        const arrows = title ? (String(title.textContent || '').match(/[▾▸▼▲▶◀⌄⌃˅˄]/g) || []).length : 0;
-        if (!card || !title || shared.length !== 0 || arrows > 1) {
+        const nativeButtons = card ? card.querySelectorAll('[data-remake-section-toggle-v6402]') : [];
+        if (!card || !title || shared.length !== 0 || nativeButtons.length !== 1 ||
+            title.getAttribute('role') !== 'button') {
           failures.push({
             component:'remake.' + component.key,
             owner:'native-remake',
             titlePresent:!!title,
             sharedToggleCount:shared.length,
-            arrowCount:arrows
+            nativeButtonCount:nativeButtons.length,
+            titleRole:title ? title.getAttribute('role') : ''
           });
         }
       });
@@ -91,18 +95,39 @@ Purpose: Extend the dashboard audit with native Remake header ownership and deta
   function detachedLivePopout(){
     const service = window.cdaDashboardPopoutV6548;
     const isolation = window.cdaDashboardIsolationV6555;
+    const columns = window.cdaDashboardColumnsV6548;
+    const popover = window.cdaDashboardPopoverV6547;
+    const toolbar = window.cdaDashboardToolbarV6548;
+    const tatAdapter = window.cdaTatDashboardAdapterV6547;
+    const remakeAdapter = window.cdaRemakeDashboardAdapterV6548;
     return {
       serviceVersion:service && service.version,
       isolationVersion:isolation && isolation.version,
       mode:service && service.mode,
       active:service && typeof service.active === 'function' ? service.active() : [],
       lastAttempt:service && typeof service.lastAttempt === 'function' ? service.lastAttempt() : null,
+      documentAwareColumns:!!columns && columns.version === 'v6.558' &&
+        typeof columns.documentFor === 'function' && typeof columns.resolveTable === 'function',
+      documentAwarePopover:!!popover && popover.version === 'v6.558' &&
+        typeof popover.activeDocument === 'function',
+      documentAwareToolbar:!!toolbar && toolbar.version === 'v6.558' &&
+        typeof toolbar.contextFor === 'function' && typeof toolbar.cardFor === 'function',
+      tatDetachedCollapse:!!tatAdapter && tatAdapter.version === 'v6.558' &&
+        typeof tatAdapter.applyDetachedCollapse === 'function',
+      remakeDetachedCollapse:!!remakeAdapter && remakeAdapter.version === 'v6.558' &&
+        typeof remakeAdapter.syncDetachedNativeCollapse === 'function',
       ok:!!service && service.version === 'v6.558' &&
         service.mode === 'detached-live-component' &&
         typeof service.open === 'function' && typeof service.restore === 'function' &&
         typeof service.active === 'function' &&
         !!isolation && isolation.version === 'v6.558' &&
-        isolation.mode === 'detached-live-component'
+        isolation.mode === 'detached-live-component' &&
+        typeof isolation.card === 'function' &&
+        !!columns && columns.version === 'v6.558' &&
+        !!popover && popover.version === 'v6.558' &&
+        !!toolbar && toolbar.version === 'v6.558' &&
+        !!tatAdapter && tatAdapter.version === 'v6.558' &&
+        !!remakeAdapter && remakeAdapter.version === 'v6.558'
     };
   }
 
@@ -127,18 +152,22 @@ Purpose: Extend the dashboard audit with native Remake header ownership and deta
     const titles = titleOwnership();
     const popout = detachedLivePopout();
     const services = Object.assign({},base.services || {},{
+      columns:window.cdaDashboardColumnsV6548 && window.cdaDashboardColumnsV6548.version,
+      popover:window.cdaDashboardPopoverV6547 && window.cdaDashboardPopoverV6547.version,
+      toolbar:window.cdaDashboardToolbarV6548 && window.cdaDashboardToolbarV6548.version,
       isolation:window.cdaDashboardIsolationV6555 && window.cdaDashboardIsolationV6555.version,
       popout:window.cdaDashboardPopoutV6548 && window.cdaDashboardPopoutV6548.version,
       adapter:window.cdaRemakeDashboardAdapterV6548 && window.cdaRemakeDashboardAdapterV6548.version,
+      tatAdapter:window.cdaTatDashboardAdapterV6547 && window.cdaTatDashboardAdapterV6547.version,
       decorator:window.cdaDashboardDecoratorV6548 && window.cdaDashboardDecoratorV6548.version
     });
     const serviceVersionsCorrect = !!(
-      services.theme === 'v6.550' && services.columns === 'v6.550' &&
-      services.popover === 'v6.550' && services.toolbar === 'v6.554' &&
+      services.theme === 'v6.550' && services.columns === 'v6.558' &&
+      services.popover === 'v6.558' && services.toolbar === 'v6.558' &&
       services.bridge === 'v6.555' && services.catalog === 'v6.555' &&
       services.isolation === 'v6.558' && services.popout === 'v6.558' &&
       services.titleToggle === 'v6.556' && services.adapter === 'v6.558' &&
-      services.decorator === 'v6.558'
+      services.tatAdapter === 'v6.558' && services.decorator === 'v6.558'
     );
     return Object.assign({},base,{
       version:'v6.558',
