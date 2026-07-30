@@ -7,7 +7,7 @@ const vm = require('vm');
 const childProcess = require('child_process');
 
 const root = path.resolve(__dirname, '..');
-const requiredVersion = 'v6.559';
+const requiredVersion = 'v6.560';
 
 function fail(message) {
   console.error('ERROR: ' + message);
@@ -103,40 +103,41 @@ validateHtml('SharedFooter.html', footer);
 try { new vm.Script(router, {filename:'Code.js'}); }
 catch (error) { fail(error.message); }
 
-if (!footer.includes("'v6.559'")) fail('SharedFooter.html is not v6.559.');
-if (!footer.includes('NORMALIZED-LIVE-POPOUTS-11')) fail('SharedFooter build label is incorrect.');
-if (!router.includes("'v6.559'")) fail('Code.js is not v6.559.');
+if (!footer.includes("'v6.560'")) fail('SharedFooter.html is not v6.560.');
+if (!footer.includes('FULL-TABLE-LIVE-POPOUTS-12')) fail('SharedFooter build label is incorrect.');
+if (!router.includes("'v6.560'")) fail('Code.js is not v6.560.');
 
-if (!isolation.includes("version:'v6.559'")) fail('Isolation service is not v6.559.');
+if (!isolation.includes("version:'v6.560'")) fail('Isolation service is not v6.560.');
 if (!isolation.includes("mode:'detached-live-component'")) fail('Isolation mode is incorrect.');
 if (!isolation.includes('popup.document.adoptNode(card)')) fail('Isolation does not move the actual card node.');
 if (!isolation.includes('placeholder.replaceWith(session.card)')) fail('Isolation does not restore the actual card node.');
-if (!isolation.includes('const wasCollapsed = collapsedV6559(context,card)')) {
+if (!isolation.includes('const wasCollapsed = collapsedV6560(context,card)')) {
   fail('Isolation does not detect collapsed cards.');
 }
-if (!isolation.includes('if (wasCollapsed) toggleCollapseV6559(context,card)')) {
-  fail('Collapsed cards are not expanded before pop-out.');
-}
-if (!isolation.includes('restoreOriginalCollapseV6559(session)')) {
+if (!isolation.includes('restoreOriginalCollapseV6560(session)')) {
   fail('Original collapsed state is not restored.');
 }
-if (!isolation.includes('grid-column:1 / -1!important')) {
-  fail('Detached card does not force full grid width.');
+if (!isolation.includes("card.setAttribute('data-cda-popout-full-table','true')")) {
+  fail('Detached card lacks the full-table marker.');
 }
-if (!isolation.includes('width:100%!important;max-width:none!important')) {
-  fail('Detached content is not normalized to full width.');
+if (!isolation.includes('overflow-y:visible!important')) {
+  fail('Detached table wrappers do not remove internal vertical scrolling.');
+}
+if (!isolation.includes('max-height:none!important')) {
+  fail('Detached table wrappers retain height caps.');
+}
+if (!isolation.includes('[class*="TableViewport"]') || !isolation.includes('[class*="tableWrap"]')) {
+  fail('Detached table wrapper coverage is incomplete.');
 }
 ['buildUrl','frameUrlFrom','hashRoute','userCodeAppPanel','toBase64Image','toDataURL','outerHTML'].forEach(marker => {
   if (isolation.includes(marker)) fail('Obsolete pop-out marker remains: ' + marker);
 });
 
-if (!popout.includes("version:'v6.559'")) fail('Pop-out facade is not v6.559.');
+if (!popout.includes("version:'v6.560'")) fail('Pop-out facade is not v6.560.');
+if (!popout.includes("tableMode:'full-table'")) fail('Pop-out facade is not in full-table mode.');
 if (!bridge.includes("version:'v6.559'")) fail('Remake bridge is not v6.559.');
 if (!bridge.includes("if (button.matches('[data-remake-section-toggle-v6402]')) return '';")) {
   fail('Native Remake collapse buttons are still classified as legacy controls.');
-}
-if (!bridge.includes('restoreNativeCollapseControlsV6559')) {
-  fail('Native Remake chevron restoration is missing.');
 }
 
 if (!toolbar.includes("version:'v6.558'")) fail('Toolbar is not v6.558.');
@@ -146,33 +147,38 @@ if (!columns.includes('function documentFor(context)')) fail('Columns lacks docu
 
 if (!remakeAdapter.includes("version:'v6.558'")) fail('Remake adapter is not v6.558.');
 if (!remakeAdapter.includes('nativeTitleToggle:true')) fail('Remake native title ownership is missing.');
-if (!remakeAdapter.includes('installNativeCollapseBridgeV6558')) {
-  fail('Remake detached native-collapse bridge is missing.');
-}
 if (!tatAdapter.includes("version:'v6.558'")) fail('TAT adapter is not v6.558.');
 if (!tatAdapter.includes('applyDetachedCollapseV6547(context)')) {
   fail('TAT detached collapse synchronization is missing.');
 }
 
-const relevantSelectorBlock = remakeBootstrap.match(/function relevantNodeV6559[\s\S]*?\n  }/)?.[0] || '';
+const relevantSelectorBlock = remakeBootstrap.match(/function relevantNodeV6560[\s\S]*?\n  }/)?.[0] || '';
 if (!relevantSelectorBlock || relevantSelectorBlock.includes('.remakeCardTitle')) {
   fail('Remake bootstrap still watches title mutations.');
 }
-if (!remakeBootstrap.includes("version:'v6.559'")) fail('Remake bootstrap is not v6.559.');
-if (!tatBootstrap.includes("version:'v6.559'")) fail('TAT bootstrap is not v6.559.');
-if (!remakeBootstrap.includes("bridge:bridge.version === 'v6.559'")) {
-  fail('Remake bootstrap expects the wrong bridge version.');
+if (!remakeBootstrap.includes("version:'v6.560'")) fail('Remake bootstrap is not v6.560.');
+if (!tatBootstrap.includes("version:'v6.560'")) fail('TAT bootstrap is not v6.560.');
+if (!tatBootstrap.includes("window.cdaDashboardPopoutV6548.tableMode === 'full-table'")) {
+  fail('TAT bootstrap does not require full-table pop-outs.');
 }
-if (!tatBootstrap.includes("componentIsolation:window.cdaDashboardIsolationV6555 && window.cdaDashboardIsolationV6555.version === 'v6.559'")) {
-  fail('TAT bootstrap expects the wrong isolation version.');
+if (!remakeBootstrap.includes("window.cdaDashboardPopoutV6548.tableMode === 'full-table'")) {
+  fail('Remake bootstrap does not require full-table pop-outs.');
 }
 
-if (!interactionAudit.includes("version:'v6.559'")) fail('Interaction audit is not v6.559.');
-if (!interactionAudit.includes('visibleNativeButtonCount')) {
-  fail('Interaction audit does not verify visible native Remake chevrons.');
+if (!interactionAudit.includes("version:'v6.560'")) fail('Interaction audit is not v6.560.');
+if (!interactionAudit.includes('function detachedFullTables()')) {
+  fail('Interaction audit lacks complete-table checks.');
 }
-if (!interactionAudit.includes('normalizedLayout')) {
-  fail('Interaction audit lacks normalized detached-layout checks.');
+if (!interactionAudit.includes("reason:'internal-table-height-cap'")) {
+  fail('Interaction audit does not reject internal table height caps.');
+}
+if (!interactionAudit.includes('function detachedButtonParity()')) {
+  fail('Interaction audit lacks detached/dashboard button parity checks.');
+}
+if (!interactionAudit.includes('sameClasses') ||
+    !interactionAudit.includes('sameText') ||
+    !interactionAudit.includes('sameStyle')) {
+  fail('Interaction audit does not compare classes, icons/text, and computed styles.');
 }
 
 if (!process.exitCode) {
@@ -188,7 +194,8 @@ if (!process.exitCode) {
 if (!process.exitCode) {
   console.log('Dashboard platform validation passed.');
   console.log('Version: ' + requiredVersion);
-  console.log('Full-width detached layout: passed');
+  console.log('Complete detached tables without internal vertical scrolling: passed');
+  console.log('Detached/dashboard shared button class, icon, and style parity: passed');
   console.log('Collapsed-card temporary expansion and restoration: passed');
   console.log('Visible native Remake chevron ownership: passed');
   console.log('Actual live card detach and restore: passed');
