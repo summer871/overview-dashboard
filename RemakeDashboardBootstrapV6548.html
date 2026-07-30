@@ -81,9 +81,9 @@ Purpose: Register, reconcile, and audit all six Remake components without rewrit
   function dependencyAuditV6558(){
     return {
       sharedTheme:window.cdaDashboardThemeV6549 && window.cdaDashboardThemeV6549.version === 'v6.550',
-      sharedColumns:window.cdaDashboardColumnsV6548 && window.cdaDashboardColumnsV6548.version === 'v6.550',
-      sharedPopover:window.cdaDashboardPopoverV6547 && window.cdaDashboardPopoverV6547.version === 'v6.550',
-      sharedToolbar:window.cdaDashboardToolbarV6548 && window.cdaDashboardToolbarV6548.version === 'v6.554',
+      sharedColumns:window.cdaDashboardColumnsV6548 && window.cdaDashboardColumnsV6548.version === 'v6.558',
+      sharedPopover:window.cdaDashboardPopoverV6547 && window.cdaDashboardPopoverV6547.version === 'v6.558',
+      sharedToolbar:window.cdaDashboardToolbarV6548 && window.cdaDashboardToolbarV6548.version === 'v6.558',
       componentCatalog:window.cdaDashboardCatalogV6555 && window.cdaDashboardCatalogV6555.version === 'v6.555',
       componentIsolation:window.cdaDashboardIsolationV6555 && window.cdaDashboardIsolationV6555.version === 'v6.558',
       livePopout:window.cdaDashboardPopoutV6548 && window.cdaDashboardPopoutV6548.version === 'v6.558' &&
@@ -94,6 +94,7 @@ Purpose: Register, reconcile, and audit all six Remake components without rewrit
       adapter:adapter.version === 'v6.558',
       definition:definition.version === 'v6.555',
       nativeTitleToggle:adapter.nativeTitleToggle === true,
+      detachedCollapseBridge:typeof adapter.syncDetachedNativeCollapse === 'function',
       clearRemakeComponentV6230:typeof window.clearRemakeComponentV6230 === 'function'
     };
   }
