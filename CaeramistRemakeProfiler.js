@@ -2,7 +2,7 @@
  * Ceramist Remake Analysis - BigQuery profiler
  *
  * File: CeramistRemakeProfiler.gs
- * Version: 7.8.0
+ * Version: 7.8.1
  * Last confirmed: 2026-07-31
  * Purpose: CERAMICS attribution diagnostics plus a lightweight Drive-cache reader for the dashboard preview.
  *
@@ -30,7 +30,7 @@
  * parsing the 7 MB Drive payload on every page refresh. v7.7 reconciles the
  * Ceramist sidecar to the complete durable Remake Factor population before
  * calculating responsibility. Missing cases are no longer silently excluded.
- * v7.8 delegates normal maintenance to a historical-seed plus open-month upsert workflow. The complete historical chain is built once in Colab; nightly and dashboard refreshes replace only the same open month(s) refreshed by the Remake cache.
+ * v7.8 delegates normal maintenance to a historical-seed plus open-month upsert workflow. The complete historical chain is built once in Colab; nightly and dashboard refreshes replace only the same open month(s) refreshed by the Remake cache. v7.8.1 keeps current remake cases whose CRM detail omits remakeCaseID in the complete population as Unattributed with an accurate unconfirmed-link reason instead of treating them as a fatal chain error.
  *
  * Confirmed attribution rule in v7:
  *   UPPER(TRIM(CaseTasks_Task)) = CERAMICS
@@ -61,7 +61,7 @@ const ceramistNightlyRefreshHourV75 = 22;
 const ceramistNightlyRefreshMinuteV75 = 45;
 const ceramistNightlyRefreshTimeZoneV75 = 'America/Los_Angeles';
 const ceramistNightlyRefreshLockWaitMsV75 = 30000;
-const ceramistResponsibilityVersionV75 = 'case-level-v7.7.1';
+const ceramistResponsibilityVersionV75 = 'case-level-v7.8.1';
 const ceramistBrowserCacheMetaVersionV76 = 'ceramist-browser-meta-v7.6.0';
 const ceramistPopulationVersionV77 = 'complete-remake-population-v7.7.1';
 const ceramistPopulationChainLookupVersionV771 = 'crm-remakeCaseID-confirmed-v7.7.1';
@@ -982,6 +982,9 @@ function ceramistApplyCaseLevelResponsibilityV74_(rows) {
       if (chainStatus === 'deferred') {
         row.attributionBasis = 'population_chain_pending';
         row.attributionReason = row.populationChainReason || 'The remake chain is queued for the next cache refresh.';
+      } else if (chainStatus === 'unlinked_unconfirmed') {
+        row.attributionBasis = 'remake_case_id_unavailable';
+        row.attributionReason = row.populationChainReason || 'CRM did not expose remakeCaseID, so the original/root case could not be confirmed.';
       } else if (chainStatus === 'error') {
         row.attributionBasis = 'population_chain_error';
         row.attributionReason = row.populationChainReason || 'The remake chain could not be resolved.';

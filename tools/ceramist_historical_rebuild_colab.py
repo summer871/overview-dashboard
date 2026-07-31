@@ -1,5 +1,5 @@
 # Ceramist historical seed builder for Google Colab
-# Builder version: ceramist-colab-builder-v1.0.1
+# Builder version: ceramist-colab-builder-v1.0.2
 # Seed contract: ceramist-colab-seed-v1.0.0
 # Last confirmed: 2026-07-31
 #
@@ -15,7 +15,7 @@
 #   - The verified regression 389666 -> 385918 -> Jhan/Hoseung Han must pass.
 
 # In Colab, paste this entire file into one cell or upload it and run:
-#   %run /content/ceramist_historical_rebuild_colab_v1.0.1.py
+#   %run /content/ceramist_historical_rebuild_colab_v1.0.2.py
 
 from __future__ import annotations
 
@@ -37,11 +37,11 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload, MediaIoBaseUpload
 
 SEED_VERSION = "ceramist-colab-seed-v1.0.0"
-BUILDER_VERSION = "ceramist-colab-builder-v1.0.1"
+BUILDER_VERSION = "ceramist-colab-builder-v1.0.2"
 CACHE_VERSION = "CeramistRemakeCache v0.6.0"
-RESPONSIBILITY_VERSION = "case-level-v7.8.0"
-MAINTENANCE_MODEL = "historical-seed-plus-open-month-upsert-v7.8.0"
-CHAIN_INDEX_VERSION = "crm-remakeCaseID-seed-plus-incremental-v7.8.0"
+RESPONSIBILITY_VERSION = "case-level-v7.8.1"
+MAINTENANCE_MODEL = "historical-seed-plus-open-month-upsert-v7.8.1"
+CHAIN_INDEX_VERSION = "crm-remakeCaseID-seed-plus-incremental-v7.8.1"
 MAX_CHAIN_DEPTH = 8
 TASK_CODE = "CERAMICS"
 
@@ -369,10 +369,27 @@ def resolve_chain(current_row: Dict[str, Any], session: requests.Session, base_u
         return empty_chain("error", "The current remake row has no CRM caseID.", False)
     next_id = remake_case_id(current_row)
     if not next_id:
-        current = fetch_chain_record(session, base_url, current_id, chain_index)
+        detail = crm_get_json(
+            session,
+            base_url.rstrip("/") + "/api/Cases/" + requests.utils.quote(current_id, safe=""),
+        )
+        current_record = record_from_detail(detail, current_id)
+        if not current_record.case_number:
+            raise RuntimeError(f"CRM detail {current_id} did not contain caseNumber.")
+        current = merge_chain_record(chain_index, current_record)
         next_id = clean(current.get("remakeCaseId"))
-        if not next_id and current.get("terminalConfirmed") is True:
-            return empty_chain("unlinked", "CRM case detail explicitly confirmed a blank remakeCaseID.", True)
+        if not next_id:
+            if has_remake_case_field(detail):
+                return empty_chain(
+                    "unlinked",
+                    "CRM case detail explicitly confirmed a blank remakeCaseID.",
+                    True,
+                )
+            return empty_chain(
+                "unlinked_unconfirmed",
+                "CRM case detail did not expose remakeCaseID; no original/root chain could be confirmed.",
+                False,
+            )
 
     ids: List[str] = []
     numbers: List[int] = []
@@ -726,6 +743,9 @@ def apply_responsibility(row: Dict[str, Any], case_map: Dict[int, Dict[str, Any]
             if chain_status == "unlinked" and row.get("populationChainConfirmed") is True:
                 row["attributionBasis"] = "unlinked"
                 row["attributionReason"] = clean(row.get("populationChainReason")) or "CRM explicitly confirmed no remakeCaseID."
+            elif chain_status == "unlinked_unconfirmed":
+                row["attributionBasis"] = "remake_case_id_unavailable"
+                row["attributionReason"] = clean(row.get("populationChainReason")) or "CRM did not expose remakeCaseID, so the original/root case could not be confirmed."
             elif chain_status == "error":
                 row["attributionBasis"] = "population_chain_error"
                 row["attributionReason"] = clean(row.get("populationChainReason")) or "The remake chain could not be resolved."
@@ -762,6 +782,11 @@ def build_stats(rows: Sequence[Dict[str, Any]], chain_index: Dict[str, Dict[str,
         "caseLevelUnattributedRows": len(rows) - attributed_rows,
         "attributedCases": len(attributed_cases),
         "attributionCoveragePct": round(100 * len(attributed_cases) / len(case_keys), 2) if case_keys else 0,
+        "unconfirmedRemakeCaseIdCases": len({
+            case_number(row)
+            for row in rows
+            if case_number(row) and row.get("populationChainStatus") == "unlinked_unconfirmed"
+        }),
         "remakeUnits": round(remake_units, 4),
         "attributedRemakeUnits": round(attributed_units, 4),
         "remakeDiscount": round(discount, 2),

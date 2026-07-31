@@ -8,6 +8,7 @@ const childProcess = require('child_process');
 
 const root = path.resolve(__dirname,'..');
 const requiredVersion = 'v6.567';
+const footerVersion = 'v6.577';
 let failed = false;
 
 function fail(message){ console.error('ERROR: ' + message); failed = true; }
@@ -76,7 +77,7 @@ const remakeBootstrap = read('RemakeDashboardBootstrapV6548.html');
 validateHtml('SharedFooter.html',footer);
 try { new vm.Script(router,{filename:'Code.js'}); } catch (error) { fail(error.message); }
 
-if (!footer.includes("'v6.567'")) fail('Footer is not v6.567.');
+if (!footer.includes("'" + footerVersion + "'")) fail('Footer is not ' + footerVersion + '.');
 if (!footer.includes('TAT-REMAKE-PARITY-19')) fail('Footer build label is incorrect.');
 if (!router.includes("'v6.567'")) fail('Router is not v6.567.');
 if (!footer.includes("appendItem(footer,'Remake cache'")) fail('Separate Remake cache footer item is missing.');
@@ -166,7 +167,8 @@ if (!failed) {
 if (failed) process.exitCode = 1;
 else {
   console.log('Dashboard platform validation passed.');
-  console.log('Version: ' + requiredVersion);
+  console.log('Platform foundation/router version: ' + requiredVersion);
+  console.log('Footer release version: ' + footerVersion);
   console.log('Independent Remake cache timestamp: passed');
   console.log('Independent technician cache timestamp: passed');
   console.log('Duplicate Not loaded placeholder removed: passed');

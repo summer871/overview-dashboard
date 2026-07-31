@@ -4,6 +4,7 @@
 const fs = require('fs');
 const path = require('path');
 const root = path.resolve(__dirname,'..');
+const footerVersion = 'v6.577';
 const read = name => fs.readFileSync(path.join(root,name),'utf8');
 const assert = (condition,message) => { if (!condition) throw new Error(message); };
 
@@ -61,7 +62,10 @@ assert(audit.includes('noRejectedLayouts:'), 'Audit does not reject the prior la
 
 assert(controller.includes('childRows:function(row,selected)'), 'Expected legacy department childRows source is missing.');
 assert(service.includes('ensureDepartmentOnlyV6562'), 'Legacy childRows are not neutralized.');
-assert(footer.includes("'v6.567'"), 'Footer is not v6.567.');
+assert(
+  footer.includes("'" + footerVersion + "'"),
+  'Footer is not ' + footerVersion + '.'
+);
 assert(footer.includes('TAT-REMAKE-PARITY-19'), 'Footer build label is incorrect.');
 assert(router.includes("'v6.567'"), 'Router is not v6.567.');
 

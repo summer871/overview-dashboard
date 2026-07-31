@@ -1,6 +1,6 @@
 /**
  * Ceramist incremental maintenance
- * Version: v7.8.0
+ * Version: v7.8.1
  * Last confirmed: 2026-07-31
  *
  * Durable model:
@@ -14,12 +14,12 @@
  * existing nightly trigger and dashboard Refresh button keep one stable server API.
  */
 
-const ceramistIncrementalVersionV780 = 'CeramistIncremental v7.8.0';
+const ceramistIncrementalVersionV780 = 'CeramistIncremental v7.8.1';
 const ceramistIncrementalCacheVersionV780 = 'CeramistRemakeCache v0.6.0';
-const ceramistIncrementalResponsibilityVersionV780 = 'case-level-v7.8.0';
-const ceramistIncrementalMaintenanceModelV780 = 'historical-seed-plus-open-month-upsert-v7.8.0';
+const ceramistIncrementalResponsibilityVersionV780 = 'case-level-v7.8.1';
+const ceramistIncrementalMaintenanceModelV780 = 'historical-seed-plus-open-month-upsert-v7.8.1';
 const ceramistHistoricalSeedVersionV780 = 'ceramist-colab-seed-v1.0.0';
-const ceramistIncrementalChainLookupVersionV780 = 'crm-remakeCaseID-seed-plus-incremental-v7.8.0';
+const ceramistIncrementalChainLookupVersionV780 = 'crm-remakeCaseID-seed-plus-incremental-v7.8.1';
 const ceramistIncrementalMaxApiCallsPropertyV780 = 'MT_CERAMIST_INCREMENTAL_MAX_API_CALLS';
 const ceramistIncrementalDefaultMaxApiCallsV780 = 25;
 const ceramistIncrementalMaxChainDepthV780 = 8;
@@ -112,6 +112,7 @@ function refreshCeramistIncrementalNightlyV780(options) {
       incrementalReusedConfirmedChains: 0,
       incrementalResolvedChains: 0,
       incrementalConfirmedUnlinkedCases: 0,
+      incrementalUnconfirmedLinkCases: 0,
       incrementalDeferredChains: 0,
       incrementalChainErrors: 0
     };
@@ -126,6 +127,7 @@ function refreshCeramistIncrementalNightlyV780(options) {
       if (reusable) chainStats.incrementalReusedConfirmedChains++;
       if (chain.status === 'resolved') chainStats.incrementalResolvedChains++;
       else if (chain.status === 'unlinked') chainStats.incrementalConfirmedUnlinkedCases++;
+      else if (chain.status === 'unlinked_unconfirmed') chainStats.incrementalUnconfirmedLinkCases++;
       else if (chain.status === 'deferred') chainStats.incrementalDeferredChains++;
       else chainStats.incrementalChainErrors++;
 
@@ -530,7 +532,7 @@ function ceramistIncrementalMergeChainRecordV780(index, incoming) {
     caseId: caseId,
     caseNumber: String(incoming.caseNumber || current.caseNumber || '').trim(),
     remakeCaseId: incomingNext || currentNext,
-    terminalConfirmed: incomingTerminal || (currentTerminal && !incomingNext),
+    terminalConfirmed: !(incomingNext || currentNext) && (incomingTerminal || currentTerminal),
     invoiceNote: String(incoming.invoiceNote || current.invoiceNote || '').trim(),
     invoiceNoteTechNumbers: ceramistIncrementalUniqueStringsV780(incoming.invoiceNoteTechNumbers || current.invoiceNoteTechNumbers || [])
   });
@@ -571,7 +573,7 @@ function ceramistIncrementalEnsureApiV780(context) {
   }
 }
 
-function ceramistIncrementalFetchCaseV780(caseId, context, forceRefresh) {
+function ceramistIncrementalFetchCaseV780(caseId, context, forceRefresh, allowMissingRemakeFieldAsTerminal) {
   const cleanId = String(caseId || '').trim();
   if (!cleanId) return { status: 'error', record: null, reason: 'Missing CRM caseID.' };
   const key = cleanId.toLowerCase();
@@ -587,26 +589,38 @@ function ceramistIncrementalFetchCaseV780(caseId, context, forceRefresh) {
       ? { status: 'deferred', record: existing || null, reason: 'Incremental API call limit reached.' }
       : { status: 'error', record: existing || null, reason: 'MagicTouch authentication failed.' };
   }
+
   try {
     context.calls++;
     const detail = fetchRemakeFactorCaseDetail(context.config, context.token, cleanId) || {};
     const hasLinkField = Object.keys(detail).some(function(name) { return /^remakeCaseID$/i.test(name); });
+    const nextId = String(detail.remakeCaseID || detail.remakeCaseId || detail.RemakeCaseID || '').trim();
+    const noteEvidence = ceramistIncrementalExtractInvoiceNoteV780(detail);
     const record = {
       caseId: cleanId,
       caseNumber: String(detail.caseNumber || detail.caseNo || '').trim(),
-      remakeCaseId: String(detail.remakeCaseID || detail.remakeCaseId || detail.RemakeCaseID || '').trim(),
-      terminalConfirmed: hasLinkField && !String(detail.remakeCaseID || detail.remakeCaseId || detail.RemakeCaseID || '').trim(),
+      remakeCaseId: nextId,
+      remakeCaseFieldPresent: hasLinkField,
+      terminalConfirmed: !nextId && (hasLinkField || allowMissingRemakeFieldAsTerminal === true),
       checkedAt: new Date().toISOString(),
-      invoiceNote: ceramistIncrementalExtractInvoiceNoteV780(detail).note,
-      invoiceNoteTechNumbers: ceramistIncrementalExtractInvoiceNoteV780(detail).techNumbers
+      invoiceNote: noteEvidence.note,
+      invoiceNoteTechNumbers: noteEvidence.techNumbers
     };
+
     if (!record.caseNumber) {
       return { status: 'error', record: record, reason: 'CRM case detail did not contain a numeric case number.' };
     }
-    if (!hasLinkField) {
-      return { status: 'error', record: record, reason: 'CRM case detail did not expose remakeCaseID.' };
-    }
+
     ceramistIncrementalMergeChainRecordV780(context.chainIndex, record);
+
+    if (!hasLinkField && allowMissingRemakeFieldAsTerminal !== true) {
+      return {
+        status: 'missing_link_field',
+        record: context.chainIndex[key],
+        reason: 'CRM case detail did not expose remakeCaseID; no original/root chain could be confirmed.'
+      };
+    }
+
     return { status: 'ok', record: context.chainIndex[key] };
   } catch (error) {
     const message = error && error.message ? error.message : String(error);
@@ -648,6 +662,13 @@ function ceramistIncrementalResolveChainV780(row, chainIndex, apiContext) {
 
   if (!nextId) {
     const currentFetch = ceramistIncrementalFetchCaseV780(currentId, apiContext);
+    if (currentFetch.status === 'missing_link_field') {
+      return ceramistIncrementalEmptyChainV780(
+        'unlinked_unconfirmed',
+        currentFetch.reason,
+        false
+      );
+    }
     if (currentFetch.status !== 'ok') {
       return ceramistIncrementalEmptyChainV780(currentFetch.status, currentFetch.reason, false);
     }
@@ -673,7 +694,7 @@ function ceramistIncrementalResolveChainV780(row, chainIndex, apiContext) {
     }
     seen[key] = true;
 
-    const fetched = ceramistIncrementalFetchCaseV780(cleanId, apiContext);
+    const fetched = ceramistIncrementalFetchCaseV780(cleanId, apiContext, false, true);
     if (fetched.status !== 'ok') {
       return ceramistIncrementalChainResultV780(fetched.status, false, caseIds, caseNumbers, fetched.reason);
     }
@@ -773,7 +794,7 @@ function ceramistIncrementalHydrateMissingNoteEvidenceV780(rows, chainIndex, api
   });
 
   Object.keys(requested).forEach(function(caseId) {
-    const fetched = ceramistIncrementalFetchCaseV780(caseId, apiContext, true);
+    const fetched = ceramistIncrementalFetchCaseV780(caseId, apiContext, true, true);
     if (fetched.status !== 'ok') return;
   });
 

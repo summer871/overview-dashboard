@@ -37,14 +37,14 @@ const updater = fs.readFileSync(updaterPath, 'utf8');
 const builder = fs.readFileSync(builderPath, 'utf8');
 const canonical = functionBody(profiler, 'refreshCeramistCaseLevelResponsibilityNightlyV75');
 
-assert(profiler.includes('Version: 7.8.0'), 'Profiler version is 7.8.0.');
+assert(profiler.includes('Version: 7.8.1'), 'Profiler version is 7.8.1.');
 assert(profiler.includes("CeramistRemakeCache v0.6.0"), 'Profiler cache version is v0.6.0.');
 assert(canonical.includes('refreshCeramistIncrementalNightlyV780'), 'Canonical nightly entry point delegates to incremental maintenance.');
 assert(!canonical.includes('ceramistReconcileCompleteRemakePopulationV77_'), 'Canonical nightly entry point no longer performs the full historical population walk.');
 
 [
   'ceramistHistoricalSeedVersionV780',
-  'historical-seed-plus-open-month-upsert-v7.8.0',
+  'historical-seed-plus-open-month-upsert-v7.8.1',
   'readRemakeFactorCacheIndexV118',
   'incrementalPreservedClosedRows',
   'ceramistApplyCaseLevelResponsibilityV74_',
@@ -83,8 +83,8 @@ childProcess.execFileSync('python', ['-m', 'py_compile', builderPath], { stdio: 
 console.log('PASS: Colab historical builder Python syntax is valid.');
 
 assert(
-  builder.includes('BUILDER_VERSION = "ceramist-colab-builder-v1.0.1"'),
-  'Colab builder version v1.0.1 is present.'
+  builder.includes('BUILDER_VERSION = "ceramist-colab-builder-v1.0.2"'),
+  'Colab builder version v1.0.2 is present.'
 );
 assert(
   builder.includes('allow_missing_remake_field_as_terminal: bool = False'),
@@ -104,5 +104,23 @@ assert(
 );
 console.log('PASS: Colab root-chain termination contract is present.');
 
+assert(
+  builder.includes('"unlinked_unconfirmed"') &&
+    builder.includes('"remake_case_id_unavailable"'),
+  'Colab builder preserves missing current remakeCaseID as an accurate Unattributed reason.'
+);
+assert(
+  updater.includes("'missing_link_field'") &&
+    updater.includes("'unlinked_unconfirmed'") &&
+    updater.includes('allowMissingRemakeFieldAsTerminal'),
+  'Incremental updater distinguishes missing current links from linked-root terminal cases.'
+);
+assert(
+  profiler.includes("chainStatus === 'unlinked_unconfirmed'") &&
+    profiler.includes("row.attributionBasis = 'remake_case_id_unavailable'"),
+  'Dashboard responsibility output preserves the unconfirmed-link reason.'
+);
+console.log('PASS: Unconfirmed current-case link handling is preserved.');
+
 console.log('Ceramist historical seed + incremental maintenance validation passed.');
-console.log('Version: v6.575 / backend v7.8.0');
+console.log('Version: v6.577 / backend v7.8.1');

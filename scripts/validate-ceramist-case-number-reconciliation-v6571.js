@@ -9,6 +9,7 @@ const root = path.resolve(__dirname, '..');
 const mainPath = path.join(root, 'DashboardMainScript.html');
 const cachePath = path.join(root, 'RemakeFactorCache.js');
 const profilerPath = path.join(root, 'CaeramistRemakeProfiler.js');
+const updaterPath = path.join(root, 'CeramistIncrementalUpdater.js');
 let failed = false;
 
 function fail(message) {
@@ -46,7 +47,7 @@ function syntaxCheckJavaScript(source, filename) {
   }
 }
 
-[mainPath, cachePath, profilerPath].forEach(function(filePath) {
+[mainPath, cachePath, profilerPath, updaterPath].forEach(function(filePath) {
   if (!fs.existsSync(filePath)) fail('Missing file: ' + path.basename(filePath));
 });
 
@@ -54,6 +55,7 @@ if (!failed) {
   const main = fs.readFileSync(mainPath, 'utf8');
   const cache = fs.readFileSync(cachePath, 'utf8');
   const profiler = fs.readFileSync(profilerPath, 'utf8');
+  const updater = fs.readFileSync(updaterPath, 'utf8');
 
   requireMarker(cache, 'Version: v1.34.2 - 2026-07-31', 'Remake cache release stamp is current.');
   requireMarker(cache, 'const remakeCaseIdFieldPresent = Object.keys(caseRow || {}).some', 'Durable Remake rows record whether CRM supplied remakeCaseID.');
@@ -64,22 +66,36 @@ if (!failed) {
   requireMarker(cache, 'caseNumbers: [],', 'Packed browser-ready cache retains the case-number dictionary.');
   requireMarker(cache, "scalarIndex('caseNumbers', row.caseNumber || '')", 'Packed browser-ready rows append caseNumber.');
 
-  requireMarker(profiler, 'Version: 7.7.1', 'Ceramist profiler release stamp is current.');
+  requireMarker(profiler, 'Version: 7.8.1', 'Ceramist profiler release stamp is current.');
   requireMarker(profiler, "const ceramistPopulationVersionV77 = 'complete-remake-population-v7.7.1';", 'Complete-population contract is declared.');
   requireMarker(profiler, "const ceramistPopulationChainLookupVersionV771 = 'crm-remakeCaseID-confirmed-v7.7.1';", 'Confirmed CRM chain lookup contract is declared.');
   requireMarker(profiler, 'function ceramistReconcileCompleteRemakePopulationV77_(existingRows)', 'Complete Remake population reconciliation is installed.');
   requireMarker(profiler, 'const remakePayload = readRemakeFactorCache();', 'The durable Remake cache is the population source of truth.');
   requireMarker(profiler, 'function ceramistResolveRemakeChainV77_(row, mainCaseById, apiContext)', 'CRM remakeCaseID chains are resolved for missing sidecar cases.');
   requireMarker(profiler, 'function refreshCeramistCaseLevelResponsibilityNightlyV75()', 'The existing trigger-compatible refresh function is retained.');
-  requireBefore(
+  requireMarker(
     profiler,
-    'const populationResult = ceramistReconcileCompleteRemakePopulationV77_(existingRows);',
-    'ceramistApplyCaseLevelResponsibilityV74_(rows);',
-    'Population reconciliation runs before CERAMICS responsibility calculation.'
+    'return refreshCeramistIncrementalNightlyV780();',
+    'The stable nightly entry point delegates to open-month incremental maintenance.'
   );
-  requireMarker(profiler, "payload.populationVersion = ceramistPopulationVersionV77;", 'The Drive sidecar records its population version.');
+  requireMarker(
+    updater,
+    'ceramistApplyCaseLevelResponsibilityV74_(rebuiltRows);',
+    'Incremental open-month rows calculate CERAMICS responsibility before the sidecar is written.'
+  );
+  requireMarker(updater, "payload.populationVersion = ceramistHistoricalSeedVersionV780;", 'The Drive sidecar records its historical population version.');
   requireMarker(profiler, "row.attributionBasis = 'population_chain_pending';", 'Deferred API work has an explicit non-misleading reason.');
   requireMarker(profiler, "row.attributionBasis = 'population_chain_error';", 'CRM chain errors have an explicit non-misleading reason.');
+  requireMarker(
+    profiler,
+    "row.attributionBasis = 'remake_case_id_unavailable';",
+    'The missing current-link state remains explicit and non-misleading.'
+  );
+  requireMarker(
+    updater,
+    "'unlinked_unconfirmed'",
+    'The incremental updater preserves current cases whose CRM detail omits remakeCaseID.'
+  );
   requireMarker(profiler, 'QueryCases can expose the remakeCaseID field while leaving its value blank.', 'Blank QueryCases relationship values are not treated as authoritative.');
   requireMarker(profiler, 'row.populationChainConfirmed = !!(chain && chain.confirmed === true);', 'Confirmed chain state is persisted in the sidecar.');
   requireMarker(profiler, 'existing_confirmed_unlinked_case', 'Confirmed terminal cases can be safely reused.');
@@ -98,11 +114,12 @@ if (!failed) {
     'Select this worker',
     '|| true'
   ].forEach(function(marker) {
-    requireAbsent(main + '\n' + profiler + '\n' + cache, marker, 'Obsolete, noisy, or permissive code is absent.');
+    requireAbsent(main + '\n' + profiler + '\n' + updater + '\n' + cache, marker, 'Obsolete, noisy, or permissive code is absent.');
   });
 
   syntaxCheckJavaScript(cache, 'RemakeFactorCache.js');
   syntaxCheckJavaScript(profiler, 'CaeramistRemakeProfiler.js');
+  syntaxCheckJavaScript(updater, 'CeramistIncrementalUpdater.js');
 
   const scriptMatch = main.match(/^\s*<script>\s*([\s\S]*?)\s*<\/script>\s*$/);
   if (!scriptMatch) {
@@ -419,7 +436,7 @@ if (failed) {
   console.log('Complete Ceramist population validation passed.');
   console.log('Dashboard: v6.573');
   console.log('RemakeFactorCache: v1.34.2');
-  console.log('CaeramistRemakeProfiler: v7.7.1');
+  console.log('CaeramistRemakeProfiler: v7.8.1');
   console.log('Confirmed blank remakeCaseID handling: passed');
   console.log('Deferred/error retry contract: passed');
   console.log('Durable confirmed-unlinked reuse: passed');
