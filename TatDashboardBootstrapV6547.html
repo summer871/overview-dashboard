@@ -1,14 +1,14 @@
 <!-- TatDashboardBootstrapV6547.html
-Version: v6.564
+Version: v6.565
 Date: 2026-07-30
-Purpose: Register, render, and audit TAT with analysis-first Performance, separate Products / Groups, and readable table widths.
+Purpose: Register, render, and audit TAT with Remake-parity Performance / Products sibling cards.
 -->
 <script id="cdaTatDashboardBootstrapControllerV6547">
 (function installTatDashboardBootstrapV6547(){
   'use strict';
 
-  if (window.__cdaTatDashboardBootstrapV6564) return;
-  window.__cdaTatDashboardBootstrapV6564 = true;
+  if (window.__cdaTatDashboardBootstrapV6565) return;
+  window.__cdaTatDashboardBootstrapV6565 = true;
 
   const platform = window.cdaDashboardPlatformV6547;
   const renderer = window.cdaDashboardRendererV6547;
@@ -18,19 +18,18 @@ Purpose: Register, render, and audit TAT with analysis-first Performance, separa
   const productAudit = window.cdaTatProductAuditV6562;
   const layout = window.cdaTatDashboardLayoutV6563;
   const widths = window.cdaTatTableWidthsV6563;
-  if (!platform || !renderer || !definition || !sharedAudit || !productTable ||
-      !productAudit || !layout || !widths) {
+  if (!platform || !renderer || !definition || !sharedAudit || !productTable || !productAudit || !layout || !widths) {
     throw new Error('TAT bootstrap requires registry, renderer, definition, audits, product table, layout, and width services.');
   }
 
   platform.registerTab(definition);
   const registrationAudit = platform.validateTab('tat');
-  if (!registrationAudit.ok) {
-    throw new Error('TAT definition is invalid:\n' + registrationAudit.errors.join('\n'));
-  }
+  if (!registrationAudit.ok) throw new Error('TAT definition is invalid:\n' + registrationAudit.errors.join('\n'));
 
-  function dependencyAuditV6564(){
+  function dependencyAuditV6565(){
     const keys = definition.components.map(function(item){ return item.key; });
+    const performance = definition.components.find(function(item){ return item.key === 'performance'; });
+    const product = definition.components.find(function(item){ return item.key === 'product'; });
     return {
       tableModule:!!window.cdaTable,
       sharedTheme:window.cdaDashboardThemeV6549 && window.cdaDashboardThemeV6549.version === 'v6.550',
@@ -46,16 +45,16 @@ Purpose: Register, render, and audit TAT with analysis-first Performance, separa
       renderer:renderer.version === 'v6.562',
       sharedAudit:sharedAudit.version === 'v6.561',
       adapter:window.cdaTatDashboardAdapterV6547 && window.cdaTatDashboardAdapterV6547.version === 'v6.563',
-      definition:definition.version === 'v6.564',
+      definition:definition.version === 'v6.565',
       productTable:productTable.version === 'v6.562',
-      productAudit:productAudit.version === 'v6.564',
-      layout:layout.version === 'v6.564',
+      productAudit:productAudit.version === 'v6.565',
+      layout:layout.version === 'v6.565',
       widths:widths.version === 'v6.563',
       sixComponents:definition.components.length === 6,
-      combinedPerformance:keys.indexOf('performance') >= 0 &&
-        keys.indexOf('late') < 0 && keys.indexOf('distribution') < 0,
-      performanceBeforeProducts:keys.indexOf('performance') < keys.indexOf('product'),
-      analysisFirstLayout:layout.mode === 'analysis-first-promise-strip-and-full-width-distribution',
+      noStandalonePerformanceCards:keys.indexOf('late') < 0 && keys.indexOf('distribution') < 0,
+      remakeParityOrder:keys.indexOf('performance') === 2 && keys.indexOf('product') === 3,
+      siblingCardWidths:!!performance && !!product && !performance.wide && !product.wide,
+      performanceToggle:layout.mode === 'remake-parity-two-column-performance-toggle' && typeof layout.setMode === 'function',
       bindings:window.cdaTatDashboardBindingsV6547 && window.cdaTatDashboardBindingsV6547.version === 'v6.555',
       kpi:!!window.cdaDashboardKpiV6547,
       clearTatComponentV6509:typeof window.clearTatComponentV6509 === 'function',
@@ -65,18 +64,16 @@ Purpose: Register, render, and audit TAT with analysis-first Performance, separa
     };
   }
 
-  function auditV6564(){
+  function auditV6565(){
     const base = renderer.audit('tat');
-    const dependencies = dependencyAuditV6564();
+    const dependencies = dependencyAuditV6565();
     const sharedControls = sharedAudit.audit();
     const catalog = window.cdaDashboardCatalogV6555.audit();
     const productContract = productAudit.audit();
-    const allRequiredDependenciesPresent = Object.keys(dependencies).every(function(key){
-      return dependencies[key] === true;
-    });
+    const allRequiredDependenciesPresent = Object.keys(dependencies).every(function(key){ return dependencies[key] === true; });
     return Object.assign({},base,{
-      version:'v6.564',
-      mode:'analysis-first-performance-and-readable-table-widths',
+      version:'v6.565',
+      mode:'remake-parity-two-column-performance-and-products',
       registeredFeatures:platform.listFeatures(),
       registeredTabs:platform.listTabs(),
       dependencies:dependencies,
@@ -85,18 +82,12 @@ Purpose: Register, render, and audit TAT with analysis-first Performance, separa
       productContract:productContract,
       performanceContract:productContract,
       departmentOnly:productContract.departmentOnly,
-      productGroupsToggle:productContract.modeButtonCount === 2 && productContract.oneActiveMode,
-      performanceCombined:productContract.performancePresent && productContract.noStandalonePromiseCard,
-      performanceBeforeProducts:productContract.performanceBeforeProducts,
-      compactPromiseStrip:productContract.compactPromiseStrip,
-      fullWidthDistribution:productContract.fullWidthDistribution,
+      productGroupsToggle:productContract.productModeButtonCount === 2 && productContract.oneActiveProductMode,
+      performanceToggle:productContract.performanceModeButtonCount === 2 && productContract.oneActivePerformanceMode,
+      performanceAndProductsAreSiblingCards:productContract.performanceAndProductsAreSiblingCards,
       readableTableWidths:productContract.widthsCorrect,
-      noRemakeCardReplacement:document.querySelectorAll(
-        '#remakeFactorPage [data-cda-dashboard-tab],#remakeFactorPage [data-cda-dashboard-component]'
-      ).length === 0,
-      tatHasNoYearControl:document.querySelectorAll(
-        '#tatDashboardPageV6509 [data-cda-dashboard-feature-key="year"],#tatDashboardPageV6509 [data-cda-dashboard-feature-key="comparePriorYear"]'
-      ).length === 0,
+      noRemakeCardReplacement:document.querySelectorAll('#remakeFactorPage [data-cda-dashboard-tab],#remakeFactorPage [data-cda-dashboard-component]').length === 0,
+      tatHasNoYearControl:document.querySelectorAll('#tatDashboardPageV6509 [data-cda-dashboard-feature-key="year"],#tatDashboardPageV6509 [data-cda-dashboard-feature-key="comparePriorYear"]').length === 0,
       sharedControls:sharedControls,
       sharedControlsValidated:sharedControls.ok,
       ok:base.validation && base.validation.ok && allRequiredDependenciesPresent && catalog.ok &&
@@ -105,15 +96,15 @@ Purpose: Register, render, and audit TAT with analysis-first Performance, separa
     });
   }
 
-  function renderV6564(){ return renderer.rebuild('tat'); }
+  function renderV6565(){ return renderer.rebuild('tat'); }
 
-  function startV6564(){
+  function startV6565(){
     let attempts = 0;
     const timer = window.setInterval(function(){
       attempts += 1;
       if (document.getElementById(definition.pageId) && window.cdaTable) {
         window.clearInterval(timer);
-        renderV6564();
+        renderV6565();
         productTable.afterReplace();
         widths.afterReplace();
         layout.afterReplace();
@@ -122,18 +113,15 @@ Purpose: Register, render, and audit TAT with analysis-first Performance, separa
   }
 
   window.cdaTatDashboardV6547 = Object.freeze({
-    version:'v6.564',
+    version:'v6.565',
     definition:definition,
-    render:renderV6564,
-    audit:auditV6564,
-    dependencyAudit:dependencyAuditV6564
+    render:renderV6565,
+    audit:auditV6565,
+    dependencyAudit:dependencyAuditV6565
   });
-  window.auditSharedRemakeTableShellV6544 = auditV6564;
+  window.auditSharedRemakeTableShellV6544 = auditV6565;
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded',startV6564,{once:true});
-  } else {
-    startV6564();
-  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded',startV6565,{once:true});
+  else startV6565();
 })();
 </script>
