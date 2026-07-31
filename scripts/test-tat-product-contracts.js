@@ -20,7 +20,7 @@ const controller = read('TatDashboardControllerScript.html');
 const footer = read('SharedFooter.html');
 const router = read('Code.js');
 
-assert(foundation.includes('Version: v6.565'), 'Foundation is not v6.565.');
+assert(foundation.includes('Version: v6.567'), 'Foundation is not v6.567.');
 assert(renderer.includes("version:'v6.562'"), 'Renderer is not v6.562.');
 assert(service.includes("version:'v6.562'"), 'TAT product service is not v6.562.');
 assert(service.includes("config.childRows = null"), 'Department child rows are not disabled.');
@@ -61,9 +61,9 @@ assert(audit.includes('noRejectedLayouts:'), 'Audit does not reject the prior la
 
 assert(controller.includes('childRows:function(row,selected)'), 'Expected legacy department childRows source is missing.');
 assert(service.includes('ensureDepartmentOnlyV6562'), 'Legacy childRows are not neutralized.');
-assert(footer.includes("'v6.565'"), 'Footer is not v6.565.');
-assert(footer.includes('TAT-REMAKE-PARITY-17'), 'Footer build label is incorrect.');
-assert(router.includes("'v6.565'"), 'Router is not v6.565.');
+assert(footer.includes("'v6.567'"), 'Footer is not v6.567.');
+assert(footer.includes('TAT-REMAKE-PARITY-19'), 'Footer build label is incorrect.');
+assert(router.includes("'v6.567'"), 'Router is not v6.567.');
 
 console.log('TAT layout contracts passed.');
 console.log('Monthly and Department remain first-row siblings: passed');
