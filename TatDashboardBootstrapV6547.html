@@ -1,14 +1,14 @@
 <!-- TatDashboardBootstrapV6547.html
-Version: v6.563
+Version: v6.564
 Date: 2026-07-30
-Purpose: Register, render, and audit TAT with separate Products / Groups, combined TAT Performance, and readable table widths.
+Purpose: Register, render, and audit TAT with analysis-first Performance, separate Products / Groups, and readable table widths.
 -->
 <script id="cdaTatDashboardBootstrapControllerV6547">
 (function installTatDashboardBootstrapV6547(){
   'use strict';
 
-  if (window.__cdaTatDashboardBootstrapV6563) return;
-  window.__cdaTatDashboardBootstrapV6563 = true;
+  if (window.__cdaTatDashboardBootstrapV6564) return;
+  window.__cdaTatDashboardBootstrapV6564 = true;
 
   const platform = window.cdaDashboardPlatformV6547;
   const renderer = window.cdaDashboardRendererV6547;
@@ -29,7 +29,8 @@ Purpose: Register, render, and audit TAT with separate Products / Groups, combin
     throw new Error('TAT definition is invalid:\n' + registrationAudit.errors.join('\n'));
   }
 
-  function dependencyAuditV6563(){
+  function dependencyAuditV6564(){
+    const keys = definition.components.map(function(item){ return item.key; });
     return {
       tableModule:!!window.cdaTable,
       sharedTheme:window.cdaDashboardThemeV6549 && window.cdaDashboardThemeV6549.version === 'v6.550',
@@ -45,14 +46,16 @@ Purpose: Register, render, and audit TAT with separate Products / Groups, combin
       renderer:renderer.version === 'v6.562',
       sharedAudit:sharedAudit.version === 'v6.561',
       adapter:window.cdaTatDashboardAdapterV6547 && window.cdaTatDashboardAdapterV6547.version === 'v6.563',
-      definition:definition.version === 'v6.563',
+      definition:definition.version === 'v6.564',
       productTable:productTable.version === 'v6.562',
-      productAudit:productAudit.version === 'v6.563',
-      layout:layout.version === 'v6.563',
+      productAudit:productAudit.version === 'v6.564',
+      layout:layout.version === 'v6.564',
       widths:widths.version === 'v6.563',
       sixComponents:definition.components.length === 6,
-      combinedPerformance:definition.components.some(function(item){ return item.key === 'performance'; }) &&
-        !definition.components.some(function(item){ return item.key === 'late' || item.key === 'distribution'; }),
+      combinedPerformance:keys.indexOf('performance') >= 0 &&
+        keys.indexOf('late') < 0 && keys.indexOf('distribution') < 0,
+      performanceBeforeProducts:keys.indexOf('performance') < keys.indexOf('product'),
+      analysisFirstLayout:layout.mode === 'analysis-first-promise-strip-and-full-width-distribution',
       bindings:window.cdaTatDashboardBindingsV6547 && window.cdaTatDashboardBindingsV6547.version === 'v6.555',
       kpi:!!window.cdaDashboardKpiV6547,
       clearTatComponentV6509:typeof window.clearTatComponentV6509 === 'function',
@@ -62,9 +65,9 @@ Purpose: Register, render, and audit TAT with separate Products / Groups, combin
     };
   }
 
-  function auditV6563(){
+  function auditV6564(){
     const base = renderer.audit('tat');
-    const dependencies = dependencyAuditV6563();
+    const dependencies = dependencyAuditV6564();
     const sharedControls = sharedAudit.audit();
     const catalog = window.cdaDashboardCatalogV6555.audit();
     const productContract = productAudit.audit();
@@ -72,8 +75,8 @@ Purpose: Register, render, and audit TAT with separate Products / Groups, combin
       return dependencies[key] === true;
     });
     return Object.assign({},base,{
-      version:'v6.563',
-      mode:'combined-performance-and-readable-table-widths',
+      version:'v6.564',
+      mode:'analysis-first-performance-and-readable-table-widths',
       registeredFeatures:platform.listFeatures(),
       registeredTabs:platform.listTabs(),
       dependencies:dependencies,
@@ -84,6 +87,9 @@ Purpose: Register, render, and audit TAT with separate Products / Groups, combin
       departmentOnly:productContract.departmentOnly,
       productGroupsToggle:productContract.modeButtonCount === 2 && productContract.oneActiveMode,
       performanceCombined:productContract.performancePresent && productContract.noStandalonePromiseCard,
+      performanceBeforeProducts:productContract.performanceBeforeProducts,
+      compactPromiseStrip:productContract.compactPromiseStrip,
+      fullWidthDistribution:productContract.fullWidthDistribution,
       readableTableWidths:productContract.widthsCorrect,
       noRemakeCardReplacement:document.querySelectorAll(
         '#remakeFactorPage [data-cda-dashboard-tab],#remakeFactorPage [data-cda-dashboard-component]'
@@ -99,15 +105,15 @@ Purpose: Register, render, and audit TAT with separate Products / Groups, combin
     });
   }
 
-  function renderV6563(){ return renderer.rebuild('tat'); }
+  function renderV6564(){ return renderer.rebuild('tat'); }
 
-  function startV6563(){
+  function startV6564(){
     let attempts = 0;
     const timer = window.setInterval(function(){
       attempts += 1;
       if (document.getElementById(definition.pageId) && window.cdaTable) {
         window.clearInterval(timer);
-        renderV6563();
+        renderV6564();
         productTable.afterReplace();
         widths.afterReplace();
         layout.afterReplace();
@@ -116,18 +122,18 @@ Purpose: Register, render, and audit TAT with separate Products / Groups, combin
   }
 
   window.cdaTatDashboardV6547 = Object.freeze({
-    version:'v6.563',
+    version:'v6.564',
     definition:definition,
-    render:renderV6563,
-    audit:auditV6563,
-    dependencyAudit:dependencyAuditV6563
+    render:renderV6564,
+    audit:auditV6564,
+    dependencyAudit:dependencyAuditV6564
   });
-  window.auditSharedRemakeTableShellV6544 = auditV6563;
+  window.auditSharedRemakeTableShellV6544 = auditV6564;
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded',startV6563,{once:true});
+    document.addEventListener('DOMContentLoaded',startV6564,{once:true});
   } else {
-    startV6563();
+    startV6564();
   }
 })();
 </script>
