@@ -1,6 +1,6 @@
 /**
  * Executive Overview Dashboard Router
- * Version: Code.gs v6.564 analysis-first TAT layout
+ * Version: Code.gs v6.565 Remake-parity TAT layout
  * Date: 2026-07-30
  * Purpose: Serve the dashboard shell and inject presentation metadata.
  */
@@ -13,18 +13,18 @@ function doGet(e) {
   const template = HtmlService.createTemplateFromFile('Index');
   template.dashboardBaseUrl = getDashboardBaseUrl();
   template.dashboardPresentationMode = presentationMode;
-  template.dashboardPresentationVersion = 'v6.564';
-  template.dashboardPresentationSource = 'Code.gs v6.564 analysis-first TAT layout';
+  template.dashboardPresentationVersion = 'v6.565';
+  template.dashboardPresentationSource = 'Code.gs v6.565 Remake-parity TAT layout';
 
   const presentation = {
     mode: presentationMode,
-    version: 'v6.564',
-    source: 'Code.gs v6.564 analysis-first TAT layout',
+    version: 'v6.565',
+    source: 'Code.gs v6.565 Remake-parity TAT layout',
     baseUrl: getDashboardBaseUrl()
   };
 
   let html = template.evaluate().getContent();
-  const configScript = '<script id="cdaServerPresentationV6564">window.CDA_SERVER_PRESENTATION=' +
+  const configScript = '<script id="cdaServerPresentationV6565">window.CDA_SERVER_PRESENTATION=' +
     JSON.stringify(presentation).replace(/</g, '\\u003c') + ';</script>';
   html = html.indexOf('</head>') >= 0
     ? html.replace('</head>', configScript + '</head>')
@@ -69,7 +69,7 @@ function renderDashboardDebugPage() {
 function debugDashboardServerHealth() {
   const health = {
     ok: true,
-    routerVersion: 'Code.gs v6.564 analysis-first TAT layout',
+    routerVersion: 'Code.gs v6.565 Remake-parity TAT layout',
     timestamp: new Date().toISOString(),
     scriptTimeZone: Session.getScriptTimeZone(),
     dashboardBaseUrl: getDashboardBaseUrl(),
