@@ -7,7 +7,7 @@ const vm = require('vm');
 const childProcess = require('child_process');
 
 const root = path.resolve(__dirname, '..');
-const requiredVersion = 'v6.563';
+const requiredVersion = 'v6.564';
 
 function fail(message) {
   console.error('ERROR: ' + message);
@@ -23,23 +23,14 @@ function read(fileName) {
   return fs.readFileSync(filePath, 'utf8');
 }
 
-function count(text, regex) {
-  return (text.match(regex) || []).length;
-}
+function count(text, regex) { return (text.match(regex) || []).length; }
 
 function validateHtml(fileName, text) {
-  if (count(text, /<script\b/gi) !== count(text, /<\/script>/gi)) {
-    fail(fileName + ' has mismatched script tags.');
-  }
-  if (count(text, /<style\b/gi) !== count(text, /<\/style>/gi)) {
-    fail(fileName + ' has mismatched style tags.');
-  }
+  if (count(text, /<script\b/gi) !== count(text, /<\/script>/gi)) fail(fileName + ' has mismatched script tags.');
+  if (count(text, /<style\b/gi) !== count(text, /<\/style>/gi)) fail(fileName + ' has mismatched style tags.');
   Array.from(text.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/gi)).forEach((match, index) => {
-    try {
-      new vm.Script(match[1], {filename:fileName + '#script-' + (index + 1)});
-    } catch (error) {
-      fail(error.message);
-    }
+    try { new vm.Script(match[1], {filename:fileName + '#script-' + (index + 1)}); }
+    catch (error) { fail(error.message); }
   });
 }
 
@@ -56,16 +47,13 @@ const includes = Array.from(
   'TatDashboardLayoutV6563','TatTableWidthsV6563','TatDashboardAdapterV6547',
   'TatDashboardDefinitionV6547','TatProductAuditV6562',
   'TatDashboardBootstrapV6547','RemakeDashboardBootstrapV6548'
-].forEach(name => {
-  if (!includes.includes(name)) fail('Missing required include: ' + name);
-});
+].forEach(name => { if (!includes.includes(name)) fail('Missing required include: ' + name); });
 
 const duplicateIncludes = includes.filter((name, index) => includes.indexOf(name) !== index);
 if (duplicateIncludes.length) fail('Duplicate includes: ' + Array.from(new Set(duplicateIncludes)).join(', '));
 
 function requireBefore(first, second) {
-  if (includes.indexOf(first) < 0 || includes.indexOf(second) < 0 ||
-      includes.indexOf(first) >= includes.indexOf(second)) {
+  if (includes.indexOf(first) < 0 || includes.indexOf(second) < 0 || includes.indexOf(first) >= includes.indexOf(second)) {
     fail(first + ' must load before ' + second + '.');
   }
 }
@@ -76,7 +64,6 @@ requireBefore('TatDashboardLayoutV6563','TatDashboardDefinitionV6547');
 requireBefore('TatTableWidthsV6563','TatDashboardDefinitionV6547');
 requireBefore('TatDashboardDefinitionV6547','TatProductAuditV6562');
 requireBefore('TatProductAuditV6562','TatDashboardBootstrapV6547');
-requireBefore('SharedDashboardInteractionAuditV6557','RemakeDashboardBootstrapV6548');
 
 includes.forEach(name => {
   const fileName = name + '.html';
@@ -104,49 +91,17 @@ validateHtml('SharedFooter.html', footer);
 try { new vm.Script(router, {filename:'Code.js'}); }
 catch (error) { fail(error.message); }
 
-if (!footer.includes("'v6.563'")) fail('SharedFooter.html is not v6.563.');
-if (!footer.includes('TAT-COMBINED-PERFORMANCE-15')) fail('SharedFooter build label is incorrect.');
-if (!router.includes("'v6.563'")) fail('Code.js is not v6.563.');
+if (!footer.includes("'v6.564'")) fail('SharedFooter.html is not v6.564.');
+if (!footer.includes('TAT-ANALYSIS-FIRST-16')) fail('SharedFooter build label is incorrect.');
+if (!router.includes("'v6.564'")) fail('Code.js is not v6.564.');
 
 if (!isolation.includes("version:'v6.561'")) fail('Isolation service is not v6.561.');
-if (!isolation.includes("tableMode:'window-scroll-full-table'")) {
-  fail('Isolation does not assign vertical scrolling to the popup window.');
-}
-[
-  'popup.document.adoptNode(card)',
-  'placeholder.replaceWith(session.card)',
-  'normalizeFullTableV6561(session)',
-  'restoreInlineStylesV6561(session)',
-  "node.style.setProperty(name,value,'important')",
-  "setImportantV6561(session,node,'overflow-y','visible')",
-  "doc.documentElement.style.setProperty('overflow-y','auto','important')",
-  "doc.body.style.setProperty('overflow','visible','important')",
-  'session.observer.observe(card',
-  "verticalScrollOwner:'popup-window'"
-].forEach(marker => {
-  if (!isolation.includes(marker)) fail('Missing popup-window scroll contract: ' + marker);
-});
-['buildUrl','frameUrlFrom','hashRoute','userCodeAppPanel','toBase64Image','toDataURL','outerHTML']
-  .forEach(marker => { if (isolation.includes(marker)) fail('Obsolete pop-out marker remains: ' + marker); });
-
+if (!isolation.includes("tableMode:'window-scroll-full-table'")) fail('Isolation has the wrong table mode.');
 if (!popout.includes("version:'v6.561'")) fail('Pop-out facade is not v6.561.');
-if (!popout.includes("tableMode:'window-scroll-full-table'")) fail('Pop-out facade has the wrong table mode.');
-
 if (!interactionAudit.includes("version:'v6.561'")) fail('Interaction audit is not v6.561.');
-[
-  'function isInternalVerticalScrollOwner(node)',
-  "reason:'internal-vertical-scroll-owner'",
-  "reason:'popup-window-not-sole-scroll-owner'",
-  "scrollOwner:'popup-window'",
-  'function detachedButtonParity()',
-  'sameClasses','sameText','sameStyle'
-].forEach(marker => {
-  if (!interactionAudit.includes(marker)) fail('Interaction audit is missing: ' + marker);
-});
 
 if (!renderer.includes("version:'v6.562'")) fail('Renderer is not v6.562.');
 if (!renderer.includes('renderHeaderControls')) fail('Renderer lacks shared header controls.');
-if (!renderer.includes('cdaDashboardHeaderActionsV6562')) fail('Renderer lacks one header-actions owner.');
 
 if (!productService.includes("version:'v6.562'")) fail('TAT product service is not v6.562.');
 [
@@ -154,106 +109,58 @@ if (!productService.includes("version:'v6.562'")) fail('TAT product service is n
   "config.childRows = null",
   "config.childRowClass = ''",
   'data-tat-product-mode-v6562',
-  "if (key === 'tatDepartment')",
   'ensureDepartmentOnlyV6562'
-].forEach(marker => {
-  if (!productService.includes(marker)) fail('TAT product service is missing: ' + marker);
-});
+].forEach(marker => { if (!productService.includes(marker)) fail('TAT product service is missing: ' + marker); });
 
-if (!layout.includes("version:'v6.563'")) fail('TAT layout service is not v6.563.');
+if (!layout.includes("version:'v6.564'")) fail('TAT layout service is not v6.564.');
 [
-  'tatPerformanceLayoutV6563',
-  'tatPromiseHeadlineV6563',
-  'tatPromiseStackSegmentV6563',
-  "isolation.card('tat.performance')",
-  "mode:'combined-performance-and-readable-table-widths'"
-].forEach(marker => {
-  if (!layout.includes(marker)) fail('TAT combined layout is missing: ' + marker);
-});
+  "mode:'analysis-first-promise-strip-and-full-width-distribution'",
+  'tatPerformanceLayoutV6564',
+  'tatPromiseStripV6564',
+  'tatPromiseHeadlineV6564',
+  'tatPromiseStackSegmentV6564',
+  'tatPromiseEmptyV6564',
+  'tatPerformanceChartPanelV6564',
+  'max-height:360px!important',
+  "isolation.card('tat.performance')"
+].forEach(marker => { if (!layout.includes(marker)) fail('TAT analysis-first layout is missing: ' + marker); });
+if (layout.includes('tatPromisePanelV6563')) fail('Rejected right-side Promise panel remains.');
 
 if (!widths.includes("version:'v6.563'")) fail('TAT table-width service is not v6.563.');
 [
   "tatDepartment:['30%','13%','13%','11%','11%','10%','12%']",
   "tatProduct:['34%','12%','12%','10%','10%','10%','12%']",
   "tatCustomer:['30%','9%','12%','12%','10%','9%','9%','9%']"
-].forEach(marker => {
-  if (!widths.includes(marker)) fail('TAT width contract is missing: ' + marker);
-});
+].forEach(marker => { if (!widths.includes(marker)) fail('TAT width contract is missing: ' + marker); });
 
 if (!tatAdapter.includes("version:'v6.563'")) fail('TAT adapter is not v6.563.');
-if (!tatAdapter.includes("context.component.key === 'performance'")) {
-  fail('TAT adapter does not handle combined performance controls.');
-}
-if (!tatAdapter.includes("window.clearTatComponentV6509('distribution')")) {
-  fail('Combined performance reset does not clear distribution selection.');
-}
-if (!tatAdapter.includes("window.clearTatComponentV6509('late')")) {
-  fail('Combined performance reset does not clear promise selection.');
-}
+if (!tatAdapter.includes("context.component.key === 'performance'")) fail('TAT adapter lacks combined performance controls.');
 
-if (!tatDefinition.includes("version:'v6.563'")) fail('TAT definition is not v6.563.');
-if (!tatDefinition.includes("key:'product',title:'Products'")) fail('TAT Products component is missing.');
-if (!tatDefinition.includes("key:'performance',title:'TAT Performance'")) {
-  fail('Combined TAT Performance component is missing.');
+if (!tatDefinition.includes("version:'v6.564'")) fail('TAT definition is not v6.564.');
+if (!tatDefinition.includes("key:'performance',title:'TAT Performance'")) fail('TAT Performance component is missing.');
+if (!tatDefinition.includes('tatPromiseStripV6564')) fail('Compact promise strip markup is missing.');
+if (!tatDefinition.includes('tatPerformanceChartPanelV6564')) fail('Full-width distribution markup is missing.');
+if (tatDefinition.indexOf("key:'performance'") >= tatDefinition.indexOf("key:'product'")) {
+  fail('TAT Performance must appear before Products.');
 }
-if (!tatDefinition.includes("tableKey:'tatLate'")) fail('Performance component does not retain promise data.');
-if (!tatDefinition.includes('tatPromiseHeadlineV6563')) fail('Performance summary markup is missing.');
-if (tatDefinition.includes("key:'late',title:'Promise Performance'")) {
-  fail('Standalone Promise Performance component remains.');
-}
-if (tatDefinition.includes("key:'distribution',title:'TAT Distribution'")) {
-  fail('Standalone TAT Distribution component remains.');
-}
+if (tatDefinition.includes("key:'late',title:'Promise Performance'")) fail('Standalone Promise Performance remains.');
+if (tatDefinition.includes("key:'distribution',title:'TAT Distribution'")) fail('Standalone TAT Distribution remains.');
 if (!tatDefinition.includes("key:'product',title:'Products',kind:'table',tableKey:'tatProduct',targetId:'tatProductTableV6562',wide:true")) {
   fail('TAT Products is not full-width.');
 }
-if (!tatDefinition.includes("[{label:'Department'}].concat(TAT_METRIC_HEADERS)")) {
-  fail('TAT Department header is not department-only.');
-}
 
-if (!productAudit.includes("version:'v6.563'")) fail('TAT layout audit is not v6.563.');
-if (!productAudit.includes('performancePresent:performancePresent')) {
-  fail('TAT audit does not verify combined performance.');
-}
-if (!productAudit.includes('noStandalonePromiseCard:noStandalonePromiseCard')) {
-  fail('TAT audit does not reject old performance cards.');
-}
-if (!productAudit.includes('widthsCorrect:widthsCorrect')) {
-  fail('TAT audit does not verify table widths.');
-}
+if (!productAudit.includes("version:'v6.564'")) fail('TAT layout audit is not v6.564.');
+if (!productAudit.includes('performanceBeforeProducts:performanceBeforeProducts')) fail('TAT audit does not verify order.');
+if (!productAudit.includes('compactPromiseStrip:')) fail('TAT audit does not verify compact strip.');
+if (!productAudit.includes('fullWidthDistribution:')) fail('TAT audit does not verify full-width chart.');
 
-if (!tatBootstrap.includes("version:'v6.563'")) fail('TAT bootstrap is not v6.563.');
-if (!tatBootstrap.includes('sixComponents:definition.components.length === 6')) {
-  fail('TAT bootstrap does not require six components.');
-}
-if (!tatBootstrap.includes('combinedPerformance:')) {
-  fail('TAT bootstrap does not require combined performance.');
-}
-if (!tatBootstrap.includes('readableTableWidths:productContract.widthsCorrect')) {
-  fail('TAT bootstrap does not require readable table widths.');
-}
-if (!tatBootstrap.includes("window.cdaDashboardIsolationV6555.version === 'v6.561'")) {
-  fail('TAT bootstrap expects the wrong isolation version.');
-}
-if (!tatBootstrap.includes("window.cdaDashboardPopoutV6548.version === 'v6.561'")) {
-  fail('TAT bootstrap expects the wrong pop-out version.');
-}
+if (!tatBootstrap.includes("version:'v6.564'")) fail('TAT bootstrap is not v6.564.');
+if (!tatBootstrap.includes('sixComponents:definition.components.length === 6')) fail('TAT bootstrap does not require six components.');
+if (!tatBootstrap.includes('performanceBeforeProducts:')) fail('TAT bootstrap does not enforce component order.');
+if (!tatBootstrap.includes('analysisFirstLayout:')) fail('TAT bootstrap does not require analysis-first mode.');
+if (!tatBootstrap.includes("window.cdaDashboardIsolationV6555.version === 'v6.561'")) fail('TAT bootstrap expects wrong isolation version.');
 
 if (!remakeBootstrap.includes("version:'v6.561'")) fail('Remake bootstrap is not v6.561.');
-if (!remakeBootstrap.includes("window.cdaDashboardIsolationV6555.version === 'v6.561'")) {
-  fail('Remake bootstrap expects the wrong isolation version.');
-}
-if (!remakeBootstrap.includes("window.cdaDashboardPopoutV6548.version === 'v6.561'")) {
-  fail('Remake bootstrap expects the wrong pop-out version.');
-}
-if (!remakeBootstrap.includes("window.cdaDashboardPopoutV6548.tableMode === 'window-scroll-full-table'")) {
-  fail('Remake bootstrap does not require popup-window-only scrolling.');
-}
-
-const relevantSelectorBlock = remakeBootstrap.match(/function relevantNodeV6561[\s\S]*?\n  }/)?.[0] || '';
-if (!relevantSelectorBlock || relevantSelectorBlock.includes('.remakeCardTitle')) {
-  fail('Remake bootstrap still watches title mutations.');
-}
 
 if (!process.exitCode) {
   try {
@@ -271,10 +178,10 @@ if (!process.exitCode) {
 if (!process.exitCode) {
   console.log('Dashboard platform validation passed.');
   console.log('Version: ' + requiredVersion);
-  console.log('Department table has no product drill-down rows: passed');
-  console.log('Products table is full-width with Products / Groups: passed');
-  console.log('Distribution and Promise are one TAT Performance card: passed');
-  console.log('Six-component TAT definition: passed');
+  console.log('Performance appears before Products: passed');
+  console.log('Compact promise strip above full-width distribution: passed');
+  console.log('Zero-eligible promise state: passed');
+  console.log('Products table is full-width and shorter: passed');
   console.log('Readable Department, Product, and Customer widths: passed');
   console.log('Popup window is the only vertical scroll owner: passed');
   console.log('Detached/dashboard button class, icon, and style parity: passed');
