@@ -1,197 +1,88 @@
 <!-- TatDashboardLayoutV6563.html
-Version: v6.564
+Version: v6.565
 Date: 2026-07-30
-Purpose: Present TAT analysis before detail tables, with a compact promise strip above a full-width distribution chart.
+Purpose: Mirror the clean Remake two-column composition with TAT Performance and Products as equal second-row cards.
 -->
 <style id="cdaTatDashboardLayoutStylesV6563">
   #tatDashboardPageV6509 .tatGridV6509 {
-    grid-template-columns:minmax(0,1.18fr) minmax(0,.82fr)!important;
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
     gap:10px!important;
-    align-items:start!important;
+    align-items:stretch!important;
   }
 
   #tatDashboardPageV6509 [data-cda-dashboard-component="performance"],
   #tatDashboardPageV6509 [data-cda-dashboard-component="product"] {
-    grid-column:1 / -1!important;
+    grid-column:auto!important;
+    min-width:0!important;
   }
 
-  #tatDashboardPageV6509 .tatPerformanceLayoutV6564 {
-    display:flex!important;
-    flex-direction:column!important;
-    gap:10px!important;
+  #tatDashboardPageV6509 .tatPerformanceViewsV6565 {
+    display:block!important;
     min-width:0!important;
+    height:100%!important;
     padding:0 8px 8px!important;
   }
 
-  #tatDashboardPageV6509 .tatPromiseStripV6564,
-  #tatDashboardPageV6509 .tatPerformanceChartPanelV6564 {
-    min-width:0!important;
-    border:1px solid var(--cda-color-divider)!important;
-    border-radius:8px!important;
-    background:var(--cda-color-surface)!important;
-  }
-
-  #tatDashboardPageV6509 .tatPromiseStripV6564 {
-    display:grid!important;
-    grid-template-columns:minmax(160px,.52fr) minmax(0,2.48fr)!important;
-    gap:14px!important;
-    align-items:center!important;
-    padding:10px 12px!important;
-  }
-
-  #tatDashboardPageV6509 .tatPromiseSummaryV6564 {
-    display:flex!important;
-    flex-direction:column!important;
-    gap:3px!important;
-    min-width:0!important;
-  }
-
-  #tatDashboardPageV6509 .tatPromiseEyebrowV6564 {
-    color:var(--cda-color-muted)!important;
-    font:800 9px/1.2 var(--cda-font-ui)!important;
-    letter-spacing:.05em!important;
-    text-transform:uppercase!important;
-  }
-
-  #tatDashboardPageV6509 .tatPromiseHeroValueV6564 {
-    color:var(--cda-color-title)!important;
-    font:900 28px/1 var(--cda-font-ui)!important;
-    letter-spacing:-.025em!important;
-  }
-
-  #tatDashboardPageV6509 .tatPromiseHeroMetaV6564 {
-    color:var(--cda-color-muted)!important;
-    font:700 10px/1.3 var(--cda-font-ui)!important;
-  }
-
-  #tatDashboardPageV6509 .tatPromiseBreakdownV6564 {
-    display:flex!important;
-    flex-direction:column!important;
-    gap:7px!important;
-    min-width:0!important;
-  }
-
-  #tatDashboardPageV6509 .tatPromiseStackV6564 {
-    display:flex!important;
-    width:100%!important;
-    height:11px!important;
-    overflow:hidden!important;
-    border:1px solid var(--cda-color-divider)!important;
-    border-radius:999px!important;
-    background:var(--cda-color-surface-muted)!important;
-  }
-
-  #tatDashboardPageV6509 .tatPromiseStackV6564[hidden],
-  #tatDashboardPageV6509 .tatPromiseLegendV6564[hidden],
-  #tatDashboardPageV6509 .tatPromiseEmptyV6564[hidden] {
+  #tatDashboardPageV6509 .tatPerformanceViewV6565[hidden] {
     display:none!important;
   }
 
-  #tatDashboardPageV6509 .tatPromiseStackSegmentV6564 {
+  #tatDashboardPageV6509 .tatPerformanceChartPanelV6565 {
+    display:flex!important;
+    width:100%!important;
     min-width:0!important;
-    height:100%!important;
-    padding:0!important;
-    border:0!important;
-    border-right:1px solid rgba(255,255,255,.72)!important;
-    cursor:pointer!important;
-  }
-
-  #tatDashboardPageV6509 .tatPromiseStackSegmentV6564:last-child {
-    border-right:0!important;
-  }
-
-  #tatDashboardPageV6509 :is(.tatPromiseStackSegmentV6564,.tatPromiseLegendDotV6564)[data-tone="0"] { background:#2e7d4f!important; }
-  #tatDashboardPageV6509 :is(.tatPromiseStackSegmentV6564,.tatPromiseLegendDotV6564)[data-tone="1"] { background:#d7aa28!important; }
-  #tatDashboardPageV6509 :is(.tatPromiseStackSegmentV6564,.tatPromiseLegendDotV6564)[data-tone="2"] { background:#c98b20!important; }
-  #tatDashboardPageV6509 :is(.tatPromiseStackSegmentV6564,.tatPromiseLegendDotV6564)[data-tone="3"] { background:#b86b24!important; }
-  #tatDashboardPageV6509 :is(.tatPromiseStackSegmentV6564,.tatPromiseLegendDotV6564)[data-tone="4"] { background:#a74832!important; }
-  #tatDashboardPageV6509 :is(.tatPromiseStackSegmentV6564,.tatPromiseLegendDotV6564)[data-tone="5"] { background:#7f2d2d!important; }
-
-  #tatDashboardPageV6509 .tatPromiseLegendV6564 {
-    display:grid!important;
-    grid-template-columns:repeat(6,minmax(0,1fr))!important;
-    gap:5px!important;
-  }
-
-  #tatDashboardPageV6509 .tatPromiseLegendRowV6564 {
-    display:grid!important;
-    grid-template-columns:8px minmax(0,1fr) auto!important;
-    gap:5px!important;
-    align-items:center!important;
-    min-width:0!important;
-    min-height:28px!important;
-    padding:4px 6px!important;
+    min-height:300px!important;
+    box-sizing:border-box!important;
     border:1px solid var(--cda-color-divider)!important;
-    border-radius:6px!important;
+    border-radius:8px!important;
     background:var(--cda-color-surface)!important;
-    color:var(--cda-color-text)!important;
-    font:700 9.5px/1.15 var(--cda-font-ui)!important;
-    text-align:left!important;
-    cursor:pointer!important;
-  }
-
-  #tatDashboardPageV6509 .tatPromiseLegendRowV6564:hover,
-  #tatDashboardPageV6509 .tatPromiseLegendRowV6564:focus-visible,
-  #tatDashboardPageV6509 .tatPromiseLegendRowV6564[aria-pressed="true"] {
-    border-color:var(--cda-color-accent-border)!important;
-    background:var(--cda-color-accent-surface)!important;
-    outline:none!important;
-  }
-
-  #tatDashboardPageV6509 .tatPromiseLegendDotV6564 {
-    width:7px!important;
-    height:7px!important;
-    border-radius:999px!important;
-  }
-
-  #tatDashboardPageV6509 .tatPromiseLegendLabelV6564 {
-    min-width:0!important;
-    overflow:hidden!important;
-    text-overflow:ellipsis!important;
-    white-space:nowrap!important;
-  }
-
-  #tatDashboardPageV6509 .tatPromiseLegendShareV6564 {
-    color:var(--cda-color-muted)!important;
-    font-variant-numeric:tabular-nums!important;
-    white-space:nowrap!important;
-  }
-
-  #tatDashboardPageV6509 .tatPromiseEmptyV6564 {
-    display:flex!important;
-    align-items:center!important;
-    min-height:34px!important;
-    padding:7px 9px!important;
-    border:1px dashed var(--cda-color-border)!important;
-    border-radius:6px!important;
-    background:var(--cda-color-surface-muted)!important;
-    color:var(--cda-color-muted)!important;
-    font:700 10px/1.3 var(--cda-font-ui)!important;
-  }
-
-  #tatDashboardPageV6509 .tatPerformanceChartPanelV6564 {
-    display:flex!important;
-    min-height:330px!important;
     padding:5px 8px 0!important;
   }
 
-  #tatDashboardPageV6509 .tatPerformanceChartPanelV6564 .tatChartV6509 {
+  #tatDashboardPageV6509 .tatPerformanceChartPanelV6565 .tatChartV6509 {
     flex:1 1 auto!important;
     width:100%!important;
     min-width:0!important;
-    min-height:315px!important;
+    min-height:285px!important;
   }
 
-  #tatDashboardPageV6509 .tatPromiseSourceV6564 {
-    position:absolute!important;
-    width:1px!important;
-    height:1px!important;
+  #tatDashboardPageV6509 .tatPromiseTablePanelV6565 {
+    display:block!important;
+    width:100%!important;
+    min-width:0!important;
+    min-height:300px!important;
+    box-sizing:border-box!important;
+    border:1px solid var(--cda-color-divider)!important;
+    border-radius:8px!important;
+    background:var(--cda-color-surface)!important;
     padding:0!important;
-    margin:-1px!important;
     overflow:hidden!important;
-    clip:rect(0,0,0,0)!important;
-    white-space:nowrap!important;
+  }
+
+  #tatDashboardPageV6509 .tatPromiseTableWrapV6565 {
+    width:100%!important;
+    max-height:none!important;
+    overflow:visible!important;
     border:0!important;
+    border-radius:0!important;
+  }
+
+  #tatDashboardPageV6509 .tatPromiseTableWrapV6565 table {
+    table-layout:fixed!important;
+    width:100%!important;
+  }
+
+  #tatDashboardPageV6509 .tatPromiseTableWrapV6565 th:first-child,
+  #tatDashboardPageV6509 .tatPromiseTableWrapV6565 td:first-child {
+    width:58%!important;
+    text-align:left!important;
+  }
+
+  #tatDashboardPageV6509 .tatPromiseTableWrapV6565 th:nth-child(2),
+  #tatDashboardPageV6509 .tatPromiseTableWrapV6565 td:nth-child(2),
+  #tatDashboardPageV6509 .tatPromiseTableWrapV6565 th:nth-child(3),
+  #tatDashboardPageV6509 .tatPromiseTableWrapV6565 td:nth-child(3) {
+    width:21%!important;
   }
 
   #tatDashboardPageV6509 :is(
@@ -219,22 +110,16 @@ Purpose: Present TAT analysis before detail tables, with a compact promise strip
     white-space:nowrap!important;
   }
 
-  #tatDashboardPageV6509 .tatProductTableWrapV6562 {
-    max-height:360px!important;
+  #tatDashboardPageV6509 .tatDepartmentTableWrapV6563 {
+    max-height:315px!important;
   }
 
-  #tatDashboardPageV6509 .tatDepartmentTableWrapV6563 {
-    max-height:335px!important;
+  #tatDashboardPageV6509 .tatProductTableWrapV6562 {
+    max-height:315px!important;
   }
 
   #tatDashboardPageV6509 .tatCustomerTableWrapV6563 {
     max-height:440px!important;
-  }
-
-  @media (max-width:1180px) {
-    #tatDashboardPageV6509 .tatPromiseLegendV6564 {
-      grid-template-columns:repeat(3,minmax(0,1fr))!important;
-    }
   }
 
   @media (max-width:1100px) {
@@ -244,15 +129,6 @@ Purpose: Present TAT analysis before detail tables, with a compact promise strip
     #tatDashboardPageV6509 [data-cda-dashboard-component] {
       grid-column:1!important;
     }
-    #tatDashboardPageV6509 .tatPromiseStripV6564 {
-      grid-template-columns:1fr!important;
-    }
-  }
-
-  @media (max-width:700px) {
-    #tatDashboardPageV6509 .tatPromiseLegendV6564 {
-      grid-template-columns:repeat(2,minmax(0,1fr))!important;
-    }
   }
 </style>
 <script id="cdaTatDashboardLayoutControllerV6563">
@@ -260,128 +136,106 @@ Purpose: Present TAT analysis before detail tables, with a compact promise strip
   'use strict';
 
   if (window.cdaTatDashboardLayoutV6563 &&
-      window.cdaTatDashboardLayoutV6563.version === 'v6.564') return;
+      window.cdaTatDashboardLayoutV6563.version === 'v6.565') return;
 
-  const observersV6564 = new WeakMap();
+  const STORAGE_KEY_V6565 = 'cdaTatPerformanceMode.v6565';
+  const VALID_MODES_V6565 = new Set(['distribution','promise']);
+  let currentModeV6565 = readModeV6565();
 
-  function numericV6564(value){
-    const parsed = Number(String(value == null ? '' : value).replace(/[^0-9.+-]/g,''));
-    return Number.isFinite(parsed) ? parsed : 0;
+  function readModeV6565(){
+    try {
+      const value = String(localStorage.getItem(STORAGE_KEY_V6565) || '').toLowerCase();
+      if (VALID_MODES_V6565.has(value)) return value;
+    } catch (error) {}
+    return 'distribution';
   }
 
-  function percentV6564(value){
-    const parsed = numericV6564(value);
-    return parsed > 1 ? parsed / 100 : parsed;
+  function writeModeV6565(mode){
+    const normalized = VALID_MODES_V6565.has(String(mode)) ? String(mode) : 'distribution';
+    currentModeV6565 = normalized;
+    try { localStorage.setItem(STORAGE_KEY_V6565,normalized); } catch (error) {}
+    return normalized;
   }
 
-  function activeDocumentV6564(){
+  function modeV6565(){ return currentModeV6565; }
+
+  function activeDocumentsV6565(){
+    const documents = [document];
     const isolation = window.cdaDashboardIsolationV6555;
     const detached = isolation && typeof isolation.card === 'function'
       ? isolation.card('tat.performance')
       : null;
-    return detached && detached.ownerDocument || document;
-  }
-
-  function rowsV6564(doc){
-    const body = doc && doc.getElementById('tatLateTableV6509');
-    if (!body) return [];
-    return Array.from(body.rows || []).map(function(row,index){
-      const cells = Array.from(row.cells || []);
-      return {
-        index:index,
-        row:row,
-        label:String(cells[0] && cells[0].textContent || '').trim(),
-        count:numericV6564(cells[1] && cells[1].textContent),
-        share:percentV6564(cells[2] && cells[2].textContent)
-      };
-    }).filter(function(item){ return item.label; });
-  }
-
-  function selectedBandV6564(){
-    const state = window.cdaTatStateV6509;
-    return String(state && state.cross && state.cross.lateBand || '');
-  }
-
-  function clickSourceRowV6564(item,doc){
-    if (!item || !item.row) return;
-    const view = doc && doc.defaultView || window;
-    try {
-      item.row.dispatchEvent(new view.MouseEvent('click',{bubbles:true,cancelable:true,view:view}));
-    } catch (error) {
-      if (typeof item.row.click === 'function') item.row.click();
+    if (detached && detached.ownerDocument && documents.indexOf(detached.ownerDocument) < 0) {
+      documents.push(detached.ownerDocument);
     }
+    return documents;
   }
 
-  function renderPromiseV6564(doc){
-    doc = doc || activeDocumentV6564();
-    const items = rowsV6564(doc);
-    const headline = doc && doc.getElementById('tatPromiseHeadlineV6564');
-    const meta = doc && doc.getElementById('tatPromiseHeadlineMetaV6564');
-    const stack = doc && doc.getElementById('tatPromiseStackV6564');
-    const legend = doc && doc.getElementById('tatPromiseLegendV6564');
-    const empty = doc && doc.getElementById('tatPromiseEmptyV6564');
-    if (!headline || !meta || !stack || !legend || !empty) return false;
+  function chartForDocumentV6565(doc){
+    const canvas = doc && doc.getElementById('tatDistributionChartV6509');
+    const ChartCtor = window.Chart;
+    if (!canvas || !ChartCtor || typeof ChartCtor.getChart !== 'function') return null;
+    try { return ChartCtor.getChart(canvas) || null; } catch (error) { return null; }
+  }
 
-    const total = items.reduce(function(sum,item){ return sum + item.count; },0);
-    const onTime = items.find(function(item){ return item.label.toLowerCase() === 'on time'; }) || null;
-    const hasData = total > 0;
+  function resizeDistributionV6565(doc){
+    window.setTimeout(function(){
+      const chart = chartForDocumentV6565(doc);
+      try { if (chart && typeof chart.resize === 'function') chart.resize(); } catch (error) {}
+      try { if (chart && typeof chart.update === 'function') chart.update('none'); } catch (error) {}
+      try {
+        const view = doc && doc.defaultView;
+        if (view) view.dispatchEvent(new view.Event('resize'));
+      } catch (error) {}
+    },0);
+  }
 
-    stack.replaceChildren();
-    legend.replaceChildren();
-    stack.hidden = !hasData;
-    legend.hidden = !hasData;
-    empty.hidden = hasData;
-
-    if (!hasData) {
-      headline.textContent = 'No data';
-      meta.textContent = '0 due-date eligible cases';
-      empty.textContent = 'No due-date eligible cases match the current filters.';
-      return true;
-    }
-
-    headline.textContent = onTime ? (onTime.share * 100).toFixed(1) + '%' : '-';
-    meta.textContent = total.toLocaleString() + ' due-date eligible cases';
-    const selected = selectedBandV6564();
-
-    items.forEach(function(item,index){
-      const segment = doc.createElement('button');
-      segment.type = 'button';
-      segment.className = 'tatPromiseStackSegmentV6564';
-      segment.setAttribute('data-tone',String(index));
-      segment.style.flex = String(Math.max(0,item.share)) + ' 1 0';
-      segment.title = item.label + ': ' + (item.share * 100).toFixed(1) + '%';
-      segment.setAttribute('aria-label',segment.title);
-      segment.addEventListener('click',function(){ clickSourceRowV6564(item,doc); });
-      stack.appendChild(segment);
-
-      const button = doc.createElement('button');
-      button.type = 'button';
-      button.className = 'tatPromiseLegendRowV6564';
-      button.setAttribute('aria-pressed',selected === item.label ? 'true' : 'false');
-      button.title = item.label + ': ' + item.count.toLocaleString() + ' cases';
-
-      const dot = doc.createElement('span');
-      dot.className = 'tatPromiseLegendDotV6564';
-      dot.setAttribute('data-tone',String(index));
-      dot.setAttribute('aria-hidden','true');
-
-      const label = doc.createElement('span');
-      label.className = 'tatPromiseLegendLabelV6564';
-      label.textContent = item.label;
-
-      const share = doc.createElement('span');
-      share.className = 'tatPromiseLegendShareV6564';
-      share.textContent = (item.share * 100).toFixed(1) + '%';
-
-      button.append(dot,label,share);
-      button.addEventListener('click',function(){ clickSourceRowV6564(item,doc); });
-      legend.appendChild(button);
+  function syncDocumentV6565(doc){
+    if (!doc) return false;
+    const mode = modeV6565();
+    doc.querySelectorAll('[data-tat-performance-mode-v6565]').forEach(function(button){
+      const buttonMode = button.getAttribute('data-tat-performance-mode-v6565');
+      const active = buttonMode === mode;
+      button.classList.toggle('active',active);
+      button.setAttribute('aria-pressed',active ? 'true' : 'false');
     });
+    doc.querySelectorAll('[data-tat-performance-view-v6565]').forEach(function(view){
+      view.hidden = view.getAttribute('data-tat-performance-view-v6565') !== mode;
+    });
+    if (mode === 'distribution') resizeDistributionV6565(doc);
     return true;
   }
 
-  function improveCellTitlesV6564(doc){
-    doc = doc || activeDocumentV6564();
+  function syncAllV6565(){
+    activeDocumentsV6565().forEach(syncDocumentV6565);
+    return true;
+  }
+
+  function setModeV6565(next,event){
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    writeModeV6565(next);
+    syncAllV6565();
+    return false;
+  }
+
+  function headerMarkupV6565(){
+    const mode = modeV6565();
+    return '<div class="cdaDashboardModeToggleV6562 remakeProductModeBarV6264" role="group" aria-label="TAT performance view">' +
+      '<button id="tatPerformanceDistributionBtnV6565" class="cdaDashboardModeButtonV6562' +
+      (mode === 'distribution' ? ' active' : '') + '" type="button" data-tat-performance-mode-v6565="distribution"' +
+      ' aria-pressed="' + (mode === 'distribution' ? 'true' : 'false') + '"' +
+      ' onclick="return setTatPerformanceModeV6565(\'distribution\',event)">Distribution</button>' +
+      '<button id="tatPerformancePromiseBtnV6565" class="cdaDashboardModeButtonV6562' +
+      (mode === 'promise' ? ' active' : '') + '" type="button" data-tat-performance-mode-v6565="promise"' +
+      ' aria-pressed="' + (mode === 'promise' ? 'true' : 'false') + '"' +
+      ' onclick="return setTatPerformanceModeV6565(\'promise\',event)">Promise</button></div>';
+  }
+
+  function improveCellTitlesV6565(doc){
+    doc = doc || document;
     [
       '.tatDepartmentTableWrapV6563 tbody tr td:first-child',
       '.tatProductTableWrapV6562 tbody tr td:first-child',
@@ -394,45 +248,36 @@ Purpose: Present TAT analysis before detail tables, with a compact promise strip
     });
   }
 
-  function bindDocumentV6564(doc){
-    if (!doc) return false;
-    const body = doc.getElementById('tatLateTableV6509');
-    if (body && !observersV6564.has(body)) {
-      const view = doc.defaultView || window;
-      const Observer = view.MutationObserver || MutationObserver;
-      const observer = new Observer(function(){
-        renderPromiseV6564(doc);
-        improveCellTitlesV6564(doc);
+  function afterReplaceV6565(){
+    window.requestAnimationFrame(function(){
+      activeDocumentsV6565().forEach(function(doc){
+        syncDocumentV6565(doc);
+        improveCellTitlesV6565(doc);
       });
-      observer.observe(body,{childList:true,subtree:true,characterData:true});
-      observersV6564.set(body,observer);
-    }
-    renderPromiseV6564(doc);
-    improveCellTitlesV6564(doc);
-    return true;
+    });
   }
 
-  function afterReplaceV6564(){
-    window.requestAnimationFrame(function(){ bindDocumentV6564(activeDocumentV6564()); });
-  }
-
+  window.setTatPerformanceModeV6565 = setModeV6565;
   window.cdaTatDashboardLayoutV6563 = Object.freeze({
-    version:'v6.564',
-    mode:'analysis-first-promise-strip-and-full-width-distribution',
-    afterReplace:afterReplaceV6564,
-    renderPromise:renderPromiseV6564,
-    improveCellTitles:improveCellTitlesV6564
+    version:'v6.565',
+    mode:'remake-parity-two-column-performance-toggle',
+    view:modeV6565,
+    setMode:setModeV6565,
+    headerMarkup:headerMarkupV6565,
+    afterReplace:afterReplaceV6565,
+    sync:syncAllV6565,
+    improveCellTitles:improveCellTitlesV6565
   });
 
   window.addEventListener('cdaDashboardTabRenderedV6547',function(event){
-    if (event && event.detail && event.detail.tabKey === 'tat') afterReplaceV6564();
+    if (event && event.detail && event.detail.tabKey === 'tat') afterReplaceV6565();
   });
-  window.addEventListener('cdaTableRendered',function(){ afterReplaceV6564(); });
+  window.addEventListener('cdaTableRendered',function(){ afterReplaceV6565(); });
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded',afterReplaceV6564,{once:true});
+    document.addEventListener('DOMContentLoaded',afterReplaceV6565,{once:true});
   } else {
-    afterReplaceV6564();
+    afterReplaceV6565();
   }
 })();
 </script>
