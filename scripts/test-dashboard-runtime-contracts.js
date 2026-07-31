@@ -38,7 +38,7 @@ function runRemakeNativeHeaderContract(){
   const adapter = read('RemakeDashboardAdapterV6548.html');
   const decorator = read('SharedDashboardDecoratorV6548.html');
   const bootstrap = read('RemakeDashboardBootstrapV6548.html');
-  assert(bridge.includes("version:'v6.559'"), 'Remake bridge is not v6.559.');
+  assert(bridge.includes("version:'v6.566'"), 'Remake bridge is not v6.566.');
   assert(bridge.includes("if (button.matches('[data-remake-section-toggle-v6402]')) return '';"), 'Native Remake collapse is hidden.');
   assert(adapter.includes('nativeTitleToggle:true'), 'Remake native title ownership is missing.');
   assert(decorator.includes('if (titleToggle && !nativeTitle)'), 'Decorator rewrites native Remake titles.');
