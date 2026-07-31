@@ -1,19 +1,20 @@
 <!-- TatDashboardDefinitionV6547.html
-Version: v6.562
+Version: v6.563
 Date: 2026-07-30
-Purpose: Declarative TAT components with separate Department and Products / Groups tables.
+Purpose: Declarative TAT layout with separate Department and Products tables and one combined TAT Performance card.
 -->
 <script id="cdaTatDashboardDefinitionControllerV6547">
 (function installTatDashboardDefinitionV6547(){
   'use strict';
 
-  if (window.cdaTatDashboardDefinitionV6547 && window.cdaTatDashboardDefinitionV6547.version === 'v6.562') return;
+  if (window.cdaTatDashboardDefinitionV6547 && window.cdaTatDashboardDefinitionV6547.version === 'v6.563') return;
 
   const platform = window.cdaDashboardPlatformV6547;
   const adapter = window.cdaTatDashboardAdapterV6547;
   const productTable = window.cdaTatProductTableV6562;
-  if (!platform || !adapter || !productTable) {
-    throw new Error('TAT definition requires the dashboard registry, TAT adapter, and TAT product table service.');
+  const layout = window.cdaTatDashboardLayoutV6563;
+  if (!platform || !adapter || !productTable || !layout) {
+    throw new Error('TAT definition requires the registry, adapter, product table, and layout service.');
   }
 
   const STANDARD_FEATURES = ['columns','popout','reset','more','exportCurrent','exportAll'];
@@ -42,11 +43,11 @@ Purpose: Declarative TAT components with separate Department and Products / Grou
       key:'department',title:'Department Summary',kind:'table',tableKey:'tatDepartment',targetId:'tatDepartmentTableV6509',
       features:STANDARD_FEATURES.slice(),
       renderBody:function(){
-        return tableV6547('tatDepartmentTableV6509',[{label:'Department'}].concat(TAT_METRIC_HEADERS));
+        return tableV6547('tatDepartmentTableV6509',[{label:'Department'}].concat(TAT_METRIC_HEADERS),'tatDepartmentTableWrapV6563');
       }
     },
     {
-      key:'product',title:'Products',kind:'table',tableKey:'tatProduct',targetId:'tatProductTableV6562',
+      key:'product',title:'Products',kind:'table',tableKey:'tatProduct',targetId:'tatProductTableV6562',wide:true,
       features:STANDARD_FEATURES.slice(),
       renderHeaderControls:function(){ return productTable.headerMarkup(); },
       renderBody:function(){
@@ -54,20 +55,28 @@ Purpose: Declarative TAT components with separate Department and Products / Grou
       }
     },
     {
-      key:'distribution',title:'TAT Distribution',kind:'chart',chartKey:'distribution',targetId:'tatDistributionChartV6509',
+      key:'performance',title:'TAT Performance',kind:'chart',chartKey:'distribution',targetId:'tatDistributionChartV6509',
+      tableKey:'tatLate',secondaryComponentKeys:['distribution','late'],wide:true,
       features:STANDARD_FEATURES.slice(),
       renderBody:function(){
-        return '<div id="tatDistributionSubV6509" class="tatSrOnlyV6513">Percent of eligible cases by business-day bucket</div>' +
-          '<div class="tatChartV6509 remakeTrendCanvasWrapV6230"><canvas id="tatDistributionChartV6509"></canvas></div>';
-      }
-    },
-    {
-      key:'late',title:'Promise Performance',kind:'table',tableKey:'tatLate',targetId:'tatLateTableV6509',
-      features:STANDARD_FEATURES.slice(),
-      renderBody:function(){
-        return tableV6547('tatLateTableV6509',[
-          {label:'Performance'},{label:'Cases',numeric:true},{label:'Share',numeric:true}
-        ]);
+        return '<div class="tatPerformanceLayoutV6563">' +
+          '<section class="tatPerformanceChartPanelV6563" aria-label="TAT-day distribution">' +
+            '<div id="tatDistributionSubV6509" class="tatSrOnlyV6513">Percent of eligible cases by business-day bucket</div>' +
+            '<div class="tatChartV6509 remakeTrendCanvasWrapV6230"><canvas id="tatDistributionChartV6509"></canvas></div>' +
+          '</section>' +
+          '<aside class="tatPromisePanelV6563" aria-label="Promise performance summary">' +
+            '<div class="tatPromiseEyebrowV6563">On-time promise performance</div>' +
+            '<div class="tatPromiseHeroV6563"><strong id="tatPromiseHeadlineV6563" class="tatPromiseHeroValueV6563">-</strong>' +
+              '<span id="tatPromiseHeadlineMetaV6563" class="tatPromiseHeroMetaV6563">Loading eligible cases</span></div>' +
+            '<div id="tatPromiseStackV6563" class="tatPromiseStackV6563" role="group" aria-label="Promise performance distribution"></div>' +
+            '<div id="tatPromiseLegendV6563" class="tatPromiseLegendV6563"></div>' +
+            '<div class="tatPromiseSourceV6563" aria-hidden="true">' +
+              tableV6547('tatLateTableV6509',[
+                {label:'Performance'},{label:'Cases',numeric:true},{label:'Share',numeric:true}
+              ],'tatPromiseSourceTableWrapV6563') +
+            '</div>' +
+          '</aside>' +
+        '</div>';
       }
     },
     {
@@ -78,7 +87,7 @@ Purpose: Declarative TAT components with separate Department and Products / Grou
         return '<div class="tatCollapsibleBodyV6509">' + tableV6547('tatCustomerTableV6509',[
           {label:'Customer'},{label:'Cases',numeric:true},{label:'Sold Units',numeric:true},{label:'Remake Units',numeric:true},
           {label:'Remake %',numeric:true},{label:'Avg TAT',numeric:true},{label:'OTP',numeric:true},{label:'Avg Days Late',numeric:true}
-        ]) + '</div>';
+        ],'tatCustomerTableWrapV6563') + '</div>';
       }
     },
     {
@@ -144,7 +153,7 @@ Purpose: Declarative TAT components with separate Department and Products / Grou
   }
 
   window.cdaTatDashboardDefinitionV6547 = {
-    version:'v6.562',
+    version:'v6.563',
     key:'tat',
     pageId:'tatDashboardPageV6509',
     tabButtonId:'tatTabBtnV6509',
@@ -157,6 +166,7 @@ Purpose: Declarative TAT components with separate Department and Products / Grou
       window.cdaDashboardKpiV6547.bind(kpiConfig);
       adapter.afterReplace();
       productTable.afterReplace();
+      layout.afterReplace();
     },
     kpiConfig:kpiConfig
   };
