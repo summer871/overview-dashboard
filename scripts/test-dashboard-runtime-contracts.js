@@ -55,20 +55,16 @@ function runDocumentAwareSharedControls() {
   assert(toolbar.includes("version:'v6.558'"), 'Toolbar is not v6.558.');
   assert(toolbar.includes('button.ownerDocument'), 'Toolbar does not carry the clicked ownerDocument.');
   assert(toolbar.includes('card:card'), 'Toolbar context does not carry the actual card.');
-
   assert(popover.includes("version:'v6.558'"), 'Popover is not v6.558.');
   assert(popover.includes('const doc = button.ownerDocument || document'),
     'Popover does not open in the clicked button document.');
-
   assert(columns.includes("version:'v6.558'"), 'Columns is not v6.558.');
   assert(columns.includes('function documentFor(context)'), 'Columns lacks document resolution.');
   assert(columns.includes('resolveTable(id,context)'), 'Columns table resolution is not context-aware.');
-
   assert(features.includes("CDA_DASHBOARD_FEATURES_VERSION = 'v6.558'"),
     'Feature catalog is not v6.558.');
   assert(features.includes('const doc = popover.ownerDocument || context.document || document'),
     'More-actions menu is not document-aware.');
-
   assert(audit.includes('function detachedButtonParity()'),
     'Browser audit does not compare detached and dashboard controls.');
   assert(audit.includes('sameClasses'), 'Browser audit does not compare shared button classes.');
@@ -91,7 +87,6 @@ function runRemakeNativeHeaderContract() {
     'Native Remake collapse buttons are still classified as hidden legacy controls.');
   assert(bridge.includes('restoreNativeCollapseControlsV6559'),
     'Remake bridge does not restore native chevrons.');
-
   assert(adapter.includes("version:'v6.558'"), 'Remake adapter is not v6.558.');
   assert(adapter.includes('nativeTitleToggle:true'), 'Remake native title ownership is missing.');
   assert(adapter.includes("header.querySelector('.remakeCardActionsV6230')"),
@@ -105,29 +100,56 @@ function runRemakeNativeHeaderContract() {
     'Remake bootstrap expects the wrong isolation version.');
 }
 
-function runTatDetachedAndProductContract() {
+function runTatLayoutContract() {
   const adapter = read('TatDashboardAdapterV6547.html');
   const bootstrap = read('TatDashboardBootstrapV6547.html');
   const definition = read('TatDashboardDefinitionV6547.html');
   const product = read('TatProductTableV6562.html');
+  const layout = read('TatDashboardLayoutV6563.html');
+  const widths = read('TatTableWidthsV6563.html');
+  const audit = read('TatProductAuditV6562.html');
   const renderer = read('SharedDashboardRendererV6547.html');
 
-  assert(adapter.includes("version:'v6.562'"), 'TAT adapter is not v6.562.');
+  assert(adapter.includes("version:'v6.563'"), 'TAT adapter is not v6.563.');
   assert(adapter.includes('applyDetachedCollapseV6547(context)'),
     'TAT collapse does not update a detached card.');
-  assert(adapter.includes("'tatProduct'"), 'TAT product table is absent from adapter lifecycle cleanup.');
-  assert(bootstrap.includes("version:'v6.562'"), 'TAT bootstrap is not v6.562.');
+  assert(adapter.includes("context.component.key === 'performance'"),
+    'Combined performance controls are missing.');
+  assert(adapter.includes("'tatProduct'"), 'TAT product table is absent from lifecycle cleanup.');
+
+  assert(bootstrap.includes("version:'v6.563'"), 'TAT bootstrap is not v6.563.');
   assert(bootstrap.includes("componentIsolation:window.cdaDashboardIsolationV6555 && window.cdaDashboardIsolationV6555.version === 'v6.561'"),
     'TAT bootstrap expects the wrong isolation version.');
-  assert(bootstrap.includes('sevenComponents:definition.components.length === 7'),
-    'TAT bootstrap does not require seven components.');
-  assert(definition.includes("version:'v6.562'"), 'TAT definition is not v6.562.');
+  assert(bootstrap.includes('sixComponents:definition.components.length === 6'),
+    'TAT bootstrap does not require six components.');
+  assert(bootstrap.includes('combinedPerformance:'),
+    'TAT bootstrap does not require combined performance.');
+
+  assert(definition.includes("version:'v6.563'"), 'TAT definition is not v6.563.');
   assert(definition.includes("key:'product',title:'Products'"), 'TAT Products component is missing.');
+  assert(definition.includes("key:'performance',title:'TAT Performance'"),
+    'TAT Performance component is missing.');
+  assert(!definition.includes("key:'late',title:'Promise Performance'"),
+    'Standalone Promise Performance remains.');
+  assert(!definition.includes("key:'distribution',title:'TAT Distribution'"),
+    'Standalone Distribution remains.');
+
   assert(product.includes("config.childRows = null"), 'Department product drill-down is not disabled.');
   assert(product.includes("const TABLE_KEY = 'tatProduct'"), 'Separate TAT product table is missing.');
   assert(product.includes('data-tat-product-mode-v6562'), 'Products / Groups toggle is missing.');
+
+  assert(layout.includes("version:'v6.563'"), 'TAT layout service is not v6.563.');
+  assert(layout.includes('tatPerformanceLayoutV6563'), 'Combined performance layout is missing.');
+  assert(layout.includes('tatPromiseStackSegmentV6563'), 'Promise stacked summary is missing.');
+  assert(widths.includes("version:'v6.563'"), 'TAT table-width service is not v6.563.');
+  assert(widths.includes("tatProduct:['34%','12%','12%','10%','10%','10%','12%']"),
+    'Product width ratios are missing.');
+  assert(audit.includes('noStandalonePromiseCard:noStandalonePromiseCard'),
+    'TAT audit does not reject standalone Promise and Distribution cards.');
+  assert(audit.includes('widthsCorrect:widthsCorrect'),
+    'TAT audit does not verify readable widths.');
   assert(renderer.includes("version:'v6.562'"), 'Renderer is not v6.562.');
-  assert(renderer.includes('renderHeaderControls'), 'Renderer does not support first-class header controls.');
+  assert(renderer.includes('renderHeaderControls'), 'Renderer lacks first-class header controls.');
 }
 
 function runColumnsRegressionGuards() {
@@ -140,7 +162,7 @@ function runColumnsRegressionGuards() {
 runDetachedPopoutContract();
 runDocumentAwareSharedControls();
 runRemakeNativeHeaderContract();
-runTatDetachedAndProductContract();
+runTatLayoutContract();
 runColumnsRegressionGuards();
 
 console.log('Dashboard runtime contracts passed.');
@@ -151,6 +173,7 @@ console.log('Detached/dashboard shared button class, icon, and style parity: pas
 console.log('Collapsed-card temporary expansion and restoration: passed');
 console.log('Document-aware shared controls: passed');
 console.log('Native Remake header controls: passed');
-console.log('Separate TAT Department and Products components: passed');
-console.log('Products / Groups first-class header control: passed');
+console.log('Combined TAT Performance component: passed');
+console.log('Full-width TAT Products component: passed');
+console.log('Readable TAT table width contracts: passed');
 console.log('Columns regression guards: passed');
