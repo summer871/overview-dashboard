@@ -1,6 +1,6 @@
 /**
  * Executive Overview Dashboard Router
- * Version: Code.gs v6.562 separate TAT products table
+ * Version: Code.gs v6.563 combined TAT performance layout
  * Date: 2026-07-30
  * Purpose: Serve the dashboard shell and inject presentation metadata.
  */
@@ -13,18 +13,18 @@ function doGet(e) {
   const template = HtmlService.createTemplateFromFile('Index');
   template.dashboardBaseUrl = getDashboardBaseUrl();
   template.dashboardPresentationMode = presentationMode;
-  template.dashboardPresentationVersion = 'v6.562';
-  template.dashboardPresentationSource = 'Code.gs v6.562 separate TAT products table';
+  template.dashboardPresentationVersion = 'v6.563';
+  template.dashboardPresentationSource = 'Code.gs v6.563 combined TAT performance layout';
 
   const presentation = {
     mode: presentationMode,
-    version: 'v6.562',
-    source: 'Code.gs v6.562 separate TAT products table',
+    version: 'v6.563',
+    source: 'Code.gs v6.563 combined TAT performance layout',
     baseUrl: getDashboardBaseUrl()
   };
 
   let html = template.evaluate().getContent();
-  const configScript = '<script id="cdaServerPresentationV6562">window.CDA_SERVER_PRESENTATION=' +
+  const configScript = '<script id="cdaServerPresentationV6563">window.CDA_SERVER_PRESENTATION=' +
     JSON.stringify(presentation).replace(/</g, '\\u003c') + ';</script>';
   html = html.indexOf('</head>') >= 0
     ? html.replace('</head>', configScript + '</head>')
@@ -69,7 +69,7 @@ function renderDashboardDebugPage() {
 function debugDashboardServerHealth() {
   const health = {
     ok: true,
-    routerVersion: 'Code.gs v6.562 separate TAT products table',
+    routerVersion: 'Code.gs v6.563 combined TAT performance layout',
     timestamp: new Date().toISOString(),
     scriptTimeZone: Session.getScriptTimeZone(),
     dashboardBaseUrl: getDashboardBaseUrl(),
