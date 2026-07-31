@@ -82,5 +82,27 @@ console.log('PASS: CeramistIncrementalUpdater.js JavaScript syntax is valid.');
 childProcess.execFileSync('python', ['-m', 'py_compile', builderPath], { stdio: 'inherit' });
 console.log('PASS: Colab historical builder Python syntax is valid.');
 
+assert(
+  builder.includes('BUILDER_VERSION = "ceramist-colab-builder-v1.0.1"'),
+  'Colab builder version v1.0.1 is present.'
+);
+assert(
+  builder.includes('allow_missing_remake_field_as_terminal: bool = False'),
+  'Linked/root terminal-field compatibility parameter is present.'
+);
+assert(
+  builder.includes('allow_missing_remake_field_as_terminal=True'),
+  'Linked/root CRM fetches allow omitted remakeCaseID as terminal.'
+);
+assert(
+  builder.includes('Running CRM chain preflight for 389666 -> 385918'),
+  '389666 -> 385918 preflight is present.'
+);
+assert(
+  builder.includes('MAX_CHAIN_ERRORS_BEFORE_ABORT = 5'),
+  'Historical rebuild fails fast after five chain errors.'
+);
+console.log('PASS: Colab root-chain termination contract is present.');
+
 console.log('Ceramist historical seed + incremental maintenance validation passed.');
 console.log('Version: v6.575 / backend v7.8.0');

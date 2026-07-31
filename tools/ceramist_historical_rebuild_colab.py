@@ -1,5 +1,6 @@
 # Ceramist historical seed builder for Google Colab
-# Version: ceramist-colab-seed-v1.0.0
+# Builder version: ceramist-colab-builder-v1.0.1
+# Seed contract: ceramist-colab-seed-v1.0.0
 # Last confirmed: 2026-07-31
 #
 # Purpose:
@@ -14,7 +15,7 @@
 #   - The verified regression 389666 -> 385918 -> Jhan/Hoseung Han must pass.
 
 # In Colab, paste this entire file into one cell or upload it and run:
-#   %run /content/ceramist_historical_rebuild_colab_v1.0.0.py
+#   %run /content/ceramist_historical_rebuild_colab_v1.0.1.py
 
 from __future__ import annotations
 
@@ -36,6 +37,7 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload, MediaIoBaseUpload
 
 SEED_VERSION = "ceramist-colab-seed-v1.0.0"
+BUILDER_VERSION = "ceramist-colab-builder-v1.0.1"
 CACHE_VERSION = "CeramistRemakeCache v0.6.0"
 RESPONSIBILITY_VERSION = "case-level-v7.8.0"
 MAINTENANCE_MODEL = "historical-seed-plus-open-month-upsert-v7.8.0"
@@ -59,6 +61,7 @@ CERAMIST_CACHE_FILE_ID = ""
 REQUEST_TIMEOUT_SECONDS = 60
 REQUEST_DELAY_SECONDS = 0.08
 MAX_HTTP_RETRIES = 7
+MAX_CHAIN_ERRORS_BEFORE_ABORT = 5
 BQ_CASE_BATCH_SIZE = 5000
 
 
@@ -291,7 +294,7 @@ def merge_chain_record(index: Dict[str, Dict[str, Any]], record: ChainRecord) ->
     current = dict(index.get(key) or {})
     incoming = record.to_dict()
     next_id = clean(incoming.get("remakeCaseId")) or clean(current.get("remakeCaseId"))
-    terminal = bool(incoming.get("terminalConfirmed")) or (bool(current.get("terminalConfirmed")) and not next_id)
+    terminal = not next_id and (bool(incoming.get("terminalConfirmed")) or bool(current.get("terminalConfirmed")))
     merged = {
         **current,
         **incoming,
@@ -307,30 +310,55 @@ def merge_chain_record(index: Dict[str, Dict[str, Any]], record: ChainRecord) ->
     return merged
 
 
-def record_from_detail(detail: Dict[str, Any], requested_id: str) -> ChainRecord:
+def record_from_detail(
+    detail: Dict[str, Any],
+    requested_id: str,
+    allow_missing_remake_field_as_terminal: bool = False,
+) -> ChainRecord:
     note, numbers = extract_note_text_and_tech_numbers(detail)
     next_id = clean(detail.get("remakeCaseID") or detail.get("remakeCaseId") or detail.get("RemakeCaseID"))
+    field_present = has_remake_case_field(detail)
+    terminal_confirmed = not next_id and (
+        field_present or allow_missing_remake_field_as_terminal
+    )
     return ChainRecord(
         case_id=requested_id,
         case_number=clean(detail.get("caseNumber") or detail.get("caseNo")),
         remake_case_id=next_id,
-        terminal_confirmed=has_remake_case_field(detail) and not next_id,
+        terminal_confirmed=terminal_confirmed,
         checked_at=utc_now(),
         invoice_note=note,
         invoice_note_tech_numbers=numbers,
     )
 
 
-def fetch_chain_record(session: requests.Session, base_url: str, requested_id: str, chain_index: Dict[str, Dict[str, Any]], force: bool = False) -> Dict[str, Any]:
+def fetch_chain_record(
+    session: requests.Session,
+    base_url: str,
+    requested_id: str,
+    chain_index: Dict[str, Dict[str, Any]],
+    force: bool = False,
+    allow_missing_remake_field_as_terminal: bool = False,
+) -> Dict[str, Any]:
     key = requested_id.lower()
     existing = chain_index.get(key) or {}
-    if not force and existing.get("caseNumber") and (existing.get("remakeCaseId") or existing.get("terminalConfirmed") is True):
+    if not force and existing.get("caseNumber") and (
+        existing.get("remakeCaseId") or existing.get("terminalConfirmed") is True
+    ):
         return existing
-    detail = crm_get_json(session, base_url.rstrip("/") + "/api/Cases/" + requests.utils.quote(requested_id, safe=""))
-    record = record_from_detail(detail, requested_id)
+
+    detail = crm_get_json(
+        session,
+        base_url.rstrip("/") + "/api/Cases/" + requests.utils.quote(requested_id, safe=""),
+    )
+    record = record_from_detail(
+        detail,
+        requested_id,
+        allow_missing_remake_field_as_terminal=allow_missing_remake_field_as_terminal,
+    )
     if not record.case_number:
         raise RuntimeError(f"CRM detail {requested_id} did not contain caseNumber.")
-    if not has_remake_case_field(detail):
+    if not has_remake_case_field(detail) and not allow_missing_remake_field_as_terminal:
         raise RuntimeError(f"CRM detail {requested_id} did not expose remakeCaseID.")
     return merge_chain_record(chain_index, record)
 
@@ -354,7 +382,13 @@ def resolve_chain(current_row: Dict[str, Any], session: requests.Session, base_u
         if key in seen:
             return chain_result("error", False, ids, numbers, "A remakeCaseID cycle was detected.")
         seen.add(key)
-        record = fetch_chain_record(session, base_url, next_id, chain_index)
+        record = fetch_chain_record(
+            session,
+            base_url,
+            next_id,
+            chain_index,
+            allow_missing_remake_field_as_terminal=True,
+        )
         try:
             number_value = int(float(record.get("caseNumber") or 0))
         except (TypeError, ValueError):
@@ -794,6 +828,30 @@ def main() -> None:
         if number:
             rows_by_case[number].append(row)
 
+    preflight_case = "389666"
+    if preflight_case not in rows_by_case:
+        raise RuntimeError(
+            "Preflight case 389666 is missing from the Remake cache. No Drive file was changed."
+        )
+
+    print("Running CRM chain preflight for 389666 -> 385918...")
+    preflight_chain = resolve_chain(
+        rows_by_case[preflight_case][0],
+        session,
+        CRM_BASE_URL,
+        chain_index,
+    )
+    print("Preflight result:", json.dumps(preflight_chain, indent=2))
+    if (
+        preflight_chain.get("status") != "resolved"
+        or int(float(preflight_chain.get("previousCaseNumber") or 0)) != 385918
+        or int(float(preflight_chain.get("rootCaseNumber") or 0)) != 385918
+    ):
+        raise RuntimeError(
+            "CRM chain preflight failed for 389666 -> 385918. No Drive file was changed."
+        )
+    print("CRM chain preflight passed.")
+
     chains_by_case: Dict[str, Dict[str, Any]] = {}
     errors: List[Dict[str, str]] = []
     case_numbers_sorted = sorted(rows_by_case, key=lambda value: int(value), reverse=True)
@@ -802,8 +860,16 @@ def main() -> None:
             chain = resolve_chain(rows_by_case[number][0], session, CRM_BASE_URL, chain_index)
             chains_by_case[number] = chain
         except Exception as error:
-            errors.append({"caseNumber": number, "error": str(error)})
+            error_item = {"caseNumber": number, "error": str(error)}
+            errors.append(error_item)
             chains_by_case[number] = empty_chain("error", str(error), False)
+            print("Chain error:", json.dumps(error_item))
+            if len(errors) >= MAX_CHAIN_ERRORS_BEFORE_ABORT:
+                print(
+                    f"Stopping after {len(errors)} chain errors; "
+                    "the historical seed has not changed Drive."
+                )
+                break
         if position % 100 == 0 or position == len(case_numbers_sorted):
             print(f"Resolved chains {position:,}/{len(case_numbers_sorted):,}; errors={len(errors):,}")
 
@@ -845,7 +911,14 @@ def main() -> None:
                 note_detail_ids.add(linked_id)
 
     for position, linked_id in enumerate(sorted(note_detail_ids), start=1):
-        fetch_chain_record(session, CRM_BASE_URL, linked_id, chain_index, force=True)
+        fetch_chain_record(
+            session,
+            CRM_BASE_URL,
+            linked_id,
+            chain_index,
+            force=True,
+            allow_missing_remake_field_as_terminal=True,
+        )
         if position % 100 == 0 or position == len(note_detail_ids):
             print(f"Loaded invoice-note backup evidence {position:,}/{len(note_detail_ids):,}")
 
