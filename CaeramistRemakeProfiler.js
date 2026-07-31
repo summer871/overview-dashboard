@@ -2,7 +2,7 @@
  * Ceramist Remake Analysis - BigQuery profiler
  *
  * File: CeramistRemakeProfiler.gs
- * Version: 7.7.0
+ * Version: 7.7.1
  * Last confirmed: 2026-07-31
  * Purpose: CERAMICS attribution diagnostics plus a lightweight Drive-cache reader for the dashboard preview.
  *
@@ -30,6 +30,10 @@
  * parsing the 7 MB Drive payload on every page refresh. v7.7 reconciles the
  * Ceramist sidecar to the complete durable Remake Factor population before
  * calculating responsibility. Missing cases are no longer silently excluded.
+ * v7.7.1 confirms blank remakeCaseID values through the same CRM case-detail
+ * path used by profileRemakeLinkedCase(), so incomplete QueryCases rows can
+ * never be mislabeled as genuinely unlinked. Confirmed terminal cases are
+ * persisted and reused; deferred and failed lookups remain retryable.
  *
  * Confirmed attribution rule in v7:
  *   UPPER(TRIM(CaseTasks_Task)) = CERAMICS
@@ -48,7 +52,7 @@
  */
 
 const ceramistRemakeCacheFileIdPropertyV7 = 'MT_CERAMIST_REMAKE_CACHE_FILE_ID';
-const ceramistRemakeCacheVersionV7 = 'CeramistRemakeCache v0.5.0';
+const ceramistRemakeCacheVersionV7 = 'CeramistRemakeCache v0.5.1';
 const ceramistTaskUserBadgeSpreadsheetIdV71 = '1XrJctG1-0RGhKCV6w2jK4esoaahmc7Ji7MjQhZo-nBY';
 const ceramistTaskUserBadgeSheetNameV71 = 'Task User Badges';
 const ceramistTaskUserBadgeCacheKeyV72 = 'ceramistTaskUserBadgeLookup.v72';
@@ -60,9 +64,10 @@ const ceramistNightlyRefreshHourV75 = 22;
 const ceramistNightlyRefreshMinuteV75 = 45;
 const ceramistNightlyRefreshTimeZoneV75 = 'America/Los_Angeles';
 const ceramistNightlyRefreshLockWaitMsV75 = 30000;
-const ceramistResponsibilityVersionV75 = 'case-level-v7.7.0';
+const ceramistResponsibilityVersionV75 = 'case-level-v7.7.1';
 const ceramistBrowserCacheMetaVersionV76 = 'ceramist-browser-meta-v7.6.0';
-const ceramistPopulationVersionV77 = 'complete-remake-population-v7.7.0';
+const ceramistPopulationVersionV77 = 'complete-remake-population-v7.7.1';
+const ceramistPopulationChainLookupVersionV771 = 'crm-remakeCaseID-confirmed-v7.7.1';
 const ceramistPopulationMaxApiCallsPropertyV77 = 'MT_CERAMIST_POPULATION_MAX_API_CALLS';
 const ceramistPopulationDefaultMaxApiCallsV77 = 160;
 const ceramistPopulationMaxChainDepthV77 = 8;
@@ -397,8 +402,12 @@ function ceramistReconcileCompleteRemakePopulationV77_(existingRows) {
     ceramistPopulationPushV77_(exactBuckets, ceramistPopulationExactKeyV77_(row), { index: index, row: row });
     ceramistPopulationPushV77_(broadBuckets, ceramistPopulationBroadKeyV77_(row), { index: index, row: row });
     const caseNumber = ceramistPopulationCaseNumberV77_(row);
-    if (caseNumber && !existingChainByCase[caseNumber] && Number(row.chainDepth || 0) > 0 &&
-        (Number(row.previousCaseNumber || 0) > 0 || Number(row.rootCaseNumber || 0) > 0)) {
+    const chainStatus = String(row.populationChainStatus || '');
+    const chainLookupCurrent = String(row.populationChainLookupVersion || '') === ceramistPopulationChainLookupVersionV771;
+    const confirmedUnlinked = chainStatus === 'unlinked' && row.populationChainConfirmed === true && chainLookupCurrent;
+    const resolvedChain = Number(row.chainDepth || 0) > 0 &&
+      (Number(row.previousCaseNumber || 0) > 0 || Number(row.rootCaseNumber || 0) > 0);
+    if (caseNumber && !existingChainByCase[caseNumber] && (resolvedChain || confirmedUnlinked)) {
       existingChainByCase[caseNumber] = row;
     }
   });
@@ -417,6 +426,7 @@ function ceramistReconcileCompleteRemakePopulationV77_(existingRows) {
         caseNumber: caseNumber || current.caseNumber || '',
         remakeCaseId: ceramistPopulationRemakeCaseIdV77_(row) || current.remakeCaseId || '',
         remakeCaseIdFieldPresent: ceramistPopulationHasRemakeCaseFieldV77_(row) || current.remakeCaseIdFieldPresent === true,
+        isRemakeCase: current.isRemakeCase === true || row.isRemake === true || /^y$/i.test(String(row.remakeFlag || '')),
         invoiceDate: ceramistPopulationTextV77_(row.invoiceDate || current.invoiceDate)
       };
     }
@@ -641,8 +651,13 @@ function ceramistBuildCompletePopulationRowV77_(mainRow, existingRow) {
 
 function ceramistPopulationChainFromRowV77_(row) {
   const depth = Math.max(0, Number(row.chainDepth || 0));
+  const confirmedUnlinked = depth <= 0 &&
+    String(row.populationChainStatus || '') === 'unlinked' &&
+    row.populationChainConfirmed === true &&
+    String(row.populationChainLookupVersion || '') === ceramistPopulationChainLookupVersionV771;
   return {
-    status: depth > 0 ? 'resolved' : 'unlinked',
+    status: depth > 0 ? 'resolved' : (confirmedUnlinked ? 'unlinked' : 'error'),
+    confirmed: depth > 0 || confirmedUnlinked,
     chainDepth: depth,
     previousCaseNumber: Number(row.previousCaseNumber || 0) || '',
     rootCaseNumber: Number(row.rootCaseNumber || 0) || '',
@@ -650,7 +665,9 @@ function ceramistPopulationChainFromRowV77_(row) {
     rootCaseId: ceramistPopulationTextV77_(row.rootCaseId || row.rootCaseID),
     chainCaseNumbers: Array.isArray(row.chainCaseNumbers) ? row.chainCaseNumbers.slice() : [],
     chainCaseIds: Array.isArray(row.chainCaseIds) ? row.chainCaseIds.slice() : [],
-    reason: 'existing_sidecar_chain'
+    lookupVersion: ceramistPopulationChainLookupVersionV771,
+    checkedAt: ceramistPopulationTextV77_(row.populationChainCheckedAt),
+    reason: depth > 0 ? 'existing_sidecar_chain' : 'existing_confirmed_unlinked_case'
   };
 }
 
@@ -703,14 +720,53 @@ function ceramistFetchPopulationCaseDetailV77_(caseId, context) {
 function ceramistResolveRemakeChainV77_(row, mainCaseById, apiContext) {
   const currentCaseId = ceramistPopulationCaseIdV77_(row);
   let nextId = ceramistPopulationRemakeCaseIdV77_(row);
-  const currentLinkFieldPresent = ceramistPopulationHasRemakeCaseFieldV77_(row);
-  if (!nextId && currentCaseId && !currentLinkFieldPresent) {
+
+  if (!nextId) {
+    if (!currentCaseId) {
+      return ceramistPopulationEmptyChainV77_(
+        'error',
+        'The current remake row does not contain a CRM caseID, so remakeCaseID cannot be confirmed.',
+        false
+      );
+    }
+
+    // QueryCases can expose the remakeCaseID field while leaving its value blank.
+    // That blank is not authoritative. Confirm through the same case-detail path
+    // used by profileRemakeLinkedCase() before declaring the case unlinked.
     const currentFetch = ceramistFetchPopulationCaseDetailV77_(currentCaseId, apiContext);
-    if (currentFetch.status === 'deferred') return ceramistPopulationEmptyChainV77_('deferred', 'API call limit reached before the current case link could be read.');
-    if (currentFetch.status === 'error') return ceramistPopulationEmptyChainV77_('error', 'The current case detail could not be read from the CRM API.');
-    nextId = ceramistPopulationRemakeCaseIdV77_(currentFetch.detail);
+    if (currentFetch.status === 'deferred') {
+      return ceramistPopulationEmptyChainV77_(
+        'deferred',
+        'API call limit reached before the current case remakeCaseID could be confirmed.',
+        false
+      );
+    }
+    if (currentFetch.status !== 'ok') {
+      return ceramistPopulationEmptyChainV77_(
+        'error',
+        'The current case detail could not be read from the CRM API.',
+        false
+      );
+    }
+
+    const currentDetail = currentFetch.detail || {};
+    if (!ceramistPopulationHasRemakeCaseFieldV77_(currentDetail)) {
+      return ceramistPopulationEmptyChainV77_(
+        'error',
+        'The CRM case detail did not expose remakeCaseID, so an unlinked result cannot be confirmed.',
+        false
+      );
+    }
+
+    nextId = ceramistPopulationRemakeCaseIdV77_(currentDetail);
+    if (!nextId) {
+      return ceramistPopulationEmptyChainV77_(
+        'unlinked',
+        'The CRM case detail explicitly confirmed a blank remakeCaseID.',
+        true
+      );
+    }
   }
-  if (!nextId) return ceramistPopulationEmptyChainV77_('unlinked', 'No remakeCaseID was returned by the CRM API.');
 
   const seen = {};
   const chainCaseNumbers = [];
@@ -727,6 +783,7 @@ function ceramistResolveRemakeChainV77_(row, mainCaseById, apiContext) {
     if (!cleanId || seen[key]) {
       return {
         status: 'error',
+        confirmed: false,
         chainDepth: depth,
         previousCaseNumber: previousCaseNumber,
         rootCaseNumber: rootCaseNumber,
@@ -734,65 +791,63 @@ function ceramistResolveRemakeChainV77_(row, mainCaseById, apiContext) {
         rootCaseId: rootCaseId,
         chainCaseNumbers: chainCaseNumbers,
         chainCaseIds: chainCaseIds,
+        lookupVersion: ceramistPopulationChainLookupVersionV771,
+        checkedAt: new Date().toISOString(),
         reason: 'A remakeCaseID cycle was detected.'
       };
     }
     seen[key] = true;
 
     const indexed = mainCaseById[key] || null;
-    const indexedLinkFieldPresent = !!(indexed && indexed.remakeCaseIdFieldPresent === true);
+    const indexedNextId = ceramistPopulationRemakeCaseIdV77_(indexed);
     let detail = indexed;
     let fetched = { status: 'not_needed', detail: null };
-    if (!indexed || !indexed.caseNumber || !indexedLinkFieldPresent) {
+
+    // A nonblank indexed link can safely continue the chain. A blank indexed
+    // link is never treated as terminal because QueryCases may omit the actual
+    // value; fetch case detail to confirm the terminal root explicitly.
+    if (!indexed || !indexed.caseNumber || !indexedNextId) {
       fetched = ceramistFetchPopulationCaseDetailV77_(cleanId, apiContext);
-      if (fetched.status === 'ok') detail = Object.assign({}, indexed || {}, fetched.detail || {});
-    }
-    if (!detail || !detail.caseNumber) {
-      return {
-        status: fetched.status === 'deferred' ? 'deferred' : 'error',
-        chainDepth: depth,
-        previousCaseNumber: previousCaseNumber,
-        rootCaseNumber: rootCaseNumber,
-        previousCaseId: previousCaseId,
-        rootCaseId: rootCaseId,
-        chainCaseNumbers: chainCaseNumbers,
-        chainCaseIds: chainCaseIds,
-        reason: fetched.status === 'deferred'
-          ? 'API call limit reached while resolving the remake chain.'
-          : 'A linked remake case could not be read from the CRM API.'
-      };
-    }
-    if (fetched.status === 'deferred') {
-      return {
-        status: 'deferred',
-        chainDepth: depth,
-        previousCaseNumber: previousCaseNumber,
-        rootCaseNumber: rootCaseNumber,
-        previousCaseId: previousCaseId,
-        rootCaseId: rootCaseId,
-        chainCaseNumbers: chainCaseNumbers,
-        chainCaseIds: chainCaseIds,
-        reason: 'API call limit reached before the full remake chain was confirmed.'
-      };
-    }
-    if (fetched.status === 'error' && !indexedLinkFieldPresent) {
-      return {
-        status: 'error',
-        chainDepth: depth,
-        previousCaseNumber: previousCaseNumber,
-        rootCaseNumber: rootCaseNumber,
-        previousCaseId: previousCaseId,
-        rootCaseId: rootCaseId,
-        chainCaseNumbers: chainCaseNumbers,
-        chainCaseIds: chainCaseIds,
-        reason: 'A linked remake case could not be fully confirmed from the CRM API.'
-      };
+      if (fetched.status === 'deferred') {
+        return {
+          status: 'deferred',
+          confirmed: false,
+          chainDepth: depth,
+          previousCaseNumber: previousCaseNumber,
+          rootCaseNumber: rootCaseNumber,
+          previousCaseId: previousCaseId,
+          rootCaseId: rootCaseId,
+          chainCaseNumbers: chainCaseNumbers,
+          chainCaseIds: chainCaseIds,
+          lookupVersion: ceramistPopulationChainLookupVersionV771,
+          checkedAt: new Date().toISOString(),
+          reason: 'API call limit reached before the full remake chain was confirmed.'
+        };
+      }
+      if (fetched.status !== 'ok') {
+        return {
+          status: 'error',
+          confirmed: false,
+          chainDepth: depth,
+          previousCaseNumber: previousCaseNumber,
+          rootCaseNumber: rootCaseNumber,
+          previousCaseId: previousCaseId,
+          rootCaseId: rootCaseId,
+          chainCaseNumbers: chainCaseNumbers,
+          chainCaseIds: chainCaseIds,
+          lookupVersion: ceramistPopulationChainLookupVersionV771,
+          checkedAt: new Date().toISOString(),
+          reason: 'A linked remake case could not be read from the CRM API.'
+        };
+      }
+      detail = Object.assign({}, indexed || {}, fetched.detail || {});
     }
 
     const linkedCaseNumber = Number(detail && (detail.caseNumber || detail.caseNo) || 0);
     if (!Number.isFinite(linkedCaseNumber) || linkedCaseNumber <= 0) {
       return {
         status: 'error',
+        confirmed: false,
         chainDepth: depth,
         previousCaseNumber: previousCaseNumber,
         rootCaseNumber: rootCaseNumber,
@@ -800,7 +855,26 @@ function ceramistResolveRemakeChainV77_(row, mainCaseById, apiContext) {
         rootCaseId: rootCaseId,
         chainCaseNumbers: chainCaseNumbers,
         chainCaseIds: chainCaseIds,
+        lookupVersion: ceramistPopulationChainLookupVersionV771,
+        checkedAt: new Date().toISOString(),
         reason: 'A linked remake case did not contain a numeric case number.'
+      };
+    }
+
+    if (!ceramistPopulationHasRemakeCaseFieldV77_(detail)) {
+      return {
+        status: 'error',
+        confirmed: false,
+        chainDepth: depth,
+        previousCaseNumber: previousCaseNumber,
+        rootCaseNumber: rootCaseNumber,
+        previousCaseId: previousCaseId,
+        rootCaseId: rootCaseId,
+        chainCaseNumbers: chainCaseNumbers,
+        chainCaseIds: chainCaseIds,
+        lookupVersion: ceramistPopulationChainLookupVersionV771,
+        checkedAt: new Date().toISOString(),
+        reason: 'A linked CRM case detail did not expose remakeCaseID, so the chain endpoint could not be confirmed.'
       };
     }
 
@@ -819,6 +893,7 @@ function ceramistResolveRemakeChainV77_(row, mainCaseById, apiContext) {
   if (nextId) {
     return {
       status: 'error',
+      confirmed: false,
       chainDepth: depth,
       previousCaseNumber: previousCaseNumber,
       rootCaseNumber: rootCaseNumber,
@@ -826,12 +901,15 @@ function ceramistResolveRemakeChainV77_(row, mainCaseById, apiContext) {
       rootCaseId: rootCaseId,
       chainCaseNumbers: chainCaseNumbers,
       chainCaseIds: chainCaseIds,
+      lookupVersion: ceramistPopulationChainLookupVersionV771,
+      checkedAt: new Date().toISOString(),
       reason: 'The remake chain exceeded the safe depth limit.'
     };
   }
 
   return {
-    status: depth > 0 ? 'resolved' : 'unlinked',
+    status: 'resolved',
+    confirmed: true,
     chainDepth: depth,
     previousCaseNumber: previousCaseNumber,
     rootCaseNumber: rootCaseNumber,
@@ -839,13 +917,16 @@ function ceramistResolveRemakeChainV77_(row, mainCaseById, apiContext) {
     rootCaseId: rootCaseId,
     chainCaseNumbers: chainCaseNumbers,
     chainCaseIds: chainCaseIds,
-    reason: depth > 0 ? 'CRM remakeCaseID chain resolved.' : 'No remakeCaseID was returned by the CRM API.'
+    lookupVersion: ceramistPopulationChainLookupVersionV771,
+    checkedAt: new Date().toISOString(),
+    reason: 'CRM remakeCaseID chain resolved and its terminal case was confirmed.'
   };
 }
 
-function ceramistPopulationEmptyChainV77_(status, reason) {
+function ceramistPopulationEmptyChainV77_(status, reason, confirmed) {
   return {
     status: status,
+    confirmed: confirmed === true,
     chainDepth: 0,
     previousCaseNumber: '',
     rootCaseNumber: '',
@@ -853,6 +934,8 @@ function ceramistPopulationEmptyChainV77_(status, reason) {
     rootCaseId: '',
     chainCaseNumbers: [],
     chainCaseIds: [],
+    lookupVersion: ceramistPopulationChainLookupVersionV771,
+    checkedAt: new Date().toISOString(),
     reason: reason || ''
   };
 }
@@ -867,6 +950,9 @@ function ceramistApplyPopulationChainV77_(row, chain) {
   row.chainCaseNumbers = chain && Array.isArray(chain.chainCaseNumbers) ? chain.chainCaseNumbers.slice() : [];
   row.chainCaseIds = chain && Array.isArray(chain.chainCaseIds) ? chain.chainCaseIds.slice() : [];
   row.populationChainStatus = chain && chain.status || 'error';
+  row.populationChainConfirmed = !!(chain && chain.confirmed === true);
+  row.populationChainLookupVersion = chain && chain.lookupVersion || ceramistPopulationChainLookupVersionV771;
+  row.populationChainCheckedAt = chain && chain.checkedAt || new Date().toISOString();
   row.populationChainReason = chain && chain.reason || '';
 }
 
@@ -952,8 +1038,12 @@ function ceramistApplyCaseLevelResponsibilityV74_(rows) {
       } else if (chainStatus === 'error') {
         row.attributionBasis = 'population_chain_error';
         row.attributionReason = row.populationChainReason || 'The remake chain could not be resolved.';
-      } else if (chainDepth <= 0) {
+      } else if (chainStatus === 'unlinked' && row.populationChainConfirmed === true) {
         row.attributionBasis = 'unlinked';
+        row.attributionReason = row.populationChainReason || 'The CRM case detail explicitly confirmed no remakeCaseID.';
+      } else if (chainDepth <= 0) {
+        row.attributionBasis = 'population_chain_error';
+        row.attributionReason = row.populationChainReason || 'The remake chain was not confirmed.';
       } else if (root.status === 'multiple_workers' || previous.status === 'multiple_workers') {
         row.attributionBasis = 'multiple_case_level_workers';
       } else {

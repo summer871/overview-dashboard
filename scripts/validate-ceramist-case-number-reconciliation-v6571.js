@@ -64,8 +64,9 @@ if (!failed) {
   requireMarker(cache, 'caseNumbers: [],', 'Packed browser-ready cache retains the case-number dictionary.');
   requireMarker(cache, "scalarIndex('caseNumbers', row.caseNumber || '')", 'Packed browser-ready rows append caseNumber.');
 
-  requireMarker(profiler, 'Version: 7.7.0', 'Ceramist profiler release stamp is current.');
-  requireMarker(profiler, "const ceramistPopulationVersionV77 = 'complete-remake-population-v7.7.0';", 'Complete-population contract is declared.');
+  requireMarker(profiler, 'Version: 7.7.1', 'Ceramist profiler release stamp is current.');
+  requireMarker(profiler, "const ceramistPopulationVersionV77 = 'complete-remake-population-v7.7.1';", 'Complete-population contract is declared.');
+  requireMarker(profiler, "const ceramistPopulationChainLookupVersionV771 = 'crm-remakeCaseID-confirmed-v7.7.1';", 'Confirmed CRM chain lookup contract is declared.');
   requireMarker(profiler, 'function ceramistReconcileCompleteRemakePopulationV77_(existingRows)', 'Complete Remake population reconciliation is installed.');
   requireMarker(profiler, 'const remakePayload = readRemakeFactorCache();', 'The durable Remake cache is the population source of truth.');
   requireMarker(profiler, 'function ceramistResolveRemakeChainV77_(row, mainCaseById, apiContext)', 'CRM remakeCaseID chains are resolved for missing sidecar cases.');
@@ -79,6 +80,9 @@ if (!failed) {
   requireMarker(profiler, "payload.populationVersion = ceramistPopulationVersionV77;", 'The Drive sidecar records its population version.');
   requireMarker(profiler, "row.attributionBasis = 'population_chain_pending';", 'Deferred API work has an explicit non-misleading reason.');
   requireMarker(profiler, "row.attributionBasis = 'population_chain_error';", 'CRM chain errors have an explicit non-misleading reason.');
+  requireMarker(profiler, 'QueryCases can expose the remakeCaseID field while leaving its value blank.', 'Blank QueryCases relationship values are not treated as authoritative.');
+  requireMarker(profiler, 'row.populationChainConfirmed = !!(chain && chain.confirmed === true);', 'Confirmed chain state is persisted in the sidecar.');
+  requireMarker(profiler, 'existing_confirmed_unlinked_case', 'Confirmed terminal cases can be safely reused.');
 
   requireMarker(main, '// v6.573: Reconcile the complete Remake population to the Ceramist sidecar', 'v6.573 native reconciliation is installed.');
   requireMarker(main, 'window.cdaCeramistPopulationReconciliationV6573 = ceramistPopulationApiV6573;', 'Live v6.573 audit is exposed.');
@@ -187,7 +191,7 @@ if (!failed) {
           {
             month: '2026-07', year: 2026, invoiceDate: '2026-07-24',
             caseId: 'current-guid', caseNumber: 389666,
-            remakeCaseId: 'root-guid', remakeCaseID: 'root-guid', remakeCaseIdFieldPresent: true,
+            remakeCaseId: '', remakeCaseID: '', remakeCaseIdFieldPresent: true,
             customerId: '100496', customerName: 'UOP: School of Dentistry',
             department: 'Fixed', productId: 'ZIRPRF11PC',
             productName: 'Fixed - Zirfit Prime - Posterior Crown', productGroup: 'Crown',
@@ -235,10 +239,89 @@ if (!failed) {
     } else {
       pass('Verified 389666 -> 385918 scenario attributes Jhan from completed CERAMICS.');
     }
-    if (population.stats.populationSynthesizedRows !== 1 || population.stats.populationApiCalls !== 1) {
+    if (population.stats.populationSynthesizedRows !== 1 || population.stats.populationApiCalls !== 2) {
       fail('Population reconciliation stats are incorrect: ' + JSON.stringify(population.stats));
     } else {
-      pass('Missing sidecar case is synthesized once and its CRM chain is resolved safely.');
+      pass('Blank QueryCases link is confirmed through current and root CRM case details.');
+    }
+  } catch (error) {
+    fail(error && error.stack ? error.stack : String(error));
+  }
+
+  // A blank QueryCases value may only become unlinked after case detail
+  // explicitly returns a blank remakeCaseID. API-cap and lookup failures must
+  // remain retryable and must never be mislabeled as unlinked.
+  try {
+    const context = {
+      console,
+      JSON,
+      Date,
+      Math,
+      Number,
+      String,
+      Object,
+      Array,
+      Set,
+      Map,
+      RegExp,
+      PropertiesService: { getScriptProperties() { return { getProperty() { return ''; } }; } },
+      CacheService: { getScriptCache() { return { get() { return null; }, put() {} }; } },
+      SpreadsheetApp: {},
+      DriveApp: {},
+      MailApp: {},
+      LockService: {},
+      ScriptApp: {},
+      Utilities: { sleep() {} },
+      BigQuery: {}
+    };
+    vm.createContext(context);
+    vm.runInContext(profiler, context, { filename: 'CaeramistRemakeProfiler.js' });
+
+    const mainCaseById = {};
+    const blankQueryRow = {
+      caseId: 'current-guid',
+      caseNumber: 389666,
+      remakeCaseID: '',
+      remakeCaseIdFieldPresent: true
+    };
+
+    const deferred = context.ceramistResolveRemakeChainV77_(blankQueryRow, mainCaseById, {
+      cfg: null, token: '', calls: 0, maxCalls: 0, detailById: {}, errors: []
+    });
+    if (deferred.status !== 'deferred' || deferred.confirmed !== false) {
+      fail('API-cap result was mislabeled: ' + JSON.stringify(deferred));
+    } else {
+      pass('API-cap result remains deferred and retryable.');
+    }
+
+    context.getRemakeFactorConfig = function() { return { baseUrl: 'https://example.invalid' }; };
+    context.authenticateRemakeFactorApi = function() { return 'token'; };
+    context.fetchRemakeFactorCaseDetail = function(cfg, token, caseId) {
+      if (caseId === 'current-guid') return { caseID: 'current-guid', caseNumber: 389666, remakeCaseID: '' };
+      throw new Error('Unexpected caseId: ' + caseId);
+    };
+    const confirmedUnlinked = context.ceramistResolveRemakeChainV77_(blankQueryRow, mainCaseById, {
+      cfg: null, token: '', calls: 0, maxCalls: 5, detailById: {}, errors: []
+    });
+    if (confirmedUnlinked.status !== 'unlinked' || confirmedUnlinked.confirmed !== true ||
+        confirmedUnlinked.lookupVersion !== 'crm-remakeCaseID-confirmed-v7.7.1') {
+      fail('Explicit blank case detail was not persisted as confirmed unlinked: ' + JSON.stringify(confirmedUnlinked));
+    } else {
+      pass('Only an explicit blank CRM case detail becomes confirmed unlinked.');
+    }
+
+    const existingConfirmed = Object.assign({}, blankQueryRow, {
+      currentCaseNumber: 389666,
+      populationChainStatus: 'unlinked',
+      populationChainConfirmed: true,
+      populationChainLookupVersion: 'crm-remakeCaseID-confirmed-v7.7.1',
+      populationChainCheckedAt: '2026-07-31T17:00:00.000Z'
+    });
+    const reused = context.ceramistPopulationChainFromRowV77_(existingConfirmed);
+    if (reused.status !== 'unlinked' || reused.confirmed !== true) {
+      fail('Confirmed unlinked chain was not reusable: ' + JSON.stringify(reused));
+    } else {
+      pass('Confirmed unlinked chain is durable and reusable without another API call.');
     }
   } catch (error) {
     fail(error && error.stack ? error.stack : String(error));
@@ -336,7 +419,10 @@ if (failed) {
   console.log('Complete Ceramist population validation passed.');
   console.log('Dashboard: v6.573');
   console.log('RemakeFactorCache: v1.34.2');
-  console.log('CaeramistRemakeProfiler: v7.7.0');
+  console.log('CaeramistRemakeProfiler: v7.7.1');
+  console.log('Confirmed blank remakeCaseID handling: passed');
+  console.log('Deferred/error retry contract: passed');
+  console.log('Durable confirmed-unlinked reuse: passed');
   console.log('Complete Remake population source: passed');
   console.log('CRM remakeCaseID chain resolution: passed');
   console.log('389666 -> 385918 -> Jhan regression: passed');
