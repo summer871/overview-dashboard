@@ -1,14 +1,14 @@
 <!-- TatDashboardAdapterV6547.html
-Version: v6.562
+Version: v6.563
 Date: 2026-07-30
-Purpose: TAT bridge from shared dashboard capabilities to the existing controller, including the separate Products / Groups table and detached live cards.
+Purpose: TAT bridge for shared dashboard capabilities, separate Products / Groups, combined TAT Performance, and detached live cards.
 -->
 <script id="cdaTatDashboardAdapterControllerV6547">
 (function installTatDashboardAdapterV6547(){
   'use strict';
 
   if (window.cdaTatDashboardAdapterV6547 &&
-      window.cdaTatDashboardAdapterV6547.version === 'v6.562') return;
+      window.cdaTatDashboardAdapterV6547.version === 'v6.563') return;
 
   const TABLE_KEYS_V6547 = ['tatDepartment','tatProduct','tatLate','tatCustomer','tatQuality'];
 
@@ -70,9 +70,22 @@ Purpose: TAT bridge from shared dashboard capabilities to the existing controlle
     return /[",\n\r]/.test(text) ? '"' + text.replace(/"/g,'""') + '"' : text;
   }
 
-  function exportChartCurrentV6547(component){
+  function downloadCsvV6563(fileName,rows){
+    const csv = rows.map(function(row){ return row.map(csvCellV6547).join(','); }).join('\r\n');
+    const url = URL.createObjectURL(new Blob(['\uFEFF' + csv],{type:'text/csv;charset=utf-8'}));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(function(){ URL.revokeObjectURL(url); },500);
+    return true;
+  }
+
+  function exportChartRowsV6563(component){
     const chartInstance = chartV6547(component);
-    if (!chartInstance || !chartInstance.data) return false;
+    if (!chartInstance || !chartInstance.data) return [];
     const datasets = (chartInstance.data.datasets || []).filter(function(dataset,index){
       return typeof chartInstance.isDatasetVisible === 'function'
         ? chartInstance.isDatasetVisible(index)
@@ -85,19 +98,26 @@ Purpose: TAT bridge from shared dashboard capabilities to the existing controlle
         return value && value.y != null ? value.y : value;
       })));
     });
-    const csv = rows.map(function(row){ return row.map(csvCellV6547).join(','); }).join('\r\n');
-    const url = URL.createObjectURL(new Blob(['\uFEFF' + csv],{type:'text/csv;charset=utf-8'}));
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = 'tat_' + component.key + '_current.csv';
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    window.setTimeout(function(){ URL.revokeObjectURL(url); },500);
-    return true;
+    return rows;
+  }
+
+  function exportChartCurrentV6547(component){
+    const rows = exportChartRowsV6563(component);
+    return rows.length ? downloadCsvV6563('tat_' + component.key + '_current.csv',rows) : false;
+  }
+
+  function exportPerformanceV6563(context){
+    const rows = exportChartRowsV6563(context.component);
+    const table = window.cdaTable;
+    const lateRows = table && typeof table.getRows === 'function' ? table.getRows('tatLate') : [];
+    rows.push([]);
+    rows.push(['Promise Performance','Cases','Share']);
+    lateRows.forEach(function(row){ rows.push([row.label,row.count,row.share]); });
+    return downloadCsvV6563('tat_performance_current.csv',rows);
   }
 
   function exportCurrentV6547(context){
+    if (context.component.key === 'performance') return exportPerformanceV6563(context);
     if (context.component.kind === 'chart' && exportChartCurrentV6547(context.component)) return true;
     if (context.component.tableKey && window.cdaTable && typeof window.cdaTable.exportCsv === 'function') {
       window.cdaTable.exportCsv(context.component.tableKey,'tat_' + context.component.key + '_current.csv');
@@ -112,12 +132,27 @@ Purpose: TAT bridge from shared dashboard capabilities to the existing controlle
 
   function exportAllV6547(context){
     if (typeof window.exportTatAllDataV6509 !== 'function') return false;
+    if (context.component.key === 'performance') {
+      window.exportTatAllDataV6509('distribution');
+      window.setTimeout(function(){ window.exportTatAllDataV6509('late'); },100);
+      return true;
+    }
     window.exportTatAllDataV6509(context.component.key);
     return true;
   }
 
   function popoutV6547(context){
     return !!(window.cdaDashboardPopoutV6548 && window.cdaDashboardPopoutV6548.open(context));
+  }
+
+  function resetChartV6563(component){
+    const chartInstance = chartV6547(component);
+    if (!chartInstance) return;
+    (chartInstance.data.datasets || []).forEach(function(dataset,index){
+      if (typeof chartInstance.setDatasetVisibility === 'function') chartInstance.setDatasetVisibility(index,true);
+      else dataset.hidden = false;
+    });
+    chartInstance.update('none');
   }
 
   function resetV6547(context){
@@ -128,15 +163,13 @@ Purpose: TAT bridge from shared dashboard capabilities to the existing controlle
         window.cdaTable.clearSelection(component.tableKey);
       }
     }
-    if (component.kind === 'chart') {
-      const chartInstance = chartV6547(component);
-      if (chartInstance) {
-        (chartInstance.data.datasets || []).forEach(function(dataset,index){
-          if (typeof chartInstance.setDatasetVisibility === 'function') chartInstance.setDatasetVisibility(index,true);
-          else dataset.hidden = false;
-        });
-        chartInstance.update('none');
+    if (component.kind === 'chart') resetChartV6563(component);
+    if (component.key === 'performance') {
+      if (typeof window.clearTatComponentV6509 === 'function') {
+        window.clearTatComponentV6509('distribution');
+        window.clearTatComponentV6509('late');
       }
+      return true;
     }
     if (typeof window.clearTatComponentV6509 === 'function') window.clearTatComponentV6509(component.key);
     return true;
@@ -204,12 +237,13 @@ Purpose: TAT bridge from shared dashboard capabilities to the existing controlle
       if (typeof window.setTatDistributionModeV6509 === 'function') window.setTatDistributionModeV6509();
       if (window.cdaDashboardTitleToggleV6555) window.cdaDashboardTitleToggleV6555.syncAll('tat');
       if (window.cdaTatProductTableV6562) window.cdaTatProductTableV6562.afterReplace();
+      if (window.cdaTatDashboardLayoutV6563) window.cdaTatDashboardLayoutV6563.afterReplace();
       window.dispatchEvent(new Event('resize'));
     });
   }
 
   window.cdaTatDashboardAdapterV6547 = Object.freeze({
-    version:'v6.562',
+    version:'v6.563',
     getChart:getChartV6547,
     openColumns:openColumnsV6547,
     popout:popoutV6547,
