@@ -7,7 +7,7 @@ const vm = require('vm');
 const childProcess = require('child_process');
 
 const root = path.resolve(__dirname,'..');
-const requiredVersion = 'v6.565';
+const requiredVersion = 'v6.566';
 let failed = false;
 
 function fail(message){ console.error('ERROR: ' + message); failed = true; }
@@ -59,9 +59,12 @@ includes.forEach(name => {
 
 const footer = read('SharedFooter.html');
 const router = read('Code.js');
+const theme = read('SharedDashboardThemeV6549.html');
 const isolation = read('SharedDashboardIsolationV6555.html');
 const popout = read('SharedDashboardPopoutV6548.html');
 const interactionAudit = read('SharedDashboardInteractionAuditV6557.html');
+const remakeBridge = read('RemakeDashboardLegacyBridgeV6554.html');
+const remakeAdapter = read('RemakeDashboardAdapterV6548.html');
 const productService = read('TatProductTableV6562.html');
 const layout = read('TatDashboardLayoutV6563.html');
 const widths = read('TatTableWidthsV6563.html');
@@ -73,13 +76,32 @@ const remakeBootstrap = read('RemakeDashboardBootstrapV6548.html');
 validateHtml('SharedFooter.html',footer);
 try { new vm.Script(router,{filename:'Code.js'}); } catch (error) { fail(error.message); }
 
-if (!footer.includes("'v6.565'")) fail('Footer is not v6.565.');
-if (!footer.includes('TAT-REMAKE-PARITY-17')) fail('Footer build label is incorrect.');
-if (!router.includes("'v6.565'")) fail('Router is not v6.565.');
+if (!footer.includes("'v6.566'")) fail('Footer is not v6.566.');
+if (!footer.includes('TAT-REMAKE-PARITY-18')) fail('Footer build label is incorrect.');
+if (!router.includes("'v6.566'")) fail('Router is not v6.566.');
+if (!theme.includes("version:'v6.566'")) fail('Shared theme is not v6.566.');
+if (!theme.includes('--cda-card-content-padding: 10px 12px 12px')) fail('Shared card content padding is missing.');
+if (!theme.includes('.remakeTableWrap')) fail('Remake table surface normalization is missing.');
+if (!theme.includes('background: transparent !important')) fail('Remake nested table surface remains opaque.');
+if (!theme.includes('border-radius: 0 !important')) fail('Remake nested table surface remains rounded.');
+
 if (!isolation.includes("version:'v6.561'")) fail('Isolation service is not v6.561.');
 if (!isolation.includes("tableMode:'window-scroll-full-table'")) fail('Isolation table mode is incorrect.');
 if (!popout.includes("version:'v6.561'")) fail('Pop-out facade is not v6.561.');
 if (!interactionAudit.includes("version:'v6.561'")) fail('Interaction audit is not v6.561.');
+
+if (!remakeBridge.includes("version:'v6.566'")) fail('Remake legacy bridge is not v6.566.');
+if (!remakeBridge.includes('function documentV6566(scope)')) fail('Remake bridge is not document-aware.');
+if (!remakeBridge.includes('function explicitCardV6566(scope)')) fail('Remake bridge does not prioritize the live moved card.');
+if (!remakeBridge.includes('prepareV6554(component,scope)')) fail('Remake bridge does not prepare an explicit card scope.');
+
+if (!remakeAdapter.includes("version:'v6.566'")) fail('Remake adapter is not v6.566.');
+if (!remakeAdapter.includes("return match ? match[1] : '2025';")) fail('Remake prior-year fallback is not fixed at 2025.');
+if (!remakeAdapter.includes('stabilizeDetachedComparisonV6566')) fail('Detached comparison stabilization is missing.');
+if (!remakeAdapter.includes("attributeFilter:['hidden']")) fail('Detached Remake observer is not limited to non-recursive mutations.');
+if (!remakeAdapter.includes('data-cda-remake-popout-stable-v6566')) fail('Detached Remake stabilization marker is missing.');
+if (remakeAdapter.includes("attributeFilter:['class','style','hidden']")) fail('Detached Remake observer still watches its own style/class writes.');
+if (!remakeAdapter.includes('comparisonBusyV6566')) fail('Prior-year click re-entry guard is missing.');
 
 if (!productService.includes("version:'v6.562'")) fail('TAT product service is not v6.562.');
 if (!productService.includes("config.childRows = null")) fail('Department product drill-down is still enabled.');
@@ -139,6 +161,9 @@ else {
   console.log('Performance and Products second-row parity: passed');
   console.log('Distribution / Promise toggle: passed');
   console.log('Products / Groups toggle: passed');
+  console.log('Remake detached 2025 comparison stabilization: passed');
+  console.log('Shared Remake/TAT content spacing: passed');
+  console.log('Remake nested table surface removed: passed');
   console.log('Rejected full-width performance layouts removed: passed');
   console.log('Readable TAT table widths retained: passed');
   console.log('Popup window is the only vertical scroll owner: passed');

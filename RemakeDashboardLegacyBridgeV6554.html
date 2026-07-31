@@ -1,7 +1,7 @@
 <!-- RemakeDashboardLegacyBridgeV6554.html
-Version: v6.559
+Version: v6.566
 Date: 2026-07-30
-Purpose: Preserve legacy Remake behavior behind shared controls while leaving native title-collapse controls visible and authoritative.
+Purpose: Preserve legacy Remake behavior behind shared controls while remaining document-aware when a live card is moved into a pop-out.
 -->
 <style id="cdaRemakeDashboardLegacyBridgeStylesV6554">
   #remakeFactorPage .cdaDashboardLegacyControlV6548,
@@ -16,23 +16,45 @@ Purpose: Preserve legacy Remake behavior behind shared controls while leaving na
   'use strict';
 
   if (window.cdaRemakeLegacyBridgeV6554 &&
-      window.cdaRemakeLegacyBridgeV6554.version === 'v6.559') return;
+      window.cdaRemakeLegacyBridgeV6554.version === 'v6.566') return;
 
-  function pageV6554(){ return document.getElementById('remakeFactorPage'); }
+  function documentV6566(scope){
+    if (scope && scope.nodeType === 9) return scope;
+    if (scope && scope.ownerDocument) return scope.ownerDocument;
+    if (scope && scope.document && scope.document.nodeType === 9) return scope.document;
+    if (scope && scope.card && scope.card.ownerDocument) return scope.card.ownerDocument;
+    return document;
+  }
 
-  function cardV6554(component){
+  function explicitCardV6566(scope){
+    if (scope && scope.nodeType === 1) return scope;
+    return scope && scope.card && scope.card.nodeType === 1 ? scope.card : null;
+  }
+
+  function pageV6554(scope){
+    return documentV6566(scope).getElementById('remakeFactorPage');
+  }
+
+  function cardV6554(component,scope){
     if (!component) return null;
+    const explicit = explicitCardV6566(scope);
+    if (explicit) return explicit;
+    const doc = documentV6566(scope);
     if (typeof component.resolveCard === 'function') {
       try {
-        const custom = component.resolveCard({component:component,page:pageV6554()});
+        const custom = component.resolveCard({
+          component:component,
+          page:pageV6554(doc),
+          document:doc
+        });
         if (custom) return custom;
       } catch (error) {}
     }
     if (component.cardId) {
-      const byId = document.getElementById(component.cardId);
+      const byId = doc.getElementById(component.cardId);
       if (byId) return byId;
     }
-    const target = component.targetId && document.getElementById(component.targetId);
+    const target = component.targetId && doc.getElementById(component.targetId);
     return target && target.closest ? target.closest('.remakeCard,article') : null;
   }
 
@@ -83,8 +105,8 @@ Purpose: Preserve legacy Remake behavior behind shared controls while leaving na
     title.classList.remove('cdaDashboardCollapseTitleV6554');
   }
 
-  function prepareV6554(component){
-    const card = cardV6554(component);
+  function prepareV6554(component,scope){
+    const card = cardV6554(component,scope);
     if (!card || !card.querySelectorAll) return card;
     restoreNativeCollapseControlsV6559(card);
     card.querySelectorAll('button').forEach(function(button){
@@ -96,20 +118,21 @@ Purpose: Preserve legacy Remake behavior behind shared controls while leaving na
     return card;
   }
 
-  function providerV6554(component,action){
-    const card = prepareV6554(component);
+  function providerV6554(component,action,scope){
+    const card = prepareV6554(component,scope);
     return card ? card.querySelector('[data-cda-dashboard-legacy-action="' + action + '"]') : null;
   }
 
-  function invokeV6554(component,action){
-    const provider = providerV6554(component,action);
+  function invokeV6554(component,action,scope){
+    const provider = providerV6554(component,action,scope);
     if (!provider || typeof provider.click !== 'function') return false;
     provider.click();
     return true;
   }
 
   window.cdaRemakeLegacyBridgeV6554 = Object.freeze({
-    version:'v6.559',
+    version:'v6.566',
+    document:documentV6566,
     page:pageV6554,
     card:cardV6554,
     label:labelV6554,

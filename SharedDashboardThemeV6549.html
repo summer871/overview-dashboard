@@ -1,7 +1,7 @@
 <!-- SharedDashboardThemeV6549.html
-Version: v6.550
-Date: 2026-07-29
-Purpose: Single visual token and icon source for shared controls, menus, choosers, and pop-outs.
+Version: v6.566
+Date: 2026-07-30
+Purpose: Single visual token, content-spacing, surface, and icon source for shared controls, cards, menus, choosers, and pop-outs.
 -->
 <style id="cdaSharedDashboardThemeStylesV6549">
   :root {
@@ -22,6 +22,8 @@ Purpose: Single visual token and icon source for shared controls, menus, chooser
     --cda-shadow-popover: 0 7px 24px rgba(16,24,40,.18);
     --cda-control-height: 27px;
     --cda-control-gap: 5px;
+    --cda-card-content-padding: 10px 12px 12px;
+    --cda-card-content-gap: 10px;
     --cda-radius-control: 999px;
     --cda-radius-small: 6px;
     --cda-radius-menu: 8px;
@@ -33,12 +35,29 @@ Purpose: Single visual token and icon source for shared controls, menus, chooser
     --cda-font-popout-title: 900 15px/1.2 Roboto,Arial,sans-serif;
     --cda-font-popout-table: 500 11px/1.35 Roboto,Arial,sans-serif;
   }
+
+  #remakeFactorPage .cdaDashboardCardV6547 > .remakeCardBody,
+  #tatDashboardPageV6509 .cdaDashboardCardV6547 > .tatCardBodyV6509,
+  [data-cda-detached-component="true"] > .remakeCardBody,
+  [data-cda-detached-component="true"] > .tatCardBodyV6509 {
+    box-sizing: border-box !important;
+    padding: var(--cda-card-content-padding) !important;
+    gap: var(--cda-card-content-gap) !important;
+  }
+
+  #remakeFactorPage .cdaDashboardCardV6547 .remakeTableWrap,
+  [data-cda-detached-component="true"] .remakeTableWrap {
+    background: transparent !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
 </style>
 <script id="cdaSharedDashboardThemeControllerV6549">
 (function installSharedDashboardThemeV6549(){
   'use strict';
 
-  if (window.cdaDashboardThemeV6549 && window.cdaDashboardThemeV6549.version === 'v6.550') return;
+  if (window.cdaDashboardThemeV6549 && window.cdaDashboardThemeV6549.version === 'v6.566') return;
 
   const icons = Object.freeze({
     popout:'↗',
@@ -63,6 +82,8 @@ Purpose: Single visual token and icon source for shared controls, menus, chooser
     accentSurface:'#fff7d6',
     tableHeader:'#203038',
     onDark:'#ffffff',
+    cardContentPadding:'10px 12px 12px',
+    cardContentGap:'10px',
     radiusSmall:'6px',
     radiusMenu:'8px',
     radiusCard:'10px',
@@ -75,7 +96,7 @@ Purpose: Single visual token and icon source for shared controls, menus, chooser
   });
 
   window.cdaDashboardThemeV6549 = Object.freeze({
-    version:'v6.550',
+    version:'v6.566',
     icons:icons,
     tokens:tokens,
     icon:function(name){ return icons[String(name || '')] || ''; }

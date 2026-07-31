@@ -1,7 +1,7 @@
 <!-- RemakeDashboardAdapterV6548.html
-Version: v6.558
+Version: v6.566
 Date: 2026-07-30
-Purpose: Connect shared features to the clicked Remake card without replacing native header layout or title interactions.
+Purpose: Connect shared features to the active Remake card, including stable prior-year controls inside live detached windows.
 -->
 <style id="cdaRemakeDashboardAdapterStylesV6548">
   #remakeFactorPage .remakeCardActionsV6230,
@@ -27,7 +27,7 @@ Purpose: Connect shared features to the clicked Remake card without replacing na
   'use strict';
 
   if (window.cdaRemakeDashboardAdapterV6548 &&
-      window.cdaRemakeDashboardAdapterV6548.version === 'v6.558') return;
+      window.cdaRemakeDashboardAdapterV6548.version === 'v6.566') return;
 
   const bridge = window.cdaRemakeLegacyBridgeV6554;
   if (!bridge) throw new Error('Remake adapter requires the legacy bridge.');
@@ -37,17 +37,19 @@ Purpose: Connect shared features to the clicked Remake card without replacing na
     customer:'remake.customer',
     technician:'remake.ceramist'
   };
+  const comparisonBusyV6566 = new WeakSet();
 
   function cardV6548(component,context){
-    return context && context.card || bridge.card(component);
+    return context && context.card || bridge.card(component,context);
   }
 
   function providerV6548(component,action,context){
     const card = cardV6548(component,context);
-    const local = card && card.querySelector
-      ? card.querySelector('[data-cda-dashboard-legacy-action="' + action + '"]')
-      : null;
-    return local || bridge.provider(component,action);
+    if (card && card.querySelector) {
+      bridge.prepare(component,{card:card,document:card.ownerDocument});
+      return card.querySelector('[data-cda-dashboard-legacy-action="' + action + '"]');
+    }
+    return bridge.provider(component,action,context);
   }
 
   function invokeV6548(component,action,context){
@@ -70,7 +72,10 @@ Purpose: Connect shared features to the clicked Remake card without replacing na
         catch (error) { target = card.querySelector('[id="' + String(id).replace(/"/g,'\\"') + '"]'); }
       }
     }
-    if (!target) target = id && document.getElementById(id);
+    if (!target) {
+      const doc = context && context.document || card && card.ownerDocument || document;
+      target = id && doc.getElementById(id);
+    }
     return target && target.tagName === 'TABLE'
       ? target
       : target && target.closest ? target.closest('table') : null;
@@ -90,7 +95,7 @@ Purpose: Connect shared features to the clicked Remake card without replacing na
   function priorYearLabelV6548(context){
     const legacy = legacyCompareButtonV6548(context.component,context);
     const match = String(legacy && legacy.textContent || '').match(/\b(20\d{2})\b/);
-    return match ? match[1] : String(new Date().getFullYear() - 1);
+    return match ? match[1] : '2025';
   }
 
   function isCollapsedV6555(context){
@@ -150,7 +155,11 @@ Purpose: Connect shared features to the clicked Remake card without replacing na
     const compare = toolbar.querySelector('[data-cda-dashboard-feature-key="comparePriorYear"]');
     if (compare) {
       const provider = legacyCompareButtonV6548(context.component,context);
+      const priorYear = priorYearLabelV6548(context);
       compare.hidden = !provider;
+      compare.textContent = priorYear;
+      compare.setAttribute('aria-label','Compare with ' + priorYear);
+      compare.setAttribute('title','Compare with ' + priorYear);
       if (provider) {
         compare.setAttribute('aria-pressed',comparisonActiveV6548(context.component,context) ? 'true' : 'false');
       }
@@ -162,12 +171,24 @@ Purpose: Connect shared features to the clicked Remake card without replacing na
     const toolbar = resolvedCard && resolvedCard.querySelector(
       '.cdaDashboardToolbarV6547[data-cda-dashboard-toolbar="' + component.key + '"]'
     );
-    if (toolbar) syncToolbarStateV6548({component:component,toolbar:toolbar,card:resolvedCard});
+    if (toolbar) syncToolbarStateV6548({
+      component:component,
+      toolbar:toolbar,
+      card:resolvedCard,
+      document:resolvedCard.ownerDocument
+    });
   }
 
   function togglePriorYearComparisonV6548(context){
-    if (!invokeV6548(context.component,'comparePriorYear',context)) return false;
-    window.setTimeout(function(){ syncComponentV6548(context.component,context.card); },0);
+    const provider = legacyCompareButtonV6548(context.component,context);
+    if (!provider || typeof provider.click !== 'function') return false;
+    if (comparisonBusyV6566.has(provider)) return true;
+    comparisonBusyV6566.add(provider);
+    provider.click();
+    window.setTimeout(function(){
+      comparisonBusyV6566.delete(provider);
+      syncComponentV6548(context.component,context.card);
+    },80);
     return true;
   }
 
@@ -185,8 +206,55 @@ Purpose: Connect shared features to the clicked Remake card without replacing na
     } catch (error) { return null; }
   }
 
+  function componentIdV6566(context){
+    const tabKey = context && context.tab && context.tab.key || 'remake';
+    const componentKey = context && context.component && context.component.key;
+    return componentKey ? String(tabKey) + '.' + String(componentKey) : '';
+  }
+
+  function stabilizeDetachedComparisonV6566(context){
+    const isolation = window.cdaDashboardIsolationV6555;
+    const id = componentIdV6566(context);
+    const session = isolation && id && typeof isolation.session === 'function'
+      ? isolation.session(id)
+      : null;
+    if (!session || !session.card || !session.popup || session.popup.closed) return false;
+    if (session.remakeComparisonObserverV6566) return true;
+
+    if (session.observer && typeof session.observer.disconnect === 'function') session.observer.disconnect();
+    const popup = session.popup;
+    let frame = 0;
+    session.observer = new popup.MutationObserver(function(records){
+      const meaningful = records.some(function(record){
+        return record.type === 'childList' ||
+          (record.type === 'attributes' && record.attributeName === 'hidden');
+      });
+      if (!meaningful || frame) return;
+      frame = popup.requestAnimationFrame(function(){
+        frame = 0;
+        if (!session.card || popup.closed) return;
+        bridge.prepare(context.component,{card:session.card,document:session.card.ownerDocument});
+        if (typeof isolation.normalizeFullTable === 'function') isolation.normalizeFullTable(id);
+        syncComponentV6548(context.component,session.card);
+      });
+    });
+    session.observer.observe(session.card,{
+      childList:true,
+      subtree:true,
+      attributes:true,
+      attributeFilter:['hidden']
+    });
+    session.remakeComparisonObserverV6566 = true;
+    session.card.setAttribute('data-cda-remake-popout-stable-v6566','true');
+    bridge.prepare(context.component,{card:session.card,document:session.card.ownerDocument});
+    syncComponentV6548(context.component,session.card);
+    return true;
+  }
+
   function popoutV6548(context){
-    return !!(window.cdaDashboardPopoutV6548 && window.cdaDashboardPopoutV6548.open(context));
+    const opened = !!(window.cdaDashboardPopoutV6548 && window.cdaDashboardPopoutV6548.open(context));
+    if (opened) window.setTimeout(function(){ stabilizeDetachedComparisonV6566(context); },0);
+    return opened;
   }
 
   function resetV6548(context){
@@ -222,7 +290,7 @@ Purpose: Connect shared features to the clicked Remake card without replacing na
     context.card.classList.add('cdaDashboardCardV6547');
     const header = context.card.querySelector('.remakeCardHeader');
     if (header) header.classList.add('cdaDashboardCardHeaderV6547');
-    bridge.prepare(context.component);
+    bridge.prepare(context.component,context);
     const staleHost = header && header.querySelector(
       ':scope > .cdaDashboardDecoratedActionsV6548[data-cda-dashboard-shared-host="true"]'
     );
@@ -261,15 +329,16 @@ Purpose: Connect shared features to the clicked Remake card without replacing na
     installNativeCollapseBridgeV6558();
     applyColumnsV6548(context.tab);
     context.tab.components.forEach(function(component){
-      bridge.prepare(component);
-      syncComponentV6548(component,null);
+      const card = cardV6548(component,null);
+      bridge.prepare(component,{card:card,document:card && card.ownerDocument || document});
+      syncComponentV6548(component,card);
     });
   }
 
   installNativeCollapseBridgeV6558();
 
   window.cdaRemakeDashboardAdapterV6548 = Object.freeze({
-    version:'v6.558',
+    version:'v6.566',
     nativeTitleToggle:true,
     priorYearLabel:priorYearLabelV6548,
     togglePriorYearComparison:togglePriorYearComparisonV6548,
@@ -286,6 +355,7 @@ Purpose: Connect shared features to the clicked Remake card without replacing na
     syncToolbarState:syncToolbarStateV6548,
     afterDecorate:afterDecorateV6548,
     comparisonActive:comparisonActiveV6548,
+    stabilizeDetachedComparison:stabilizeDetachedComparisonV6566,
     syncDetachedNativeCollapse:syncDetachedNativeCollapseV6558
   });
 })();
