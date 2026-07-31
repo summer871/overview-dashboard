@@ -22186,7 +22186,7 @@
       return row;
     });
   }
-  // v6.571: Reconcile the complete Remake population to the Ceramist sidecar
+  // v6.573: Reconcile the complete Remake population to the Ceramist sidecar
   // with the authoritative numeric current case number retained by the compact
   // browser payload. GUID case IDs are intentionally not used as attribution
   // join keys. When an older browser cache lacks caseNumber, keep the proven
@@ -22195,7 +22195,7 @@
     signature:'',
     rows:[],
     audit:{
-      version:'v6.571',
+      version:'v6.573',
       mainRemakeRows:0,
       sidecarRows:0,
       mainRowsWithCaseNumber:0,
@@ -22435,7 +22435,7 @@
     if (matched) return row;
 
     row.currentProductCeramicsEligible = false;
-    row.currentProductCeramicsEligibilityReason = 'No qualifying technician-attribution row matched this remake case after the Ceramist cache loaded';
+    row.currentProductCeramicsEligibilityReason = 'No Ceramist attribution sidecar record exists for this remake case';
     row.responsibleCeramist = '[Unattributed]';
     row.responsibleCeramistDisplay = '[Unattributed]';
     row.responsibleTechnicianNumber = '';
@@ -22444,7 +22444,7 @@
     row.responsibleWorkerCategory = 'Unattributed';
     row.responsibleWorkerSection = 'Unattributed';
     row.attributionStatus = 'unattributed';
-    row.attributionBasis = 'not_current_product_ceramics_eligible';
+    row.attributionBasis = 'missing_sidecar_record';
     row.attributionReason = row.currentProductCeramicsEligibilityReason;
     row.caseLevelResponsibilityApplied = true;
     row.invoiceNoteUsedForAttribution = false;
@@ -22463,7 +22463,7 @@
       signature:signature,
       rows:fallbackRows,
       audit:{
-        version:'v6.571',
+        version:'v6.573',
         mainRemakeRows:sourceMainRows.length,
         sidecarRows:sourceSidecarRows.length,
         mainRowsWithCaseNumber:mainRowsWithCaseNumber,
@@ -22526,7 +22526,7 @@
         signature:signature,
         rows:[],
         audit:{
-          version:'v6.571',
+          version:'v6.573',
           mainRemakeRows:sourceMainRows.length,
           sidecarRows:0,
           mainRowsWithCaseNumber:mainRowsWithCaseNumber,
@@ -22618,7 +22618,7 @@
     const matchedRows = exactOrProductMatchedRows + caseLevelMatchedRows;
     const coverage = ceramistPopulationCaseCoverageV6571(joinedRows);
     const audit = {
-      version:'v6.571',
+      version:'v6.573',
       mainRemakeRows:sourceMainRows.length,
       sidecarRows:sourceSidecarRows.length,
       mainRowsWithCaseNumber:mainRowsWithCaseNumber,
@@ -22650,8 +22650,8 @@
     return joinedRows;
   }
 
-  const ceramistPopulationApiV6571 = Object.freeze({
-    version:'v6.571',
+  const ceramistPopulationApiV6573 = Object.freeze({
+    version:'v6.573',
     audit:function() {
       const mainRows = normalizedRowsV6230().filter(function(row) {
         return row && isRemakeV6230(row);
@@ -22661,7 +22661,7 @@
         ceramistBuildCompletePopulationV6569(sidecarRows, mainRows);
       }
       return Object.assign({}, ceramistPopulationMemoV6569.audit || {}, {
-        version:'v6.571',
+        version:'v6.573',
         stateLoaded:ceramistStateV6342.loaded === true,
         stateLoading:ceramistStateV6342.loading === true,
         stateOk:ceramistStateV6342.ok === true,
@@ -22676,9 +22676,10 @@
       });
     }
   });
-  window.cdaCeramistPopulationReconciliationV6571 = ceramistPopulationApiV6571;
-  window.cdaCeramistPopulationReconciliationV6570 = ceramistPopulationApiV6571;
-  window.cdaCeramistPopulationReconciliationV6569 = ceramistPopulationApiV6571;
+  window.cdaCeramistPopulationReconciliationV6573 = ceramistPopulationApiV6573;
+  window.cdaCeramistPopulationReconciliationV6571 = ceramistPopulationApiV6573;
+  window.cdaCeramistPopulationReconciliationV6570 = ceramistPopulationApiV6573;
+  window.cdaCeramistPopulationReconciliationV6569 = ceramistPopulationApiV6573;
 
   function ceramistRowsInDashboardScopeV6342(ignoreFilterKind) {
     const sidecarRows = Array.isArray(ceramistStateV6342.rows) ? ceramistStateV6342.rows : [];
@@ -22877,6 +22878,15 @@
     if (!row) return 'No CERAMICS task assigned';
     const basis = String(row.attributionBasis || '').toLowerCase();
     const explicitReason = textV6230(row.attributionReason || row.currentProductCeramicsEligibilityReason, '');
+    if (basis === 'missing_sidecar_record') {
+      return explicitReason || 'No Ceramist attribution sidecar record exists for this remake case';
+    }
+    if (basis === 'population_chain_pending') {
+      return explicitReason || 'Remake chain attribution is queued for the next cache refresh';
+    }
+    if (basis === 'population_chain_error') {
+      return explicitReason || 'Remake chain attribution could not be resolved';
+    }
     if (basis === 'not_current_product_ceramics_eligible') {
       return explicitReason || 'Not eligible: no exact current-product CERAMICS task';
     }

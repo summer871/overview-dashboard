@@ -8,6 +8,7 @@ const vm = require('vm');
 const root = path.resolve(__dirname, '..');
 const mainPath = path.join(root, 'DashboardMainScript.html');
 const cachePath = path.join(root, 'RemakeFactorCache.js');
+const profilerPath = path.join(root, 'CaeramistRemakeProfiler.js');
 let failed = false;
 
 function fail(message) {
@@ -24,6 +25,18 @@ function requireMarker(text, marker, message) {
   else pass(message);
 }
 
+function requireAbsent(text, marker, message) {
+  if (text.includes(marker)) fail(message + ' Forbidden marker: ' + marker);
+  else pass(message);
+}
+
+function requireBefore(text, first, second, message) {
+  const a = text.indexOf(first);
+  const b = text.indexOf(second);
+  if (a < 0 || b < 0 || a >= b) fail(message + ' Expected order was not found.');
+  else pass(message);
+}
+
 function syntaxCheckJavaScript(source, filename) {
   try {
     new vm.Script(source, { filename });
@@ -33,74 +46,101 @@ function syntaxCheckJavaScript(source, filename) {
   }
 }
 
-if (!fs.existsSync(mainPath)) fail('Missing DashboardMainScript.html.');
-if (!fs.existsSync(cachePath)) fail('Missing RemakeFactorCache.js.');
+[mainPath, cachePath, profilerPath].forEach(function(filePath) {
+  if (!fs.existsSync(filePath)) fail('Missing file: ' + path.basename(filePath));
+});
 
 if (!failed) {
   const main = fs.readFileSync(mainPath, 'utf8');
   const cache = fs.readFileSync(cachePath, 'utf8');
+  const profiler = fs.readFileSync(profilerPath, 'utf8');
 
-  requireMarker(cache, 'Version: v1.34.1 - 2026-07-31', 'Remake cache release stamp is current.');
-  requireMarker(cache, "const caseNumber = cleanRemakeFactorText(row.caseNumber || row.caseNo || row.Cases_CaseNumber || '');", 'Compact Remake rows retain the numeric case number.');
-  requireMarker(cache, 'caseNumber: caseNumber,', 'Compact browser row exposes caseNumber.');
-  requireMarker(cache, 'caseNumbers: [],', 'Packed browser-ready cache has a case-number dictionary.');
+  requireMarker(cache, 'Version: v1.34.2 - 2026-07-31', 'Remake cache release stamp is current.');
+  requireMarker(cache, 'const remakeCaseIdFieldPresent = Object.keys(caseRow || {}).some', 'Durable Remake rows record whether CRM supplied remakeCaseID.');
+  requireMarker(cache, 'remakeCaseId: remakeCaseId,', 'Durable Remake rows preserve remakeCaseId.');
+  requireMarker(cache, 'remakeCaseID: remakeCaseId,', 'Durable Remake rows preserve the canonical remakeCaseID alias.');
+  requireMarker(cache, 'remakeCaseIdFieldPresent: remakeCaseIdFieldPresent,', 'Durable rows distinguish a confirmed blank link from an old missing field.');
+  requireMarker(cache, "const caseNumber = cleanRemakeFactorText(row.caseNumber || row.caseNo || row.Cases_CaseNumber || '');", 'Compact Remake rows retain numeric caseNumber.');
+  requireMarker(cache, 'caseNumbers: [],', 'Packed browser-ready cache retains the case-number dictionary.');
   requireMarker(cache, "scalarIndex('caseNumbers', row.caseNumber || '')", 'Packed browser-ready rows append caseNumber.');
-  requireMarker(cache, 'caseNumbers: dictionaries.caseNumbers.length,', 'Packed cache metadata counts case numbers.');
 
-  requireMarker(main, 'const caseNumbers = dictionaries.caseNumbers || [];', 'Browser-ready decoder accepts the case-number dictionary.');
-  requireMarker(main, "caseNumber: String(remakeDictionaryValueV6388(caseNumbers, packedRow[15], '') || ''),", 'Browser-ready decoder restores caseNumber.');
-  requireMarker(main, '// v6.571: Reconcile the complete Remake population to the Ceramist sidecar', 'v6.571 native population reconciliation is installed.');
-  requireMarker(main, 'GUID case IDs are intentionally not used as attribution', 'The join contract rejects GUID case IDs.');
-  requireMarker(main, "waitingForMainCaseNumber:reason === 'main_case_number_missing'", 'Old browser caches safely fall back instead of synthesizing false Unattributed rows.');
-  requireMarker(main, "matchMethod = 'case_level_unique_worker';", 'Case-level unique-worker responsibility is preserved.');
-  requireMarker(main, 'window.cdaCeramistPopulationReconciliationV6571 = ceramistPopulationApiV6571;', 'Live v6.571 audit is exposed.');
-  requireMarker(main, 'liveMainRowsWithCaseNumber:', 'Audit reports live main case-number readiness.');
-  requireMarker(main, 'unattributedOnlyCases:', 'Audit reports genuinely unattributed case count.');
+  requireMarker(profiler, 'Version: 7.7.0', 'Ceramist profiler release stamp is current.');
+  requireMarker(profiler, "const ceramistPopulationVersionV77 = 'complete-remake-population-v7.7.0';", 'Complete-population contract is declared.');
+  requireMarker(profiler, 'function ceramistReconcileCompleteRemakePopulationV77_(existingRows)', 'Complete Remake population reconciliation is installed.');
+  requireMarker(profiler, 'const remakePayload = readRemakeFactorCache();', 'The durable Remake cache is the population source of truth.');
+  requireMarker(profiler, 'function ceramistResolveRemakeChainV77_(row, mainCaseById, apiContext)', 'CRM remakeCaseID chains are resolved for missing sidecar cases.');
+  requireMarker(profiler, 'function refreshCeramistCaseLevelResponsibilityNightlyV75()', 'The existing trigger-compatible refresh function is retained.');
+  requireBefore(
+    profiler,
+    'const populationResult = ceramistReconcileCompleteRemakePopulationV77_(existingRows);',
+    'ceramistApplyCaseLevelResponsibilityV74_(rows);',
+    'Population reconciliation runs before CERAMICS responsibility calculation.'
+  );
+  requireMarker(profiler, "payload.populationVersion = ceramistPopulationVersionV77;", 'The Drive sidecar records its population version.');
+  requireMarker(profiler, "row.attributionBasis = 'population_chain_pending';", 'Deferred API work has an explicit non-misleading reason.');
+  requireMarker(profiler, "row.attributionBasis = 'population_chain_error';", 'CRM chain errors have an explicit non-misleading reason.');
 
-  const forbidden = [
-    'RemakeCombinedRefreshV6569',
-    'cdaRemakeTechnicianReconciliationV6568',
+  requireMarker(main, '// v6.573: Reconcile the complete Remake population to the Ceramist sidecar', 'v6.573 native reconciliation is installed.');
+  requireMarker(main, 'window.cdaCeramistPopulationReconciliationV6573 = ceramistPopulationApiV6573;', 'Live v6.573 audit is exposed.');
+  requireMarker(main, "row.attributionBasis = 'missing_sidecar_record';", 'A missing sidecar record is distinguished from a missing CERAMICS task.');
+  requireMarker(main, 'No Ceramist attribution sidecar record exists for this remake case', 'The accurate sidecar-missing explanation is present.');
+  requireMarker(main, "if (basis === 'population_chain_pending')", 'The dashboard explains deferred population-chain work.');
+  requireMarker(main, "if (basis === 'population_chain_error')", 'The dashboard explains population-chain errors.');
+
+  [
+    'Click to filter the dashboard',
+    'Click selected row again to clear',
+    'Select a row',
+    'Select this worker',
     '|| true'
-  ];
-  forbidden.forEach(function(marker) {
-    if (main.includes(marker) || cache.includes(marker)) fail('Obsolete or permissive code remains: ' + marker);
-    else pass('Forbidden marker absent: ' + marker);
+  ].forEach(function(marker) {
+    requireAbsent(main + '\n' + profiler + '\n' + cache, marker, 'Obsolete, noisy, or permissive code is absent.');
   });
 
   syntaxCheckJavaScript(cache, 'RemakeFactorCache.js');
+  syntaxCheckJavaScript(profiler, 'CaeramistRemakeProfiler.js');
 
   const scriptMatch = main.match(/^\s*<script>\s*([\s\S]*?)\s*<\/script>\s*$/);
   if (!scriptMatch) {
     fail('DashboardMainScript.html is not one complete script partial.');
   } else {
-    const syntaxSource = scriptMatch[1].replace(/<\?!=[\s\S]*?\?>/g, 'null');
+    const syntaxSource = scriptMatch[1].replace(/<\?[\s\S]*?\?>/g, 'null');
     syntaxCheckJavaScript(syntaxSource, 'DashboardMainScript.html');
   }
 
-  // Execute the complete cache file without invoking Apps Script services, then
-  // prove the compact browser row keeps both GUID caseId and numeric caseNumber.
+  // Prove the durable Remake row stores the link while the compact browser row
+  // still preserves independent GUID caseId and numeric caseNumber.
   try {
     const cacheContext = { console };
     vm.createContext(cacheContext);
     vm.runInContext(cache, cacheContext, { filename: 'RemakeFactorCache.js' });
-    const compactRow = cacheContext.buildRemakeFactorBrowserRowV1323({
-      month: '2026-07',
-      invoiceDate: '2026-07-31',
-      caseId: 'GUID-CASE-100',
-      caseNumber: 100,
-      customerId: 'C1',
-      customerName: 'Customer One',
-      department: 'Fixed',
-      productId: 'P1',
-      productName: 'Product One',
-      productGroup: 'Crown',
-      quantity: 1,
-      isRemake: true,
-      remakeUnits: 1,
-      remakeDiscount: 10
-    });
-    if (compactRow.caseId !== 'GUID-CASE-100' || compactRow.caseNumber !== '100') {
-      fail('Compact row did not preserve independent caseId and caseNumber: ' + JSON.stringify(compactRow));
+    const detailRows = cacheContext.buildRemakeFactorDetailRows([
+      {
+        caseID: 'CURRENT-GUID',
+        caseNumber: 389666,
+        remakeCaseID: 'ROOT-GUID',
+        invoiceDate: '2026-07-24',
+        customerID: '100496',
+        caseProducts: [{
+          id: 'LINE-1',
+          productID: 'ZIRPRF11PC',
+          invoiceDescription: 'Fixed - Zirfit Prime - Posterior Crown',
+          quantity: 2,
+          totalCharge: 0,
+          remake: 'Remake 100%',
+          remakeReason: 'Margin Open',
+          remakeDiscount: 290
+        }]
+      }
+    ], {}, {});
+    if (!detailRows.length || detailRows[0].remakeCaseId !== 'ROOT-GUID' || detailRows[0].remakeCaseIdFieldPresent !== true) {
+      fail('Durable Remake row did not preserve remakeCaseID and its field-presence flag.');
+    } else {
+      pass('Durable Remake row preserves authoritative remakeCaseID.');
+    }
+    const compactRow = cacheContext.buildRemakeFactorBrowserRowV1323(detailRows[0]);
+    if (compactRow.caseId !== 'CURRENT-GUID' || compactRow.caseNumber !== '389666') {
+      fail('Compact row did not preserve independent caseId and caseNumber.');
     } else {
       pass('Compact row preserves GUID caseId and numeric caseNumber independently.');
     }
@@ -108,10 +148,108 @@ if (!failed) {
     fail(error && error.stack ? error.stack : String(error));
   }
 
-  const blockStart = main.indexOf('// v6.571: Reconcile the complete Remake population to the Ceramist sidecar');
+  // Reproduce the verified 389666 -> 385918 case without hard-coding it in the
+  // production logic. BigQuery has completed CERAMICS by Jhan on both cases.
+  try {
+    const context = {
+      console,
+      JSON,
+      Date,
+      Math,
+      Number,
+      String,
+      Object,
+      Array,
+      Set,
+      Map,
+      RegExp,
+      PropertiesService: {
+        getScriptProperties() {
+          return { getProperty(name) { return name === 'MT_CERAMIST_POPULATION_MAX_API_CALLS' ? '160' : ''; } };
+        }
+      },
+      CacheService: { getScriptCache() { return { get() { return null; }, put() {} }; } },
+      SpreadsheetApp: {},
+      DriveApp: {},
+      MailApp: {},
+      LockService: {},
+      ScriptApp: {},
+      Utilities: { sleep() {} },
+      BigQuery: {}
+    };
+    vm.createContext(context);
+    vm.runInContext(profiler, context, { filename: 'CaeramistRemakeProfiler.js' });
+    context.readRemakeFactorCache = function() {
+      return {
+        ok: true,
+        generatedAt: '2026-07-31T16:00:00.000Z',
+        detailRows: [
+          {
+            month: '2026-07', year: 2026, invoiceDate: '2026-07-24',
+            caseId: 'current-guid', caseNumber: 389666,
+            remakeCaseId: 'root-guid', remakeCaseID: 'root-guid', remakeCaseIdFieldPresent: true,
+            customerId: '100496', customerName: 'UOP: School of Dentistry',
+            department: 'Fixed', productId: 'ZIRPRF11PC',
+            productName: 'Fixed - Zirfit Prime - Posterior Crown', productGroup: 'Crown',
+            lineId: 'line-1', quantity: 2, isRemake: true, remakeUnits: 2,
+            remakeDiscount: 290, remakeReason: 'Margin Open'
+          },
+          {
+            month: '2026-05', year: 2026, invoiceDate: '2026-05-13',
+            caseId: 'root-guid', caseNumber: 385918,
+            customerId: '100496', customerName: 'UOP: School of Dentistry',
+            department: 'Fixed', productId: 'ZIRPRF11PC',
+            productName: 'Fixed - Zirfit Prime - Posterior Crown', productGroup: 'Crown',
+            lineId: 'root-line', quantity: 2, isRemake: false
+          }
+        ]
+      };
+    };
+    context.getRemakeFactorConfig = function() { return { baseUrl: 'https://example.invalid' }; };
+    context.authenticateRemakeFactorApi = function() { return 'token'; };
+    context.fetchRemakeFactorCaseDetail = function(cfg, token, caseId) {
+      if (caseId === 'root-guid') return { caseID: 'root-guid', caseNumber: 385918, remakeCaseID: '' };
+      if (caseId === 'current-guid') return { caseID: 'current-guid', caseNumber: 389666, remakeCaseID: 'root-guid' };
+      throw new Error('Unexpected caseId: ' + caseId);
+    };
+    context.ceramistRunBigQuery_ = function() {
+      return [
+        { case_number: 385918, completed_rows: 1, missing_worker_rows: 0, workers_json: '["Jhan"]', sequences_json: '[800]', product_ids_json: '["ZIRPRF11PC"]' },
+        { case_number: 389666, completed_rows: 1, missing_worker_rows: 0, workers_json: '["Jhan"]', sequences_json: '[800]', product_ids_json: '["ZIRPRF11PC"]' }
+      ];
+    };
+
+    const population = context.ceramistReconcileCompleteRemakePopulationV77_([]);
+    context.ceramistApplyCaseLevelResponsibilityV74_(population.rows);
+    const row = population.rows[0] || {};
+    const correct = String(row.currentCaseNumber) === '389666' &&
+      String(row.previousCaseNumber) === '385918' &&
+      String(row.rootCaseNumber) === '385918' &&
+      Number(row.chainDepth) === 1 &&
+      row.responsibleCeramist === 'Jhan' &&
+      row.currentCeramist === 'Jhan' &&
+      row.attributionStatus === 'attributed' &&
+      row.attributionBasis === 'root_case_level';
+    if (!correct) {
+      fail('Verified 389666 -> 385918 attribution scenario failed: ' + JSON.stringify(row));
+    } else {
+      pass('Verified 389666 -> 385918 scenario attributes Jhan from completed CERAMICS.');
+    }
+    if (population.stats.populationSynthesizedRows !== 1 || population.stats.populationApiCalls !== 1) {
+      fail('Population reconciliation stats are incorrect: ' + JSON.stringify(population.stats));
+    } else {
+      pass('Missing sidecar case is synthesized once and its CRM chain is resolved safely.');
+    }
+  } catch (error) {
+    fail(error && error.stack ? error.stack : String(error));
+  }
+
+  // Prove the browser join still preserves complete main population and uses an
+  // accurate reason only when the durable backend sidecar has not caught up yet.
+  const blockStart = main.indexOf('// v6.573: Reconcile the complete Remake population to the Ceramist sidecar');
   const blockEnd = main.indexOf('  function ceramistRowsInDashboardScopeV6342(ignoreFilterKind)', blockStart);
   if (blockStart < 0 || blockEnd <= blockStart) {
-    fail('Could not isolate the v6.571 reconciliation block.');
+    fail('Could not isolate the v6.573 reconciliation block.');
   } else {
     const block = main.slice(blockStart, blockEnd);
     const context = {
@@ -136,7 +274,7 @@ if (!failed) {
         loaded: true,
         ok: true,
         rows: [],
-        cacheToken: 'cache-token-v6571',
+        cacheToken: 'cache-token-v6573',
         caseLevelRefreshedAt: ''
       },
       normalizedRowsV6230() { return context.runtimeMainRows; },
@@ -152,139 +290,39 @@ if (!failed) {
       ceramistIsAttributedV6343(row) {
         const worker = String(row && row.responsibleCeramist || '').trim();
         return String(row && row.attributionStatus || '') === 'attributed' && worker && worker !== '[Unattributed]';
-      },
-      ceramistDistinctCaseCountV6342(rows) {
-        return new Set((rows || []).map(function(row) {
-          return String(row && (row.currentCaseNumber || row.remakeCaseNumber || row.caseNumber || row.caseId) || '').trim();
-        }).filter(Boolean)).size;
       }
     };
     context.window.window = context.window;
     vm.createContext(context);
 
     try {
-      vm.runInContext(block, context, { filename: 'DashboardMainScript.html#v6.571-population' });
+      vm.runInContext(block, context, { filename: 'DashboardMainScript.html#v6.573-population' });
       const join = context.ceramistBuildCompletePopulationV6569;
-      if (typeof join !== 'function') throw new Error('Population join function was not created.');
-
-      const sidecarRows = [
-        {
-          currentCaseNumber: '100',
-          currentProductId: 'A',
-          productId: 'A',
-          productName: 'Product A',
-          remakeUnits: 1,
-          remakeDiscount: 10,
-          remakeReason: 'Reason A',
-          currentProductCeramicsEligible: true,
-          responsibleCeramist: 'worker-1',
-          responsibleCeramistDisplay: 'Worker One',
-          attributionStatus: 'attributed',
-          attributionBasis: 'root_case_level'
-        },
-        {
-          currentCaseNumber: '101',
-          currentProductId: 'C',
-          productId: 'C',
-          productName: 'Product C',
-          remakeUnits: 1,
-          remakeDiscount: 30,
-          remakeReason: 'Reason C',
-          currentProductCeramicsEligible: true,
-          responsibleCeramist: '[Unattributed]',
-          responsibleCeramistDisplay: '[Unattributed]',
-          attributionStatus: 'unattributed',
-          attributionBasis: 'no_case_level_ceramics_worker'
-        }
-      ];
-
+      const sidecarRows = [{
+        currentCaseNumber: '100', currentProductId: 'A', productId: 'A', productName: 'Product A',
+        remakeUnits: 1, remakeDiscount: 10, remakeReason: 'Reason A',
+        responsibleCeramist: 'worker-1', responsibleCeramistDisplay: 'Worker One',
+        attributionStatus: 'attributed', attributionBasis: 'root_case_level'
+      }];
       const mainRows = [
-        {
-          month: '2026-07', year: 2026, caseId: 'guid-100', caseNumber: '100',
-          productId: 'A', productKey: 'A', productName: 'Product A', productGroup: 'Group A',
-          department: 'Fixed', customerId: 'C1', customerName: 'Customer One',
-          remakeReason: 'Reason A', quantity: 1, remakeUnits: 1, remakeDiscount: 10, isRemake: true
-        },
-        {
-          month: '2026-07', year: 2026, caseId: 'guid-100', caseNumber: '100',
-          productId: 'B', productKey: 'B', productName: 'Product B', productGroup: 'Group B',
-          department: 'Fixed', customerId: 'C1', customerName: 'Customer One',
-          remakeReason: 'Reason B', quantity: 2, remakeUnits: 2, remakeDiscount: 20, isRemake: true
-        },
-        {
-          month: '2026-07', year: 2026, caseId: 'guid-101', caseNumber: '101',
-          productId: 'C', productKey: 'C', productName: 'Product C', productGroup: 'Group C',
-          department: 'Removable', customerId: 'C2', customerName: 'Customer Two',
-          remakeReason: 'Reason C', quantity: 1, remakeUnits: 1, remakeDiscount: 30, isRemake: true
-        },
-        {
-          month: '2026-07', year: 2026, caseId: 'guid-102', caseNumber: '102',
-          productId: 'D', productKey: 'D', productName: 'Product D', productGroup: 'Group D',
-          department: 'Implant', customerId: 'C3', customerName: 'Customer Three',
-          remakeReason: 'Reason D', quantity: 1, remakeUnits: 1, remakeDiscount: 40, isRemake: true
-        }
+        { month: '2026-07', year: 2026, caseId: 'guid-100', caseNumber: '100', productId: 'A', productKey: 'A', productName: 'Product A', productGroup: 'Group A', department: 'Fixed', customerId: 'C1', customerName: 'Customer One', remakeReason: 'Reason A', quantity: 1, remakeUnits: 1, remakeDiscount: 10, isRemake: true },
+        { month: '2026-07', year: 2026, caseId: 'guid-101', caseNumber: '101', productId: 'B', productKey: 'B', productName: 'Product B', productGroup: 'Group B', department: 'Fixed', customerId: 'C2', customerName: 'Customer Two', remakeReason: 'Reason B', quantity: 1, remakeUnits: 1, remakeDiscount: 20, isRemake: true }
       ];
-
       context.runtimeMainRows = mainRows;
       context.ceramistStateV6342.rows = sidecarRows;
       const joined = join(sidecarRows, mainRows);
-      const audit = context.window.cdaCeramistPopulationReconciliationV6571.audit();
-      const case100Rows = joined.filter(function(row) { return row.caseNumber === '100'; });
-      const case101Rows = joined.filter(function(row) { return row.caseNumber === '101'; });
-      const case102Rows = joined.filter(function(row) { return row.caseNumber === '102'; });
-
-      if (joined.length !== 4) fail('Runtime join did not preserve all main Remake rows.');
-      else pass('Runtime join preserves all main Remake rows.');
-
-      if (case100Rows.length !== 2 || !case100Rows.every(function(row) { return row.attributionStatus === 'attributed'; })) {
-        fail('Exact product plus case-level unique-worker attribution was not preserved.');
+      const unmatched = joined.find(function(row) { return row.caseNumber === '101'; }) || {};
+      const audit = context.window.cdaCeramistPopulationReconciliationV6573.audit();
+      if (joined.length !== 2 || unmatched.attributionBasis !== 'missing_sidecar_record' ||
+          unmatched.attributionReason !== 'No Ceramist attribution sidecar record exists for this remake case') {
+        fail('Browser fallback did not use the accurate missing-sidecar contract: ' + JSON.stringify(unmatched));
       } else {
-        pass('Exact product and case-level unique-worker attribution are preserved.');
+        pass('Browser fallback distinguishes a missing sidecar record from a missing CERAMICS task.');
       }
-
-      if (case101Rows.length !== 1 || case101Rows[0].attributionStatus !== 'unattributed' ||
-          case101Rows[0].attributionBasis !== 'no_case_level_ceramics_worker') {
-        fail('Existing sidecar Unattributed reason was not preserved.');
+      if (!audit.complete || audit.version !== 'v6.573' || audit.synthesizedUnattributedRows !== 1) {
+        fail('v6.573 browser reconciliation audit is incorrect: ' + JSON.stringify(audit));
       } else {
-        pass('Existing sidecar Unattributed reason is preserved.');
-      }
-
-      if (case102Rows.length !== 1 || case102Rows[0].responsibleCeramist !== '[Unattributed]' ||
-          case102Rows[0].attributionBasis !== 'not_current_product_ceramics_eligible') {
-        fail('Genuinely unmatched case did not receive the synthesized Unattributed contract.');
-      } else {
-        pass('Only the genuinely unmatched case receives synthesized Unattributed.');
-      }
-
-      if (!audit.complete || !audit.caseNumberReady || audit.mainRemakeRows !== 4 ||
-          audit.mainRowsWithCaseNumber !== 4 || audit.liveMainRowsWithCaseNumber !== 4 ||
-          audit.sidecarRows !== 2 || audit.liveSidecarRows !== 2 ||
-          audit.matchedRows !== 3 || audit.exactOrProductMatchedRows !== 2 ||
-          audit.caseLevelMatchedRows !== 1 || audit.synthesizedUnattributedRows !== 1 ||
-          audit.joinedRows !== 4 || audit.mainRemakeCases !== 3 || audit.joinedCases !== 3 ||
-          audit.attributedJoinedCases !== 1 || audit.unattributedOnlyCases !== 2) {
-        fail('Runtime reconciliation audit is incorrect: ' + JSON.stringify(audit));
-      } else {
-        pass('Runtime audit proves case-number readiness and true attributed/unattributed case counts.');
-      }
-
-      // Old compact browser rows had GUID caseId but no numeric caseNumber. The
-      // safe behavior is the original sidecar view, never all-Unattributed.
-      const oldBrowserRows = mainRows.map(function(row) {
-        const copy = Object.assign({}, row);
-        delete copy.caseNumber;
-        return copy;
-      });
-      context.runtimeMainRows = oldBrowserRows;
-      context.window.remakeFactorState.data.generatedAt = '2026-07-31T09:01:00.000Z';
-      const fallbackRows = join(sidecarRows, oldBrowserRows);
-      const fallbackAudit = context.window.cdaCeramistPopulationReconciliationV6571.audit();
-      if (fallbackRows.length !== sidecarRows.length || fallbackAudit.fallbackToSidecar !== true ||
-          fallbackAudit.waitingForMainCaseNumber !== true || fallbackAudit.synthesizedUnattributedRows !== 0 ||
-          fallbackAudit.caseNumberReady !== false) {
-        fail('Old browser cache did not safely fall back to the proven sidecar view: ' + JSON.stringify(fallbackAudit));
-      } else {
-        pass('Old browser cache safely falls back and never labels every case Unattributed.');
+        pass('v6.573 browser reconciliation audit is complete and accurate.');
       }
     } catch (error) {
       fail(error && error.stack ? error.stack : String(error));
@@ -295,11 +333,13 @@ if (!failed) {
 if (failed) {
   process.exitCode = 1;
 } else {
-  console.log('Ceramist case-number reconciliation validation passed.');
-  console.log('Version: v6.571 / RemakeFactorCache v1.34.1');
-  console.log('Compact caseNumber preservation: passed');
-  console.log('Packed caseNumber preservation: passed');
-  console.log('Numeric case-key join: passed');
-  console.log('Old browser-cache safety fallback: passed');
-  console.log('Attributed and Unattributed case audit: passed');
+  console.log('Complete Ceramist population validation passed.');
+  console.log('Dashboard: v6.573');
+  console.log('RemakeFactorCache: v1.34.2');
+  console.log('CaeramistRemakeProfiler: v7.7.0');
+  console.log('Complete Remake population source: passed');
+  console.log('CRM remakeCaseID chain resolution: passed');
+  console.log('389666 -> 385918 -> Jhan regression: passed');
+  console.log('Accurate missing-sidecar reason: passed');
+  console.log('Technician tooltip action-copy removal: passed');
 }

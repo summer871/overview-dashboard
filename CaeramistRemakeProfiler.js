@@ -2,8 +2,8 @@
  * Ceramist Remake Analysis - BigQuery profiler
  *
  * File: CeramistRemakeProfiler.gs
- * Version: 7.6.0
- * Last confirmed: 2026-07-14
+ * Version: 7.7.0
+ * Last confirmed: 2026-07-31
  * Purpose: CERAMICS attribution diagnostics plus a lightweight Drive-cache reader for the dashboard preview.
  *
  * Schema correction retained from v3:
@@ -27,7 +27,9 @@
  * refresh and writes the case-level responsibility result into the separate
  * Ceramist Drive cache once per day. v7.6 adds a lightweight metadata endpoint
  * so the browser can reuse its IndexedDB worker cache without downloading and
- * parsing the 7 MB Drive payload on every page refresh.
+ * parsing the 7 MB Drive payload on every page refresh. v7.7 reconciles the
+ * Ceramist sidecar to the complete durable Remake Factor population before
+ * calculating responsibility. Missing cases are no longer silently excluded.
  *
  * Confirmed attribution rule in v7:
  *   UPPER(TRIM(CaseTasks_Task)) = CERAMICS
@@ -46,7 +48,7 @@
  */
 
 const ceramistRemakeCacheFileIdPropertyV7 = 'MT_CERAMIST_REMAKE_CACHE_FILE_ID';
-const ceramistRemakeCacheVersionV7 = 'CeramistRemakeCache v0.4.0';
+const ceramistRemakeCacheVersionV7 = 'CeramistRemakeCache v0.5.0';
 const ceramistTaskUserBadgeSpreadsheetIdV71 = '1XrJctG1-0RGhKCV6w2jK4esoaahmc7Ji7MjQhZo-nBY';
 const ceramistTaskUserBadgeSheetNameV71 = 'Task User Badges';
 const ceramistTaskUserBadgeCacheKeyV72 = 'ceramistTaskUserBadgeLookup.v72';
@@ -58,8 +60,12 @@ const ceramistNightlyRefreshHourV75 = 22;
 const ceramistNightlyRefreshMinuteV75 = 45;
 const ceramistNightlyRefreshTimeZoneV75 = 'America/Los_Angeles';
 const ceramistNightlyRefreshLockWaitMsV75 = 30000;
-const ceramistResponsibilityVersionV75 = 'case-level-v7.5.0';
+const ceramistResponsibilityVersionV75 = 'case-level-v7.7.0';
 const ceramistBrowserCacheMetaVersionV76 = 'ceramist-browser-meta-v7.6.0';
+const ceramistPopulationVersionV77 = 'complete-remake-population-v7.7.0';
+const ceramistPopulationMaxApiCallsPropertyV77 = 'MT_CERAMIST_POPULATION_MAX_API_CALLS';
+const ceramistPopulationDefaultMaxApiCallsV77 = 160;
+const ceramistPopulationMaxChainDepthV77 = 8;
 
 const ceramistProfileConfig = {
   projectId: 'customerprofiles',
@@ -187,6 +193,7 @@ function getCeramistRemakeAnalysisData() {
       ok: true,
       version: payload.version || ceramistRemakeCacheVersionV7,
       responsibilityVersion: payload.responsibilityVersion || '',
+      populationVersion: payload.populationVersion || '',
       generatedAt: payload.generatedAt || '',
       caseLevelRefreshedAt: payload.caseLevelRefreshedAt || '',
       cacheToken: browserMeta.cacheToken || '',
@@ -240,9 +247,11 @@ function refreshCeramistCaseLevelResponsibilityNightlyV75() {
       throw new Error('The Ceramist Drive cache is missing, invalid, or not ready.');
     }
 
-    const rows = payload.rows.map(function(row) {
+    const existingRows = payload.rows.map(function(row) {
       return row && typeof row === 'object' ? Object.assign({}, row) : row;
     });
+    const populationResult = ceramistReconcileCompleteRemakePopulationV77_(existingRows);
+    const rows = populationResult.rows;
 
     ceramistApplyCaseLevelResponsibilityV74_(rows);
 
@@ -251,9 +260,10 @@ function refreshCeramistCaseLevelResponsibilityNightlyV75() {
     payload.rows = rows;
     payload.caseLevelRefreshedAt = refreshedAt;
     payload.responsibilityVersion = ceramistResponsibilityVersionV75;
-    payload.source = 'CRM remake links + nightly BigQuery CERAMICS case-level responsibility';
-    payload.message = 'Case-level CERAMICS responsibility refreshed once daily after the nightly BigQuery upload.';
-    payload.stats = Object.assign({}, payload.stats || {}, responsibilityStats);
+    payload.populationVersion = ceramistPopulationVersionV77;
+    payload.source = 'Complete Remake Factor population + CRM remakeCaseID links + nightly BigQuery CERAMICS case-level responsibility';
+    payload.message = 'Complete Remake population and case-level CERAMICS responsibility refreshed after the nightly BigQuery upload.';
+    payload.stats = Object.assign({}, payload.stats || {}, populationResult.stats || {}, responsibilityStats);
 
     file.setContent(JSON.stringify(payload));
 
@@ -263,7 +273,8 @@ function refreshCeramistCaseLevelResponsibilityNightlyV75() {
       refreshedAt: refreshedAt,
       timeZone: ceramistNightlyRefreshTimeZoneV75,
       rows: rows.length,
-      stats: responsibilityStats
+      populationStats: populationResult.stats || {},
+      stats: Object.assign({}, populationResult.stats || {}, responsibilityStats)
     };
   } finally {
     lock.releaseLock();
@@ -312,6 +323,8 @@ function ceramistBuildResponsibilityStatsV75_(rows) {
     caseLevelUnlinkedRows: 0,
     caseLevelMultipleWorkerRows: 0,
     caseLevelNoWorkerRows: 0,
+    caseLevelPopulationPendingRows: 0,
+    caseLevelPopulationErrorRows: 0,
     caseLevelAttributionPct: 0
   };
 
@@ -328,6 +341,8 @@ function ceramistBuildResponsibilityStatsV75_(rows) {
     if (basis === 'unlinked') result.caseLevelUnlinkedRows++;
     if (basis === 'multiple_case_level_workers') result.caseLevelMultipleWorkerRows++;
     if (basis === 'no_case_level_ceramics_worker') result.caseLevelNoWorkerRows++;
+    if (basis === 'population_chain_pending') result.caseLevelPopulationPendingRows++;
+    if (basis === 'population_chain_error') result.caseLevelPopulationErrorRows++;
   });
 
   result.caseLevelAttributionPct = result.caseLevelRows
@@ -337,6 +352,523 @@ function ceramistBuildResponsibilityStatsV75_(rows) {
 }
 
 
+
+
+/**
+ * v7.7 complete-population reconciliation.
+ *
+ * The legacy Drive sidecar was originally built from a narrower eligible-row
+ * population. This function makes the durable Remake Factor monthly shards the
+ * population source of truth, reuses any existing rich sidecar row, and creates
+ * a minimal row for every remaining remake product. Missing CRM remake links are
+ * resolved incrementally through the documented API with a configurable call
+ * cap so the nightly job remains safe and repeatable.
+ */
+function ceramistReconcileCompleteRemakePopulationV77_(existingRows) {
+  const existing = Array.isArray(existingRows) ? existingRows.filter(function(row) {
+    return row && typeof row === 'object';
+  }) : [];
+  const remakePayload = readRemakeFactorCache();
+  const allMainRows = remakePayload && Array.isArray(remakePayload.detailRows)
+    ? remakePayload.detailRows.filter(function(row) { return row && typeof row === 'object'; })
+    : [];
+  const mainRemakeRows = allMainRows.filter(function(row) {
+    return row.isRemake === true || /^y$/i.test(String(row.remakeFlag || ''));
+  });
+
+  if (!remakePayload || remakePayload.ok !== true || !mainRemakeRows.length) {
+    return {
+      rows: existing,
+      stats: {
+        populationVersion: ceramistPopulationVersionV77,
+        populationSourceReady: false,
+        populationSourceMessage: remakePayload && remakePayload.message || 'The durable Remake Factor population is not ready.',
+        populationExistingRows: existing.length,
+        populationMainRemakeRows: mainRemakeRows.length,
+        populationRowsAfterReconciliation: existing.length
+      }
+    };
+  }
+
+  const exactBuckets = {};
+  const broadBuckets = {};
+  const existingChainByCase = {};
+  existing.forEach(function(row, index) {
+    ceramistPopulationPushV77_(exactBuckets, ceramistPopulationExactKeyV77_(row), { index: index, row: row });
+    ceramistPopulationPushV77_(broadBuckets, ceramistPopulationBroadKeyV77_(row), { index: index, row: row });
+    const caseNumber = ceramistPopulationCaseNumberV77_(row);
+    if (caseNumber && !existingChainByCase[caseNumber] && Number(row.chainDepth || 0) > 0 &&
+        (Number(row.previousCaseNumber || 0) > 0 || Number(row.rootCaseNumber || 0) > 0)) {
+      existingChainByCase[caseNumber] = row;
+    }
+  });
+  const claimed = {};
+
+  const mainCaseById = {};
+  const mainRowsByCase = {};
+  allMainRows.forEach(function(row) {
+    const caseNumber = ceramistPopulationCaseNumberV77_(row);
+    const caseId = ceramistPopulationCaseIdV77_(row);
+    if (caseId) {
+      const key = caseId.toLowerCase();
+      const current = mainCaseById[key] || {};
+      mainCaseById[key] = {
+        caseId: caseId,
+        caseNumber: caseNumber || current.caseNumber || '',
+        remakeCaseId: ceramistPopulationRemakeCaseIdV77_(row) || current.remakeCaseId || '',
+        remakeCaseIdFieldPresent: ceramistPopulationHasRemakeCaseFieldV77_(row) || current.remakeCaseIdFieldPresent === true,
+        invoiceDate: ceramistPopulationTextV77_(row.invoiceDate || current.invoiceDate)
+      };
+    }
+    if (caseNumber) {
+      if (!mainRowsByCase[caseNumber]) mainRowsByCase[caseNumber] = [];
+      mainRowsByCase[caseNumber].push(row);
+    }
+  });
+
+  const reconciled = [];
+  let reusedRows = 0;
+  let synthesizedRows = 0;
+  mainRemakeRows.forEach(function(mainRow) {
+    let matched = ceramistPopulationTakeV77_(exactBuckets, ceramistPopulationExactKeyV77_(mainRow), claimed);
+    if (!matched) matched = ceramistPopulationTakeV77_(broadBuckets, ceramistPopulationBroadKeyV77_(mainRow), claimed);
+    if (matched) reusedRows++;
+    else synthesizedRows++;
+    reconciled.push(ceramistBuildCompletePopulationRowV77_(mainRow, matched));
+  });
+
+  const rowsByCase = {};
+  reconciled.forEach(function(row) {
+    const caseNumber = ceramistPopulationCaseNumberV77_(row);
+    if (!caseNumber) return;
+    if (!rowsByCase[caseNumber]) rowsByCase[caseNumber] = [];
+    rowsByCase[caseNumber].push(row);
+  });
+
+  const props = PropertiesService.getScriptProperties();
+  const maxApiCalls = Math.max(0, Number(props.getProperty(ceramistPopulationMaxApiCallsPropertyV77) || ceramistPopulationDefaultMaxApiCallsV77));
+  const apiContext = {
+    cfg: null,
+    token: '',
+    calls: 0,
+    maxCalls: maxApiCalls,
+    detailById: {},
+    errors: []
+  };
+  const chainStats = {
+    populationCases: Object.keys(rowsByCase).length,
+    populationCasesWithExistingChain: 0,
+    populationChainResolvedCases: 0,
+    populationUnlinkedCases: 0,
+    populationDeferredCases: 0,
+    populationChainErrorCases: 0
+  };
+
+  Object.keys(rowsByCase).sort(function(a, b) {
+    const aDate = ceramistPopulationTextV77_(rowsByCase[a][0] && rowsByCase[a][0].invoiceDate);
+    const bDate = ceramistPopulationTextV77_(rowsByCase[b][0] && rowsByCase[b][0].invoiceDate);
+    return bDate.localeCompare(aDate) || Number(b) - Number(a);
+  }).forEach(function(caseNumber) {
+    const caseRows = rowsByCase[caseNumber];
+    const existingChainRow = existingChainByCase[caseNumber] || caseRows.find(function(row) {
+      return Number(row.chainDepth || 0) > 0 && (Number(row.previousCaseNumber || 0) > 0 || Number(row.rootCaseNumber || 0) > 0);
+    });
+    let chain;
+    if (existingChainRow) {
+      chainStats.populationCasesWithExistingChain++;
+      chain = ceramistPopulationChainFromRowV77_(existingChainRow);
+    } else {
+      chain = ceramistResolveRemakeChainV77_(caseRows[0], mainCaseById, apiContext);
+    }
+
+    if (chain.status === 'resolved') chainStats.populationChainResolvedCases++;
+    else if (chain.status === 'unlinked') chainStats.populationUnlinkedCases++;
+    else if (chain.status === 'deferred') chainStats.populationDeferredCases++;
+    else chainStats.populationChainErrorCases++;
+
+    caseRows.forEach(function(row) {
+      ceramistApplyPopulationChainV77_(row, chain);
+    });
+  });
+
+  return {
+    rows: reconciled,
+    stats: Object.assign({
+      populationVersion: ceramistPopulationVersionV77,
+      populationSourceReady: true,
+      populationSourceGeneratedAt: remakePayload.generatedAt || '',
+      populationExistingRows: existing.length,
+      populationMainRemakeRows: mainRemakeRows.length,
+      populationMainRemakeCases: Object.keys(mainRowsByCase).filter(function(caseNumber) {
+        return mainRowsByCase[caseNumber].some(function(row) { return row.isRemake === true || /^y$/i.test(String(row.remakeFlag || '')); });
+      }).length,
+      populationReusedRows: reusedRows,
+      populationSynthesizedRows: synthesizedRows,
+      populationRowsAfterReconciliation: reconciled.length,
+      populationApiCalls: apiContext.calls,
+      populationApiCallLimit: apiContext.maxCalls,
+      populationApiErrors: apiContext.errors.slice(0, 25)
+    }, chainStats)
+  };
+}
+
+function ceramistPopulationTextV77_(value) {
+  return String(value === null || value === undefined ? '' : value).trim();
+}
+
+function ceramistPopulationCaseNumberV77_(row) {
+  const candidates = [
+    row && row.currentCaseNumber,
+    row && row.remakeCaseNumber,
+    row && row.caseNumber,
+    row && row.caseNo,
+    row && row.Cases_CaseNumber
+  ];
+  for (let index = 0; index < candidates.length; index++) {
+    const numberValue = Number(candidates[index] || 0);
+    if (Number.isFinite(numberValue) && numberValue > 0) return String(Math.trunc(numberValue));
+  }
+  return '';
+}
+
+function ceramistPopulationCaseIdV77_(row) {
+  return ceramistPopulationTextV77_(row && (row.caseId || row.caseID || row.currentCaseId || row.currentCaseID));
+}
+
+function ceramistPopulationRemakeCaseIdV77_(row) {
+  const value = row && typeof row === 'object' ? row : {};
+  const direct = ceramistPopulationTextV77_(value.remakeCaseId || value.remakeCaseID || value.RemakeCaseID);
+  if (direct) return direct;
+  const ids = ceramistRemakeCaseIds_(value);
+  return ids.length ? ids[0] : '';
+}
+
+function ceramistPopulationHasRemakeCaseFieldV77_(row) {
+  if (!row || typeof row !== 'object') return false;
+  if (row.remakeCaseIdFieldPresent === true) return true;
+  return Object.keys(row).some(function(key) { return /^remakeCaseID$/i.test(key); });
+}
+
+function ceramistPopulationProductV77_(row) {
+  return ceramistPopulationTextV77_(row && (
+    row.currentProductId || row.currentProductID || row.remakeProductId || row.remakeProductID ||
+    row.productId || row.productID || row.CaseProducts_ProductID || row.productKey || row.productName
+  )).toUpperCase();
+}
+
+function ceramistPopulationLineV77_(row) {
+  return ceramistPopulationTextV77_(row && (
+    row.caseProductLineId || row.currentCaseProductLineId || row.currentCaseProductLineID ||
+    row.caseProductId || row.currentCaseProductId || row.currentCaseProductID ||
+    row.productLineId || row.lineId || row.lineID
+  ));
+}
+
+function ceramistPopulationBroadKeyV77_(row) {
+  const caseNumber = ceramistPopulationCaseNumberV77_(row);
+  const product = ceramistPopulationProductV77_(row);
+  return caseNumber && product ? caseNumber + '\u0001' + product : '';
+}
+
+function ceramistPopulationExactKeyV77_(row) {
+  const broad = ceramistPopulationBroadKeyV77_(row);
+  if (!broad) return '';
+  return broad + '\u0001' + ceramistPopulationLineV77_(row);
+}
+
+function ceramistPopulationPushV77_(map, key, item) {
+  if (!key) return;
+  if (!map[key]) map[key] = [];
+  map[key].push(item);
+}
+
+function ceramistPopulationTakeV77_(map, key, claimed) {
+  const items = key && map[key] ? map[key] : [];
+  for (let index = 0; index < items.length; index++) {
+    const item = items[index];
+    if (claimed[item.index]) continue;
+    claimed[item.index] = true;
+    return item.row;
+  }
+  return null;
+}
+
+function ceramistBuildCompletePopulationRowV77_(mainRow, existingRow) {
+  const row = existingRow ? Object.assign({}, existingRow) : {};
+  const caseNumber = ceramistPopulationCaseNumberV77_(mainRow);
+  const caseId = ceramistPopulationCaseIdV77_(mainRow);
+  const productId = ceramistPopulationTextV77_(mainRow.productId || mainRow.productKey);
+  const productName = ceramistPopulationTextV77_(mainRow.productName || productId || 'Unknown product');
+  const customerId = ceramistPopulationTextV77_(mainRow.customerId || mainRow.customerKey);
+  const customerName = ceramistPopulationTextV77_(mainRow.customerName || mainRow.customerDisplayName || customerId || 'Unknown customer');
+
+  row.month = ceramistPopulationTextV77_(mainRow.month || row.month);
+  row.year = Number(mainRow.year || row.year || 0) || '';
+  row.invoiceDate = ceramistPopulationTextV77_(mainRow.invoiceDate || row.invoiceDate);
+  row.caseId = caseId || ceramistPopulationCaseIdV77_(row);
+  row.caseNumber = caseNumber || ceramistPopulationCaseNumberV77_(row);
+  row.currentCaseNumber = caseNumber || ceramistPopulationCaseNumberV77_(row);
+  row.remakeCaseNumber = caseNumber || ceramistPopulationCaseNumberV77_(row);
+  row.remakeCaseIdFieldPresent = ceramistPopulationHasRemakeCaseFieldV77_(mainRow) || ceramistPopulationHasRemakeCaseFieldV77_(row);
+  row.remakeCaseId = ceramistPopulationRemakeCaseIdV77_(mainRow) || ceramistPopulationRemakeCaseIdV77_(row);
+  row.remakeCaseID = row.remakeCaseId;
+  row.caseProductLineId = ceramistPopulationLineV77_(mainRow) || ceramistPopulationLineV77_(row);
+  row.customerId = customerId || ceramistPopulationTextV77_(row.customerId);
+  row.customerKey = customerId || ceramistPopulationTextV77_(row.customerKey || row.customerId);
+  row.customerName = customerName;
+  row.customerDisplayName = ceramistPopulationTextV77_(mainRow.customerDisplayName || mainRow.customerDisplayLabel || row.customerDisplayName || customerName);
+  row.practiceName = ceramistPopulationTextV77_(mainRow.practiceName || row.practiceName);
+  row.customerActive = mainRow.customerActive === false ? false : true;
+  row.department = ceramistPopulationTextV77_(mainRow.department || row.department || 'Unassigned') || 'Unassigned';
+  row.productId = productId || ceramistPopulationTextV77_(row.productId);
+  row.currentProductId = productId || ceramistPopulationTextV77_(row.currentProductId || row.productId);
+  row.productKey = ceramistPopulationTextV77_(mainRow.productKey || row.productKey || productId || productName);
+  row.productName = productName;
+  row.productGroup = ceramistPopulationTextV77_(mainRow.productGroup || row.productGroup || 'Unassigned') || 'Unassigned';
+  row.remakeReason = ceramistPopulationTextV77_(mainRow.remakeReason || row.remakeReason || 'Not specified') || 'Not specified';
+  row.quantity = Number(mainRow.quantity !== undefined ? mainRow.quantity : (mainRow.units !== undefined ? mainRow.units : row.quantity || 0)) || 0;
+  row.units = row.quantity;
+  row.isRemake = true;
+  row.remakeUnits = Number(mainRow.remakeUnits !== undefined ? mainRow.remakeUnits : row.quantity) || 0;
+  row.remakeDiscount = Math.abs(Number(mainRow.remakeDiscount !== undefined ? mainRow.remakeDiscount : row.remakeDiscount || 0) || 0);
+  row.currentProductCeramicsEligible = true;
+  row.currentProductCeramicsEligibilityReason = 'Included from the complete Remake Factor population';
+  row.populationVersion = ceramistPopulationVersionV77;
+  row.populationSource = existingRow ? 'existing_sidecar_plus_remake_population' : 'remake_factor_population';
+  row.populationSynthesized = !existingRow;
+  return row;
+}
+
+function ceramistPopulationChainFromRowV77_(row) {
+  const depth = Math.max(0, Number(row.chainDepth || 0));
+  return {
+    status: depth > 0 ? 'resolved' : 'unlinked',
+    chainDepth: depth,
+    previousCaseNumber: Number(row.previousCaseNumber || 0) || '',
+    rootCaseNumber: Number(row.rootCaseNumber || 0) || '',
+    previousCaseId: ceramistPopulationTextV77_(row.previousCaseId || row.previousCaseID),
+    rootCaseId: ceramistPopulationTextV77_(row.rootCaseId || row.rootCaseID),
+    chainCaseNumbers: Array.isArray(row.chainCaseNumbers) ? row.chainCaseNumbers.slice() : [],
+    chainCaseIds: Array.isArray(row.chainCaseIds) ? row.chainCaseIds.slice() : [],
+    reason: 'existing_sidecar_chain'
+  };
+}
+
+function ceramistEnsurePopulationApiV77_(context) {
+  if (context.cfg && context.token) return true;
+  if (context.calls >= context.maxCalls) return false;
+  try {
+    const props = PropertiesService.getScriptProperties();
+    context.cfg = getRemakeFactorConfig(props, {
+      quickRefresh: true,
+      lookbackMonths: 24,
+      pageSize: 25,
+      maxPages: 1,
+      maxDetailFetches: 0,
+      detailStrategy: 'none',
+      chunkByMonth: false,
+      fetchProductMap: false,
+      fetchCustomerMap: false
+    });
+    context.token = authenticateRemakeFactorApi(context.cfg);
+    return true;
+  } catch (error) {
+    context.errors.push('Authentication: ' + (error && error.message ? error.message : String(error)));
+    return false;
+  }
+}
+
+function ceramistFetchPopulationCaseDetailV77_(caseId, context) {
+  const cleanId = ceramistPopulationTextV77_(caseId);
+  if (!cleanId) return { status: 'missing_id', detail: null };
+  const key = cleanId.toLowerCase();
+  if (context.detailById[key]) return { status: 'ok', detail: context.detailById[key] };
+  if (context.calls >= context.maxCalls) return { status: 'deferred', detail: null };
+  if (!ceramistEnsurePopulationApiV77_(context)) {
+    return context.calls >= context.maxCalls
+      ? { status: 'deferred', detail: null }
+      : { status: 'error', detail: null };
+  }
+  try {
+    context.calls++;
+    const detail = fetchRemakeFactorCaseDetail(context.cfg, context.token, cleanId);
+    context.detailById[key] = detail || {};
+    return { status: 'ok', detail: detail || {} };
+  } catch (error) {
+    context.errors.push(cleanId + ': ' + (error && error.message ? error.message : String(error)));
+    return { status: 'error', detail: null };
+  }
+}
+
+function ceramistResolveRemakeChainV77_(row, mainCaseById, apiContext) {
+  const currentCaseId = ceramistPopulationCaseIdV77_(row);
+  let nextId = ceramistPopulationRemakeCaseIdV77_(row);
+  const currentLinkFieldPresent = ceramistPopulationHasRemakeCaseFieldV77_(row);
+  if (!nextId && currentCaseId && !currentLinkFieldPresent) {
+    const currentFetch = ceramistFetchPopulationCaseDetailV77_(currentCaseId, apiContext);
+    if (currentFetch.status === 'deferred') return ceramistPopulationEmptyChainV77_('deferred', 'API call limit reached before the current case link could be read.');
+    if (currentFetch.status === 'error') return ceramistPopulationEmptyChainV77_('error', 'The current case detail could not be read from the CRM API.');
+    nextId = ceramistPopulationRemakeCaseIdV77_(currentFetch.detail);
+  }
+  if (!nextId) return ceramistPopulationEmptyChainV77_('unlinked', 'No remakeCaseID was returned by the CRM API.');
+
+  const seen = {};
+  const chainCaseNumbers = [];
+  const chainCaseIds = [];
+  let previousCaseNumber = '';
+  let previousCaseId = '';
+  let rootCaseNumber = '';
+  let rootCaseId = '';
+  let depth = 0;
+
+  while (nextId && depth < ceramistPopulationMaxChainDepthV77) {
+    const cleanId = ceramistPopulationTextV77_(nextId);
+    const key = cleanId.toLowerCase();
+    if (!cleanId || seen[key]) {
+      return {
+        status: 'error',
+        chainDepth: depth,
+        previousCaseNumber: previousCaseNumber,
+        rootCaseNumber: rootCaseNumber,
+        previousCaseId: previousCaseId,
+        rootCaseId: rootCaseId,
+        chainCaseNumbers: chainCaseNumbers,
+        chainCaseIds: chainCaseIds,
+        reason: 'A remakeCaseID cycle was detected.'
+      };
+    }
+    seen[key] = true;
+
+    const indexed = mainCaseById[key] || null;
+    const indexedLinkFieldPresent = !!(indexed && indexed.remakeCaseIdFieldPresent === true);
+    let detail = indexed;
+    let fetched = { status: 'not_needed', detail: null };
+    if (!indexed || !indexed.caseNumber || !indexedLinkFieldPresent) {
+      fetched = ceramistFetchPopulationCaseDetailV77_(cleanId, apiContext);
+      if (fetched.status === 'ok') detail = Object.assign({}, indexed || {}, fetched.detail || {});
+    }
+    if (!detail || !detail.caseNumber) {
+      return {
+        status: fetched.status === 'deferred' ? 'deferred' : 'error',
+        chainDepth: depth,
+        previousCaseNumber: previousCaseNumber,
+        rootCaseNumber: rootCaseNumber,
+        previousCaseId: previousCaseId,
+        rootCaseId: rootCaseId,
+        chainCaseNumbers: chainCaseNumbers,
+        chainCaseIds: chainCaseIds,
+        reason: fetched.status === 'deferred'
+          ? 'API call limit reached while resolving the remake chain.'
+          : 'A linked remake case could not be read from the CRM API.'
+      };
+    }
+    if (fetched.status === 'deferred') {
+      return {
+        status: 'deferred',
+        chainDepth: depth,
+        previousCaseNumber: previousCaseNumber,
+        rootCaseNumber: rootCaseNumber,
+        previousCaseId: previousCaseId,
+        rootCaseId: rootCaseId,
+        chainCaseNumbers: chainCaseNumbers,
+        chainCaseIds: chainCaseIds,
+        reason: 'API call limit reached before the full remake chain was confirmed.'
+      };
+    }
+    if (fetched.status === 'error' && !indexedLinkFieldPresent) {
+      return {
+        status: 'error',
+        chainDepth: depth,
+        previousCaseNumber: previousCaseNumber,
+        rootCaseNumber: rootCaseNumber,
+        previousCaseId: previousCaseId,
+        rootCaseId: rootCaseId,
+        chainCaseNumbers: chainCaseNumbers,
+        chainCaseIds: chainCaseIds,
+        reason: 'A linked remake case could not be fully confirmed from the CRM API.'
+      };
+    }
+
+    const linkedCaseNumber = Number(detail && (detail.caseNumber || detail.caseNo) || 0);
+    if (!Number.isFinite(linkedCaseNumber) || linkedCaseNumber <= 0) {
+      return {
+        status: 'error',
+        chainDepth: depth,
+        previousCaseNumber: previousCaseNumber,
+        rootCaseNumber: rootCaseNumber,
+        previousCaseId: previousCaseId,
+        rootCaseId: rootCaseId,
+        chainCaseNumbers: chainCaseNumbers,
+        chainCaseIds: chainCaseIds,
+        reason: 'A linked remake case did not contain a numeric case number.'
+      };
+    }
+
+    depth++;
+    chainCaseIds.push(cleanId);
+    chainCaseNumbers.push(Math.trunc(linkedCaseNumber));
+    if (!previousCaseNumber) {
+      previousCaseNumber = Math.trunc(linkedCaseNumber);
+      previousCaseId = cleanId;
+    }
+    rootCaseNumber = Math.trunc(linkedCaseNumber);
+    rootCaseId = cleanId;
+    nextId = ceramistPopulationRemakeCaseIdV77_(detail);
+  }
+
+  if (nextId) {
+    return {
+      status: 'error',
+      chainDepth: depth,
+      previousCaseNumber: previousCaseNumber,
+      rootCaseNumber: rootCaseNumber,
+      previousCaseId: previousCaseId,
+      rootCaseId: rootCaseId,
+      chainCaseNumbers: chainCaseNumbers,
+      chainCaseIds: chainCaseIds,
+      reason: 'The remake chain exceeded the safe depth limit.'
+    };
+  }
+
+  return {
+    status: depth > 0 ? 'resolved' : 'unlinked',
+    chainDepth: depth,
+    previousCaseNumber: previousCaseNumber,
+    rootCaseNumber: rootCaseNumber,
+    previousCaseId: previousCaseId,
+    rootCaseId: rootCaseId,
+    chainCaseNumbers: chainCaseNumbers,
+    chainCaseIds: chainCaseIds,
+    reason: depth > 0 ? 'CRM remakeCaseID chain resolved.' : 'No remakeCaseID was returned by the CRM API.'
+  };
+}
+
+function ceramistPopulationEmptyChainV77_(status, reason) {
+  return {
+    status: status,
+    chainDepth: 0,
+    previousCaseNumber: '',
+    rootCaseNumber: '',
+    previousCaseId: '',
+    rootCaseId: '',
+    chainCaseNumbers: [],
+    chainCaseIds: [],
+    reason: reason || ''
+  };
+}
+
+function ceramistApplyPopulationChainV77_(row, chain) {
+  row.chainDepth = Number(chain && chain.chainDepth || 0);
+  row.multiChain = row.chainDepth > 1;
+  row.previousCaseNumber = chain && chain.previousCaseNumber || '';
+  row.rootCaseNumber = chain && chain.rootCaseNumber || '';
+  row.previousCaseId = chain && chain.previousCaseId || '';
+  row.rootCaseId = chain && chain.rootCaseId || '';
+  row.chainCaseNumbers = chain && Array.isArray(chain.chainCaseNumbers) ? chain.chainCaseNumbers.slice() : [];
+  row.chainCaseIds = chain && Array.isArray(chain.chainCaseIds) ? chain.chainCaseIds.slice() : [];
+  row.populationChainStatus = chain && chain.status || 'error';
+  row.populationChainReason = chain && chain.reason || '';
+}
 
 /**
  * v7.4 case-level responsibility refresh.
@@ -357,7 +889,7 @@ function ceramistApplyCaseLevelResponsibilityV74_(rows) {
 
   (rows || []).forEach(function(row) {
     if (!row || typeof row !== 'object') return;
-    [row.rootCaseNumber, row.previousCaseNumber].forEach(function(value) {
+    [row.currentCaseNumber || row.remakeCaseNumber || row.caseNumber, row.rootCaseNumber, row.previousCaseNumber].forEach(function(value) {
       const numberValue = Number(value || 0);
       if (!Number.isFinite(numberValue) || numberValue <= 0 || seen[numberValue]) return;
       seen[numberValue] = true;
@@ -371,9 +903,11 @@ function ceramistApplyCaseLevelResponsibilityV74_(rows) {
   (rows || []).forEach(function(row) {
     if (!row || typeof row !== 'object') return;
     const chainDepth = Number(row.chainDepth || 0);
+    const current = ceramistCaseResolutionV74_(caseMap, row.currentCaseNumber || row.remakeCaseNumber || row.caseNumber);
     const root = ceramistCaseResolutionV74_(caseMap, row.rootCaseNumber);
     const previous = ceramistCaseResolutionV74_(caseMap, row.previousCaseNumber);
 
+    ceramistWriteCaseResolutionV74_(row, 'current', current);
     ceramistWriteCaseResolutionV74_(row, 'root', root);
     ceramistWriteCaseResolutionV74_(row, 'previous', previous);
 
@@ -411,7 +945,14 @@ function ceramistApplyCaseLevelResponsibilityV74_(rows) {
       row.responsibleTechnicianNumber = '';
       row.responsibleTechnicianType = '';
       row.attributionStatus = 'unattributed';
-      if (chainDepth <= 0) {
+      const chainStatus = String(row.populationChainStatus || '');
+      if (chainStatus === 'deferred') {
+        row.attributionBasis = 'population_chain_pending';
+        row.attributionReason = row.populationChainReason || 'The remake chain is queued for the next cache refresh.';
+      } else if (chainStatus === 'error') {
+        row.attributionBasis = 'population_chain_error';
+        row.attributionReason = row.populationChainReason || 'The remake chain could not be resolved.';
+      } else if (chainDepth <= 0) {
         row.attributionBasis = 'unlinked';
       } else if (root.status === 'multiple_workers' || previous.status === 'multiple_workers') {
         row.attributionBasis = 'multiple_case_level_workers';

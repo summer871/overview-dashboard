@@ -1,7 +1,7 @@
 /**
  * Remake Factor Cache
- * Version: v1.34.1 - 2026-07-31
- * Purpose: Build a cached Remake Factor dataset from the MagicTouch CRM API and save it to Drive JSON. Uses MagicTouch /api/Products/QueryProducts `department` as the authoritative product-department source. The Product_List Drive lookup and legacy inference remain fallback-only for products not returned by the API. v1.32 makes each case-product line authoritative for remake status, percentage, reason, discount rate, and discount amount. Case-level remake fields may identify detail-fetch candidates but are never propagated onto product lines. v1.32.1 expands the diagnostic-only product test so remake-discount dollars can be verified before rebuilding the cache. v1.32.2 records the approved canonical calculation below; it does not change the dashboard wording. v1.32.3 adds an opt-in compact browser response so the full product-level cache can load without duplicating unused fields in Chrome memory. v1.32.4 applies that compact response in the final smart-refresh public entry point, which otherwise overrides earlier declarations in this file. v1.33 adds a separate nightly browser-ready consolidated gzip file. First-time browsers can download that one pre-normalized packed file instead of making Apps Script open and parse every monthly Drive shard during the page request. Repeat visits continue to use the monthly IndexedDB cache. v1.33.2 permits the last optimized snapshot to be served while a newer source cache is being consolidated and adds a deduplicated rebuild assurance endpoint for stale-while-revalidate browser loading. v1.34.1 preserves the numeric case number in both compact and packed browser rows so the Remake population can join to the Ceramist attribution sidecar on the authoritative current case key.
+ * Version: v1.34.2 - 2026-07-31
+ * Purpose: Build a cached Remake Factor dataset from the MagicTouch CRM API and save it to Drive JSON. Uses MagicTouch /api/Products/QueryProducts `department` as the authoritative product-department source. The Product_List Drive lookup and legacy inference remain fallback-only for products not returned by the API. v1.32 makes each case-product line authoritative for remake status, percentage, reason, discount rate, and discount amount. Case-level remake fields may identify detail-fetch candidates but are never propagated onto product lines. v1.32.1 expands the diagnostic-only product test so remake-discount dollars can be verified before rebuilding the cache. v1.32.2 records the approved canonical calculation below; it does not change the dashboard wording. v1.32.3 adds an opt-in compact browser response so the full product-level cache can load without duplicating unused fields in Chrome memory. v1.32.4 applies that compact response in the final smart-refresh public entry point, which otherwise overrides earlier declarations in this file. v1.33 adds a separate nightly browser-ready consolidated gzip file. First-time browsers can download that one pre-normalized packed file instead of making Apps Script open and parse every monthly Drive shard during the page request. Repeat visits continue to use the monthly IndexedDB cache. v1.33.2 permits the last optimized snapshot to be served while a newer source cache is being consolidated and adds a deduplicated rebuild assurance endpoint for stale-while-revalidate browser loading. v1.34.1 preserves the numeric case number in both compact and packed browser rows so the Remake population can join to the Ceramist attribution sidecar on the authoritative current case key. v1.34.2 also preserves the authoritative CRM remakeCaseID on durable monthly shard rows so the nightly Ceramist population refresh can resolve missing remake chains without a separate SQL Server link feed.
  *
  * APPROVED REMAKE CALCULATION - 2026-07-13
  * - Product line is the authoritative grain for remake status and all remake fields.
@@ -191,7 +191,7 @@ function debugRemakeFactorCacheHealth() {
   const cached = readRemakeFactorCache();
   return {
     ok: true,
-    version: 'RemakeFactorCache v1.34',
+    version: 'RemakeFactorCache v1.34.2',
     timestamp: new Date().toISOString(),
     hasBaseUrl: !!props.getProperty(remakeFactorApiBaseUrlProperty),
     baseUrlHost: maskRemakeFactorBaseUrl(props.getProperty(remakeFactorApiBaseUrlProperty) || remakeFactorDefaultBaseUrl),
@@ -231,7 +231,7 @@ function testRemakeFactorApiConnection() {
     const caseResult = fetchRemakeFactorCases(config, token);
     return {
       ok: true,
-      version: 'RemakeFactorCache v1.34',
+      version: 'RemakeFactorCache v1.34.2',
       message: 'MagicTouch API authentication and QueryCases test succeeded.',
       timestamp: new Date().toISOString(),
       baseUrlHost: maskRemakeFactorBaseUrl(config.baseUrl),
@@ -1804,7 +1804,7 @@ function debugRemakeFactorApiCustomerLookup() {
     const entries = Object.keys(customerMap).map(id => customerMap[id]);
     const result = {
       ok: true,
-      version: 'RemakeFactorCache v1.34',
+      version: 'RemakeFactorCache v1.34.2',
       source: 'MagicTouch API only - no BigQuery lookup',
       timestamp: new Date().toISOString(),
       message: 'Customer API diagnostic completed. See Apps Script Execution log and remake_factor_debug.json in Drive.',
@@ -1872,7 +1872,7 @@ function debugRemakeFactorCachedCustomerNames() {
 
     const result = {
       ok: true,
-      version: 'RemakeFactorCache v1.34',
+      version: 'RemakeFactorCache v1.34.2',
       source: 'MagicTouch API customer lookup diagnostic only - no BigQuery lookup',
       timestamp: new Date().toISOString(),
       message: 'Compared cached named customers and cached ID-only customers against the MagicTouch customer API.',
@@ -1986,7 +1986,7 @@ function hydrateRemakeFactorCustomerNamesFromApi() {
     if (!cached || !cached.ok || !Array.isArray(cached.detailRows) || !cached.detailRows.length) {
       return {
         ok: false,
-        version: 'RemakeFactorCache v1.34',
+        version: 'RemakeFactorCache v1.34.2',
         message: 'No existing Remake Factor Drive cache found to hydrate. Run rebuildRemakeFactorHistoricalCache first, or click Rebuild Historical.'
       };
     }
@@ -2035,7 +2035,7 @@ function hydrateRemakeFactorCustomerNamesFromApi() {
       generatedAt: new Date().toISOString(),
       source: (cached.source || 'MagicTouch CRM API') + ' + API customer-name hydration',
       stats: Object.assign({}, cached.stats || {}, {
-        version: 'RemakeFactorCache v1.34',
+        version: 'RemakeFactorCache v1.34.2',
         customerHydrationFromApi: true,
         customerHydratedAt: new Date().toISOString(),
         customerHydrationUpdatedRows: updatedRows,
@@ -2049,7 +2049,7 @@ function hydrateRemakeFactorCustomerNamesFromApi() {
     writeRemakeFactorCache(payload);
     const result = {
       ok: true,
-      version: 'RemakeFactorCache v1.34',
+      version: 'RemakeFactorCache v1.34.2',
       message: 'Existing Remake Factor Drive cache hydrated with customer names/practice names from MagicTouch/API.',
       generatedAt: payload.generatedAt,
       detailRows: hydratedRows.length,
@@ -2201,6 +2201,8 @@ function buildRemakeFactorDetailRows(caseRows, productMap, customerMap) {
 
     const caseId = String(caseRow.caseID || caseRow.caseId || caseRow.id || caseRow.caseNumber || '').trim();
     const caseNumber = caseRow.caseNumber || caseRow.caseNo || '';
+    const remakeCaseIdFieldPresent = Object.keys(caseRow || {}).some(function(key) { return /^remakeCaseID$/i.test(key); });
+    const remakeCaseId = cleanRemakeFactorText(caseRow.remakeCaseID || caseRow.remakeCaseId || caseRow.RemakeCaseID || '');
     const invoiceDate = getRemakeFactorCaseInvoiceDate(caseRow);
     const month = getRemakeFactorMonth(invoiceDate);
     if (!month) return;
@@ -2306,6 +2308,9 @@ function buildRemakeFactorDetailRows(caseRows, productMap, customerMap) {
         invoiceDate: invoiceDate,
         caseId: caseId || String(caseNumber || lineKey),
         caseNumber: caseNumber,
+        remakeCaseId: remakeCaseId,
+        remakeCaseID: remakeCaseId,
+        remakeCaseIdFieldPresent: remakeCaseIdFieldPresent,
         customerId: customerId || 'Unknown customer',
         customerName: customerDisplayName,
         customerFullName: customerName,
@@ -2814,7 +2819,7 @@ function getRemakeFactorSafeHealthSummary() {
   try {
     const props = PropertiesService.getScriptProperties();
     return {
-      version: 'RemakeFactorCache v1.34',
+      version: 'RemakeFactorCache v1.34.2',
       hasBaseUrl: !!props.getProperty(remakeFactorApiBaseUrlProperty),
       baseUrlHost: maskRemakeFactorBaseUrl(props.getProperty(remakeFactorApiBaseUrlProperty) || remakeFactorDefaultBaseUrl),
       hasUserId: !!props.getProperty(remakeFactorApiUserIdProperty),
@@ -2822,7 +2827,7 @@ function getRemakeFactorSafeHealthSummary() {
       cacheFileId: props.getProperty(remakeFactorCacheFileIdProperty) || ''
     };
   } catch (error) {
-    return { version: 'RemakeFactorCache v1.34', healthError: compactRemakeFactorError(error) };
+    return { version: 'RemakeFactorCache v1.34.2', healthError: compactRemakeFactorError(error) };
   }
 }
 
@@ -2920,7 +2925,7 @@ function getRemakeFactorData(options) {
         if (refreshOptions.chunkByMonth === undefined) refreshOptions.chunkByMonth = true;
         const rebuilt = refreshRemakeFactorCache(refreshOptions);
         rebuilt.stats = Object.assign({}, rebuilt.stats || {}, {
-          version: 'RemakeFactorCache v1.34',
+          version: 'RemakeFactorCache v1.34.2',
           historicalRebuild: true,
           incrementalRefresh: false,
           warnings: [].concat((rebuilt.stats && rebuilt.stats.warnings) || [], [
@@ -3038,7 +3043,7 @@ function refreshRemakeFactorOpenMonthsCacheV150(options) {
       refreshedMonths: openMonthKeys
     },
     stats: Object.assign({}, freshOpen.stats || {}, {
-      version: 'RemakeFactorCache v1.34',
+      version: 'RemakeFactorCache v1.34.2',
       incrementalRefresh: true,
       openRefreshMonths: openMonths,
       refreshedMonths: openMonthKeys,
@@ -3075,7 +3080,7 @@ function logRemakeFactorRunSummary(functionName, result) {
   try {
     const summary = {
       ok: !!(result && result.ok),
-      version: 'RemakeFactorCache v1.34',
+      version: 'RemakeFactorCache v1.34.2',
       message: result && result.message ? result.message : '',
       generatedAt: result && result.generatedAt ? result.generatedAt : new Date().toISOString(),
       source: result && result.source ? result.source : '',
@@ -3143,7 +3148,7 @@ function installRemakeFactorDailyTrigger() {
 
   return {
     ok: true,
-    version: 'RemakeFactorCache v1.34',
+    version: 'RemakeFactorCache v1.34.2',
     message: 'Installed the daily Remake Factor cache refresh near 5 AM and the browser-ready consolidated cache build near 6 AM script time.',
     refreshFunctionName: refreshFunctionName,
     browserFunctionName: browserFunctionName
@@ -3175,7 +3180,7 @@ function getRemakeFactorTriggerStatus() {
 
   return {
     ok: true,
-    version: 'RemakeFactorCache v1.34',
+    version: 'RemakeFactorCache v1.34.2',
     timestamp: new Date().toISOString(),
     hasDailyTrigger: triggers.some(trigger => trigger.handlerFunction === 'refreshRemakeFactorDailyCache'),
     hasBrowserReadyTrigger: triggers.some(trigger => trigger.handlerFunction === 'refreshRemakeFactorBrowserReadyCacheNightlyV1330'),
@@ -3195,7 +3200,7 @@ function getRemakeFactorTriggerStatus() {
  * file per invoice month. This avoids Apps Script's whole-file read/write size
  * limit and keeps page loads cached instead of API-backed.
  */
-const remakeFactorStorageVersionV118 = 'RemakeFactorCache v1.33.1';
+const remakeFactorStorageVersionV118 = 'RemakeFactorCache v1.34.2';
 const remakeFactorCacheIndexFileIdPropertyV118 = 'MT_REMAKE_CACHE_INDEX_FILE_ID';
 const remakeFactorCacheIndexFileNameV118 = 'remake_factor_cache_index.json';
 const remakeFactorCacheShardPrefixV118 = 'remake_factor_cache_month_';
@@ -4016,7 +4021,7 @@ function startRemakeFactorComparisonRebuildStateV120(props, modeLabel) {
   const months = getRemakeFactorComparisonMonthsV120();
   const state = {
     ok: true,
-    version: 'RemakeFactorCache v1.34',
+    version: 'RemakeFactorCache v1.34.2',
     storageMode: remakeFactorCacheStorageModeV118,
     status: 'running',
     mode: modeLabel || 'chunk',
@@ -4055,7 +4060,7 @@ function buildRemakeFactorRebuildResponseV122(props, state, runProcessed, runErr
   const monthsDone = state ? Number(state.nextIndex || 0) : 0;
   const response = {
     ok: !runErrors.length,
-    version: 'RemakeFactorCache v1.34',
+    version: 'RemakeFactorCache v1.34.2',
     storageMode: remakeFactorCacheStorageModeV118,
     status: state && state.status === 'complete' ? 'COMPLETE' : 'IN_PROGRESS',
     mode: state && state.mode ? state.mode : '',
@@ -4198,7 +4203,7 @@ function getRemakeFactorRebuildStatus() {
   const monthsDone = state ? Number(state.nextIndex || 0) : 0;
   const response = {
     ok: true,
-    version: 'RemakeFactorCache v1.34',
+    version: 'RemakeFactorCache v1.34.2',
     storageMode: remakeFactorCacheStorageModeV118,
     status: state ? (state.status === 'complete' ? 'COMPLETE' : 'IN_PROGRESS') : 'NOT_STARTED',
     mode: state && state.mode ? state.mode : '',
