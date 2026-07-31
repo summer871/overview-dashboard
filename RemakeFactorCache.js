@@ -1,7 +1,7 @@
 /**
  * Remake Factor Cache
- * Version: v1.34 - 2026-07-22
- * Purpose: Build a cached Remake Factor dataset from the MagicTouch CRM API and save it to Drive JSON. Uses MagicTouch /api/Products/QueryProducts `department` as the authoritative product-department source. The Product_List Drive lookup and legacy inference remain fallback-only for products not returned by the API. v1.32 makes each case-product line authoritative for remake status, percentage, reason, discount rate, and discount amount. Case-level remake fields may identify detail-fetch candidates but are never propagated onto product lines. v1.32.1 expands the diagnostic-only product test so remake-discount dollars can be verified before rebuilding the cache. v1.32.2 records the approved canonical calculation below; it does not change the dashboard wording. v1.32.3 adds an opt-in compact browser response so the full product-level cache can load without duplicating unused fields in Chrome memory. v1.32.4 applies that compact response in the final smart-refresh public entry point, which otherwise overrides earlier declarations in this file. v1.33 adds a separate nightly browser-ready consolidated gzip file. First-time browsers can download that one pre-normalized packed file instead of making Apps Script open and parse every monthly Drive shard during the page request. v1.33.2 permits the last optimized snapshot to be served while a newer source cache is being consolidated and adds a deduplicated rebuild assurance endpoint for stale-while-revalidate browser loading.
+ * Version: v1.34.1 - 2026-07-31
+ * Purpose: Build a cached Remake Factor dataset from the MagicTouch CRM API and save it to Drive JSON. Uses MagicTouch /api/Products/QueryProducts `department` as the authoritative product-department source. The Product_List Drive lookup and legacy inference remain fallback-only for products not returned by the API. v1.32 makes each case-product line authoritative for remake status, percentage, reason, discount rate, and discount amount. Case-level remake fields may identify detail-fetch candidates but are never propagated onto product lines. v1.32.1 expands the diagnostic-only product test so remake-discount dollars can be verified before rebuilding the cache. v1.32.2 records the approved canonical calculation below; it does not change the dashboard wording. v1.32.3 adds an opt-in compact browser response so the full product-level cache can load without duplicating unused fields in Chrome memory. v1.32.4 applies that compact response in the final smart-refresh public entry point, which otherwise overrides earlier declarations in this file. v1.33 adds a separate nightly browser-ready consolidated gzip file. First-time browsers can download that one pre-normalized packed file instead of making Apps Script open and parse every monthly Drive shard during the page request. Repeat visits continue to use the monthly IndexedDB cache. v1.33.2 permits the last optimized snapshot to be served while a newer source cache is being consolidated and adds a deduplicated rebuild assurance endpoint for stale-while-revalidate browser loading. v1.34.1 preserves the numeric case number in both compact and packed browser rows so the Remake population can join to the Ceramist attribution sidecar on the authoritative current case key.
  *
  * APPROVED REMAKE CALCULATION - 2026-07-13
  * - Product line is the authoritative grain for remake status and all remake fields.
@@ -3379,7 +3379,8 @@ function buildRemakeFactorBrowserRowV1323(row) {
   row = row || {};
   const month = cleanRemakeFactorText(row.month || getRemakeFactorMonth(row.invoiceDate || row.Cases_InvoiceDate || ''));
   const invoiceDate = cleanRemakeFactorText(row.invoiceDate || row.Cases_InvoiceDate || '');
-  const caseId = cleanRemakeFactorText(row.caseId || row.caseID || row.caseNumber || row.Cases_CaseNumber || '');
+  const caseNumber = cleanRemakeFactorText(row.caseNumber || row.caseNo || row.Cases_CaseNumber || '');
+  const caseId = cleanRemakeFactorText(row.caseId || row.caseID || caseNumber || '');
   const customerId = cleanRemakeFactorText(row.customerId || row.customerID || row.Cases_CustomerID || '');
   let customerName = cleanRemakeFactorText(
     row.customerFullName ||
@@ -3438,6 +3439,7 @@ function buildRemakeFactorBrowserRowV1323(row) {
     year: Number(row.year || (month ? month.slice(0, 4) : 0)) || '',
     invoiceDate: invoiceDate,
     caseId: caseId,
+    caseNumber: caseNumber,
     customerId: customerId || customerName,
     customerKey: customerId || customerName,
     customerName: customerName,
@@ -3520,6 +3522,7 @@ function buildRemakeFactorBrowserPackedPayloadV1330_() {
     months: [],
     dates: [],
     cases: [],
+    caseNumbers: [],
     customers: [],
     departments: [],
     products: [],
@@ -3531,6 +3534,7 @@ function buildRemakeFactorBrowserPackedPayloadV1330_() {
     months: new Map(),
     dates: new Map(),
     cases: new Map(),
+    caseNumbers: new Map(),
     customers: new Map(),
     departments: new Map(),
     products: new Map(),
@@ -3606,7 +3610,8 @@ function buildRemakeFactorBrowserPackedPayloadV1330_() {
           Number(row.remakeDiscount || 0),
           row.isRealInvoicedCharge === false ? 0 : 1,
           Number(row.chargeAmount || 0),
-          scalarIndex('discountSources', row.remakeDiscountSource || '')
+          scalarIndex('discountSources', row.remakeDiscountSource || ''),
+          scalarIndex('caseNumbers', row.caseNumber || '')
         ]);
       });
     } catch (error) {
@@ -3638,6 +3643,7 @@ function buildRemakeFactorBrowserPackedPayloadV1330_() {
         months: dictionaries.months.length,
         dates: dictionaries.dates.length,
         cases: dictionaries.cases.length,
+        caseNumbers: dictionaries.caseNumbers.length,
         customers: dictionaries.customers.length,
         departments: dictionaries.departments.length,
         products: dictionaries.products.length,

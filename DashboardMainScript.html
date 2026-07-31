@@ -22186,18 +22186,20 @@
       return row;
     });
   }
-  // v6.570: The main Remake cache owns the complete remake population.
-  // The Ceramist cache is an attribution sidecar for rows that qualified for
-  // CERAMICS analysis. Join the two native datasets here so every visible
-  // remake line is represented exactly once. Rows without a sidecar match are
-  // intentionally grouped under [Unattributed].
+  // v6.571: Reconcile the complete Remake population to the Ceramist sidecar
+  // with the authoritative numeric current case number retained by the compact
+  // browser payload. GUID case IDs are intentionally not used as attribution
+  // join keys. When an older browser cache lacks caseNumber, keep the proven
+  // sidecar view instead of falsely labeling every remake row Unattributed.
   let ceramistPopulationMemoV6569 = {
     signature:'',
     rows:[],
     audit:{
-      version:'v6.570',
+      version:'v6.571',
       mainRemakeRows:0,
       sidecarRows:0,
+      mainRowsWithCaseNumber:0,
+      sidecarRowsWithCaseNumber:0,
       matchedRows:0,
       exactOrProductMatchedRows:0,
       caseLevelMatchedRows:0,
@@ -22205,8 +22207,14 @@
       joinedRows:0,
       mainRemakeCases:0,
       joinedCases:0,
+      attributedJoinedCases:0,
+      unattributedOnlyCases:0,
+      mixedCases:0,
       sidecarReady:false,
+      caseNumberReady:false,
       waitingForSidecar:true,
+      waitingForMainCaseNumber:false,
+      fallbackToSidecar:false,
       complete:false
     }
   };
@@ -22216,7 +22224,7 @@
     const clean = textV6230(value, '');
     if (!clean) return '';
     const numeric = Number(clean);
-    return Number.isFinite(numeric) && numeric > 0 ? String(Math.trunc(numeric)) : clean.toUpperCase();
+    return Number.isFinite(numeric) && numeric > 0 ? String(Math.trunc(numeric)) : '';
   }
 
   function ceramistPopulationNormalizeProductV6570(value) {
@@ -22224,18 +22232,27 @@
   }
 
   function ceramistPopulationCaseIdentityV6569(row) {
-    return ceramistPopulationNormalizeCaseV6570(row && (
-      row.remakeCaseNumber || row.currentCaseNumber || row.currentCaseNo ||
-      row.caseNumber || row.Cases_CaseNumber || row.caseId || row.caseID ||
-      row.currentCaseId || row.currentCaseID
-    ));
+    const candidates = [
+      row && row.currentCaseNumber,
+      row && row.remakeCaseNumber,
+      row && row.caseNumber,
+      row && row.currentCaseNo,
+      row && row.caseNo,
+      row && row.Cases_CaseNumber
+    ];
+    for (let index = 0; index < candidates.length; index += 1) {
+      const normalized = ceramistPopulationNormalizeCaseV6570(candidates[index]);
+      if (normalized) return normalized;
+    }
+    return '';
   }
 
   function ceramistPopulationProductIdentityV6569(row) {
     return ceramistPopulationNormalizeProductV6570(row && (
-      row.productId || row.currentProductId || row.currentProductID ||
-      row.remakeProductId || row.remakeProductID || row.productID ||
-      row.CaseProducts_ProductID || row.productKey || row.productName
+      row.currentProductId || row.currentProductID ||
+      row.remakeProductId || row.remakeProductID ||
+      row.productId || row.productID || row.CaseProducts_ProductID ||
+      row.productKey || row.productName
     ));
   }
 
@@ -22269,15 +22286,17 @@
   }
 
   function ceramistPopulationBroadKeyV6569(row) {
-    return [
-      ceramistPopulationCaseIdentityV6569(row),
-      ceramistPopulationProductIdentityV6569(row)
-    ].join('\u0001');
+    const caseNumber = ceramistPopulationCaseIdentityV6569(row);
+    const product = ceramistPopulationProductIdentityV6569(row);
+    if (!caseNumber || !product) return '';
+    return [caseNumber, product].join('\u0001');
   }
 
   function ceramistPopulationExactKeyV6569(row) {
+    const broadKey = ceramistPopulationBroadKeyV6569(row);
+    if (!broadKey) return '';
     return [
-      ceramistPopulationBroadKeyV6569(row),
+      broadKey,
       ceramistPopulationLineIdentityV6569(row),
       ceramistPopulationNumberTokenV6569(
         row && (row.remakeUnits !== undefined ? row.remakeUnits : (row.quantity !== undefined ? row.quantity : row.units)),
@@ -22295,6 +22314,7 @@
   }
 
   function ceramistTakePopulationMatchV6569(map, key, claimed) {
+    if (!key) return null;
     const candidates = map.get(key) || [];
     for (let index = 0; index < candidates.length; index += 1) {
       const candidate = candidates[index];
@@ -22303,6 +22323,36 @@
       return candidate.row;
     }
     return null;
+  }
+
+  function ceramistPopulationCaseCountV6571(rows) {
+    return new Set((rows || []).map(ceramistPopulationCaseIdentityV6569).filter(Boolean)).size;
+  }
+
+  function ceramistPopulationCaseCoverageV6571(rows) {
+    const cases = new Map();
+    (rows || []).forEach(function(row) {
+      const key = ceramistPopulationCaseIdentityV6569(row);
+      if (!key) return;
+      if (!cases.has(key)) cases.set(key, { attributed:false, unattributed:false });
+      const item = cases.get(key);
+      if (ceramistIsAttributedV6343(row)) item.attributed = true;
+      else item.unattributed = true;
+    });
+    let attributed = 0;
+    let unattributedOnly = 0;
+    let mixed = 0;
+    cases.forEach(function(item) {
+      if (item.attributed) attributed += 1;
+      if (!item.attributed && item.unattributed) unattributedOnly += 1;
+      if (item.attributed && item.unattributed) mixed += 1;
+    });
+    return {
+      total:cases.size,
+      attributed:attributed,
+      unattributedOnly:unattributedOnly,
+      mixed:mixed
+    };
   }
 
   function ceramistPopulationCaseRepresentativesV6570(rows) {
@@ -22329,9 +22379,10 @@
     return representatives;
   }
 
-  function ceramistOverlayMainPopulationV6569(sidecarRow, mainRow, matched) {
+  function ceramistOverlayMainPopulationV6569(sidecarRow, mainRow, matchMethod) {
+    const matched = !!sidecarRow;
     const row = Object.assign({}, sidecarRow || {});
-    const caseNumber = textV6230(mainRow && mainRow.caseNumber, '');
+    const caseNumber = ceramistPopulationCaseIdentityV6569(mainRow);
     const caseId = textV6230(mainRow && mainRow.caseId, caseNumber);
     const productId = textV6230(mainRow && mainRow.productId, '');
     const productName = textV6230(mainRow && mainRow.productName, productId || 'Unknown product');
@@ -22343,8 +22394,9 @@
     row.year = Number(mainRow && mainRow.year || row.year || 0) || '';
     row.invoiceDate = textV6230(mainRow && mainRow.invoiceDate, row.invoiceDate || '');
     row.caseId = caseId || textV6230(row.caseId, '');
-    row.caseNumber = caseNumber || textV6230(row.caseNumber, '');
-    row.remakeCaseNumber = caseNumber || textV6230(row.remakeCaseNumber, row.caseNumber || row.caseId);
+    row.caseNumber = caseNumber || ceramistPopulationCaseIdentityV6569(row);
+    row.currentCaseNumber = caseNumber || textV6230(row.currentCaseNumber, row.caseNumber);
+    row.remakeCaseNumber = caseNumber || textV6230(row.remakeCaseNumber, row.caseNumber);
     row.caseProductLineId = textV6230(
       mainRow && mainRow.caseProductLineId,
       ceramistPopulationLineIdentityV6569(row)
@@ -22360,6 +22412,7 @@
     row.customerActive = mainRow && mainRow.customerActive === false ? false : true;
     row.department = textV6230(mainRow && mainRow.department, row.department || 'Unassigned');
     row.productId = productId || textV6230(row.productId, '');
+    row.currentProductId = productId || textV6230(row.currentProductId, row.productId);
     row.productKey = productKey || textV6230(row.productKey, row.productId || productName);
     row.productName = productName;
     row.productGroup = textV6230(mainRow && mainRow.productGroup, row.productGroup || 'Unassigned');
@@ -22377,14 +22430,12 @@
     row.populationSourceV6569 = matched
       ? 'main_remake_population_plus_ceramist_attribution'
       : 'main_remake_population_unattributed';
+    row.populationMatchMethodV6571 = textV6230(matchMethod, matched ? 'sidecar' : 'unattributed');
 
-    if (matched) {
-      row.currentProductCeramicsEligible = row.currentProductCeramicsEligible === true;
-      return row;
-    }
+    if (matched) return row;
 
     row.currentProductCeramicsEligible = false;
-    row.currentProductCeramicsEligibilityReason = 'No exact current-product CERAMICS task in the technician attribution source';
+    row.currentProductCeramicsEligibilityReason = 'No qualifying technician-attribution row matched this remake case after the Ceramist cache loaded';
     row.responsibleCeramist = '[Unattributed]';
     row.responsibleCeramistDisplay = '[Unattributed]';
     row.responsibleTechnicianNumber = '';
@@ -22400,6 +22451,45 @@
     return row;
   }
 
+  function ceramistPopulationFallbackToSidecarV6571(signature, sourceSidecarRows, sourceMainRows, reason) {
+    const fallbackRows = sourceSidecarRows.map(function(row) { return Object.assign({}, row); });
+    const mainRowsWithCaseNumber = sourceMainRows.filter(function(row) {
+      return !!ceramistPopulationCaseIdentityV6569(row);
+    }).length;
+    const sidecarRowsWithCaseNumber = sourceSidecarRows.filter(function(row) {
+      return !!ceramistPopulationCaseIdentityV6569(row);
+    }).length;
+    ceramistPopulationMemoV6569 = {
+      signature:signature,
+      rows:fallbackRows,
+      audit:{
+        version:'v6.571',
+        mainRemakeRows:sourceMainRows.length,
+        sidecarRows:sourceSidecarRows.length,
+        mainRowsWithCaseNumber:mainRowsWithCaseNumber,
+        sidecarRowsWithCaseNumber:sidecarRowsWithCaseNumber,
+        matchedRows:sourceSidecarRows.length,
+        exactOrProductMatchedRows:sourceSidecarRows.length,
+        caseLevelMatchedRows:0,
+        synthesizedUnattributedRows:0,
+        joinedRows:fallbackRows.length,
+        mainRemakeCases:ceramistPopulationCaseCountV6571(sourceMainRows),
+        joinedCases:ceramistPopulationCaseCountV6571(fallbackRows),
+        attributedJoinedCases:ceramistPopulationCaseCoverageV6571(fallbackRows).attributed,
+        unattributedOnlyCases:ceramistPopulationCaseCoverageV6571(fallbackRows).unattributedOnly,
+        mixedCases:ceramistPopulationCaseCoverageV6571(fallbackRows).mixed,
+        sidecarReady:sourceSidecarRows.length > 0,
+        caseNumberReady:false,
+        waitingForSidecar:false,
+        waitingForMainCaseNumber:reason === 'main_case_number_missing',
+        fallbackToSidecar:true,
+        fallbackReason:reason,
+        complete:false
+      }
+    };
+    return fallbackRows;
+  }
+
   function ceramistBuildCompletePopulationV6569(sidecarRows, mainRows) {
     const sourceSidecarRows = Array.isArray(sidecarRows) ? sidecarRows.filter(Boolean) : [];
     const sourceMainRows = Array.isArray(mainRows) ? mainRows.filter(function(row) {
@@ -22407,11 +22497,19 @@
     }) : [];
     const remakeState = window.remakeFactorState || {};
     const remakeData = remakeState.data || {};
+    const mainRowsWithCaseNumber = sourceMainRows.filter(function(row) {
+      return !!ceramistPopulationCaseIdentityV6569(row);
+    }).length;
+    const sidecarRowsWithCaseNumber = sourceSidecarRows.filter(function(row) {
+      return !!ceramistPopulationCaseIdentityV6569(row);
+    }).length;
     const signature = [
       textV6230(remakeData.generatedAt || remakeData.lastRefreshAt, ''),
       textV6230(ceramistStateV6342.cacheToken || ceramistStateV6342.caseLevelRefreshedAt, ''),
       sourceMainRows.length,
-      sourceSidecarRows.length
+      sourceSidecarRows.length,
+      mainRowsWithCaseNumber,
+      sidecarRowsWithCaseNumber
     ].join('|');
 
     if (ceramistPopulationMemoV6569.signature === signature) {
@@ -22419,28 +22517,7 @@
     }
 
     if (!sourceMainRows.length) {
-      const fallbackRows = sourceSidecarRows.map(function(row) { return Object.assign({}, row); });
-      ceramistPopulationMemoV6569 = {
-        signature:signature,
-        rows:fallbackRows,
-        audit:{
-          version:'v6.570',
-          mainRemakeRows:0,
-          sidecarRows:sourceSidecarRows.length,
-          matchedRows:sourceSidecarRows.length,
-          exactOrProductMatchedRows:sourceSidecarRows.length,
-          caseLevelMatchedRows:0,
-          synthesizedUnattributedRows:0,
-          joinedRows:fallbackRows.length,
-          mainRemakeCases:0,
-          joinedCases:ceramistDistinctCaseCountV6342(fallbackRows),
-          sidecarReady:sourceSidecarRows.length > 0,
-          waitingForSidecar:false,
-          complete:true,
-          fallbackToSidecar:true
-        }
-      };
-      return fallbackRows;
+      return ceramistPopulationFallbackToSidecarV6571(signature, sourceSidecarRows, sourceMainRows, 'main_population_not_loaded');
     }
 
     if (!sourceSidecarRows.length) {
@@ -22449,23 +22526,48 @@
         signature:signature,
         rows:[],
         audit:{
-          version:'v6.570',
+          version:'v6.571',
           mainRemakeRows:sourceMainRows.length,
           sidecarRows:0,
+          mainRowsWithCaseNumber:mainRowsWithCaseNumber,
+          sidecarRowsWithCaseNumber:0,
           matchedRows:0,
           exactOrProductMatchedRows:0,
           caseLevelMatchedRows:0,
           synthesizedUnattributedRows:0,
           joinedRows:0,
-          mainRemakeCases:ceramistDistinctCaseCountV6342(sourceMainRows),
+          mainRemakeCases:ceramistPopulationCaseCountV6571(sourceMainRows),
           joinedCases:0,
+          attributedJoinedCases:0,
+          unattributedOnlyCases:0,
+          mixedCases:0,
           sidecarReady:false,
+          caseNumberReady:mainRowsWithCaseNumber === sourceMainRows.length,
           waitingForSidecar:true,
-          complete:false,
-          fallbackToSidecar:false
+          waitingForMainCaseNumber:false,
+          fallbackToSidecar:false,
+          complete:false
         }
       };
       return [];
+    }
+
+    if (mainRowsWithCaseNumber !== sourceMainRows.length) {
+      return ceramistPopulationFallbackToSidecarV6571(
+        signature,
+        sourceSidecarRows,
+        sourceMainRows,
+        'main_case_number_missing'
+      );
+    }
+
+    if (!sidecarRowsWithCaseNumber) {
+      return ceramistPopulationFallbackToSidecarV6571(
+        signature,
+        sourceSidecarRows,
+        sourceMainRows,
+        'sidecar_case_number_missing'
+      );
     }
 
     const exactBuckets = new Map();
@@ -22482,45 +22584,62 @@
     let caseLevelMatchedRows = 0;
     let synthesizedRows = 0;
     const joinedRows = sourceMainRows.map(function(mainRow) {
+      let matchMethod = '';
       let sidecarRow = ceramistTakePopulationMatchV6569(
         exactBuckets,
         ceramistPopulationExactKeyV6569(mainRow),
         claimed
       );
+      if (sidecarRow) matchMethod = 'case_product_exact';
       if (!sidecarRow) {
         sidecarRow = ceramistTakePopulationMatchV6569(
           broadBuckets,
           ceramistPopulationBroadKeyV6569(mainRow),
           claimed
         );
+        if (sidecarRow) matchMethod = 'case_product';
       }
       if (sidecarRow) {
         exactOrProductMatchedRows += 1;
       } else {
         sidecarRow = caseRepresentatives.get(ceramistPopulationCaseIdentityV6569(mainRow)) || null;
-        if (sidecarRow) caseLevelMatchedRows += 1;
+        if (sidecarRow) {
+          caseLevelMatchedRows += 1;
+          matchMethod = 'case_level_unique_worker';
+        }
       }
-      if (!sidecarRow) synthesizedRows += 1;
-      return ceramistOverlayMainPopulationV6569(sidecarRow, mainRow, !!sidecarRow);
+      if (!sidecarRow) {
+        synthesizedRows += 1;
+        matchMethod = 'unattributed_no_sidecar_match';
+      }
+      return ceramistOverlayMainPopulationV6569(sidecarRow, mainRow, matchMethod);
     });
 
     const matchedRows = exactOrProductMatchedRows + caseLevelMatchedRows;
+    const coverage = ceramistPopulationCaseCoverageV6571(joinedRows);
     const audit = {
-      version:'v6.570',
+      version:'v6.571',
       mainRemakeRows:sourceMainRows.length,
       sidecarRows:sourceSidecarRows.length,
+      mainRowsWithCaseNumber:mainRowsWithCaseNumber,
+      sidecarRowsWithCaseNumber:sidecarRowsWithCaseNumber,
       matchedRows:matchedRows,
       exactOrProductMatchedRows:exactOrProductMatchedRows,
       caseLevelMatchedRows:caseLevelMatchedRows,
       synthesizedUnattributedRows:synthesizedRows,
       joinedRows:joinedRows.length,
-      mainRemakeCases:ceramistDistinctCaseCountV6342(sourceMainRows),
-      joinedCases:ceramistDistinctCaseCountV6342(joinedRows),
+      mainRemakeCases:ceramistPopulationCaseCountV6571(sourceMainRows),
+      joinedCases:coverage.total,
+      attributedJoinedCases:coverage.attributed,
+      unattributedOnlyCases:coverage.unattributedOnly,
+      mixedCases:coverage.mixed,
       sidecarReady:true,
+      caseNumberReady:true,
       waitingForSidecar:false,
+      waitingForMainCaseNumber:false,
+      fallbackToSidecar:false,
       complete:joinedRows.length === sourceMainRows.length &&
-        ceramistDistinctCaseCountV6342(joinedRows) === ceramistDistinctCaseCountV6342(sourceMainRows),
-      fallbackToSidecar:false
+        coverage.total === ceramistPopulationCaseCountV6571(sourceMainRows)
     };
 
     ceramistPopulationMemoV6569 = {
@@ -22531,28 +22650,35 @@
     return joinedRows;
   }
 
-  const ceramistPopulationApiV6570 = Object.freeze({
-    version:'v6.570',
+  const ceramistPopulationApiV6571 = Object.freeze({
+    version:'v6.571',
     audit:function() {
       const mainRows = normalizedRowsV6230().filter(function(row) {
         return row && isRemakeV6230(row);
       });
       const sidecarRows = Array.isArray(ceramistStateV6342.rows) ? ceramistStateV6342.rows : [];
-      if (mainRows.length && sidecarRows.length) {
+      if (mainRows.length || sidecarRows.length) {
         ceramistBuildCompletePopulationV6569(sidecarRows, mainRows);
       }
       return Object.assign({}, ceramistPopulationMemoV6569.audit || {}, {
-        version:'v6.570',
+        version:'v6.571',
         stateLoaded:ceramistStateV6342.loaded === true,
         stateLoading:ceramistStateV6342.loading === true,
         stateOk:ceramistStateV6342.ok === true,
         liveMainRemakeRows:mainRows.length,
-        liveSidecarRows:sidecarRows.length
+        liveMainRowsWithCaseNumber:mainRows.filter(function(row) {
+          return !!ceramistPopulationCaseIdentityV6569(row);
+        }).length,
+        liveSidecarRows:sidecarRows.length,
+        liveSidecarRowsWithCaseNumber:sidecarRows.filter(function(row) {
+          return !!ceramistPopulationCaseIdentityV6569(row);
+        }).length
       });
     }
   });
-  window.cdaCeramistPopulationReconciliationV6570 = ceramistPopulationApiV6570;
-  window.cdaCeramistPopulationReconciliationV6569 = ceramistPopulationApiV6570;
+  window.cdaCeramistPopulationReconciliationV6571 = ceramistPopulationApiV6571;
+  window.cdaCeramistPopulationReconciliationV6570 = ceramistPopulationApiV6571;
+  window.cdaCeramistPopulationReconciliationV6569 = ceramistPopulationApiV6571;
 
   function ceramistRowsInDashboardScopeV6342(ignoreFilterKind) {
     const sidecarRows = Array.isArray(ceramistStateV6342.rows) ? ceramistStateV6342.rows : [];
@@ -25608,6 +25734,7 @@
     const months = dictionaries.months || [];
     const dates = dictionaries.dates || [];
     const cases = dictionaries.cases || [];
+    const caseNumbers = dictionaries.caseNumbers || [];
     const customers = dictionaries.customers || [];
     const departments = dictionaries.departments || [];
     const products = dictionaries.products || [];
@@ -25634,6 +25761,7 @@
         year: /^\d{4}/.test(month) ? Number(month.slice(0, 4)) : '',
         invoiceDate: String(remakeDictionaryValueV6388(dates, packedRow[1], '') || ''),
         caseId: String(remakeDictionaryValueV6388(cases, packedRow[2], '') || ''),
+        caseNumber: String(remakeDictionaryValueV6388(caseNumbers, packedRow[15], '') || ''),
         customerId: customerId || customerName,
         customerKey: customerId || customerName,
         customerName: customerName,
