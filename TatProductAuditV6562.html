@@ -11,8 +11,7 @@ Purpose: Audit department-only Products / Groups plus Remake-parity TAT Performa
   if (!previous || typeof previous.audit !== 'function') {
     throw new Error('Shared dashboard audit must load before the TAT layout audit.');
   }
-  if (window.cdaTatProductAuditV6562 &&
-      window.cdaTatProductAuditV6562.version === 'v6.565') return;
+  if (window.cdaTatProductAuditV6562 && window.cdaTatProductAuditV6562.version === 'v6.565') return;
 
   function auditProductContractV6565(){
     const platform = window.cdaDashboardPlatformV6547;
@@ -24,10 +23,11 @@ Purpose: Audit department-only Products / Groups plus Remake-parity TAT Performa
     const page = document.getElementById('tatDashboardPageV6509');
     const departmentConfig = tableApi && tableApi.config ? tableApi.config('tatDepartment') : null;
     const productConfig = tableApi && tableApi.config ? tableApi.config('tatProduct') : null;
-    const keys = definition && definition.components ? definition.components.map(function(item){ return item.key; }) : [];
-    const departmentComponent = definition && definition.components && definition.components.find(function(item){ return item.key === 'department'; });
-    const productComponent = definition && definition.components && definition.components.find(function(item){ return item.key === 'product'; });
-    const performanceComponent = definition && definition.components && definition.components.find(function(item){ return item.key === 'performance'; });
+    const components = definition && Array.isArray(definition.components) ? definition.components : [];
+    const keys = components.map(function(item){ return item.key; });
+    const departmentComponent = components.find(function(item){ return item.key === 'department'; });
+    const productComponent = components.find(function(item){ return item.key === 'product'; });
+    const performanceComponent = components.find(function(item){ return item.key === 'performance'; });
     const productCard = page && page.querySelector('[data-cda-dashboard-component="product"]');
     const performanceCard = page && page.querySelector('[data-cda-dashboard-component="performance"]');
     const productButtons = productCard ? Array.from(productCard.querySelectorAll('[data-tat-product-mode-v6562]')) : [];
@@ -45,7 +45,7 @@ Purpose: Audit department-only Products / Groups plus Remake-parity TAT Performa
       !page.querySelector('.tatPromisePanelV6563') && !page.querySelector('.tatPerformanceLayoutV6564'));
     const siblingOrder = keys.indexOf('performance') === 2 && keys.indexOf('product') === 3;
     const siblingWidths = !!performanceComponent && !!productComponent && !performanceComponent.wide && !productComponent.wide;
-    const definitionCorrect = !!definition && definition.version === 'v6.565' && definition.components.length === 6 &&
+    const definitionCorrect = !!definition && definition.version === 'v6.565' && components.length === 6 &&
       !!departmentComponent && !!productComponent && !!performanceComponent && siblingOrder && siblingWidths &&
       departmentComponent.tableKey === 'tatDepartment' && productComponent.tableKey === 'tatProduct' &&
       performanceComponent.chartKey === 'distribution' && performanceComponent.tableKey === 'tatLate';
@@ -94,7 +94,14 @@ Purpose: Audit department-only Products / Groups plus Remake-parity TAT Performa
       tatWidths:window.cdaTatTableWidthsV6563 && window.cdaTatTableWidthsV6563.version,
       renderer:window.cdaDashboardRendererV6547 && window.cdaDashboardRendererV6547.version
     });
-    const serviceVersionsCorrect = (!!base.serviceVersionsCorrect || true) &&
+    const otherServicesCorrect = !!base.serviceVersionsCorrect ||
+      (services.theme === 'v6.550' && services.columns === 'v6.558' &&
+       services.popover === 'v6.558' && services.toolbar === 'v6.558' &&
+       services.bridge === 'v6.559' && services.catalog === 'v6.555' &&
+       services.isolation === 'v6.561' && services.popout === 'v6.561' &&
+       services.titleToggle === 'v6.556' && services.adapter === 'v6.558' &&
+       services.decorator === 'v6.558');
+    const serviceVersionsCorrect = otherServicesCorrect &&
       services.tatAdapter === 'v6.563' && services.tatProduct === 'v6.562' &&
       services.tatLayout === 'v6.565' && services.tatWidths === 'v6.563' && services.renderer === 'v6.562';
     const baseBehaviorOk = [
