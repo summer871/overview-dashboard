@@ -20432,6 +20432,12 @@
         month,
         year,
         caseId: caseIdV6230(row),
+        caseNumber: textV6230(row.caseNumber || row.caseNo || row.Cases_CaseNumber, ''),
+        caseProductLineId: textV6230(
+          row.caseProductLineId || row.caseProductLineID || row.caseProductId || row.caseProductID ||
+          row.productLineId || row.productLineID || row.lineId || row.lineID,
+          ''
+        ),
         customerId: rawCustomerId || customerName,
         customerKey: rawCustomerId || customerName,
         customerName,
@@ -22180,11 +22186,264 @@
       return row;
     });
   }
+  // v6.569: The main Remake cache owns the complete remake population.
+  // The Ceramist cache is an attribution sidecar for rows that qualified for
+  // CERAMICS analysis. Join the two native datasets here so every visible
+  // remake line is represented exactly once. Rows without a sidecar match are
+  // intentionally grouped under [Unattributed].
+  let ceramistPopulationMemoV6569 = {
+    signature:'',
+    rows:[],
+    audit:{
+      version:'v6.569',
+      mainRemakeRows:0,
+      sidecarRows:0,
+      matchedRows:0,
+      synthesizedUnattributedRows:0,
+      joinedRows:0,
+      mainRemakeCases:0,
+      joinedCases:0,
+      complete:false
+    }
+  };
+
+  function ceramistPopulationCaseIdentityV6569(row) {
+    return textV6230(row && (
+      row.remakeCaseNumber || row.caseNumber || row.Cases_CaseNumber ||
+      row.caseId || row.caseID
+    ), '');
+  }
+
+  function ceramistPopulationProductIdentityV6569(row) {
+    return textV6230(row && (
+      row.productId || row.productID || row.CaseProducts_ProductID ||
+      row.productKey || row.productName
+    ), '');
+  }
+
+  function ceramistPopulationLineIdentityV6569(row) {
+    return textV6230(row && (
+      row.caseProductLineId || row.caseProductLineID || row.caseProductId ||
+      row.caseProductID || row.productLineId || row.productLineID ||
+      row.lineId || row.lineID
+    ), '');
+  }
+
+  function ceramistPopulationNumberTokenV6569(value, digits) {
+    const number = numV6230(value);
+    return Number.isFinite(number) ? number.toFixed(digits) : '';
+  }
+
+  function ceramistPopulationBroadKeyV6569(row) {
+    return [
+      ceramistPopulationCaseIdentityV6569(row),
+      ceramistPopulationProductIdentityV6569(row)
+    ].join('\u0001');
+  }
+
+  function ceramistPopulationExactKeyV6569(row) {
+    return [
+      ceramistPopulationBroadKeyV6569(row),
+      ceramistPopulationLineIdentityV6569(row),
+      ceramistPopulationNumberTokenV6569(
+        row && (row.remakeUnits !== undefined ? row.remakeUnits : (row.quantity !== undefined ? row.quantity : row.units)),
+        4
+      ),
+      ceramistPopulationNumberTokenV6569(row && row.remakeDiscount, 2),
+      textV6230(row && row.remakeReason, '').toLowerCase()
+    ].join('\u0001');
+  }
+
+  function ceramistPopulationBucketV6569(map, key, item) {
+    if (!key) return;
+    if (!map.has(key)) map.set(key, []);
+    map.get(key).push(item);
+  }
+
+  function ceramistTakePopulationMatchV6569(map, key, claimed) {
+    const candidates = map.get(key) || [];
+    for (let index = 0; index < candidates.length; index += 1) {
+      const candidate = candidates[index];
+      if (claimed.has(candidate.index)) continue;
+      claimed.add(candidate.index);
+      return candidate.row;
+    }
+    return null;
+  }
+
+  function ceramistOverlayMainPopulationV6569(sidecarRow, mainRow, matched) {
+    const row = Object.assign({}, sidecarRow || {});
+    const caseNumber = textV6230(mainRow && mainRow.caseNumber, '');
+    const caseId = textV6230(mainRow && mainRow.caseId, caseNumber);
+    const productId = textV6230(mainRow && mainRow.productId, '');
+    const productName = textV6230(mainRow && mainRow.productName, productId || 'Unknown product');
+    const productKey = textV6230(mainRow && mainRow.productKey, productId || productName);
+    const customerId = textV6230(mainRow && mainRow.customerId, '');
+    const customerName = textV6230(mainRow && mainRow.customerName, customerId || 'Unknown customer');
+
+    row.month = textV6230(mainRow && mainRow.month, row.month || '');
+    row.year = Number(mainRow && mainRow.year || row.year || 0) || '';
+    row.invoiceDate = textV6230(mainRow && mainRow.invoiceDate, row.invoiceDate || '');
+    row.caseId = caseId || textV6230(row.caseId, '');
+    row.caseNumber = caseNumber || textV6230(row.caseNumber, '');
+    row.remakeCaseNumber = caseNumber || textV6230(row.remakeCaseNumber, row.caseNumber || row.caseId);
+    row.caseProductLineId = textV6230(
+      mainRow && mainRow.caseProductLineId,
+      ceramistPopulationLineIdentityV6569(row)
+    );
+    row.customerId = customerId || textV6230(row.customerId, '');
+    row.customerKey = customerId || textV6230(row.customerKey, row.customerId);
+    row.customerName = customerName;
+    row.customerDisplayName = textV6230(
+      mainRow && (mainRow.customerDisplayLabel || mainRow.customerDisplayName),
+      customerName
+    );
+    row.practiceName = textV6230(mainRow && mainRow.practiceName, row.practiceName || '');
+    row.customerActive = mainRow && mainRow.customerActive === false ? false : true;
+    row.department = textV6230(mainRow && mainRow.department, row.department || 'Unassigned');
+    row.productId = productId || textV6230(row.productId, '');
+    row.productKey = productKey || textV6230(row.productKey, row.productId || productName);
+    row.productName = productName;
+    row.productGroup = textV6230(mainRow && mainRow.productGroup, row.productGroup || 'Unassigned');
+    row.remakeReason = textV6230(mainRow && mainRow.remakeReason, row.remakeReason || 'Not specified');
+    row.quantity = numV6230(mainRow && (mainRow.quantity !== undefined ? mainRow.quantity : mainRow.units));
+    row.units = row.quantity;
+    row.isRemake = true;
+    row.remakeUnits = numV6230(mainRow && (
+      mainRow.remakeUnits !== undefined ? mainRow.remakeUnits :
+      (mainRow.quantity !== undefined ? mainRow.quantity : mainRow.units)
+    ));
+    row.remakeDiscount = Math.abs(numV6230(mainRow && mainRow.remakeDiscount));
+    row.caseStatus = textV6230(mainRow && mainRow.caseStatus, row.caseStatus || '');
+    row.invoiceDateTryIn = textV6230(mainRow && mainRow.invoiceDateTryIn, row.invoiceDateTryIn || '');
+    row.populationSourceV6569 = matched
+      ? 'main_remake_population_plus_ceramist_attribution'
+      : 'main_remake_population_unattributed';
+
+    if (matched) {
+      row.currentProductCeramicsEligible = row.currentProductCeramicsEligible === true;
+      return row;
+    }
+
+    row.currentProductCeramicsEligible = false;
+    row.currentProductCeramicsEligibilityReason = 'No exact current-product CERAMICS task in the technician attribution source';
+    row.responsibleCeramist = '[Unattributed]';
+    row.responsibleCeramistDisplay = '[Unattributed]';
+    row.responsibleTechnicianNumber = '';
+    row.responsibleTechnicianType = '';
+    row.responsibleWorkerType = '';
+    row.responsibleWorkerCategory = 'Unattributed';
+    row.responsibleWorkerSection = 'Unattributed';
+    row.attributionStatus = 'unattributed';
+    row.attributionBasis = 'not_current_product_ceramics_eligible';
+    row.attributionReason = row.currentProductCeramicsEligibilityReason;
+    row.caseLevelResponsibilityApplied = true;
+    row.invoiceNoteUsedForAttribution = false;
+    return row;
+  }
+
+  function ceramistBuildCompletePopulationV6569(sidecarRows, mainRows) {
+    const sourceSidecarRows = Array.isArray(sidecarRows) ? sidecarRows.filter(Boolean) : [];
+    const sourceMainRows = Array.isArray(mainRows) ? mainRows.filter(function(row) {
+      return row && isRemakeV6230(row);
+    }) : [];
+    const remakeState = window.remakeFactorState || {};
+    const remakeData = remakeState.data || {};
+    const signature = [
+      textV6230(remakeData.generatedAt || remakeData.lastRefreshAt, ''),
+      textV6230(ceramistStateV6342.cacheToken || ceramistStateV6342.caseLevelRefreshedAt, ''),
+      sourceMainRows.length,
+      sourceSidecarRows.length
+    ].join('|');
+
+    if (ceramistPopulationMemoV6569.signature === signature) {
+      return ceramistPopulationMemoV6569.rows;
+    }
+
+    if (!sourceMainRows.length) {
+      const fallbackRows = sourceSidecarRows.map(function(row) { return Object.assign({}, row); });
+      ceramistPopulationMemoV6569 = {
+        signature:signature,
+        rows:fallbackRows,
+        audit:{
+          version:'v6.569',
+          mainRemakeRows:0,
+          sidecarRows:sourceSidecarRows.length,
+          matchedRows:sourceSidecarRows.length,
+          synthesizedUnattributedRows:0,
+          joinedRows:fallbackRows.length,
+          mainRemakeCases:0,
+          joinedCases:ceramistDistinctCaseCountV6342(fallbackRows),
+          complete:true,
+          fallbackToSidecar:true
+        }
+      };
+      return fallbackRows;
+    }
+
+    const exactBuckets = new Map();
+    const broadBuckets = new Map();
+    sourceSidecarRows.forEach(function(row, index) {
+      const item = { index:index, row:row };
+      ceramistPopulationBucketV6569(exactBuckets, ceramistPopulationExactKeyV6569(row), item);
+      ceramistPopulationBucketV6569(broadBuckets, ceramistPopulationBroadKeyV6569(row), item);
+    });
+
+    const claimed = new Set();
+    let matchedRows = 0;
+    let synthesizedRows = 0;
+    const joinedRows = sourceMainRows.map(function(mainRow) {
+      let sidecarRow = ceramistTakePopulationMatchV6569(
+        exactBuckets,
+        ceramistPopulationExactKeyV6569(mainRow),
+        claimed
+      );
+      if (!sidecarRow) {
+        sidecarRow = ceramistTakePopulationMatchV6569(
+          broadBuckets,
+          ceramistPopulationBroadKeyV6569(mainRow),
+          claimed
+        );
+      }
+      if (sidecarRow) matchedRows += 1;
+      else synthesizedRows += 1;
+      return ceramistOverlayMainPopulationV6569(sidecarRow, mainRow, !!sidecarRow);
+    });
+
+    const audit = {
+      version:'v6.569',
+      mainRemakeRows:sourceMainRows.length,
+      sidecarRows:sourceSidecarRows.length,
+      matchedRows:matchedRows,
+      synthesizedUnattributedRows:synthesizedRows,
+      joinedRows:joinedRows.length,
+      mainRemakeCases:ceramistDistinctCaseCountV6342(sourceMainRows),
+      joinedCases:ceramistDistinctCaseCountV6342(joinedRows),
+      complete:joinedRows.length === sourceMainRows.length &&
+        ceramistDistinctCaseCountV6342(joinedRows) === ceramistDistinctCaseCountV6342(sourceMainRows),
+      fallbackToSidecar:false
+    };
+
+    ceramistPopulationMemoV6569 = {
+      signature:signature,
+      rows:joinedRows,
+      audit:audit
+    };
+    return joinedRows;
+  }
+
+  window.cdaCeramistPopulationReconciliationV6569 = Object.freeze({
+    version:'v6.569',
+    audit:function() {
+      return Object.assign({}, ceramistPopulationMemoV6569.audit || {});
+    }
+  });
+
   function ceramistRowsInDashboardScopeV6342(ignoreFilterKind) {
-    let rows = Array.isArray(ceramistStateV6342.rows) ? ceramistStateV6342.rows : [];
-    if (!rows.length) return [];
-    rows = rows.filter(function(row) { return row && row.currentProductCeramicsEligible === true; });
+    const sidecarRows = Array.isArray(ceramistStateV6342.rows) ? ceramistStateV6342.rows : [];
     const mainRows = normalizedRowsV6230();
+    let rows = ceramistBuildCompletePopulationV6569(sidecarRows, mainRows);
+    if (!rows.length) return [];
     if (mainRows.length) {
       rows = ceramistEnrichTryInFromMainV6348(rows, mainRows);
       const scope = comparisonScopeV6295(mainRows);
@@ -22247,7 +22506,7 @@
     if (unattributed) {
       return {
         key:'[Unattributed]',
-        label:'[Unattributed]',
+        label:'Unattributed',
         workerType:'',
         workerCategory:'Unattributed',
         workerSection:'Unattributed'
@@ -22283,6 +22542,8 @@
           workerCategory:identity.workerCategory,
           workerSection:identity.workerSection,
           caseKeys:new Set(),
+          caseNumbers:new Set(),
+          reviewReasons:new Set(),
           remakeUnits:0,
           remakeDiscount:0,
           productRows:0
@@ -22297,7 +22558,10 @@
         group.workerSection = 'Ceramists';
       }
       const caseKey = ceramistCaseKeyV6342(row);
+      const caseNumber = ceramistRemakeCaseNumberV6349(row);
       if (caseKey) group.caseKeys.add(caseKey);
+      if (caseNumber) group.caseNumbers.add(caseNumber);
+      if (key === '[Unattributed]') group.reviewReasons.add(ceramistUnassignedReasonV6349(row));
       group.remakeUnits += numV6230(row.remakeUnits);
       group.remakeDiscount += Math.abs(numV6230(row.remakeDiscount));
       group.productRows += 1;
@@ -22310,6 +22574,10 @@
         workerType:group.workerType,
         workerCategory:group.workerCategory,
         workerSection:group.workerSection,
+        caseNumbers:Array.from(group.caseNumbers).sort(function(a,b) {
+          return String(a).localeCompare(String(b), undefined, { numeric:true, sensitivity:'base' });
+        }),
+        reviewReasons:Array.from(group.reviewReasons).sort(),
         remakeCases:group.caseKeys.size,
         remakeUnits:group.remakeUnits,
         shareUnits:totalUnits ? group.remakeUnits / totalUnits : 0,
@@ -22366,12 +22634,22 @@
   }
   function ceramistUnassignedReasonV6349(row) {
     if (!row) return 'No CERAMICS task assigned';
-    const hasLinkedCase = !!textV6230(row.previousCaseNumber || row.rootCaseNumber, '');
     const basis = String(row.attributionBasis || '').toLowerCase();
+    const explicitReason = textV6230(row.attributionReason || row.currentProductCeramicsEligibilityReason, '');
+    if (basis === 'not_current_product_ceramics_eligible') {
+      return explicitReason || 'Not eligible: no exact current-product CERAMICS task';
+    }
+    if (basis === 'multiple_case_level_workers') {
+      return 'Multiple completed CERAMICS workers require review';
+    }
+    if (basis === 'no_case_level_ceramics_worker') {
+      return 'No completed CERAMICS worker on the prior/root case';
+    }
+    const hasLinkedCase = !!textV6230(row.previousCaseNumber || row.rootCaseNumber, '');
     if (!hasLinkedCase || basis === 'unlinked' || numV6230(row.chainDepth) <= 0) {
       return 'No remake case ID found';
     }
-    return 'No CERAMICS task assigned';
+    return explicitReason || 'No CERAMICS task assigned';
   }
   function ceramistNoteTokensV6343(row) {
     const tokens = [];
@@ -22636,9 +22914,14 @@
       const selectedClasses = selected ? ' selectedV6230 ceramistSelectedV6343' : '';
       const label = ceramistCleanWorkerLabelV6349(row.label || row.key, row.key);
       const isUnassignedV6399 = String(row.key) === '[Unattributed]';
-      const unassignedHelpV6399 = 'Unassigned means one confirmed responsible worker could not be determined. Common causes include no completed CERAMICS task on the prior/root case, a missing remake-to-root case link, or multiple completed CERAMICS workers that require review.';
-      const masterTitleV6399 = isUnassignedV6399 ? unassignedHelpV6399 : (selected ? 'Click again to clear this selection' : 'Select this worker');
-      const labelTitleV6399 = isUnassignedV6399 ? unassignedHelpV6399 : label;
+      const unassignedHelpV6399 = 'Unassigned means one confirmed responsible worker could not be determined.';
+      const unassignedReasonsV6569 = (row.reviewReasons || []).length
+        ? 'Reasons: ' + row.reviewReasons.join('; ')
+        : 'Reason details are available after selecting this row.';
+      const unassignedCasesV6569 = 'Cases: ' + caseListTextV6349(row.caseNumbers || []);
+      const unassignedTitleV6569 = [unassignedHelpV6399, unassignedReasonsV6569, unassignedCasesV6569].join(' | ');
+      const masterTitleV6399 = isUnassignedV6399 ? unassignedTitleV6569 : (selected ? 'Click again to clear this selection' : 'Select this worker');
+      const labelTitleV6399 = isUnassignedV6399 ? unassignedTitleV6569 : label;
       return '<tr class="clickable' + selectedClasses + '" aria-selected="' + (selected ? 'true' : 'false') + '" title="' + escV6230(masterTitleV6399) + '" onclick="selectCeramistV6343(\'' + escJsV6230(row.key) + '\')">'
         + '<td' + className + ' title="' + escV6230(labelTitleV6399) + '">' + escV6230(label) + '</td>'
         + '<td title="' + escV6230(row.workerType || row.workerCategory || '') + '">' + escV6230(row.workerCategory || row.workerType || 'Not classified') + '</td>'
@@ -22702,7 +22985,7 @@
       const isDetailSelectedV6370 = activeDetailValuesV6370.has(detailFilterValueV6370);
       const detailSelectedClassV6370 = isDetailSelectedV6370 ? ' selectedV6230' : '';
       const detailDimClassV6370 = activeDetailValuesV6370.size && !isDetailSelectedV6370 ? ' dimmedV6266' : '';
-      return '<tr class="clickable ceramistDetailClickableV6368' + detailSelectedClassV6370 + detailDimClassV6370 + '" tabindex="0" aria-selected="' + (isDetailSelectedV6370 ? 'true' : 'false') + '" title="Click to filter the dashboard"'
+      return '<tr class="clickable ceramistDetailClickableV6368' + detailSelectedClassV6370 + detailDimClassV6370 + '" tabindex="0" aria-selected="' + (isDetailSelectedV6370 ? 'true' : 'false') + '" title="' + escV6230(rowTooltip + ' | Click to filter the dashboard') + '"'
         + ' data-detail-filter-kind="' + escV6230(detailFilterKindV6370) + '"'
         + ' data-detail-filter-value="' + escV6230(detailFilterValueV6370) + '"'
         + ' onclick="selectCeramistDetailV6368(this,event)"'
@@ -22798,10 +23081,10 @@
 
   function applyCeramistPayloadV6364(data, fromBrowser) {
     const receivedRows = data && Array.isArray(data.rows) ? data.rows : [];
-    const eligibilityReady = !receivedRows.length || receivedRows.every(function(row) {
-      return row && row.currentProductCeramicsEligible === true;
+    const rowShapeReady = !receivedRows.length || receivedRows.every(function(row) {
+      return row && typeof row === 'object';
     });
-    const ok = !!(data && data.ok && Array.isArray(data.rows) && eligibilityReady);
+    const ok = !!(data && data.ok && Array.isArray(data.rows) && rowShapeReady);
     ceramistStateV6342.loading = false;
     ceramistStateV6342.loaded = true;
     ceramistStateV6342.ok = ok;
@@ -22815,9 +23098,9 @@
     ceramistStateV6342.badgeUpdatedAt = data && data.badgeUpdatedAt || '';
     ceramistStateV6342.browserCached = fromBrowser === true;
     ceramistStateV6342.syncing = false;
-    ceramistStateV6342.message = eligibilityReady
+    ceramistStateV6342.message = rowShapeReady
       ? (data && data.message || '')
-      : 'The Ceramist cache is from the older all-product build. Run ceramist-preview-colab-v0.4.0 and replace the Ceramist cache before viewing this analysis.';
+      : 'The technician attribution cache contains an invalid row and could not be reconciled with the Remake population.';
     if (ok) {
       const stamp = ceramistStateV6342.caseLevelRefreshedAt || ceramistStateV6342.generatedAt || ceramistStateV6342.driveUpdatedAt;
       ceramistStateV6342.statusText = 'Worker cache updated: ' + (stamp ? ceramistCacheStampV6342(stamp) : 'date unavailable') + (fromBrowser ? ' · saved browser copy' : ' · nightly source');
