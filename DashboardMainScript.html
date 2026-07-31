@@ -20194,7 +20194,7 @@
             </div>
             <div id="remakeCeramistWorkspaceV6343" class="ceramistWorkspaceV6343">
               <section class="ceramistPanelV6343" aria-label="Ceramist responsibility summary">
-                <div class="ceramistPanelHeaderV6343"><div class="ceramistPanelTitleV6343">Responsible worker</div><div id="remakeCeramistPanelHintV6350" class="ceramistPanelHintV6343">Select a row</div></div>
+                <div class="ceramistPanelHeaderV6343"><div class="ceramistPanelTitleV6343">Responsible worker</div></div>
                 <div class="remakeTableWrap ceramistPreviewTableWrapV6342"><table id="remakeCeramistTableV6342" class="remakeTable"></table></div>
               </section>
               <section class="ceramistPanelV6343" aria-label="Selected ceramist breakdown">
@@ -23156,8 +23156,7 @@
     if (detailTitle) detailTitle.textContent = selectedCeramist
       ? ceramistCleanWorkerLabelV6349(selectedGroup && selectedGroup.label, selectedCeramist) + ' \u00b7 ' + breakdownLabels[breakdown] + ' breakdown'
       : 'Select a worker';
-    const panelHint = idV6230('remakeCeramistPanelHintV6350');
-    if (panelHint) panelHint.textContent = selectedCeramist ? 'Click selected row again to clear' : 'Select a row';
+    // v6.572: Keep technician hover copy informational; omit action-instruction helper text.
 
     if (!groups.length) {
       table.innerHTML = masterHeader + '<tbody><tr><td colspan="6">No worker attribution rows match these filters.</td></tr></tbody>';
@@ -23177,7 +23176,7 @@
         : 'Reason details are available after selecting this row.';
       const unassignedCasesV6569 = 'Cases: ' + caseListTextV6349(row.caseNumbers || []);
       const unassignedTitleV6569 = [unassignedHelpV6399, unassignedReasonsV6569, unassignedCasesV6569].join(' | ');
-      const masterTitleV6399 = isUnassignedV6399 ? unassignedTitleV6569 : (selected ? 'Click again to clear this selection' : 'Select this worker');
+      const masterTitleV6399 = isUnassignedV6399 ? unassignedTitleV6569 : label;
       const labelTitleV6399 = isUnassignedV6399 ? unassignedTitleV6569 : label;
       return '<tr class="clickable' + selectedClasses + '" aria-selected="' + (selected ? 'true' : 'false') + '" title="' + escV6230(masterTitleV6399) + '" onclick="selectCeramistV6343(\'' + escJsV6230(row.key) + '\')">'
         + '<td' + className + ' title="' + escV6230(labelTitleV6399) + '">' + escV6230(label) + '</td>'
@@ -23242,7 +23241,7 @@
       const isDetailSelectedV6370 = activeDetailValuesV6370.has(detailFilterValueV6370);
       const detailSelectedClassV6370 = isDetailSelectedV6370 ? ' selectedV6230' : '';
       const detailDimClassV6370 = activeDetailValuesV6370.size && !isDetailSelectedV6370 ? ' dimmedV6266' : '';
-      return '<tr class="clickable ceramistDetailClickableV6368' + detailSelectedClassV6370 + detailDimClassV6370 + '" tabindex="0" aria-selected="' + (isDetailSelectedV6370 ? 'true' : 'false') + '" title="' + escV6230(rowTooltip + ' | Click to filter the dashboard') + '"'
+      return '<tr class="clickable ceramistDetailClickableV6368' + detailSelectedClassV6370 + detailDimClassV6370 + '" tabindex="0" aria-selected="' + (isDetailSelectedV6370 ? 'true' : 'false') + '" title="' + escV6230(rowTooltip) + '"'
         + ' data-detail-filter-kind="' + escV6230(detailFilterKindV6370) + '"'
         + ' data-detail-filter-value="' + escV6230(detailFilterValueV6370) + '"'
         + ' onclick="selectCeramistDetailV6368(this,event)"'
