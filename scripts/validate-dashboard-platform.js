@@ -7,7 +7,7 @@ const vm = require('vm');
 const childProcess = require('child_process');
 
 const root = path.resolve(__dirname,'..');
-const requiredVersion = 'v6.566';
+const requiredVersion = 'v6.567';
 let failed = false;
 
 function fail(message){ console.error('ERROR: ' + message); failed = true; }
@@ -76,9 +76,19 @@ const remakeBootstrap = read('RemakeDashboardBootstrapV6548.html');
 validateHtml('SharedFooter.html',footer);
 try { new vm.Script(router,{filename:'Code.js'}); } catch (error) { fail(error.message); }
 
-if (!footer.includes("'v6.566'")) fail('Footer is not v6.566.');
-if (!footer.includes('TAT-REMAKE-PARITY-18')) fail('Footer build label is incorrect.');
-if (!router.includes("'v6.566'")) fail('Router is not v6.566.');
+if (!footer.includes("'v6.567'")) fail('Footer is not v6.567.');
+if (!footer.includes('TAT-REMAKE-PARITY-19')) fail('Footer build label is incorrect.');
+if (!router.includes("'v6.567'")) fail('Router is not v6.567.');
+if (!footer.includes("appendItem(footer,'Remake cache'")) fail('Separate Remake cache footer item is missing.');
+if (!footer.includes("appendItem(footer,'Technician cache'")) fail('Separate technician cache footer item is missing.');
+if (!footer.includes('debugDashboardServerHealth()')) fail('Footer does not request server cache health.');
+if (!footer.includes('readLegacy')) fail('Footer does not retain legacy cache metadata fallback.');
+if (!footer.includes('Timestamp unavailable')) fail('Footer lacks an honest missing-timestamp state.');
+if (!footer.includes('data-cache-item-v6567')) fail('Footer cache items lack stable audit keys.');
+if (!footer.includes('cdaSharedCacheFooterV6567')) fail('Footer runtime audit is missing.');
+if (footer.includes("appendItem(footer,'Cache'")) fail('Ambiguous single Cache footer item remains.');
+if (footer.includes("return 'Not loaded'")) fail('Legacy Not loaded placeholder logic remains.');
+
 if (!theme.includes("version:'v6.566'")) fail('Shared theme is not v6.566.');
 if (!theme.includes('--cda-card-content-padding: 10px 12px 12px')) fail('Shared card content padding is missing.');
 if (!theme.includes('.remakeTableWrap')) fail('Remake table surface normalization is missing.');
@@ -157,6 +167,10 @@ if (failed) process.exitCode = 1;
 else {
   console.log('Dashboard platform validation passed.');
   console.log('Version: ' + requiredVersion);
+  console.log('Independent Remake cache timestamp: passed');
+  console.log('Independent technician cache timestamp: passed');
+  console.log('Duplicate Not loaded placeholder removed: passed');
+  console.log('Server cache-health fallback: passed');
   console.log('Monthly and Department first-row parity: passed');
   console.log('Performance and Products second-row parity: passed');
   console.log('Distribution / Promise toggle: passed');

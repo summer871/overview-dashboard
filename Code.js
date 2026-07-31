@@ -1,7 +1,7 @@
 /**
  * Executive Overview Dashboard Router
- * Version: Code.gs v6.566 detached comparison stability and shared spacing
- * Date: 2026-07-30
+ * Version: Code.gs v6.567 independent cache timestamps
+ * Date: 2026-07-31
  * Purpose: Serve the dashboard shell and inject presentation metadata.
  */
 function doGet(e) {
@@ -13,18 +13,18 @@ function doGet(e) {
   const template = HtmlService.createTemplateFromFile('Index');
   template.dashboardBaseUrl = getDashboardBaseUrl();
   template.dashboardPresentationMode = presentationMode;
-  template.dashboardPresentationVersion = 'v6.566';
-  template.dashboardPresentationSource = 'Code.gs v6.566 detached comparison stability and shared spacing';
+  template.dashboardPresentationVersion = 'v6.567';
+  template.dashboardPresentationSource = 'Code.gs v6.567 independent cache timestamps';
 
   const presentation = {
     mode: presentationMode,
-    version: 'v6.566',
-    source: 'Code.gs v6.566 detached comparison stability and shared spacing',
+    version: 'v6.567',
+    source: 'Code.gs v6.567 independent cache timestamps',
     baseUrl: getDashboardBaseUrl()
   };
 
   let html = template.evaluate().getContent();
-  const configScript = '<script id="cdaServerPresentationV6566">window.CDA_SERVER_PRESENTATION=' +
+  const configScript = '<script id="cdaServerPresentationV6567">window.CDA_SERVER_PRESENTATION=' +
     JSON.stringify(presentation).replace(/</g, '\\u003c') + ';</script>';
   html = html.indexOf('</head>') >= 0
     ? html.replace('</head>', configScript + '</head>')
@@ -69,7 +69,7 @@ function renderDashboardDebugPage() {
 function debugDashboardServerHealth() {
   const health = {
     ok: true,
-    routerVersion: 'Code.gs v6.566 detached comparison stability and shared spacing',
+    routerVersion: 'Code.gs v6.567 independent cache timestamps',
     timestamp: new Date().toISOString(),
     scriptTimeZone: Session.getScriptTimeZone(),
     dashboardBaseUrl: getDashboardBaseUrl(),
