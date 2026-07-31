@@ -1,0 +1,210 @@
+<!-- RemakeCombinedRefreshV6569.html
+Version: v6.568
+Date: 2026-07-31
+Purpose: Extend the native Remake Refresh button so the main Remake cache finishes first, then the Ceramist responsibility cache rebuilds, and finally the page reloads the fresh worker payload.
+-->
+<script id="cdaRemakeCombinedRefreshControllerV6569">
+(function installRemakeCombinedRefreshV6569(){
+  'use strict';
+
+  const VERSION = 'v6.568';
+  const BUTTON_ID = 'remakeRefreshBtn';
+  const STATUS_ID = 'remakeCeramistStatusV6342';
+  const MAX_MAIN_WAIT_MS = 12 * 60 * 1000;
+  const POLL_MS = 120;
+  let busy = false;
+  let observer = null;
+
+  if (window.cdaRemakeCombinedRefreshV6569 &&
+      window.cdaRemakeCombinedRefreshV6569.version === VERSION) return;
+
+  function clean(value){
+    return String(value == null ? '' : value).replace(/\s+/g,' ').trim();
+  }
+
+  function errorText(error){
+    return clean(error && error.message || error || 'Unknown refresh error');
+  }
+
+  function button(){
+    return document.getElementById(BUTTON_ID);
+  }
+
+  function statusNode(){
+    return document.getElementById(STATUS_ID);
+  }
+
+  function setStatus(text){
+    const node = statusNode();
+    if (!node) return;
+    node.textContent = text;
+    node.title = text;
+  }
+
+  function formatStamp(value){
+    const parsed = new Date(value || '');
+    if (!Number.isFinite(parsed.getTime())) return clean(value) || 'now';
+    try {
+      return parsed.toLocaleString(undefined,{
+        year:'numeric',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'
+      });
+    } catch (error) {
+      return parsed.toLocaleString();
+    }
+  }
+
+  function decorateButton(){
+    const control = button();
+    if (!control) return false;
+    control.setAttribute('data-cda-combined-refresh-v6569',busy ? 'running' : 'ready');
+    control.title = busy
+      ? 'Refreshing Remake and technician caches'
+      : 'Refresh the Remake cache, then rebuild technician responsibility';
+    control.setAttribute('aria-label',busy
+      ? 'Refreshing Remake and technician caches'
+      : 'Refresh Remake and technician caches');
+    return true;
+  }
+
+  function mainRefreshFailed(){
+    const notice = document.getElementById('remakeNotice');
+    const text = clean(notice && notice.textContent);
+    return !!(text && /failed|could not|error|unavailable|not be refreshed/i.test(text));
+  }
+
+  function waitForRemakeCompletionV6569(){
+    return new Promise(function(resolve,reject){
+      const startedAt = Date.now();
+      let sawDisabled = false;
+      let stableEnabledAt = 0;
+
+      const timer = window.setInterval(function(){
+        const control = button();
+        if (Date.now() - startedAt > MAX_MAIN_WAIT_MS) {
+          window.clearInterval(timer);
+          reject(new Error('The main Remake refresh did not finish within 12 minutes.'));
+          return;
+        }
+        if (!control) return;
+        if (control.disabled) {
+          sawDisabled = true;
+          stableEnabledAt = 0;
+          return;
+        }
+        if (!sawDisabled) return;
+        if (!stableEnabledAt) {
+          stableEnabledAt = Date.now();
+          return;
+        }
+        if (Date.now() - stableEnabledAt < 350) return;
+        window.clearInterval(timer);
+        if (mainRefreshFailed()) {
+          reject(new Error('The main Remake refresh did not complete successfully.'));
+          return;
+        }
+        resolve(true);
+      },POLL_MS);
+    });
+  }
+
+  function refreshCeramistCacheV6569(){
+    return new Promise(function(resolve,reject){
+      const runner = window.google && google.script && google.script.run;
+      if (!runner) {
+        reject(new Error('Apps Script runtime is unavailable.'));
+        return;
+      }
+      setStatus('Technician cache: rebuilding responsibility from BigQuery...');
+      runner
+        .withSuccessHandler(function(result){
+          if (!result || result.ok !== true) {
+            reject(new Error(result && result.message || 'Technician cache refresh returned an invalid result.'));
+            return;
+          }
+          resolve(result);
+        })
+        .withFailureHandler(function(error){ reject(error); })
+        .refreshCeramistCaseLevelResponsibilityNightlyV75();
+    });
+  }
+
+  function finishFailure(error){
+    busy = false;
+    decorateButton();
+    setStatus('Technician cache refresh failed: ' + errorText(error));
+    console.error('Combined Remake and technician refresh failed',error);
+    if (typeof window.refreshCdaSharedCacheFooterV6567 === 'function') {
+      window.refreshCdaSharedCacheFooterV6567();
+    }
+  }
+
+  function runAfterNativeRefresh(){
+    if (busy) return;
+    busy = true;
+    decorateButton();
+    setStatus('Technician cache: queued after the Remake refresh...');
+
+    waitForRemakeCompletionV6569()
+      .then(refreshCeramistCacheV6569)
+      .then(function(result){
+        const stamp = result && (result.refreshedAt || result.generatedAt) || new Date().toISOString();
+        setStatus('Technician cache refreshed: ' + formatStamp(stamp) + ' · reloading dashboard...');
+        if (typeof window.refreshCdaSharedCacheFooterV6567 === 'function') {
+          window.refreshCdaSharedCacheFooterV6567();
+        }
+        window.setTimeout(function(){ window.location.reload(); },700);
+      })
+      .catch(finishFailure);
+  }
+
+  function onClickCapture(event){
+    const target = event.target && event.target.closest
+      ? event.target.closest('#' + BUTTON_ID)
+      : null;
+    if (!target || busy) return;
+    window.setTimeout(runAfterNativeRefresh,0);
+  }
+
+  function audit(){
+    const control = button();
+    return {
+      version:VERSION,
+      buttonFound:!!control,
+      combinedTitle:!!(control && /Remake and technician caches/i.test(control.title || control.getAttribute('aria-label') || '')),
+      nativeInlineHandlerPreserved:!!(control && /refreshRemakeFactorData\s*\(/.test(control.getAttribute('onclick') || '')),
+      serverMethod:'refreshCeramistCaseLevelResponsibilityNightlyV75',
+      sequence:'native Remake refresh -> technician responsibility refresh -> page reload',
+      running:busy,
+      ok:!!control && /refreshRemakeFactorData\s*\(/.test(control.getAttribute('onclick') || '')
+    };
+  }
+
+  function start(){
+    decorateButton();
+    document.addEventListener('click',onClickCapture,true);
+    if (window.MutationObserver && document.body) {
+      observer = new MutationObserver(function(mutations){
+        const relevant = mutations.some(function(mutation){
+          return Array.from(mutation.addedNodes || []).some(function(node){
+            return node && node.nodeType === 1 &&
+              (node.id === BUTTON_ID || node.querySelector && node.querySelector('#' + BUTTON_ID));
+          });
+        });
+        if (relevant) window.requestAnimationFrame(decorateButton);
+      });
+      observer.observe(document.body,{childList:true,subtree:true});
+    }
+  }
+
+  window.cdaRemakeCombinedRefreshV6569 = Object.freeze({
+    version:VERSION,
+    decorate:decorateButton,
+    waitForRemakeCompletion:waitForRemakeCompletionV6569,
+    refreshTechnician:refreshCeramistCacheV6569,
+    audit:audit
+  });
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded',start,{once:true});
+  else start();
+})();
+</script>
