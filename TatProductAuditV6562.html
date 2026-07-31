@@ -1,7 +1,7 @@
 <!-- TatProductAuditV6562.html
-Version: v6.562
+Version: v6.563
 Date: 2026-07-30
-Purpose: Extend the shared audit with TAT department-only and Products / Groups component contracts without changing the shared audit compatibility version.
+Purpose: Audit department-only Products / Groups plus the combined TAT Performance and readable table-width layout.
 -->
 <script id="cdaTatProductAuditControllerV6562">
 (function installTatProductAuditV6562(){
@@ -9,14 +9,17 @@ Purpose: Extend the shared audit with TAT department-only and Products / Groups 
 
   const previous = window.cdaDashboardAuditV6550;
   if (!previous || typeof previous.audit !== 'function') {
-    throw new Error('Shared dashboard audit must load before the TAT product audit.');
+    throw new Error('Shared dashboard audit must load before the TAT layout audit.');
   }
-  if (window.cdaTatProductAuditV6562) return;
+  if (window.cdaTatProductAuditV6562 &&
+      window.cdaTatProductAuditV6562.version === 'v6.563') return;
 
-  function auditProductContractV6562(){
+  function auditProductContractV6563(){
     const platform = window.cdaDashboardPlatformV6547;
     const definition = window.cdaTatDashboardDefinitionV6547;
     const service = window.cdaTatProductTableV6562;
+    const layout = window.cdaTatDashboardLayoutV6563;
+    const widths = window.cdaTatTableWidthsV6563;
     const tableApi = window.cdaTable;
     const page = document.getElementById('tatDashboardPageV6509');
     const departmentConfig = tableApi && typeof tableApi.config === 'function'
@@ -31,7 +34,17 @@ Purpose: Extend the shared audit with TAT department-only and Products / Groups 
     const productComponent = definition && definition.components
       ? definition.components.find(function(item){ return item.key === 'product'; })
       : null;
+    const performanceComponent = definition && definition.components
+      ? definition.components.find(function(item){ return item.key === 'performance'; })
+      : null;
+    const lateComponent = definition && definition.components
+      ? definition.components.find(function(item){ return item.key === 'late'; })
+      : null;
+    const distributionComponent = definition && definition.components
+      ? definition.components.find(function(item){ return item.key === 'distribution'; })
+      : null;
     const productCard = page && page.querySelector('[data-cda-dashboard-component="product"]');
+    const performanceCard = page && page.querySelector('[data-cda-dashboard-component="performance"]');
     const modeButtons = productCard
       ? Array.from(productCard.querySelectorAll('[data-tat-product-mode-v6562]'))
       : [];
@@ -41,20 +54,38 @@ Purpose: Extend the shared audit with TAT department-only and Products / Groups 
     const departmentOnly = !!departmentConfig && !departmentConfig.childRows && !departmentConfig.childRowClass;
     const noProductRowsInsideDepartment = !page ||
       page.querySelectorAll('[data-cda-dashboard-component="department"] .tatProductDetailRowV6523').length === 0;
-    const productTablePresent = !!(productCard && document.getElementById('tatProductTableV6562'));
-    const definitionCorrect = !!definition && definition.version === 'v6.562' &&
-      definition.components.length === 7 && !!departmentComponent && !!productComponent &&
-      departmentComponent.tableKey === 'tatDepartment' && productComponent.tableKey === 'tatProduct';
+    const productTablePresent = !!(productCard && page && page.getElementById
+      ? page.getElementById('tatProductTableV6562')
+      : document.getElementById('tatProductTableV6562'));
+    const performancePresent = !!(performanceCard &&
+      performanceCard.querySelector('#tatDistributionChartV6509') &&
+      performanceCard.querySelector('#tatPromiseHeadlineV6563') &&
+      performanceCard.querySelector('#tatPromiseStackV6563') &&
+      performanceCard.querySelector('#tatPromiseLegendV6563') &&
+      performanceCard.querySelector('#tatLateTableV6509'));
+    const noStandalonePromiseCard = !page ||
+      page.querySelectorAll('[data-cda-dashboard-component="late"],[data-cda-dashboard-component="distribution"]').length === 0;
+    const definitionCorrect = !!definition && definition.version === 'v6.563' &&
+      definition.components.length === 6 && !!departmentComponent && !!productComponent &&
+      !!performanceComponent && !lateComponent && !distributionComponent &&
+      departmentComponent.tableKey === 'tatDepartment' && productComponent.tableKey === 'tatProduct' &&
+      performanceComponent.chartKey === 'distribution' && performanceComponent.tableKey === 'tatLate';
     const serviceCorrect = !!service && service.version === 'v6.562' &&
       service.tableKey === 'tatProduct' && typeof service.setMode === 'function';
+    const layoutCorrect = !!layout && layout.version === 'v6.563' &&
+      layout.mode === 'combined-performance-and-readable-table-widths';
+    const widthsCorrect = !!widths && widths.version === 'v6.563' &&
+      widths.widths && widths.widths.tatProduct && widths.widths.tatProduct[0] === '34%';
     const rendererCorrect = !!window.cdaDashboardRendererV6547 &&
       window.cdaDashboardRendererV6547.version === 'v6.562';
     const adapterCorrect = !!window.cdaTatDashboardAdapterV6547 &&
-      window.cdaTatDashboardAdapterV6547.version === 'v6.562';
+      window.cdaTatDashboardAdapterV6547.version === 'v6.563';
     return {
       registeredTab:!!(platform && platform.getTab('tat')),
       definitionCorrect:definitionCorrect,
       serviceCorrect:serviceCorrect,
+      layoutCorrect:layoutCorrect,
+      widthsCorrect:widthsCorrect,
       rendererCorrect:rendererCorrect,
       adapterCorrect:adapterCorrect,
       departmentOnly:departmentOnly,
@@ -64,18 +95,24 @@ Purpose: Extend the shared audit with TAT department-only and Products / Groups 
       modeButtonCount:modeButtons.length,
       oneActiveMode:activeModes.length === 1,
       mode:service && service.mode(),
-      ok:definitionCorrect && serviceCorrect && rendererCorrect && adapterCorrect &&
-        departmentOnly && noProductRowsInsideDepartment && productTablePresent &&
-        !!productConfig && modeButtons.length === 2 && activeModes.length === 1
+      performancePresent:performancePresent,
+      noStandalonePromiseCard:noStandalonePromiseCard,
+      visibleCardCount:page ? page.querySelectorAll('[data-cda-dashboard-component]').length : 0,
+      ok:definitionCorrect && serviceCorrect && layoutCorrect && widthsCorrect &&
+        rendererCorrect && adapterCorrect && departmentOnly && noProductRowsInsideDepartment &&
+        productTablePresent && !!productConfig && modeButtons.length === 2 &&
+        activeModes.length === 1 && performancePresent && noStandalonePromiseCard
     };
   }
 
-  function auditV6562(){
+  function auditV6563(){
     const base = previous.audit();
-    const product = auditProductContractV6562();
+    const product = auditProductContractV6563();
     const services = Object.assign({},base.services || {},{
       tatAdapter:window.cdaTatDashboardAdapterV6547 && window.cdaTatDashboardAdapterV6547.version,
       tatProduct:window.cdaTatProductTableV6562 && window.cdaTatProductTableV6562.version,
+      tatLayout:window.cdaTatDashboardLayoutV6563 && window.cdaTatDashboardLayoutV6563.version,
+      tatWidths:window.cdaTatTableWidthsV6563 && window.cdaTatTableWidthsV6563.version,
       renderer:window.cdaDashboardRendererV6547 && window.cdaDashboardRendererV6547.version
     });
     const otherServicesCorrect = !!base.serviceVersionsCorrect ||
@@ -86,7 +123,8 @@ Purpose: Extend the shared audit with TAT department-only and Products / Groups 
        services.titleToggle === 'v6.556' && services.adapter === 'v6.558' &&
        services.decorator === 'v6.558');
     const serviceVersionsCorrect = otherServicesCorrect &&
-      services.tatAdapter === 'v6.562' && services.tatProduct === 'v6.562' &&
+      services.tatAdapter === 'v6.563' && services.tatProduct === 'v6.562' &&
+      services.tatLayout === 'v6.563' && services.tatWidths === 'v6.563' &&
       services.renderer === 'v6.562';
     const baseBehaviorOk = [
       base.componentCatalog,base.iconOwnership,base.everyFeatureInstanceStyleParity,
@@ -98,13 +136,14 @@ Purpose: Extend the shared audit with TAT department-only and Products / Groups 
       services:services,
       serviceVersionsCorrect:serviceVersionsCorrect,
       tatProductContract:product,
+      tatPerformanceContract:product,
       ok:serviceVersionsCorrect && baseBehaviorOk && product.ok
     });
   }
 
   window.cdaTatProductAuditV6562 = Object.freeze({
-    version:'v6.562',
-    audit:auditProductContractV6562
+    version:'v6.563',
+    audit:auditProductContractV6563
   });
 
   window.cdaDashboardAuditV6550 = Object.freeze({
@@ -112,13 +151,14 @@ Purpose: Extend the shared audit with TAT department-only and Products / Groups 
     visible:previous.visible,
     styleSignature:previous.styleSignature,
     expectedIconName:previous.expectedIconName,
-    audit:auditV6562,
+    audit:auditV6563,
     remakeActionHosts:previous.remakeActionHosts,
     titleOwnership:previous.titleOwnership,
     detachedLivePopout:previous.detachedLivePopout,
     detachedFullTables:previous.detachedFullTables,
     detachedButtonParity:previous.detachedButtonParity,
-    tatProductContract:auditProductContractV6562
+    tatProductContract:auditProductContractV6563,
+    tatPerformanceContract:auditProductContractV6563
   });
 })();
 </script>
