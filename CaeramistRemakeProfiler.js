@@ -2,7 +2,7 @@
  * Ceramist Remake Analysis - BigQuery profiler
  *
  * File: CeramistRemakeProfiler.gs
- * Version: 7.7.1
+ * Version: 7.8.0
  * Last confirmed: 2026-07-31
  * Purpose: CERAMICS attribution diagnostics plus a lightweight Drive-cache reader for the dashboard preview.
  *
@@ -30,10 +30,7 @@
  * parsing the 7 MB Drive payload on every page refresh. v7.7 reconciles the
  * Ceramist sidecar to the complete durable Remake Factor population before
  * calculating responsibility. Missing cases are no longer silently excluded.
- * v7.7.1 confirms blank remakeCaseID values through the same CRM case-detail
- * path used by profileRemakeLinkedCase(), so incomplete QueryCases rows can
- * never be mislabeled as genuinely unlinked. Confirmed terminal cases are
- * persisted and reused; deferred and failed lookups remain retryable.
+ * v7.8 delegates normal maintenance to a historical-seed plus open-month upsert workflow. The complete historical chain is built once in Colab; nightly and dashboard refreshes replace only the same open month(s) refreshed by the Remake cache.
  *
  * Confirmed attribution rule in v7:
  *   UPPER(TRIM(CaseTasks_Task)) = CERAMICS
@@ -52,7 +49,7 @@
  */
 
 const ceramistRemakeCacheFileIdPropertyV7 = 'MT_CERAMIST_REMAKE_CACHE_FILE_ID';
-const ceramistRemakeCacheVersionV7 = 'CeramistRemakeCache v0.5.1';
+const ceramistRemakeCacheVersionV7 = 'CeramistRemakeCache v0.6.0';
 const ceramistTaskUserBadgeSpreadsheetIdV71 = '1XrJctG1-0RGhKCV6w2jK4esoaahmc7Ji7MjQhZo-nBY';
 const ceramistTaskUserBadgeSheetNameV71 = 'Task User Badges';
 const ceramistTaskUserBadgeCacheKeyV72 = 'ceramistTaskUserBadgeLookup.v72';
@@ -233,57 +230,7 @@ function getCeramistRemakeAnalysisData() {
  * are approximate and can run within a short window around the requested time.
  */
 function refreshCeramistCaseLevelResponsibilityNightlyV75() {
-  const lock = LockService.getScriptLock();
-  if (!lock.tryLock(ceramistNightlyRefreshLockWaitMsV75)) {
-    throw new Error('Another Ceramist responsibility refresh is already running.');
-  }
-
-  try {
-    const props = PropertiesService.getScriptProperties();
-    const fileId = String(props.getProperty(ceramistRemakeCacheFileIdPropertyV7) || '').trim();
-    if (!fileId) {
-      throw new Error('Missing Script Property: ' + ceramistRemakeCacheFileIdPropertyV7);
-    }
-
-    const file = DriveApp.getFileById(fileId);
-    const text = file.getBlob().getDataAsString('UTF-8');
-    const payload = text ? JSON.parse(text) : null;
-    if (!payload || payload.ok !== true || !Array.isArray(payload.rows)) {
-      throw new Error('The Ceramist Drive cache is missing, invalid, or not ready.');
-    }
-
-    const existingRows = payload.rows.map(function(row) {
-      return row && typeof row === 'object' ? Object.assign({}, row) : row;
-    });
-    const populationResult = ceramistReconcileCompleteRemakePopulationV77_(existingRows);
-    const rows = populationResult.rows;
-
-    ceramistApplyCaseLevelResponsibilityV74_(rows);
-
-    const refreshedAt = new Date().toISOString();
-    const responsibilityStats = ceramistBuildResponsibilityStatsV75_(rows);
-    payload.rows = rows;
-    payload.caseLevelRefreshedAt = refreshedAt;
-    payload.responsibilityVersion = ceramistResponsibilityVersionV75;
-    payload.populationVersion = ceramistPopulationVersionV77;
-    payload.source = 'Complete Remake Factor population + CRM remakeCaseID links + nightly BigQuery CERAMICS case-level responsibility';
-    payload.message = 'Complete Remake population and case-level CERAMICS responsibility refreshed after the nightly BigQuery upload.';
-    payload.stats = Object.assign({}, payload.stats || {}, populationResult.stats || {}, responsibilityStats);
-
-    file.setContent(JSON.stringify(payload));
-
-    return {
-      ok: true,
-      fileId: fileId,
-      refreshedAt: refreshedAt,
-      timeZone: ceramistNightlyRefreshTimeZoneV75,
-      rows: rows.length,
-      populationStats: populationResult.stats || {},
-      stats: Object.assign({}, populationResult.stats || {}, responsibilityStats)
-    };
-  } finally {
-    lock.releaseLock();
-  }
+  return refreshCeramistIncrementalNightlyV780();
 }
 
 /**
