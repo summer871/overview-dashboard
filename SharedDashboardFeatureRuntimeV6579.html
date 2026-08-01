@@ -1,14 +1,14 @@
 <!-- SharedDashboardFeatureRuntimeV6579.html
-Version: v6.579
+Version: v6.580
 Date: 2026-07-31
-Purpose: One configuration-driven runtime for shared dashboard features across TAT, Remake, future tabs, and detached live components.
+Purpose: One configuration-driven runtime for shared dashboard features across TAT, Remake, future tabs, and detached live components, including persistent table layout refresh.
 -->
 <script id="cdaSharedDashboardFeatureRuntimeControllerV6579">
 (function installSharedDashboardFeatureRuntimeV6579(){
   'use strict';
 
   if (window.cdaDashboardFeatureRuntimeV6579 &&
-      window.cdaDashboardFeatureRuntimeV6579.version === 'v6.579') return;
+      window.cdaDashboardFeatureRuntimeV6579.version === 'v6.580') return;
 
   const platform = window.cdaDashboardPlatformV6547;
   if (!platform) throw new Error('Dashboard registry must load before the feature runtime.');
@@ -144,11 +144,28 @@ Purpose: One configuration-driven runtime for shared dashboard features across T
     return !!(window.cdaDashboardColumnsV6548 && window.cdaDashboardColumnsV6548.open(context));
   }
 
+  function refreshColumnsV6580(context){
+    const columns = window.cdaDashboardColumnsV6548;
+    if (!columns || typeof columns.refresh !== 'function' || !context ||
+        !context.component || context.component.kind !== 'table') return false;
+    return !!columns.refresh(context);
+  }
+
+  function scheduleColumnRefreshV6580(context){
+    const card = context && context.card;
+    const doc = card && card.ownerDocument || context && context.document || document;
+    const view = doc.defaultView || window;
+    [0,60,180].forEach(function(delay){
+      view.setTimeout(function(){ refreshColumnsV6580(context); },delay);
+    });
+  }
+
   function openPopoutV6579(context){
     const options = optionsForV6579(context,'popout');
     if (options.adapterMethod) return invokeAdapterV6579(context,options.adapterMethod);
     const opened = !!(window.cdaDashboardPopoutV6548 && window.cdaDashboardPopoutV6548.open(context));
     if (opened) {
+      scheduleColumnRefreshV6580(context);
       if (options.afterAdapterMethod) {
         window.setTimeout(function(){ invokeAdapterV6579(context,options.afterAdapterMethod); },0);
       }
@@ -174,6 +191,7 @@ Purpose: One configuration-driven runtime for shared dashboard features across T
     if (window.cdaDashboardPopoverV6547) window.cdaDashboardPopoverV6547.close();
     if (context.component.kind === 'table' && window.cdaDashboardColumnsV6548) {
       changed = window.cdaDashboardColumnsV6548.reset(context) || changed;
+      scheduleColumnRefreshV6580(context);
       if (context.component.tableKey && window.cdaTable && typeof window.cdaTable.clearSelection === 'function') {
         window.cdaTable.clearSelection(context.component.tableKey);
         changed = true;
@@ -268,6 +286,7 @@ Purpose: One configuration-driven runtime for shared dashboard features across T
   function syncToolbarV6579(context){
     const toolbar = context && context.toolbar;
     if (!toolbar) return false;
+    refreshColumnsV6580(context);
     const adapter = adapterForV6579(context);
     if (typeof adapter.syncToolbarState === 'function') adapter.syncToolbarState(context);
     Array.from(toolbar.querySelectorAll('[data-cda-dashboard-feature-key]')).forEach(function(button){
@@ -290,7 +309,7 @@ Purpose: One configuration-driven runtime for shared dashboard features across T
   }
 
   window.cdaDashboardFeatureRuntimeV6579 = Object.freeze({
-    version:'v6.579',
+    version:'v6.580',
     mode:'configuration-driven-shared-feature-runtime',
     supports:supportsV6579,
     options:optionsForV6579,

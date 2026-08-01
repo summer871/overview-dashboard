@@ -8,7 +8,7 @@ const childProcess = require('child_process');
 
 const root = path.resolve(__dirname,'..');
 const requiredVersion = 'v6.567';
-const footerVersion = 'v6.579';
+const footerVersion = 'v6.580';
 let failed = false;
 
 function fail(message){ console.error('ERROR: ' + message); failed = true; }
@@ -68,6 +68,7 @@ const footer = read('SharedFooter.html');
 const router = read('Code.js');
 const registry = read('SharedDashboardRegistryV6547.html');
 const runtime = read('SharedDashboardFeatureRuntimeV6579.html');
+const columns = read('SharedDashboardColumnsV6548.html');
 const features = read('SharedDashboardFeaturesV6547.html');
 const toolbar = read('SharedDashboardToolbarV6548.html');
 const titleToggle = read('SharedDashboardTitleToggleV6555.html');
@@ -90,7 +91,7 @@ validateHtml('SharedFooter.html',footer);
 try { new vm.Script(router,{filename:'Code.js'}); } catch (error) { fail(error.message); }
 
 if (!footer.includes("'" + footerVersion + "'")) fail('Footer is not ' + footerVersion + '.');
-if (!footer.includes('SHARED-TABLE-PLATFORM-20')) fail('Footer build label is incorrect.');
+if (!footer.includes('SHARED-COLUMN-LAYOUT-21')) fail('Footer build label is incorrect.');
 if (!router.includes("'v6.567'")) fail('Router is not v6.567.');
 if (!footer.includes("appendItem(footer,'Remake cache'")) fail('Separate Remake cache footer item is missing.');
 if (!footer.includes("appendItem(footer,'Technician cache'")) fail('Separate technician cache footer item is missing.');
@@ -99,7 +100,7 @@ if (footer.includes("appendItem(footer,'Cache'")) fail('Ambiguous single Cache f
 
 if (!registry.includes("const VERSION_V6547 = 'v6.579'")) fail('Shared registry is not v6.579.');
 if (!registry.includes('featureOptions:normalizeFeatureOptionsV6579')) fail('Registry does not normalize feature options.');
-if (!runtime.includes("version:'v6.579'")) fail('Shared feature runtime is not v6.579.');
+if (!runtime.includes("version:'v6.580'")) fail('Shared feature runtime is not v6.580.');
 if (!runtime.includes("mode:'configuration-driven-shared-feature-runtime'")) fail('Shared feature runtime mode is missing.');
 if (!features.includes("CDA_DASHBOARD_FEATURES_VERSION = 'v6.579'")) fail('Feature catalog is not v6.579.');
 if (features.includes('function callAdapter(')) fail('Feature catalog still owns adapter dispatch.');

@@ -21,7 +21,7 @@ function runSharedFeatureRuntimeContract(){
   assert(registry.includes("const VERSION_V6547 = 'v6.579'"), 'Registry is not v6.579.');
   assert(registry.includes('featureOptions:normalizeFeatureOptionsV6579'), 'Component feature options are not normalized.');
 
-  assert(runtime.includes("version:'v6.579'"), 'Shared feature runtime is not v6.579.');
+  assert(runtime.includes("version:'v6.580'"), 'Shared feature runtime is not v6.580.');
   assert(runtime.includes("mode:'configuration-driven-shared-feature-runtime'"), 'Shared feature runtime mode is missing.');
   ['columns','popout','reset','more','collapse','exportCurrent','exportAll'].forEach(key => {
     assert(runtime.includes(key + ':'), 'Shared runtime handler is missing: ' + key);
@@ -73,11 +73,18 @@ function runDetachedPopoutContract(){
 function runDocumentAwareSharedControls(){
   const popover = read('SharedDashboardPopoverV6547.html');
   const columns = read('SharedDashboardColumnsV6548.html');
+  const runtime = read('SharedDashboardFeatureRuntimeV6579.html');
   const audit = read('SharedDashboardInteractionAuditV6557.html');
   assert(popover.includes("version:'v6.558'"), 'Popover is not v6.558.');
-  assert(columns.includes("version:'v6.558'"), 'Columns is not v6.558.');
+  assert(columns.includes("version:VERSION_V6580"), 'Columns does not expose the v6.580 runtime version.');
   assert(columns.includes('function documentFor(context)'), 'Columns lacks document resolution.');
-  assert(columns.includes('single-shared-chooser'), 'Columns is not the shared chooser owner.');
+  assert(columns.includes('persistent-visibility-widths-horizontal-scroll-resize'), 'Columns is not the persistent shared layout owner.');
+  assert(columns.includes('data-cda-dashboard-table-viewport-v6580'), 'Horizontal table viewport is missing.');
+  assert(columns.includes('cdaDashboardColumnResizeHandleV6580'), 'Column resize handles are missing.');
+  assert(columns.includes('MutationObserver'), 'Column state is not reapplied after DOM rerenders.');
+  assert(columns.includes('cdaTableRendered'), 'Managed-table rerender refresh is missing.');
+  assert(columns.includes('white-space:nowrap!important'), 'No-wrap truncation is missing.');
+  assert(runtime.includes('scheduleColumnRefreshV6580(context)'), 'Pop-out column refresh is missing.');
   assert(audit.includes('function detachedButtonParity()'), 'Shared control parity audit is missing.');
   assert(audit.includes('function detachedFullTables()'), 'Detached-table audit is missing.');
 }
@@ -128,6 +135,8 @@ function runColumnsRegressionGuards(){
   const columns = read('SharedDashboardColumnsV6548.html');
   assert(!columns.includes('Bolean'), 'The Bolean runtime typo is present.');
   assert(!columns.includes('.toggleChooser('), 'Columns delegates to the old chooser UI.');
+  assert(columns.includes('resetWidths:resetWidths'), 'Column-width reset is not public.');
+  assert(columns.includes('saveWidth:saveWidthV6580'), 'Persistent width save API is missing.');
 }
 
 runSharedFeatureRuntimeContract();
