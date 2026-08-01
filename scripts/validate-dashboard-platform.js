@@ -8,7 +8,7 @@ const childProcess = require('child_process');
 
 const root = path.resolve(__dirname,'..');
 const requiredVersion = 'v6.567';
-const footerVersion = 'v6.582';
+const footerVersion = 'v6.584';
 let failed = false;
 
 function fail(message){ console.error('ERROR: ' + message); failed = true; }
@@ -94,7 +94,7 @@ validateHtml('SharedFooter.html',footer);
 try { new vm.Script(router,{filename:'Code.js'}); } catch (error) { fail(error.message); }
 
 if (!footer.includes("'" + footerVersion + "'")) fail('Footer is not ' + footerVersion + '.');
-if (!footer.includes('SHARED-COLUMN-WIDTHS-HOTFIX-23')) fail('Footer build label is incorrect.');
+if (!footer.includes('SHARED-DATA-GRID-25')) fail('Footer build label is incorrect.');
 if (!router.includes("'v6.567'")) fail('Router is not v6.567.');
 if (!footer.includes("appendItem(footer,'Remake cache'")) fail('Separate Remake cache footer item is missing.');
 if (!footer.includes("appendItem(footer,'Technician cache'")) fail('Separate technician cache footer item is missing.');
@@ -116,23 +116,26 @@ if (!titleToggle.includes("runtime.run('collapse'")) fail('Title collapse bypass
 if (!columns.includes("const VERSION_V6581 = 'v6.582'")) fail('Shared column visibility is not v6.582.');
 if (!columns.includes("mode:'shared-visibility-only-rerender-safe'")) fail('Shared column visibility still owns width behavior.');
 if (columns.includes('cdaColumnWidthHandleV6581') || columns.includes('cdaDashboardColumnWidths.v6581')) fail('Width behavior leaked back into the Columns service.');
-if (!columnWidths.includes("const VERSION_V6581 = 'v6.582'")) fail('Shared column-width feature is not v6.582.');
-if (!columnWidths.includes("mode:'opt-in-contained-spreadsheet-column-widths'")) fail('Shared column-width mode is missing.');
+if (!columnWidths.includes("const VERSION_V6581 = 'v6.584'")) fail('Shared data-grid feature is not v6.584.');
+if (!columnWidths.includes("mode: 'opt-in-standard-data-grid-column-widths'")) fail('Standard data-grid mode is missing.');
 if (!columnWidths.includes("(component.features || []).indexOf('columnWidths') >= 0")) fail('Shared column widths are not opt-in.');
 if (!columnWidths.includes('cdaDashboardTableViewportV6581')) fail('Dedicated horizontal table viewport is missing.');
-if (!columnWidths.includes('overflow-x:auto!important')) fail('Dashboard table scroll ownership is missing.');
-if (!columnWidths.includes('overflow-x:auto!important')) fail('Detached horizontal table scrolling is missing.');
+if (!/overflow:\s*auto\s*!important/.test(columnWidths)) fail('One grid viewport does not own both scroll axes.');
+if (!columnWidths.includes('position: sticky !important')) fail('Sticky grid headers are missing.');
+if (!columnWidths.includes('cdaDashboardDataGridHostV6584')) fail('Data-grid host conversion is missing.');
+if (columnWidths.includes('cdaColumnWidthBottomRailV6583')) fail('Rejected duplicate bottom rail remains.');
 if (!columnWidths.includes('setPointerCapture') || !columnWidths.includes('lostpointercapture')) fail('Pointer capture cleanup is incomplete.');
 if (!columnWidths.includes("view.addEventListener('blur'") || !columnWidths.includes("doc.addEventListener('visibilitychange'")) fail('Resize cleanup does not cover blur/visibility loss.');
 if (!columnWidths.includes('queueMicrotask')) fail('Before-paint persisted-width reapply is missing.');
 if (!columnWidths.includes('requestAnimationFrame')) fail('Resize updates are not animation-frame batched.');
 if (!columnWidths.includes('saveWidthMapV6581')) fail('Complete manual width layouts are not persisted.');
-if (!columnWidths.includes('numericMin') || !columnWidths.includes('firstColumnMin')) fail('Default width auto-fit rules are missing.');
+if (!columnWidths.includes('measureTextV6584') || !columnWidths.includes('renderedContentFloorV6584') || !columnWidths.includes('firstColumnMin')) fail('Readable measured defaults are missing.');
 if (!runtime.includes('columnWidths:resetColumnWidthsV6581')) fail('Runtime does not route reset column widths.');
 if (!columnWidths.includes("table.parentElement.classList.contains('cdaDashboardTableViewportV6581')")) fail('Column widths do not create a dedicated table-only viewport.');
 if (columnWidths.includes("viewport = table.closest && table.closest('.remakeTableWrap')")) fail('Column widths still reuse outer dashboard wrappers.');
 if (columnWidths.includes("frame.style.setProperty('width'")) fail('Column widths still widen the shared table frame/card.');
-if (!columnWidths.includes('overflow-y:hidden!important')) fail('Contained table viewport vertical overflow rule is missing.');
+if (!columnWidths.includes('max-height: inherit')) fail('Grid viewport height constraint is missing.');
+if (!columnWidths.includes('data-cda-dashboard-grid-detached-v6584')) fail('Detached-window scroll preservation is missing.');
 if (!columns.includes("resetWidths.textContent = 'Reset widths'")) fail('Reset widths is not in the Columns popover.');
 if (!features.includes("key:'columnWidths',placement:'service'")) fail('columnWidths must be service-only.');
 
@@ -176,6 +179,7 @@ if (!failed) {
   try {
     childProcess.execFileSync(process.execPath,[path.join(root,'scripts','test-dashboard-runtime-contracts.js')],{cwd:root,stdio:'inherit'});
     childProcess.execFileSync(process.execPath,[path.join(root,'scripts','test-tat-product-contracts.js')],{cwd:root,stdio:'inherit'});
+    childProcess.execFileSync(process.execPath,[path.join(root,'scripts','test-shared-data-grid-v6584.js')],{cwd:root,stdio:'inherit'});
   } catch (error) {
     fail('Dashboard runtime contracts failed.');
   }
@@ -187,10 +191,10 @@ else {
   console.log('Shared feature runtime version: ' + requiredVersion);
   console.log('Footer release version: ' + footerVersion);
   console.log('Configuration-driven table/card features: passed');
-  console.log('Opt-in shared column-width feature: passed');
+  console.log('Opt-in shared standard data-grid feature: passed');
   console.log('Animation-frame spreadsheet-style resize cleanup: passed');
   console.log('All 11 table surfaces including TAT Promise: passed');
-  console.log('Single scroll owner, pre-paint restore, and compact defaults: passed');
+  console.log('Single native two-axis scroll owner, sticky headers, and measured defaults: passed');
   console.log('Native Remake title/collapse ownership: passed');
   console.log('Live-node pop-out and restore contract: passed');
   console.log('TAT Remake-parity layout: passed');
