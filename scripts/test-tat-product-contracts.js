@@ -4,7 +4,7 @@
 const fs = require('fs');
 const path = require('path');
 const root = path.resolve(__dirname,'..');
-const footerVersion = 'v6.578';
+const footerVersion = 'v6.579';
 const read = name => fs.readFileSync(path.join(root,name),'utf8');
 const assert = (condition,message) => { if (!condition) throw new Error(message); };
 
@@ -42,7 +42,7 @@ assert(widths.includes("tatDepartment:['30%','13%','13%','11%','11%','10%','12%'
 assert(widths.includes("tatProduct:['34%','12%','12%','10%','10%','10%','12%']"), 'Product widths are incorrect.');
 assert(widths.includes("tatCustomer:['30%','9%','12%','12%','10%','9%','9%','9%']"), 'Customer widths are incorrect.');
 
-assert(definition.includes("version:'v6.565'"), 'TAT definition is not v6.565.');
+assert(definition.includes("version:'v6.579'"), 'TAT definition is not v6.579.');
 assert(definition.includes("key:'performance',title:'TAT Performance'"), 'TAT Performance is missing.');
 assert(definition.includes('renderHeaderControls:function(){ return layout.headerMarkup(); }'), 'Performance header toggle is missing.');
 assert(definition.includes('[data-tat-performance-view-v6565="distribution"]') || definition.includes('data-tat-performance-view-v6565="distribution"'), 'Distribution view markup is missing.');
@@ -66,7 +66,7 @@ assert(
   footer.includes("'" + footerVersion + "'"),
   'Footer is not ' + footerVersion + '.'
 );
-assert(footer.includes('TAT-REMAKE-PARITY-19'), 'Footer build label is incorrect.');
+assert(footer.includes('SHARED-TABLE-PLATFORM-20'), 'Footer build label is incorrect.');
 assert(router.includes("'v6.567'"), 'Router is not v6.567.');
 
 console.log('TAT layout contracts passed.');

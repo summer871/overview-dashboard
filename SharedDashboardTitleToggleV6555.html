@@ -1,85 +1,58 @@
 <!-- SharedDashboardTitleToggleV6555.html
-Version: v6.556
-Date: 2026-07-30
-Purpose: Shared left-side title interaction with one canonical title and one canonical chevron.
+Version: v6.579
+Date: 2026-07-31
+Purpose: Shared left-side title interaction routed through the configuration-driven feature runtime.
 -->
 <style id="cdaSharedDashboardTitleToggleStylesV6555">
-  .cdaDashboardTitleHostV6556::before,
-  .cdaDashboardTitleHostV6556::after {
-    content:none!important;
-    display:none!important;
-  }
-  .cdaDashboardTitleToggleV6555 {
-    display:inline-flex!important;
-    align-items:center!important;
-    gap:5px!important;
-    min-width:0!important;
-    padding:0!important;
-    border:0!important;
-    background:transparent!important;
-    color:inherit!important;
-    font:inherit!important;
-    text-align:left!important;
-    cursor:pointer!important;
-  }
-  .cdaDashboardTitleToggleV6555:hover .cdaDashboardTitleChevronV6555,
-  .cdaDashboardTitleToggleV6555:focus-visible .cdaDashboardTitleChevronV6555 {
-    color:var(--cda-color-accent)!important;
-  }
-  .cdaDashboardTitleToggleV6555:focus-visible {
-    outline:2px solid var(--cda-color-accent-border)!important;
-    outline-offset:3px!important;
-    border-radius:var(--cda-radius-small)!important;
-  }
-  .cdaDashboardTitleChevronV6555 {
-    display:inline-flex!important;
-    align-items:center!important;
-    justify-content:center!important;
-    flex:0 0 12px!important;
-    width:12px!important;
-    color:var(--cda-color-muted)!important;
-    font:900 12px/1 var(--cda-font-ui)!important;
-  }
-  .cdaDashboardTitleTextV6555 {
-    min-width:0!important;
-    overflow:hidden!important;
-    text-overflow:ellipsis!important;
-    white-space:nowrap!important;
-  }
+  .cdaDashboardTitleHostV6556::before,.cdaDashboardTitleHostV6556::after{content:none!important;display:none!important}
+  .cdaDashboardTitleToggleV6555{display:inline-flex!important;align-items:center!important;gap:5px!important;min-width:0!important;padding:0!important;border:0!important;background:transparent!important;color:inherit!important;font:inherit!important;text-align:left!important;cursor:pointer!important}
+  .cdaDashboardTitleToggleV6555:hover .cdaDashboardTitleChevronV6555,.cdaDashboardTitleToggleV6555:focus-visible .cdaDashboardTitleChevronV6555{color:var(--cda-color-accent)!important}
+  .cdaDashboardTitleToggleV6555:focus-visible{outline:2px solid var(--cda-color-accent-border)!important;outline-offset:3px!important;border-radius:var(--cda-radius-small)!important}
+  .cdaDashboardTitleChevronV6555{display:inline-flex!important;align-items:center!important;justify-content:center!important;flex:0 0 12px!important;width:12px!important;color:var(--cda-color-muted)!important;font:900 12px/1 var(--cda-font-ui)!important}
+  .cdaDashboardTitleTextV6555{min-width:0!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}
 </style>
 <script id="cdaSharedDashboardTitleToggleControllerV6555">
 (function installSharedDashboardTitleToggleV6555(){
   'use strict';
 
-  if (window.cdaDashboardTitleToggleV6555 &&
-      window.cdaDashboardTitleToggleV6555.version === 'v6.556') return;
+  if (window.cdaDashboardTitleToggleV6555 && window.cdaDashboardTitleToggleV6555.version === 'v6.579') return;
 
   const platform = window.cdaDashboardPlatformV6547;
   const theme = window.cdaDashboardThemeV6549;
-  if (!platform || !theme) throw new Error('Dashboard registry and theme must load before title toggles.');
+  const runtime = window.cdaDashboardFeatureRuntimeV6579;
+  if (!platform || !theme || !runtime) throw new Error('Dashboard registry, theme, and feature runtime must load before title toggles.');
 
   const ARROW_EDGE_PATTERN_V6556 = /^[\s▾▸▼▲▶◀⌄⌃˅˄]+|[\s▾▸▼▲▶◀⌄⌃˅˄]+$/g;
   const ARROW_REPLACE_PATTERN_V6556 = /[▾▸▼▲▶◀⌄⌃˅˄]/g;
   const ARROW_TEST_PATTERN_V6556 = /[▾▸▼▲▶◀⌄⌃˅˄]/;
 
   function cleanTitleText(value){
-    return String(value == null ? '' : value)
-      .replace(/\s+/g,' ')
-      .replace(ARROW_EDGE_PATTERN_V6556,'')
-      .trim();
+    return String(value == null ? '' : value).replace(/\s+/g,' ').replace(ARROW_EDGE_PATTERN_V6556,'').trim();
   }
 
   function canonicalTitle(component,title){
-    return cleanTitleText(component && component.title) ||
-      cleanTitleText(title && title.textContent) ||
-      cleanTitleText(component && component.key) ||
-      'Dashboard component';
+    return cleanTitleText(component && component.title) || cleanTitleText(title && title.textContent) ||
+      cleanTitleText(component && component.key) || 'Dashboard component';
   }
 
-  function isCollapsed(context){
-    const adapter = context.tab && context.tab.adapter;
-    return !!(adapter && typeof adapter.isCollapsed === 'function' && adapter.isCollapsed(context));
+  function runtimeContext(tab,component,button,event,card){
+    const ownerDocument = button && button.ownerDocument || card && card.ownerDocument || document;
+    return {
+      tab:tab,
+      component:component,
+      button:button,
+      event:event,
+      card:card || button && button.closest && button.closest('[data-cda-component-id],.remakeCard,article'),
+      document:ownerDocument,
+      window:ownerDocument.defaultView || window,
+      adapter:tab.adapter || {},
+      platform:platform,
+      runtime:runtime,
+      popover:window.cdaDashboardPopoverV6547 || null
+    };
   }
+
+  function isCollapsed(context){ return runtime.isActive('collapse',context); }
 
   function sync(context,button){
     if (!button) return;
@@ -93,30 +66,22 @@ Purpose: Shared left-side title interaction with one canonical title and one can
     button.title = (collapsed ? 'Expand ' : 'Collapse ') + context.component.title;
   }
 
-  function bind(button,tab,component){
+  function bind(button,tab,component,card){
     if (!button || button.getAttribute('data-cda-dashboard-title-bound') === 'true') return;
     button.setAttribute('data-cda-dashboard-title-bound','true');
     button.addEventListener('click',function(event){
       event.preventDefault();
       event.stopPropagation();
-      const adapter = tab.adapter || {};
-      if (typeof adapter.collapse !== 'function') return;
-      adapter.collapse({
-        tab:tab,
-        component:component,
-        button:button,
-        event:event,
-        adapter:adapter,
-        platform:platform
-      });
-      window.setTimeout(function(){ sync({tab:tab,component:component},button); },0);
+      const context = runtimeContext(tab,component,button,event,card);
+      runtime.run('collapse',context);
+      window.setTimeout(function(){ sync(context,button); },0);
     });
   }
 
   function mount(tabKey,componentKey,card){
     const tab = platform.getTab(tabKey);
     const component = tab && tab.components.find(function(item){ return item.key === componentKey; });
-    if (!tab || !component || !card || (component.features || []).indexOf('collapse') < 0) return null;
+    if (!tab || !component || !card || !runtime.supports('collapse',runtimeContext(tab,component,null,null,card))) return null;
 
     const title = card.querySelector('.remakeCardTitle,.tatCardTitleV6509');
     if (!title) return null;
@@ -144,8 +109,8 @@ Purpose: Shared left-side title interaction with one canonical title and one can
     if (text) text.textContent = titleText.replace(ARROW_REPLACE_PATTERN_V6556,'').trim();
 
     title.replaceChildren(button);
-    bind(button,tab,component);
-    sync({tab:tab,component:component},button);
+    bind(button,tab,component,card);
+    sync(runtimeContext(tab,component,button,null,card),button);
     return button;
   }
 
@@ -154,9 +119,7 @@ Purpose: Shared left-side title interaction with one canonical title and one can
     if (!tab) return;
     tab.components.forEach(function(component){
       if ((component.features || []).indexOf('collapse') < 0) return;
-      const card = window.cdaDashboardCatalogV6555
-        ? window.cdaDashboardCatalogV6555.resolveCard(tab.key,component.key)
-        : null;
+      const card = window.cdaDashboardCatalogV6555 ? window.cdaDashboardCatalogV6555.resolveCard(tab.key,component.key) : null;
       if (card) mount(tab.key,component.key,card);
     });
   }
@@ -164,15 +127,12 @@ Purpose: Shared left-side title interaction with one canonical title and one can
   function inspect(button){
     const text = button && button.querySelector('.cdaDashboardTitleTextV6555');
     const chevrons = button ? button.querySelectorAll('.cdaDashboardTitleChevronV6555') : [];
-    return {
-      chevronCount:chevrons.length,
-      text:text ? text.textContent.trim() : '',
-      textContainsArrow:!!(text && ARROW_TEST_PATTERN_V6556.test(text.textContent || ''))
-    };
+    return {chevronCount:chevrons.length,text:text ? text.textContent.trim() : '',textContainsArrow:!!(text && ARROW_TEST_PATTERN_V6556.test(text.textContent || ''))};
   }
 
   window.cdaDashboardTitleToggleV6555 = Object.freeze({
-    version:'v6.556',
+    version:'v6.579',
+    runtimeVersion:runtime.version,
     mount:mount,
     sync:sync,
     syncAll:syncAll,

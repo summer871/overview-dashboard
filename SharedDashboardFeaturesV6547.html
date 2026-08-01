@@ -1,7 +1,7 @@
 <!-- SharedDashboardFeaturesV6547.html
-Version: v6.558
-Date: 2026-07-30
-Purpose: Reusable opt-in feature catalog shared by TAT, Remake, future tabs, and detached live components.
+Version: v6.579
+Date: 2026-07-31
+Purpose: Declarative feature catalog executed by the shared configuration-driven feature runtime.
 -->
 <script id="cdaSharedDashboardFeaturesControllerV6547">
 (function installSharedDashboardFeaturesV6547(){
@@ -9,106 +9,28 @@ Purpose: Reusable opt-in feature catalog shared by TAT, Remake, future tabs, and
 
   const platform = window.cdaDashboardPlatformV6547;
   const theme = window.cdaDashboardThemeV6549;
-  if (!platform || !theme) {
-    throw new Error('Dashboard registry and theme must load before features.');
+  const runtime = window.cdaDashboardFeatureRuntimeV6579;
+  if (!platform || !theme || !runtime) {
+    throw new Error('Dashboard registry, theme, and feature runtime must load before features.');
   }
-  if (window.CDA_DASHBOARD_FEATURES_VERSION === 'v6.558') return;
+  if (window.CDA_DASHBOARD_FEATURES_VERSION === 'v6.579') return;
 
-  function callAdapter(context,method){
-    const fn = context.adapter && context.adapter[method];
-    return typeof fn === 'function' ? fn(context) : false;
+  function register(definition){
+    platform.registerFeature(Object.assign({},definition,{
+      run:function(context){ return runtime.run(definition.key,context); }
+    }));
   }
 
-  platform.registerFeature({
-    key:'comparePriorYear',placement:'toolbar',order:10,
-    label:function(context){ return callAdapter(context,'priorYearLabel') || 'Prior year'; },
-    title:'Compare with the previous year',
-    run:function(context){ callAdapter(context,'togglePriorYearComparison'); }
-  });
+  register({key:'comparePriorYear',placement:'toolbar',order:10,label:'Prior year',title:'Compare with the previous year'});
+  register({key:'year',placement:'toolbar',order:15,label:'Year',title:'Choose reporting year'});
+  register({key:'columns',placement:'toolbar',order:20,label:'Columns',title:'Choose visible content'});
+  register({key:'popout',placement:'toolbar',order:30,icon:'popout',title:'Open this live component in a separate window',iconOnly:true});
+  register({key:'reset',placement:'toolbar',order:40,icon:'reset',title:'Reset this component',iconOnly:true});
+  register({key:'more',placement:'toolbar',order:50,icon:'more',title:'More actions',iconOnly:true,appearance:'plain',ariaHasPopup:'menu'});
+  register({key:'collapse',placement:'title',order:10,icon:'collapse',title:'Collapse or expand this component',iconOnly:true});
+  register({key:'exportCurrent',placement:'menu',order:10,label:'Export current',title:'Export the current view'});
+  register({key:'exportAll',placement:'menu',order:20,label:'All data',title:'Export all matching data'});
 
-  platform.registerFeature({
-    key:'year',placement:'toolbar',order:15,
-    label:function(context){ return callAdapter(context,'yearLabel') || 'Year'; },
-    title:'Choose reporting year',
-    run:function(context){ callAdapter(context,'openYear'); }
-  });
-
-  platform.registerFeature({
-    key:'columns',placement:'toolbar',order:20,
-    label:'Columns',title:'Choose visible content',
-    run:function(context){ callAdapter(context,'openColumns'); }
-  });
-
-  platform.registerFeature({
-    key:'popout',placement:'toolbar',order:30,
-    icon:'popout',title:'Open this live component in a separate window',iconOnly:true,
-    run:function(context){
-      if (callAdapter(context,'popout')) return;
-      if (window.cdaDashboardPopoutV6548) window.cdaDashboardPopoutV6548.open(context);
-    }
-  });
-
-  platform.registerFeature({
-    key:'reset',placement:'toolbar',order:40,
-    icon:'reset',title:'Reset this component',iconOnly:true,
-    run:function(context){ callAdapter(context,'reset'); }
-  });
-
-  platform.registerFeature({
-    key:'more',placement:'toolbar',order:50,
-    icon:'more',title:'More actions',iconOnly:true,appearance:'plain',ariaHasPopup:'menu',
-    run:function(context){
-      const menuFeatures = platform.sortedFeatures(context.component,'menu');
-      if (!context.popover || !menuFeatures.length) return;
-      if (context.popover.isOpenFor(context.button)) {
-        context.popover.close();
-        return;
-      }
-      const popover = context.popover.open(context.button,{label:'More actions',role:'menu'});
-      if (!popover) return;
-      const doc = popover.ownerDocument || context.document || document;
-      menuFeatures.forEach(function(feature){
-        const button = doc.createElement('button');
-        button.type = 'button';
-        button.setAttribute('role','menuitem');
-        button.textContent = typeof feature.label === 'function'
-          ? feature.label(context)
-          : feature.label;
-        button.addEventListener('click',function(event){
-          event.preventDefault();
-          event.stopPropagation();
-          context.popover.close();
-          feature.run(Object.assign({},context,{
-            button:button,
-            event:event,
-            document:doc,
-            window:doc.defaultView || context.window || window
-          }));
-        });
-        popover.appendChild(button);
-      });
-      context.popover.position();
-    }
-  });
-
-  platform.registerFeature({
-    key:'collapse',placement:'title',order:10,
-    icon:'collapse',title:'Collapse or expand this component',iconOnly:true,
-    run:function(context){ callAdapter(context,'collapse'); }
-  });
-
-  platform.registerFeature({
-    key:'exportCurrent',placement:'menu',order:10,
-    label:'Export current',title:'Export the current view',
-    run:function(context){ callAdapter(context,'exportCurrent'); }
-  });
-
-  platform.registerFeature({
-    key:'exportAll',placement:'menu',order:20,
-    label:'All data',title:'Export all matching data',
-    run:function(context){ callAdapter(context,'exportAll'); }
-  });
-
-  window.CDA_DASHBOARD_FEATURES_VERSION = 'v6.558';
+  window.CDA_DASHBOARD_FEATURES_VERSION = 'v6.579';
 })();
 </script>

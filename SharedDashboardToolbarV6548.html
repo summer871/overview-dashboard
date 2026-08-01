@@ -1,7 +1,7 @@
 <!-- SharedDashboardToolbarV6548.html
-Version: v6.558
-Date: 2026-07-30
-Purpose: Single presentation and event owner for dashboard feature controls in the dashboard or detached component windows.
+Version: v6.579
+Date: 2026-07-31
+Purpose: Single presentation and event owner for configuration-driven dashboard feature controls.
 -->
 <style id="cdaSharedDashboardToolbarStylesV6548">
   .cdaDashboardCardV6547{min-width:0;overflow:hidden}
@@ -18,21 +18,19 @@ Purpose: Single presentation and event owner for dashboard feature controls in t
 (function installSharedDashboardToolbarV6548(){
   'use strict';
 
-  if (window.cdaDashboardToolbarV6548 &&
-      window.cdaDashboardToolbarV6548.version === 'v6.558') return;
+  if (window.cdaDashboardToolbarV6548 && window.cdaDashboardToolbarV6548.version === 'v6.579') return;
 
   const platform = window.cdaDashboardPlatformV6547;
   const theme = window.cdaDashboardThemeV6549;
-  if (!platform || !theme) throw new Error('Dashboard registry and theme must load before toolbar.');
+  const runtime = window.cdaDashboardFeatureRuntimeV6579;
+  if (!platform || !theme || !runtime) throw new Error('Dashboard registry, theme, and feature runtime must load before toolbar.');
 
   function componentFor(tab,key){
     return tab && tab.components.find(function(item){ return item.key === key; }) || null;
   }
 
   function cardFor(button){
-    return button && button.closest
-      ? button.closest('[data-cda-component-id],.remakeCard,article')
-      : null;
+    return button && button.closest ? button.closest('[data-cda-component-id],.remakeCard,article') : null;
   }
 
   function contextFor(tab,component,button,event){
@@ -49,6 +47,7 @@ Purpose: Single presentation and event owner for dashboard feature controls in t
       window:ownerWindow,
       adapter:tab.adapter || {},
       platform:platform,
+      runtime:runtime,
       renderer:window.cdaDashboardRendererV6547 || null,
       decorator:window.cdaDashboardDecoratorV6548 || null,
       popover:window.cdaDashboardPopoverV6547 || null
@@ -57,19 +56,16 @@ Purpose: Single presentation and event owner for dashboard feature controls in t
 
   function featureText(feature,context){
     if (feature.icon) return theme.icon(feature.icon);
-    return typeof feature.label === 'function'
-      ? String(feature.label(context))
-      : String(feature.label || feature.key);
+    return runtime.label(feature.key,context);
   }
 
   function featureTitle(feature,context){
-    return typeof feature.title === 'function'
-      ? String(feature.title(context))
-      : String(feature.title || feature.label || feature.key);
+    return runtime.title(feature.key,context);
   }
 
   function buttonMarkup(tab,component,feature){
     const context = contextFor(tab,component,null,null);
+    if (!runtime.supports(feature.key,context)) return '';
     const classes = ['cdaDashboardButtonV6547'];
     if (feature.iconOnly) classes.push('cdaDashboardButtonIconV6547');
     if (feature.appearance === 'plain') classes.push('cdaDashboardButtonPlainV6548');
@@ -100,41 +96,35 @@ Purpose: Single presentation and event owner for dashboard feature controls in t
     const tab = platform.getTab(tabKey);
     const component = componentFor(tab,componentKey);
     if (!tab || !component || !host) return null;
-    const existing = host.querySelector(
-      ':scope > .cdaDashboardToolbarV6547[data-cda-dashboard-toolbar="' + component.key + '"]'
-    );
+    const existing = host.querySelector(':scope > .cdaDashboardToolbarV6547[data-cda-dashboard-toolbar="' + component.key + '"]');
     const doc = host.ownerDocument || document;
     const shell = doc.createElement('div');
     shell.innerHTML = markup(tab,component);
     const toolbar = shell.firstElementChild;
     if (existing) existing.replaceWith(toolbar); else host.appendChild(toolbar);
-    if (tab.adapter && typeof tab.adapter.syncToolbarState === 'function') {
-      tab.adapter.syncToolbarState({tab:tab,component:component,toolbar:toolbar,card:cardFor(toolbar)});
-    }
+    runtime.syncToolbar(Object.assign(contextFor(tab,component,toolbar,null),{toolbar:toolbar,card:cardFor(toolbar)}));
     return toolbar;
   }
 
   function dispatch(button,event){
     const tab = platform.getTab(button.getAttribute('data-cda-dashboard-tab-key'));
     const component = componentFor(tab,button.getAttribute('data-cda-dashboard-component-key'));
-    const feature = platform.getFeature(button.getAttribute('data-cda-dashboard-feature-key'));
-    if (!tab || !component || !feature) return false;
+    const featureKey = button.getAttribute('data-cda-dashboard-feature-key');
+    if (!tab || !component || !platform.getFeature(featureKey)) return false;
     event.preventDefault();
     event.stopPropagation();
-    feature.run(contextFor(tab,component,button,event));
-    return true;
+    return runtime.run(featureKey,contextFor(tab,component,button,event));
   }
 
   document.addEventListener('click',function(event){
-    const button = event.target && event.target.closest
-      ? event.target.closest('[data-cda-dashboard-feature-key]')
-      : null;
+    const button = event.target && event.target.closest ? event.target.closest('[data-cda-dashboard-feature-key]') : null;
     if (button) dispatch(button,event);
   },true);
 
   window.cdaDashboardToolbarV6548 = Object.freeze({
-    version:'v6.558',
+    version:'v6.579',
     themeVersion:theme.version,
+    runtimeVersion:runtime.version,
     contextFor:contextFor,
     markup:markup,
     mount:mount,

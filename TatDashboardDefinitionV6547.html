@@ -1,13 +1,13 @@
 <!-- TatDashboardDefinitionV6547.html
-Version: v6.565
-Date: 2026-07-30
-Purpose: Declarative TAT layout mirroring the clean Remake two-column card composition.
+Version: v6.579
+Date: 2026-07-31
+Purpose: Declarative TAT layout with per-component feature configuration for the shared feature runtime.
 -->
 <script id="cdaTatDashboardDefinitionControllerV6547">
 (function installTatDashboardDefinitionV6547(){
   'use strict';
 
-  if (window.cdaTatDashboardDefinitionV6547 && window.cdaTatDashboardDefinitionV6547.version === 'v6.565') return;
+  if (window.cdaTatDashboardDefinitionV6547 && window.cdaTatDashboardDefinitionV6547.version === 'v6.579') return;
 
   const platform = window.cdaDashboardPlatformV6547;
   const adapter = window.cdaTatDashboardAdapterV6547;
@@ -18,6 +18,22 @@ Purpose: Declarative TAT layout mirroring the clean Remake two-column card compo
   }
 
   const STANDARD_FEATURES = ['columns','popout','reset','more','exportCurrent','exportAll'];
+  const TABLE_OPTIONS = {
+    reset:{adapterMethod:'reset'},
+    exportAll:{adapterMethod:'exportAll'}
+  };
+  const CHART_OPTIONS = {
+    columns:{adapterMethod:'openColumns'},
+    reset:{adapterMethod:'reset'},
+    exportCurrent:{adapterMethod:'exportCurrent'},
+    exportAll:{adapterMethod:'exportAll'}
+  };
+  const PERFORMANCE_OPTIONS = Object.assign({},CHART_OPTIONS);
+  const COLLAPSE_OPTIONS = {adapterMethod:'collapse',stateAdapterMethod:'isCollapsed'};
+
+  function optionsV6579(base,extra){
+    return Object.assign({},base || {},extra || {});
+  }
 
   function tableV6547(bodyId,headers,extraClass){
     const cells = headers.map(function(header){
@@ -36,12 +52,12 @@ Purpose: Declarative TAT layout mirroring the clean Remake two-column card compo
   const components = [
     {
       key:'monthly',title:'Monthly TAT Comparison',kind:'chart',chartKey:'monthly',targetId:'tatMonthlyChartV6509',
-      features:STANDARD_FEATURES.slice(),
+      features:STANDARD_FEATURES.slice(),featureOptions:optionsV6579(CHART_OPTIONS),
       renderBody:function(){ return '<div class="tatChartV6509 remakeTrendCanvasWrapV6230"><canvas id="tatMonthlyChartV6509"></canvas></div>'; }
     },
     {
       key:'department',title:'Department Summary',kind:'table',tableKey:'tatDepartment',targetId:'tatDepartmentTableV6509',
-      features:STANDARD_FEATURES.slice(),
+      features:STANDARD_FEATURES.slice(),featureOptions:optionsV6579(TABLE_OPTIONS),
       renderBody:function(){
         return tableV6547('tatDepartmentTableV6509',[{label:'Department'}].concat(TAT_METRIC_HEADERS),'tatDepartmentTableWrapV6563');
       }
@@ -49,7 +65,7 @@ Purpose: Declarative TAT layout mirroring the clean Remake two-column card compo
     {
       key:'performance',title:'TAT Performance',kind:'chart',chartKey:'distribution',targetId:'tatDistributionChartV6509',
       tableKey:'tatLate',secondaryComponentKeys:['distribution','late'],
-      features:STANDARD_FEATURES.slice(),
+      features:STANDARD_FEATURES.slice(),featureOptions:optionsV6579(PERFORMANCE_OPTIONS),
       renderHeaderControls:function(){ return layout.headerMarkup(); },
       renderBody:function(){
         return '<div class="tatPerformanceViewsV6565">' +
@@ -70,7 +86,7 @@ Purpose: Declarative TAT layout mirroring the clean Remake two-column card compo
     },
     {
       key:'product',title:'Products',kind:'table',tableKey:'tatProduct',targetId:'tatProductTableV6562',
-      features:STANDARD_FEATURES.slice(),
+      features:STANDARD_FEATURES.slice(),featureOptions:optionsV6579(TABLE_OPTIONS),
       renderHeaderControls:function(){ return productTable.headerMarkup(); },
       renderBody:function(){
         return tableV6547('tatProductTableV6562',[{label:'Product'}].concat(TAT_METRIC_HEADERS),'tatProductTableWrapV6562');
@@ -80,6 +96,7 @@ Purpose: Declarative TAT layout mirroring the clean Remake two-column card compo
       key:'customer',title:'Customers',kind:'table',tableKey:'tatCustomer',targetId:'tatCustomerTableV6509',
       cardId:'tatCustomerCardV6509',wide:true,collapseSection:'customers',
       features:STANDARD_FEATURES.concat(['collapse']),
+      featureOptions:optionsV6579(TABLE_OPTIONS,{collapse:COLLAPSE_OPTIONS}),
       renderBody:function(){
         return '<div class="tatCollapsibleBodyV6509">' + tableV6547('tatCustomerTableV6509',[
           {label:'Customer'},{label:'Cases',numeric:true},{label:'Sold Units',numeric:true},{label:'Remake Units',numeric:true},
@@ -91,6 +108,7 @@ Purpose: Declarative TAT layout mirroring the clean Remake two-column card compo
       key:'quality',title:'Data Quality & Coverage',kind:'table',tableKey:'tatQuality',targetId:'tatQualityTableV6509',
       cardId:'tatQualityCardV6509',wide:true,collapseSection:'quality',summaryIds:['tatIssueSummaryV6509'],
       features:STANDARD_FEATURES.concat(['collapse']),
+      featureOptions:optionsV6579(TABLE_OPTIONS,{collapse:COLLAPSE_OPTIONS}),
       renderTitle:function(){
         return '<div class="tatQualityTitleRowV6513"><div class="tatCardTitleV6509 remakeCardTitle">Data Quality &amp; Coverage</div>' +
           '<div id="tatQualityCoverageV6513" class="tatQualityCoverageV6513"></div></div>';
@@ -150,7 +168,7 @@ Purpose: Declarative TAT layout mirroring the clean Remake two-column card compo
   }
 
   window.cdaTatDashboardDefinitionV6547 = {
-    version:'v6.565',
+    version:'v6.579',
     key:'tat',
     pageId:'tatDashboardPageV6509',
     tabButtonId:'tatTabBtnV6509',

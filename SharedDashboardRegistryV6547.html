@@ -1,15 +1,15 @@
 <!-- SharedDashboardRegistryV6547.html
-Version: v6.550
-Date: 2026-07-29
-Purpose: Shared registry and validation layer for replace-mode and decorate-mode dashboard tabs.
+Version: v6.579
+Date: 2026-07-31
+Purpose: Shared registry and validation layer for replace-mode and decorate-mode dashboard tabs with configuration-driven feature options.
 -->
 <script id="cdaSharedDashboardRegistryV6547">
 (function installSharedDashboardRegistryV6547(){
   'use strict';
 
-  if (window.cdaDashboardPlatformV6547 && window.cdaDashboardPlatformV6547.version === 'v6.550') return;
+  if (window.cdaDashboardPlatformV6547 && window.cdaDashboardPlatformV6547.version === 'v6.579') return;
 
-  const VERSION_V6547 = 'v6.550';
+  const VERSION_V6547 = 'v6.579';
   const featureRegistryV6547 = new Map();
   const tabRegistryV6547 = new Map();
 
@@ -38,9 +38,19 @@ Purpose: Shared registry and validation layer for replace-mode and decorate-mode
       iconOnly:false,
       appearance:'standard'
     },definition,{key:key});
-    if (typeof normalized.run !== 'function') throw new Error('Feature requires a run function: ' + key);
     featureRegistryV6547.set(key,Object.freeze(normalized));
     return normalized;
+  }
+
+  function normalizeFeatureOptionsV6579(value){
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+    return Object.keys(value).reduce(function(result,key){
+      const option = value[key];
+      result[String(key)] = option && typeof option === 'object' && !Array.isArray(option)
+        ? Object.assign({},option)
+        : option;
+      return result;
+    },{});
   }
 
   function normalizeComponentV6547(component,index){
@@ -48,9 +58,10 @@ Purpose: Shared registry and validation layer for replace-mode and decorate-mode
       throw new Error('Tab component at index ' + index + ' is invalid.');
     }
     const key = normalizeKeyV6547(component.key,'Component key');
-    return Object.assign({title:key,kind:'custom',features:[]},component,{
+    return Object.assign({title:key,kind:'custom',features:[],featureOptions:{}},component,{
       key:key,
-      features:Array.from(new Set((component.features || []).map(String)))
+      features:Array.from(new Set((component.features || []).map(String))),
+      featureOptions:normalizeFeatureOptionsV6579(component.featureOptions)
     });
   }
 
@@ -89,6 +100,11 @@ Purpose: Shared registry and validation layer for replace-mode and decorate-mode
       component.features.forEach(function(featureKey){
         if (!featureRegistryV6547.has(featureKey)) {
           errors.push('Unknown feature "' + featureKey + '" on component "' + component.key + '".');
+        }
+      });
+      Object.keys(component.featureOptions || {}).forEach(function(featureKey){
+        if (component.features.indexOf(featureKey) < 0) {
+          warnings.push('Feature options exist for disabled feature "' + featureKey + '" on component "' + component.key + '".');
         }
       });
       if (tab.mountMode === 'replace' && typeof component.renderBody !== 'function') {

@@ -1,0 +1,307 @@
+<!-- SharedDashboardFeatureRuntimeV6579.html
+Version: v6.579
+Date: 2026-07-31
+Purpose: One configuration-driven runtime for shared dashboard features across TAT, Remake, future tabs, and detached live components.
+-->
+<script id="cdaSharedDashboardFeatureRuntimeControllerV6579">
+(function installSharedDashboardFeatureRuntimeV6579(){
+  'use strict';
+
+  if (window.cdaDashboardFeatureRuntimeV6579 &&
+      window.cdaDashboardFeatureRuntimeV6579.version === 'v6.579') return;
+
+  const platform = window.cdaDashboardPlatformV6547;
+  if (!platform) throw new Error('Dashboard registry must load before the feature runtime.');
+
+  function optionsForV6579(context,featureKey){
+    const options = context && context.component && context.component.featureOptions;
+    const value = options && options[featureKey];
+    return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+  }
+
+  function adapterForV6579(context){
+    return context && context.adapter || context && context.tab && context.tab.adapter || {};
+  }
+
+  function invokeAdapterV6579(context,methodName){
+    const method = methodName && adapterForV6579(context)[methodName];
+    return typeof method === 'function' ? method(context) : false;
+  }
+
+  function configuredAdapterV6579(context,featureKey,property){
+    const options = optionsForV6579(context,featureKey);
+    return invokeAdapterV6579(context,options[property]);
+  }
+
+  function supportsV6579(featureKey,context){
+    const component = context && context.component;
+    if (!component || (component.features || []).indexOf(featureKey) < 0) return false;
+    return optionsForV6579(context,featureKey).enabled !== false;
+  }
+
+  function csvCellV6579(value){
+    const text = String(value == null ? '' : value);
+    return /[",\n\r]/.test(text) ? '"' + text.replace(/"/g,'""') + '"' : text;
+  }
+
+  function downloadCsvV6579(context,fileName,rows){
+    if (!rows || !rows.length) return false;
+    const doc = context && context.document || document;
+    const view = doc.defaultView || window;
+    const csv = rows.map(function(row){ return row.map(csvCellV6579).join(','); }).join('\r\n');
+    const url = view.URL.createObjectURL(new view.Blob(['\uFEFF' + csv],{type:'text/csv;charset=utf-8'}));
+    const link = doc.createElement('a');
+    link.href = url;
+    link.download = fileName;
+    doc.body.appendChild(link);
+    link.click();
+    link.remove();
+    view.setTimeout(function(){ view.URL.revokeObjectURL(url); },500);
+    return true;
+  }
+
+  function fileStemV6579(context){
+    const tabKey = context && context.tab && context.tab.key || 'dashboard';
+    const componentKey = context && context.component && context.component.key || 'component';
+    return String(tabKey) + '_' + String(componentKey);
+  }
+
+  function chartForV6579(context){
+    const adapter = adapterForV6579(context);
+    return typeof adapter.getChart === 'function' ? adapter.getChart(context) : null;
+  }
+
+  function chartRowsV6579(context){
+    const chart = chartForV6579(context);
+    if (!chart || !chart.data) return [];
+    const datasets = (chart.data.datasets || []).filter(function(dataset,index){
+      return typeof chart.isDatasetVisible === 'function' ? chart.isDatasetVisible(index) : !dataset.hidden;
+    });
+    const rows = [['Label'].concat(datasets.map(function(dataset){ return dataset.label || 'Series'; }))];
+    (chart.data.labels || []).forEach(function(label,index){
+      rows.push([label].concat(datasets.map(function(dataset){
+        const value = (dataset.data || [])[index];
+        return value && value.y != null ? value.y : value;
+      })));
+    });
+    return rows;
+  }
+
+  function domTableRowsV6579(context){
+    const columns = window.cdaDashboardColumnsV6548;
+    const sources = columns && typeof columns.describe === 'function' ? columns.describe(context) : [];
+    const rows = [];
+    sources.filter(function(source){ return source.type === 'dom' && source.table; }).forEach(function(source,index){
+      if (index) rows.push([]);
+      if (sources.length > 1) rows.push([source.title]);
+      Array.from(source.table.rows || []).forEach(function(row){
+        const values = Array.from(row.cells || []).filter(function(cell){
+          return !cell.classList.contains('cdaDashboardColumnHiddenV6548');
+        }).map(function(cell){ return String(cell.textContent || '').replace(/\s+/g,' ').trim(); });
+        if (values.length) rows.push(values);
+      });
+    });
+    return rows;
+  }
+
+  function openMoreV6579(context){
+    const menuFeatures = platform.sortedFeatures(context.component,'menu').filter(function(feature){
+      return supportsV6579(feature.key,context);
+    });
+    if (!context.popover || !menuFeatures.length) return false;
+    if (context.popover.isOpenFor(context.button)) {
+      context.popover.close();
+      return true;
+    }
+    const popover = context.popover.open(context.button,{label:'More actions',role:'menu'});
+    if (!popover) return false;
+    const doc = popover.ownerDocument || context.document || document;
+    menuFeatures.forEach(function(feature){
+      const button = doc.createElement('button');
+      button.type = 'button';
+      button.setAttribute('role','menuitem');
+      button.textContent = labelV6579(feature.key,Object.assign({},context,{document:doc}));
+      button.addEventListener('click',function(event){
+        event.preventDefault();
+        event.stopPropagation();
+        context.popover.close();
+        runV6579(feature.key,Object.assign({},context,{
+          button:button,
+          event:event,
+          document:doc,
+          window:doc.defaultView || context.window || window
+        }));
+      });
+      popover.appendChild(button);
+    });
+    context.popover.position();
+    return true;
+  }
+
+  function openColumnsV6579(context){
+    const options = optionsForV6579(context,'columns');
+    if (options.adapterMethod) return invokeAdapterV6579(context,options.adapterMethod);
+    return !!(window.cdaDashboardColumnsV6548 && window.cdaDashboardColumnsV6548.open(context));
+  }
+
+  function openPopoutV6579(context){
+    const options = optionsForV6579(context,'popout');
+    if (options.adapterMethod) return invokeAdapterV6579(context,options.adapterMethod);
+    const opened = !!(window.cdaDashboardPopoutV6548 && window.cdaDashboardPopoutV6548.open(context));
+    if (opened) {
+      if (options.afterAdapterMethod) {
+        window.setTimeout(function(){ invokeAdapterV6579(context,options.afterAdapterMethod); },0);
+      }
+    }
+    return opened;
+  }
+
+  function resetChartV6579(context){
+    const chart = chartForV6579(context);
+    if (!chart || !chart.data) return false;
+    (chart.data.datasets || []).forEach(function(dataset,index){
+      if (typeof chart.setDatasetVisibility === 'function') chart.setDatasetVisibility(index,true);
+      else dataset.hidden = false;
+    });
+    if (typeof chart.update === 'function') chart.update('none');
+    return true;
+  }
+
+  function resetV6579(context){
+    const options = optionsForV6579(context,'reset');
+    if (options.adapterMethod) return invokeAdapterV6579(context,options.adapterMethod);
+    let changed = false;
+    if (window.cdaDashboardPopoverV6547) window.cdaDashboardPopoverV6547.close();
+    if (context.component.kind === 'table' && window.cdaDashboardColumnsV6548) {
+      changed = window.cdaDashboardColumnsV6548.reset(context) || changed;
+      if (context.component.tableKey && window.cdaTable && typeof window.cdaTable.clearSelection === 'function') {
+        window.cdaTable.clearSelection(context.component.tableKey);
+        changed = true;
+      }
+    }
+    if (context.component.kind === 'chart') changed = resetChartV6579(context) || changed;
+    if (options.afterAdapterMethod) changed = invokeAdapterV6579(context,options.afterAdapterMethod) || changed;
+    return changed;
+  }
+
+  function exportCurrentV6579(context){
+    const options = optionsForV6579(context,'exportCurrent');
+    if (options.adapterMethod) return invokeAdapterV6579(context,options.adapterMethod);
+    if (context.component.tableKey && window.cdaTable && typeof window.cdaTable.exportCsv === 'function') {
+      window.cdaTable.exportCsv(context.component.tableKey,fileStemV6579(context) + '_current.csv');
+      return true;
+    }
+    if (context.component.kind === 'chart') {
+      return downloadCsvV6579(context,fileStemV6579(context) + '_current.csv',chartRowsV6579(context));
+    }
+    return downloadCsvV6579(context,fileStemV6579(context) + '_current.csv',domTableRowsV6579(context));
+  }
+
+  function exportAllV6579(context){
+    const options = optionsForV6579(context,'exportAll');
+    if (options.adapterMethod) return invokeAdapterV6579(context,options.adapterMethod);
+    return exportCurrentV6579(context);
+  }
+
+  function adapterActionV6579(featureKey,context){
+    return configuredAdapterV6579(context,featureKey,'adapterMethod');
+  }
+
+  const handlersV6579 = {
+    comparePriorYear:function(context){ return adapterActionV6579('comparePriorYear',context); },
+    year:function(context){ return adapterActionV6579('year',context); },
+    columns:openColumnsV6579,
+    popout:openPopoutV6579,
+    reset:resetV6579,
+    more:openMoreV6579,
+    collapse:function(context){ return adapterActionV6579('collapse',context); },
+    exportCurrent:exportCurrentV6579,
+    exportAll:exportAllV6579
+  };
+
+  function runV6579(featureKey,context){
+    const key = String(featureKey || '');
+    if (!supportsV6579(key,context)) return false;
+    const options = optionsForV6579(context,key);
+    if (options.beforeAdapterMethod && !invokeAdapterV6579(context,options.beforeAdapterMethod)) return false;
+    const handler = handlersV6579[key];
+    const result = typeof handler === 'function' ? handler(context) : false;
+    if (options.afterRunAdapterMethod) invokeAdapterV6579(context,options.afterRunAdapterMethod);
+    return result;
+  }
+
+  function labelV6579(featureKey,context){
+    const feature = platform.getFeature(featureKey);
+    const options = optionsForV6579(context,featureKey);
+    if (options.labelAdapterMethod) {
+      const value = invokeAdapterV6579(context,options.labelAdapterMethod);
+      if (value !== false && value != null && String(value).trim()) return String(value);
+    }
+    return typeof feature.label === 'function'
+      ? String(feature.label(context))
+      : String(feature.label || feature.key);
+  }
+
+  function titleV6579(featureKey,context){
+    const feature = platform.getFeature(featureKey);
+    const options = optionsForV6579(context,featureKey);
+    if (options.titleAdapterMethod) {
+      const value = invokeAdapterV6579(context,options.titleAdapterMethod);
+      if (value !== false && value != null && String(value).trim()) return String(value);
+    }
+    return typeof feature.title === 'function'
+      ? String(feature.title(context))
+      : String(feature.title || feature.label || feature.key);
+  }
+
+  function activeV6579(featureKey,context){
+    const options = optionsForV6579(context,featureKey);
+    if (options.stateAdapterMethod) return !!invokeAdapterV6579(context,options.stateAdapterMethod);
+    const adapter = adapterForV6579(context);
+    if (featureKey === 'collapse' && typeof adapter.isCollapsed === 'function') return !!adapter.isCollapsed(context);
+    if (featureKey === 'comparePriorYear' && typeof adapter.comparisonActive === 'function') {
+      return !!adapter.comparisonActive(context.component,context);
+    }
+    return false;
+  }
+
+  function syncToolbarV6579(context){
+    const toolbar = context && context.toolbar;
+    if (!toolbar) return false;
+    const adapter = adapterForV6579(context);
+    if (typeof adapter.syncToolbarState === 'function') adapter.syncToolbarState(context);
+    Array.from(toolbar.querySelectorAll('[data-cda-dashboard-feature-key]')).forEach(function(button){
+      const key = button.getAttribute('data-cda-dashboard-feature-key');
+      if (!supportsV6579(key,Object.assign({},context,{button:button}))) {
+        button.hidden = true;
+        return;
+      }
+      const feature = platform.getFeature(key);
+      button.hidden = false;
+      if (feature && !feature.icon) button.textContent = labelV6579(key,Object.assign({},context,{button:button}));
+      const title = titleV6579(key,Object.assign({},context,{button:button}));
+      button.title = title;
+      button.setAttribute('aria-label',title);
+      if (button.hasAttribute('aria-pressed')) {
+        button.setAttribute('aria-pressed',activeV6579(key,Object.assign({},context,{button:button})) ? 'true' : 'false');
+      }
+    });
+    return true;
+  }
+
+  window.cdaDashboardFeatureRuntimeV6579 = Object.freeze({
+    version:'v6.579',
+    mode:'configuration-driven-shared-feature-runtime',
+    supports:supportsV6579,
+    options:optionsForV6579,
+    run:runV6579,
+    label:labelV6579,
+    title:titleV6579,
+    isActive:activeV6579,
+    syncToolbar:syncToolbarV6579,
+    exportCurrent:exportCurrentV6579,
+    exportAll:exportAllV6579,
+    reset:resetV6579
+  });
+})();
+</script>
