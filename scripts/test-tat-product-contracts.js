@@ -4,7 +4,7 @@
 const fs = require('fs');
 const path = require('path');
 const root = path.resolve(__dirname,'..');
-const footerVersion = 'v6.583';
+const footerVersion = 'v6.582';
 const read = name => fs.readFileSync(path.join(root,name),'utf8');
 const assert = (condition,message) => { if (!condition) throw new Error(message); };
 
@@ -73,7 +73,7 @@ assert(
   footer.includes("'" + footerVersion + "'"),
   'Footer is not ' + footerVersion + '.'
 );
-assert(footer.includes('SHARED-COLUMN-WIDTHS-POLISH-24'), 'Footer build label is incorrect.');
+assert(footer.includes('SHARED-COLUMN-WIDTHS-HOTFIX-23'), 'Footer build label is incorrect.');
 assert(router.includes("'v6.567'"), 'Router is not v6.567.');
 
 console.log('TAT layout contracts passed.');
