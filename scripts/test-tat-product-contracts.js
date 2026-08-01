@@ -4,7 +4,7 @@
 const fs = require('fs');
 const path = require('path');
 const root = path.resolve(__dirname,'..');
-const footerVersion = 'v6.580';
+const footerVersion = 'v6.581';
 const read = name => fs.readFileSync(path.join(root,name),'utf8');
 const assert = (condition,message) => { if (!condition) throw new Error(message); };
 
@@ -42,8 +42,16 @@ assert(widths.includes("tatDepartment:['30%','13%','13%','11%','11%','10%','12%'
 assert(widths.includes("tatProduct:['34%','12%','12%','10%','10%','10%','12%']"), 'Product widths are incorrect.');
 assert(widths.includes("tatCustomer:['30%','9%','12%','12%','10%','9%','9%','9%']"), 'Customer widths are incorrect.');
 
-assert(definition.includes("version:'v6.579'"), 'TAT definition is not v6.579.');
+assert(definition.includes("version:'v6.581'"), 'TAT definition is not v6.581.');
+assert(definition.includes("const TABLE_FEATURES = ['columns','columnWidths'"), 'TAT tables do not opt into shared column widths.');
+assert(definition.includes('numericMin:58,numericMax:82'), 'TAT numeric default widths are not compact.');
+assert(definition.includes('firstColumnMin:132'), 'TAT elastic first-column minimum is missing.');
 assert(definition.includes("key:'performance',title:'TAT Performance'"), 'TAT Performance is missing.');
+
+assert(definition.includes("tableIds:['tatLateTableV6509']"), 'TAT Promise table is not explicitly registered for shared widths.');
+assert(definition.includes("features:CHART_FEATURES.concat(['columnWidths'])"), 'TAT Promise table does not opt into shared column widths.');
+assert(definition.includes("label:'Reset Promise column widths'"), 'TAT Promise reset-width action is missing.');
+assert(definition.includes('data-cda-column-widths-pending-v6581="true"'), 'TAT tables lack the pre-paint width guard.');
 assert(definition.includes('renderHeaderControls:function(){ return layout.headerMarkup(); }'), 'Performance header toggle is missing.');
 assert(definition.includes('[data-tat-performance-view-v6565="distribution"]') || definition.includes('data-tat-performance-view-v6565="distribution"'), 'Distribution view markup is missing.');
 assert(definition.includes('data-tat-performance-view-v6565="promise"'), 'Promise view markup is missing.');
@@ -66,7 +74,7 @@ assert(
   footer.includes("'" + footerVersion + "'"),
   'Footer is not ' + footerVersion + '.'
 );
-assert(footer.includes('SHARED-COLUMN-LAYOUT-21'), 'Footer build label is incorrect.');
+assert(footer.includes('SHARED-COLUMN-WIDTHS-22'), 'Footer build label is incorrect.');
 assert(router.includes("'v6.567'"), 'Router is not v6.567.');
 
 console.log('TAT layout contracts passed.');
@@ -75,4 +83,5 @@ console.log('Performance and Products are equal-width second-row siblings: passe
 console.log('Distribution / Promise toggle: passed');
 console.log('Products / Groups toggle: passed');
 console.log('Rejected full-width performance layouts removed: passed');
-console.log('Readable TAT table widths retained: passed');
+console.log('Compact numeric and elastic name-column defaults: passed');
+console.log('TAT Promise shared resizing and reset: passed');

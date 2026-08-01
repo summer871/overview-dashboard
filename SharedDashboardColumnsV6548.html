@@ -1,126 +1,39 @@
 <!-- SharedDashboardColumnsV6548.html
-Version: v6.580
+Version: v6.581
 Date: 2026-07-31
-Purpose: One document-aware column chooser, persistent visibility/width service, horizontal table viewport, and direct header resizing for managed and existing DOM tables.
+Purpose: One document-aware shared column-visibility service that persists through sorting, rerendering, and detached live components. Width behavior is owned separately by the opt-in columnWidths feature.
 -->
 <style id="cdaSharedDashboardColumnsStylesV6548">
   .cdaDashboardColumnHiddenV6548 { display:none!important; }
   .cdaDashboardColumnSectionV6548 + .cdaDashboardColumnSectionV6548 { margin-top:7px; padding-top:7px; border-top:1px solid var(--cda-color-divider); }
   .cdaDashboardColumnSectionTitleV6548 { padding:3px 6px 5px; color:var(--cda-color-muted); font:800 9px/1.2 var(--cda-font-ui); text-transform:uppercase; letter-spacing:.05em; }
-  .cdaDashboardColumnHintV6580 { padding:4px 7px 7px; color:var(--cda-color-muted); font:600 9.5px/1.35 var(--cda-font-ui); }
   .cdaDashboardColumnFooterV6548 { display:flex; justify-content:flex-end; flex-wrap:wrap; gap:6px; padding:7px 5px 2px; border-top:1px solid var(--cda-color-divider); margin-top:5px; }
   .cdaDashboardColumnFooterV6548 button { width:auto!important; }
-
-  html body [data-cda-dashboard-table-viewport-v6580="true"],
-  html body #remakeFactorPage [data-cda-dashboard-table-viewport-v6580="true"],
-  html body #tatDashboardPageV6509 [data-cda-dashboard-table-viewport-v6580="true"],
-  html body [data-cda-detached-component="true"] [data-cda-dashboard-table-viewport-v6580="true"] {
-    position:relative!important;
-    display:block!important;
-    width:100%!important;
-    min-width:0!important;
-    max-width:100%!important;
-    overflow-x:auto!important;
-    overflow-y:visible!important;
-    overscroll-behavior-x:contain;
-    scrollbar-gutter:stable;
-  }
-
-  html body table[data-cda-dashboard-table-layout-v6580="true"] {
-    table-layout:fixed!important;
-    width:var(--cda-dashboard-table-width-v6580,100%)!important;
-    min-width:var(--cda-dashboard-table-width-v6580,100%)!important;
-    max-width:none!important;
-  }
-
-  html body table[data-cda-dashboard-table-layout-v6580="true"] th,
-  html body table[data-cda-dashboard-table-layout-v6580="true"] td {
-    box-sizing:border-box!important;
-    white-space:nowrap!important;
-    overflow:hidden!important;
-    text-overflow:ellipsis!important;
-    max-width:none!important;
-  }
-
-  html body table[data-cda-dashboard-table-layout-v6580="true"] th[data-cda-dashboard-resizable-v6580="true"] {
-    position:relative!important;
-    padding-right:24px!important;
-  }
-
-  html body table[data-cda-dashboard-table-layout-v6580="true"] th .sortGlyphV6230 {
-    right:12px!important;
-  }
-
-  .cdaDashboardColumnResizeHandleV6580 {
-    position:absolute!important;
-    z-index:8!important;
-    top:0!important;
-    right:0!important;
-    width:9px!important;
-    height:100%!important;
-    min-height:24px!important;
-    cursor:col-resize!important;
-    touch-action:none!important;
-    user-select:none!important;
-    background:transparent!important;
-  }
-
-  .cdaDashboardColumnResizeHandleV6580::after {
-    content:'';
-    position:absolute;
-    top:20%;
-    bottom:20%;
-    right:3px;
-    width:1px;
-    background:rgba(255,255,255,.34);
-  }
-
-  .cdaDashboardColumnResizeHandleV6580:hover::after,
-  .cdaDashboardColumnResizeHandleV6580:focus-visible::after {
-    width:2px;
-    background:#f2c94c;
-  }
-
-  .cdaDashboardColumnResizeHandleV6580:focus-visible {
-    outline:2px solid #f2c94c!important;
-    outline-offset:-2px!important;
-  }
-
-  body.cdaDashboardColumnResizeActiveV6580,
-  body.cdaDashboardColumnResizeActiveV6580 * {
-    cursor:col-resize!important;
-    user-select:none!important;
-  }
 </style>
 <script id="cdaSharedDashboardColumnsControllerV6548">
 (function installSharedDashboardColumnsV6548(){
   'use strict';
 
-  const VERSION_V6580 = 'v6.580';
+  const VERSION_V6581 = 'v6.581';
   if (window.cdaDashboardColumnsV6548 &&
-      window.cdaDashboardColumnsV6548.version === VERSION_V6580) return;
+      window.cdaDashboardColumnsV6548.version === VERSION_V6581) return;
 
-  const visibilityStorageKeyV6580 = 'cdaDashboardColumns.v6550';
-  const widthStorageKeyV6580 = 'cdaDashboardColumnWidths.v6580';
-  const minWidthV6580 = 60;
-  const maxWidthV6580 = 720;
-  const documentsV6580 = new Set();
-  const contextsByDocumentV6580 = new WeakMap();
-  const observersByDocumentV6580 = new WeakMap();
-  const refreshFramesByDocumentV6580 = new WeakMap();
-  let widthStateV6580 = readJsonV6580(widthStorageKeyV6580,{});
+  const storageKeyV6581 = 'cdaDashboardColumns.v6550';
+  const contextsByDocumentV6581 = new WeakMap();
+  const observersByDocumentV6581 = new WeakMap();
+  const applyingDocumentsV6581 = new WeakSet();
 
-  function readJsonV6580(key,fallback){
+  function readStateV6581(){
     try {
-      const value = JSON.parse(localStorage.getItem(key) || 'null');
-      return value && typeof value === 'object' && !Array.isArray(value) ? value : fallback;
+      const value = JSON.parse(localStorage.getItem(storageKeyV6581) || '{}');
+      return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
     } catch (error) {
-      return fallback;
+      return {};
     }
   }
 
-  function writeJsonV6580(key,value){
-    try { localStorage.setItem(key,JSON.stringify(value || {})); }
+  function writeStateV6581(state){
+    try { localStorage.setItem(storageKeyV6581,JSON.stringify(state || {})); }
     catch (error) {}
   }
 
@@ -131,19 +44,19 @@ Purpose: One document-aware column chooser, persistent visibility/width service,
       document;
   }
 
-  function stateKey(context){
+  function stateKeyV6581(context){
     return String(context && context.tab && context.tab.key || 'dashboard') + ':' +
       String(context && context.component && context.component.key || 'component');
   }
 
-  function tableIds(component){
+  function tableIdsV6581(component){
     if (!component) return [];
     if (Array.isArray(component.tableIds)) return component.tableIds.map(String).filter(Boolean);
     if (component.targetId) return [String(component.targetId)];
     return [];
   }
 
-  function escapeId(id,doc){
+  function escapeIdV6581(id,doc){
     const view = doc && doc.defaultView;
     try {
       if (view && view.CSS && typeof view.CSS.escape === 'function') return '#' + view.CSS.escape(String(id));
@@ -159,7 +72,7 @@ Purpose: One document-aware column chooser, persistent visibility/width service,
     if (card && card.querySelector) {
       if (card.id === String(id)) node = card;
       else {
-        try { node = card.querySelector(escapeId(id,doc)); }
+        try { node = card.querySelector(escapeIdV6581(id,doc)); }
         catch (error) {}
       }
     }
@@ -169,18 +82,22 @@ Purpose: One document-aware column chooser, persistent visibility/width service,
     return node.tagName === 'TABLE' ? node : node.closest ? node.closest('table') : null;
   }
 
-  function cleanLabel(value){
+  function cleanLabelV6581(value){
     return String(value == null ? '' : value)
       .replace(/[▲▼▴▾]/g,'')
       .replace(/\s+/g,' ')
       .trim() || 'Column';
   }
 
-  function domColumns(table){
+  function numericLabelV6581(label){
+    return /(?:^|\b)(?:cases?|counts?|units?|share|rate|percent|percentage|avg|average|days?|late|tat|otp|amount|total|sales|charges?|credits?|remakes?)(?:\b|%)/i.test(String(label || '')) || /%/.test(String(label || ''));
+  }
+
+  function domColumnsV6581(table){
     if (!table || !table.tHead || !table.tHead.rows.length) return [];
     const counts = Object.create(null);
     return Array.from(table.tHead.rows[0].cells || []).map(function(cell,index){
-      const label = cleanLabel(cell.textContent);
+      const label = cleanLabelV6581(cell.textContent);
       const explicit = String(cell.getAttribute('data-cda-field') || '').trim();
       const base = explicit || label.toLowerCase();
       counts[base] = (counts[base] || 0) + 1;
@@ -189,19 +106,15 @@ Purpose: One document-aware column chooser, persistent visibility/width service,
         label:label,
         index:index,
         hideable:index > 0,
-        numeric:cell.classList.contains('num') || index > 0,
+        numeric:cell.classList.contains('num') || numericLabelV6581(label),
         visible:!cell.classList.contains('cdaDashboardColumnHiddenV6548')
       };
     });
   }
 
-  function readVisibilityStateV6580(){
-    return readJsonV6580(visibilityStorageKeyV6580,{});
-  }
-
-  function domHidden(context,tableId){
-    const state = readVisibilityStateV6580();
-    const key = stateKey(context);
+  function domHiddenV6581(context,tableId){
+    const state = readStateV6581();
+    const key = stateKeyV6581(context);
     const componentState = state[key] || {};
     if (!Object.prototype.hasOwnProperty.call(componentState,tableId)) {
       try {
@@ -212,7 +125,7 @@ Purpose: One document-aware column chooser, persistent visibility/width service,
         if (values.length) {
           componentState[tableId] = values;
           state[key] = componentState;
-          writeJsonV6580(visibilityStorageKeyV6580,state);
+          writeStateV6581(state);
         }
         if (legacy && Object.prototype.hasOwnProperty.call(legacy,tableId)) {
           delete legacy[tableId];
@@ -223,28 +136,27 @@ Purpose: One document-aware column chooser, persistent visibility/width service,
     return new Set(Array.isArray(componentState[tableId]) ? componentState[tableId] : []);
   }
 
-  function saveDomHidden(context,tableId,hidden){
-    const state = readVisibilityStateV6580();
-    const key = stateKey(context);
+  function saveDomHiddenV6581(context,tableId,hidden){
+    const state = readStateV6581();
+    const key = stateKeyV6581(context);
     state[key] = state[key] && typeof state[key] === 'object' ? state[key] : {};
     state[key][tableId] = Array.from(hidden || []);
-    writeJsonV6580(visibilityStorageKeyV6580,state);
+    writeStateV6581(state);
   }
 
-  function managedSource(context){
+  function managedSourceV6581(context){
     const component = context && context.component;
     const api = window.cdaTable;
     if (!component || !component.tableKey || !api ||
         typeof api.config !== 'function' || !api.config(component.tableKey)) return null;
     const config = api.config(component.tableKey);
-    const table = resolveTable(config.tableId || component.targetId,context);
     const columns = typeof api.columns === 'function' ? api.columns(component.tableKey) : [];
     return {
       id:String(config.tableId || component.tableKey),
       title:component.title || component.key,
       type:'managed',
       tableKey:component.tableKey,
-      table:table,
+      table:resolveTable(config.tableId || component.targetId,context),
       columns:columns.map(function(column,index){
         return {
           field:String(column.field),
@@ -258,17 +170,17 @@ Purpose: One document-aware column chooser, persistent visibility/width service,
     };
   }
 
-  function domSources(context){
-    return tableIds(context.component).map(function(tableId){
+  function domSourcesV6581(context){
+    return tableIdsV6581(context.component).map(function(tableId){
       const table = resolveTable(tableId,context);
       if (!table) return null;
-      const hidden = domHidden(context,tableId);
+      const hidden = domHiddenV6581(context,tableId);
       return {
         id:tableId,
         title:table.getAttribute('aria-label') || context.component.title || tableId,
         type:'dom',
         table:table,
-        columns:domColumns(table).map(function(column){
+        columns:domColumnsV6581(table).map(function(column){
           return Object.assign({},column,{visible:!hidden.has(column.field)});
         })
       };
@@ -276,240 +188,18 @@ Purpose: One document-aware column chooser, persistent visibility/width service,
   }
 
   function describe(context){
-    const managed = managedSource(context);
-    return managed ? [managed] : domSources(context);
+    const managed = managedSourceV6581(context);
+    if (managed && managed.table) return [managed];
+    const dom = domSourcesV6581(context);
+    if (dom.length) return dom;
+    return managed ? [managed] : [];
   }
 
-  function widthBucketV6580(context,sourceId,create){
-    const key = stateKey(context);
-    if (create) {
-      widthStateV6580[key] = widthStateV6580[key] && typeof widthStateV6580[key] === 'object'
-        ? widthStateV6580[key]
-        : {};
-      widthStateV6580[key][sourceId] = widthStateV6580[key][sourceId] &&
-        typeof widthStateV6580[key][sourceId] === 'object'
-        ? widthStateV6580[key][sourceId]
-        : {};
-    }
-    return widthStateV6580[key] && widthStateV6580[key][sourceId] || null;
-  }
-
-  function storedWidthV6580(context,sourceId,field){
-    const bucket = widthBucketV6580(context,sourceId,false);
-    const value = bucket && Number(bucket[field]);
-    return Number.isFinite(value) ? Math.max(minWidthV6580,Math.min(maxWidthV6580,value)) : 0;
-  }
-
-  function saveWidthV6580(context,sourceId,field,width){
-    const bucket = widthBucketV6580(context,sourceId,true);
-    const value = Math.max(minWidthV6580,Math.min(maxWidthV6580,Math.round(Number(width) || minWidthV6580)));
-    bucket[field] = value;
-    writeJsonV6580(widthStorageKeyV6580,widthStateV6580);
-    return value;
-  }
-
-  function clearWidthV6580(context,sourceId,field){
-    const bucket = widthBucketV6580(context,sourceId,false);
-    if (!bucket || !Object.prototype.hasOwnProperty.call(bucket,field)) return false;
-    delete bucket[field];
-    writeJsonV6580(widthStorageKeyV6580,widthStateV6580);
-    return true;
-  }
-
-  function defaultWidthV6580(column,index){
-    const labelLength = String(column && column.label || '').length;
-    if (index === 0) return Math.max(180,Math.min(300,96 + labelLength * 7));
-    if (column && column.numeric) return Math.max(100,Math.min(170,72 + labelLength * 5));
-    return Math.max(130,Math.min(280,84 + labelLength * 7));
-  }
-
-  function effectiveWidthV6580(context,source,column,visibleIndex){
-    return storedWidthV6580(context,source.id,column.field) || defaultWidthV6580(column,visibleIndex);
-  }
-
-  function ensureViewportV6580(source){
-    const table = source && source.table;
-    if (!table || !table.parentNode) return null;
-    let viewport = table.closest && table.closest('[data-cda-dashboard-table-viewport-v6580="true"]');
-    if (viewport) return viewport;
-    const frame = table.closest && table.closest('.cdaTableFrameV6542');
-    if (frame) viewport = frame;
-    if (!viewport) viewport = table.closest && table.closest('.remakeTableWrap');
-    if (!viewport) {
-      const doc = table.ownerDocument || document;
-      viewport = doc.createElement('div');
-      viewport.className = 'cdaDashboardTableViewportV6580';
-      table.parentNode.insertBefore(viewport,table);
-      viewport.appendChild(table);
-    }
-    viewport.setAttribute('data-cda-dashboard-table-viewport-v6580','true');
-    return viewport;
-  }
-
-  function setCellWidthV6580(cell,width,field){
-    if (!cell) return;
-    const pixels = Math.round(width) + 'px';
-    cell.style.setProperty('width',pixels,'important');
-    cell.style.setProperty('min-width',pixels,'important');
-    cell.style.setProperty('max-width',pixels,'important');
-    cell.setAttribute('data-cda-dashboard-column-field-v6580',field);
-    if (cell.tagName === 'TD' && !cell.hasAttribute('title')) {
-      const text = String(cell.textContent || '').replace(/\s+/g,' ').trim();
-      if (text) cell.setAttribute('title',text);
-    }
-  }
-
-  function headerForColumnV6580(source,column){
-    const table = source && source.table;
-    if (!table || !table.tHead || !table.tHead.rows.length) return null;
-    if (source.type === 'managed') {
-      try {
-        const escaped = table.ownerDocument.defaultView.CSS.escape(column.field);
-        return table.querySelector('thead th[data-cda-field="' + escaped + '"]');
-      } catch (error) {
-        return Array.from(table.tHead.rows[0].cells || []).find(function(cell){
-          return cell.getAttribute('data-cda-field') === column.field;
-        }) || null;
-      }
-    }
-    return table.tHead.rows[0].cells[column.index] || null;
-  }
-
-  function visibleColumnsV6580(source){
-    return (source.columns || []).filter(function(column){ return column.visible !== false; });
-  }
-
-  function applySingleColumnWidthV6580(source,column,width){
-    const table = source.table;
-    const header = headerForColumnV6580(source,column);
-    if (!table || !header) return;
-    const index = header.cellIndex;
-    setCellWidthV6580(header,width,column.field);
-    Array.from(table.rows || []).forEach(function(row){
-      if (row === header.parentElement) return;
-      const cell = row.cells && row.cells[index];
-      if (cell) setCellWidthV6580(cell,width,column.field);
-    });
-    const cols = table.querySelectorAll('col');
-    if (cols[index]) setCellWidthV6580(cols[index],width,column.field);
-  }
-
-  function recalculateTableWidthV6580(context,source){
-    const table = source && source.table;
-    if (!table) return 0;
-    const viewport = ensureViewportV6580(source);
-    const visible = visibleColumnsV6580(source);
-    const total = visible.reduce(function(sum,column,index){
-      return sum + effectiveWidthV6580(context,source,column,index);
-    },0);
-    const available = viewport ? Math.max(0,viewport.clientWidth) : 0;
-    const width = Math.max(total,available,1);
-    table.setAttribute('data-cda-dashboard-table-layout-v6580','true');
-    table.style.setProperty('--cda-dashboard-table-width-v6580',Math.ceil(width) + 'px');
-    table.style.setProperty('width',Math.ceil(width) + 'px','important');
-    table.style.setProperty('min-width',Math.ceil(width) + 'px','important');
-    table.style.setProperty('max-width','none','important');
-    return width;
-  }
-
-  function liveResizeV6580(context,source,column,width){
-    const value = Math.max(minWidthV6580,Math.min(maxWidthV6580,Math.round(width)));
-    const bucket = widthBucketV6580(context,source.id,true);
-    bucket[column.field] = value;
-    applySingleColumnWidthV6580(source,column,value);
-    recalculateTableWidthV6580(context,source);
-    return value;
-  }
-
-  function stopEventV6580(event){
-    if (!event) return;
-    event.preventDefault();
-    event.stopPropagation();
-  }
-
-  function ensureResizeHandleV6580(context,source,column,header){
-    if (!header) return;
-    header.setAttribute('data-cda-dashboard-resizable-v6580','true');
-    let handle = Array.from(header.children || []).find(function(child){
-      return child.classList && child.classList.contains('cdaDashboardColumnResizeHandleV6580');
-    }) || null;
-    if (!handle) {
-      const doc = header.ownerDocument || documentFor(context);
-      handle = doc.createElement('span');
-      handle.className = 'cdaDashboardColumnResizeHandleV6580';
-      handle.setAttribute('role','separator');
-      handle.setAttribute('aria-orientation','vertical');
-      handle.setAttribute('tabindex','0');
-      header.appendChild(handle);
-    }
-    handle.setAttribute('data-cda-dashboard-resize-field-v6580',column.field);
-    handle.setAttribute('aria-label','Resize ' + column.label + ' column');
-    handle.title = 'Drag to resize. Double-click to reset width.';
-    if (handle.getAttribute('data-cda-dashboard-resize-bound-v6580') === 'true') return;
-    handle.setAttribute('data-cda-dashboard-resize-bound-v6580','true');
-
-    handle.addEventListener('click',stopEventV6580,true);
-    handle.addEventListener('dblclick',function(event){
-      stopEventV6580(event);
-      clearWidthV6580(context,source.id,column.field);
-      refresh(context);
-    },true);
-    handle.addEventListener('keydown',function(event){
-      if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
-      stopEventV6580(event);
-      const current = header.getBoundingClientRect().width || effectiveWidthV6580(context,source,column,column.index);
-      const next = saveWidthV6580(context,source.id,column.field,current + (event.key === 'ArrowRight' ? 10 : -10));
-      liveResizeV6580(context,source,column,next);
-    });
-    handle.addEventListener('pointerdown',function(event){
-      if (event.button != null && event.button !== 0) return;
-      stopEventV6580(event);
-      const doc = header.ownerDocument || documentFor(context);
-      const view = doc.defaultView || window;
-      const startX = event.clientX;
-      const startWidth = header.getBoundingClientRect().width || effectiveWidthV6580(context,source,column,column.index);
-      let lastWidth = startWidth;
-      if (doc.body) doc.body.classList.add('cdaDashboardColumnResizeActiveV6580');
-      if (handle.setPointerCapture && event.pointerId != null) {
-        try { handle.setPointerCapture(event.pointerId); } catch (error) {}
-      }
-      function move(moveEvent){
-        stopEventV6580(moveEvent);
-        lastWidth = liveResizeV6580(context,source,column,startWidth + moveEvent.clientX - startX);
-      }
-      function finish(finishEvent){
-        stopEventV6580(finishEvent);
-        doc.removeEventListener('pointermove',move,true);
-        doc.removeEventListener('pointerup',finish,true);
-        doc.removeEventListener('pointercancel',finish,true);
-        if (doc.body) doc.body.classList.remove('cdaDashboardColumnResizeActiveV6580');
-        saveWidthV6580(context,source.id,column.field,lastWidth);
-        scheduleDocumentRefreshV6580(doc);
-      }
-      doc.addEventListener('pointermove',move,true);
-      doc.addEventListener('pointerup',finish,true);
-      doc.addEventListener('pointercancel',finish,true);
-      view.setTimeout(function(){ if (doc.body) doc.body.classList.add('cdaDashboardColumnResizeActiveV6580'); },0);
-    },true);
-  }
-
-  function applyLayoutV6580(context,source){
+  function applyDomV6581(context,source){
     if (!source || !source.table || !source.table.isConnected) return false;
-    ensureViewportV6580(source);
-    const visible = visibleColumnsV6580(source);
-    visible.forEach(function(column,index){
-      const width = effectiveWidthV6580(context,source,column,index);
-      applySingleColumnWidthV6580(source,column,width);
-      ensureResizeHandleV6580(context,source,column,headerForColumnV6580(source,column));
-    });
-    recalculateTableWidthV6580(context,source);
-    return true;
-  }
-
-  function applyDom(context,source){
-    const hidden = domHidden(context,source.id);
-    const columns = domColumns(source.table);
-    source.table.setAttribute('data-cda-dashboard-columns-key',stateKey(context));
+    const hidden = domHiddenV6581(context,source.id);
+    const columns = domColumnsV6581(source.table);
+    source.table.setAttribute('data-cda-dashboard-columns-key',stateKeyV6581(context));
     source.table.setAttribute('data-cda-dashboard-columns-table-id',source.id);
     Array.from(source.table.querySelectorAll('.columnHiddenV6357')).forEach(function(node){
       node.classList.remove('columnHiddenV6357');
@@ -530,7 +220,7 @@ Purpose: One document-aware column chooser, persistent visibility/width service,
     return true;
   }
 
-  function snapshotContextV6580(context,doc){
+  function snapshotContextV6581(context,doc){
     return {
       tab:context.tab,
       component:context.component,
@@ -543,77 +233,63 @@ Purpose: One document-aware column chooser, persistent visibility/width service,
     };
   }
 
-  function rememberContextV6580(context){
+  function rememberContextV6581(context){
     if (!context || !context.tab || !context.component) return;
     const doc = documentFor(context);
     if (!doc) return;
-    documentsV6580.add(doc);
-    let map = contextsByDocumentV6580.get(doc);
+    let map = contextsByDocumentV6581.get(doc);
     if (!map) {
       map = new Map();
-      contextsByDocumentV6580.set(doc,map);
+      contextsByDocumentV6581.set(doc,map);
     }
-    map.set(stateKey(context),snapshotContextV6580(context,doc));
-    observeDocumentV6580(doc);
+    map.set(stateKeyV6581(context),snapshotContextV6581(context,doc));
+    observeDocumentV6581(doc);
   }
 
-  function applyContextV6580(context,remember){
+  function applyContextV6581(context,remember){
     if (!context || !context.component) return false;
-    if (remember !== false) rememberContextV6580(context);
+    if (remember !== false) rememberContextV6581(context);
     let applied = false;
     describe(context).forEach(function(source){
-      if (source.type === 'dom') applied = applyDom(context,source) || applied;
-      applied = applyLayoutV6580(context,source) || applied;
+      if (source.type === 'dom') applied = applyDomV6581(context,source) || applied;
     });
     return applied;
   }
 
-  function apply(context){
-    return applyContextV6580(context,true);
-  }
+  function apply(context){ return applyContextV6581(context,true); }
+  function refresh(context){ return applyContextV6581(context,true); }
 
-  function refresh(context){
-    return applyContextV6580(context,true);
-  }
-
-  function refreshDocumentV6580(doc){
-    refreshFramesByDocumentV6580.delete(doc);
-    const view = doc && doc.defaultView;
-    if (!doc || view && view.closed) {
-      documentsV6580.delete(doc);
-      return;
-    }
-    const map = contextsByDocumentV6580.get(doc);
+  function refreshDocumentV6581(doc){
+    if (!doc || applyingDocumentsV6581.has(doc)) return;
+    const view = doc.defaultView;
+    if (view && view.closed) return;
+    const map = contextsByDocumentV6581.get(doc);
     if (!map) return;
-    map.forEach(function(context){ applyContextV6580(context,false); });
+    applyingDocumentsV6581.add(doc);
+    try { map.forEach(function(context){ applyContextV6581(context,false); }); }
+    finally { applyingDocumentsV6581.delete(doc); }
   }
 
-  function scheduleDocumentRefreshV6580(doc){
-    if (!doc || refreshFramesByDocumentV6580.has(doc)) return;
-    const view = doc.defaultView || window;
-    const frame = view.requestAnimationFrame(function(){ refreshDocumentV6580(doc); });
-    refreshFramesByDocumentV6580.set(doc,frame);
-  }
-
-  function observeDocumentV6580(doc){
-    if (!doc || observersByDocumentV6580.has(doc)) return;
+  function observeDocumentV6581(doc){
+    if (!doc || observersByDocumentV6581.has(doc)) return;
     const view = doc.defaultView || window;
     if (!doc.body || !view.MutationObserver) return;
     const observer = new view.MutationObserver(function(records){
       const relevant = records.some(function(record){ return record.type === 'childList'; });
-      if (relevant) scheduleDocumentRefreshV6580(doc);
+      if (relevant) refreshDocumentV6581(doc);
     });
     observer.observe(doc.body,{childList:true,subtree:true});
-    observersByDocumentV6580.set(doc,observer);
-    doc.addEventListener('cdaTableRendered',function(){ scheduleDocumentRefreshV6580(doc); });
-    doc.addEventListener('click',function(event){
-      const header = event.target && event.target.closest ? event.target.closest('th') : null;
-      if (!header || event.target.closest('.cdaDashboardColumnResizeHandleV6580')) return;
-      [0,60,180].forEach(function(delay){
-        view.setTimeout(function(){ scheduleDocumentRefreshV6580(doc); },delay);
-      });
-    },true);
-    view.addEventListener('resize',function(){ scheduleDocumentRefreshV6580(doc); },{passive:true});
+    observersByDocumentV6581.set(doc,observer);
+    doc.addEventListener('cdaTableRendered',function(){ refreshDocumentV6581(doc); });
+  }
+
+  function emitChangedV6581(context){
+    const doc = documentFor(context);
+    try {
+      doc.dispatchEvent(new (doc.defaultView || window).CustomEvent('cdaDashboardColumnsChanged',{
+        detail:{context:snapshotContextV6581(context,doc),stateKey:stateKeyV6581(context)}
+      }));
+    } catch (error) {}
   }
 
   function setVisible(context,sourceId,field,visible){
@@ -622,14 +298,15 @@ Purpose: One document-aware column chooser, persistent visibility/width service,
     if (source.type === 'managed') {
       if (!window.cdaTable || typeof window.cdaTable.toggleColumn !== 'function') return false;
       window.cdaTable.toggleColumn(source.tableKey,field,visible);
-      const doc = documentFor(context);
-      scheduleDocumentRefreshV6580(doc);
+      applyContextV6581(context,true);
+      emitChangedV6581(context);
       return true;
     }
-    const hidden = domHidden(context,source.id);
+    const hidden = domHiddenV6581(context,source.id);
     if (visible) hidden.delete(field); else hidden.add(field);
-    saveDomHidden(context,source.id,hidden);
-    applyContextV6580(context,true);
+    saveDomHiddenV6581(context,source.id,hidden);
+    applyContextV6581(context,true);
+    emitChangedV6581(context);
     return true;
   }
 
@@ -638,30 +315,16 @@ Purpose: One document-aware column chooser, persistent visibility/width service,
       if (source.type === 'managed' && window.cdaTable && typeof window.cdaTable.resetColumns === 'function') {
         window.cdaTable.resetColumns(source.tableKey);
       }
-      if (source.type === 'dom') saveDomHidden(context,source.id,new Set());
+      if (source.type === 'dom') saveDomHiddenV6581(context,source.id,new Set());
     });
-    applyContextV6580(context,true);
+    applyContextV6581(context,true);
+    emitChangedV6581(context);
     return true;
-  }
-
-  function resetWidths(context){
-    const key = stateKey(context);
-    if (!widthStateV6580[key]) return false;
-    delete widthStateV6580[key];
-    writeJsonV6580(widthStorageKeyV6580,widthStateV6580);
-    applyContextV6580(context,true);
-    return true;
-  }
-
-  function reset(context){
-    const visibilityChanged = showAll(context);
-    const widthsChanged = resetWidths(context);
-    return visibilityChanged || widthsChanged;
   }
 
   function open(context){
     if (!context || !context.component || !context.popover) return false;
-    rememberContextV6580(context);
+    rememberContextV6581(context);
     if (context.popover.isOpenFor(context.button)) {
       context.popover.close();
       return true;
@@ -671,10 +334,6 @@ Purpose: One document-aware column chooser, persistent visibility/width service,
     const panel = context.popover.open(context.button,{label:'Choose visible columns',title:'Columns'});
     if (!panel) return false;
     const doc = panel.ownerDocument || documentFor(context);
-    const hint = doc.createElement('div');
-    hint.className = 'cdaDashboardColumnHintV6580';
-    hint.textContent = 'Drag a header divider to resize. Double-click a divider to reset that width.';
-    panel.appendChild(hint);
     sources.forEach(function(source){
       const section = doc.createElement('div');
       section.className = 'cdaDashboardColumnSectionV6548';
@@ -710,10 +369,6 @@ Purpose: One document-aware column chooser, persistent visibility/width service,
     });
     const footer = doc.createElement('div');
     footer.className = 'cdaDashboardColumnFooterV6548';
-    const widths = doc.createElement('button');
-    widths.type = 'button';
-    widths.textContent = 'Reset widths';
-    widths.addEventListener('click',function(){ resetWidths(context); context.popover.close(); });
     const show = doc.createElement('button');
     show.type = 'button';
     show.textContent = 'Show all';
@@ -722,36 +377,27 @@ Purpose: One document-aware column chooser, persistent visibility/width service,
     done.type = 'button';
     done.textContent = 'Done';
     done.addEventListener('click',function(){ context.popover.close(); });
-    footer.append(widths,show,done);
+    footer.append(show,done);
     panel.appendChild(footer);
     context.popover.position();
-    applyContextV6580(context,true);
-    return true;
-  }
-
-  function refreshAllV6580(){
-    documentsV6580.forEach(function(doc){ scheduleDocumentRefreshV6580(doc); });
+    applyContextV6581(context,true);
     return true;
   }
 
   window.cdaDashboardColumnsV6548 = Object.freeze({
-    version:VERSION_V6580,
-    mode:'persistent-visibility-widths-horizontal-scroll-resize',
+    version:VERSION_V6581,
+    mode:'shared-visibility-only-rerender-safe',
     open:open,
     apply:apply,
     refresh:refresh,
-    refreshAll:refreshAllV6580,
-    reset:reset,
-    resetWidths:resetWidths,
+    reset:showAll,
     describe:describe,
     setVisible:setVisible,
     showAll:showAll,
     resolveTable:resolveTable,
-    documentFor:documentFor,
-    storedWidth:storedWidthV6580,
-    saveWidth:saveWidthV6580
+    documentFor:documentFor
   });
 
-  observeDocumentV6580(document);
+  observeDocumentV6581(document);
 })();
 </script>

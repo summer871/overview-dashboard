@@ -1,5 +1,5 @@
 <!-- SharedDashboardFeaturesV6547.html
-Version: v6.579
+Version: v6.581
 Date: 2026-07-31
 Purpose: Declarative feature catalog executed by the shared configuration-driven feature runtime.
 -->
@@ -13,7 +13,7 @@ Purpose: Declarative feature catalog executed by the shared configuration-driven
   if (!platform || !theme || !runtime) {
     throw new Error('Dashboard registry, theme, and feature runtime must load before features.');
   }
-  if (window.CDA_DASHBOARD_FEATURES_VERSION === 'v6.579') return;
+  if (window.CDA_DASHBOARD_FEATURES_VERSION === 'v6.581') return;
 
   function register(definition){
     platform.registerFeature(Object.assign({},definition,{
@@ -24,6 +24,7 @@ Purpose: Declarative feature catalog executed by the shared configuration-driven
   register({key:'comparePriorYear',placement:'toolbar',order:10,label:'Prior year',title:'Compare with the previous year'});
   register({key:'year',placement:'toolbar',order:15,label:'Year',title:'Choose reporting year'});
   register({key:'columns',placement:'toolbar',order:20,label:'Columns',title:'Choose visible content'});
+  register({key:'columnWidths',placement:'menu',order:5,label:'Reset column widths',title:'Restore the default auto-fit column widths'});
   register({key:'popout',placement:'toolbar',order:30,icon:'popout',title:'Open this live component in a separate window',iconOnly:true});
   register({key:'reset',placement:'toolbar',order:40,icon:'reset',title:'Reset this component',iconOnly:true});
   register({key:'more',placement:'toolbar',order:50,icon:'more',title:'More actions',iconOnly:true,appearance:'plain',ariaHasPopup:'menu'});
@@ -31,6 +32,6 @@ Purpose: Declarative feature catalog executed by the shared configuration-driven
   register({key:'exportCurrent',placement:'menu',order:10,label:'Export current',title:'Export the current view'});
   register({key:'exportAll',placement:'menu',order:20,label:'All data',title:'Export all matching data'});
 
-  window.CDA_DASHBOARD_FEATURES_VERSION = 'v6.579';
+  window.CDA_DASHBOARD_FEATURES_VERSION = 'v6.581';
 })();
 </script>
