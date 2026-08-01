@@ -1,6 +1,6 @@
 /**
  * Ceramist incremental maintenance
- * Version: v7.8.1
+ * Version: v7.8.2
  * Last confirmed: 2026-07-31
  *
  * Durable model:
@@ -14,12 +14,12 @@
  * existing nightly trigger and dashboard Refresh button keep one stable server API.
  */
 
-const ceramistIncrementalVersionV780 = 'CeramistIncremental v7.8.1';
+const ceramistIncrementalVersionV780 = 'CeramistIncremental v7.8.2';
 const ceramistIncrementalCacheVersionV780 = 'CeramistRemakeCache v0.6.0';
-const ceramistIncrementalResponsibilityVersionV780 = 'case-level-v7.8.1';
-const ceramistIncrementalMaintenanceModelV780 = 'historical-seed-plus-open-month-upsert-v7.8.1';
+const ceramistIncrementalResponsibilityVersionV780 = 'case-level-v7.8.2';
+const ceramistIncrementalMaintenanceModelV780 = 'historical-seed-plus-open-month-upsert-v7.8.2';
 const ceramistHistoricalSeedVersionV780 = 'ceramist-colab-seed-v1.0.0';
-const ceramistIncrementalChainLookupVersionV780 = 'crm-remakeCaseID-seed-plus-incremental-v7.8.1';
+const ceramistIncrementalChainLookupVersionV780 = 'crm-remakeCaseID-seed-plus-incremental-v7.8.2';
 const ceramistIncrementalMaxApiCallsPropertyV780 = 'MT_CERAMIST_INCREMENTAL_MAX_API_CALLS';
 const ceramistIncrementalDefaultMaxApiCallsV780 = 25;
 const ceramistIncrementalMaxChainDepthV780 = 8;
@@ -824,10 +824,52 @@ function ceramistIncrementalHydrateInvoiceNotesV780(row, chainIndex) {
   });
 }
 
+function ceramistIncrementalCollectInvoiceNoteValuesV782(detail) {
+  const source = detail && typeof detail === 'object' ? detail : {};
+  const values = [];
+  [
+    'invoiceNotes',
+    'InvoiceNotes',
+    'Cases_InvoiceNotes',
+    'invoiceNote',
+    'InvoiceNote',
+    'Cases_InvoiceNote'
+  ].forEach(function(fieldName) {
+    const value = String(source[fieldName] || '').trim();
+    if (value) values.push(value);
+  });
+  return ceramistIncrementalUniqueStringsV780(values);
+}
+
+function ceramistIncrementalExtractTechNumbersV782(text) {
+  const numbers = [];
+  const source = String(text || '');
+  const patterns = [
+    /\btech(?:nician)?(?:\s*(?:number|no\.?|#))?\s*[:\-]?\s*((?:\d{1,6})(?:\s*[-/,;&+]\s*\d{1,6})*)/gi,
+    /\bcompleted\s+by\s+(?:tech(?:nician)?\s*)?#?\s*((?:\d{1,6})(?:\s*[-/,;&+]\s*\d{1,6})*)/gi
+  ];
+  patterns.forEach(function(pattern) {
+    let match;
+    while ((match = pattern.exec(source)) !== null) {
+      const found = String(match[1] || '').match(/\d{1,6}/g) || [];
+      Array.prototype.push.apply(numbers, found);
+    }
+  });
+  return ceramistIncrementalUniqueStringsV780(numbers);
+}
+
 function ceramistIncrementalExtractInvoiceNoteV780(detail) {
-  const notes = Array.isArray(detail && detail.notes) ? detail.notes : [];
   const hits = [];
   const numbers = [];
+
+  ceramistIncrementalCollectInvoiceNoteValuesV782(detail).forEach(function(noteText) {
+    const found = ceramistIncrementalExtractTechNumbersV782(noteText);
+    if (!found.length) return;
+    hits.push(noteText);
+    Array.prototype.push.apply(numbers, found);
+  });
+
+  const notes = Array.isArray(detail && detail.notes) ? detail.notes : [];
   notes.forEach(function(note) {
     const value = note && typeof note === 'object' ? note : { text: note };
     const label = [value.type, value.noteType, value.subject, value.title, value.category].map(function(item) {
@@ -837,27 +879,18 @@ function ceramistIncrementalExtractInvoiceNoteV780(detail) {
       return String(item || '').trim();
     }).filter(Boolean).join(' ');
     const combined = (label ? label + ' | ' : '') + text;
-    if (!combined) return;
-
-    const found = [];
-    const patterns = [
-      /\btech(?:nician)?(?:\s*(?:number|no\.?|#))?\s*[:\-]?\s*(\d{1,6})\b/gi,
-      /\bcompleted\s+by\s+(?:tech(?:nician)?\s*)?#?\s*(\d{1,6})\b/gi
-    ];
-    patterns.forEach(function(pattern) {
-      let match;
-      while ((match = pattern.exec(combined)) !== null) found.push(match[1]);
-    });
+    const found = ceramistIncrementalExtractTechNumbersV782(combined);
     if (!found.length) return;
-    if (!/invoice|complete|completed|tech/i.test(combined)) return;
     hits.push(combined);
     Array.prototype.push.apply(numbers, found);
   });
+
   return {
-    note: hits.join('\n').slice(0, 4000),
+    note: ceramistIncrementalUniqueStringsV780(hits).join('\n').slice(0, 4000),
     techNumbers: ceramistIncrementalUniqueStringsV780(numbers)
   };
 }
+
 
 function ceramistIncrementalUniqueStringsV780(values) {
   const source = Array.isArray(values) ? values : (values === null || values === undefined || values === '' ? [] : [values]);

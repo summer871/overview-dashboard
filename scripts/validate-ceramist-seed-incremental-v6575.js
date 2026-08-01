@@ -6,6 +6,7 @@ const root = process.cwd();
 const profilerPath = path.join(root, 'CaeramistRemakeProfiler.js');
 const updaterPath = path.join(root, 'CeramistIncrementalUpdater.js');
 const builderPath = path.join(root, 'tools', 'ceramist_historical_rebuild_colab.py');
+const backfillPath = path.join(root, 'tools', 'ceramist_invoice_note_backfill_colab.py');
 
 function assert(condition, message) {
   if (!condition) throw new Error(message);
@@ -28,23 +29,24 @@ function functionBody(source, name) {
   throw new Error(`Unclosed function ${name}`);
 }
 
-for (const file of [profilerPath, updaterPath, builderPath]) {
+for (const file of [profilerPath, updaterPath, builderPath, backfillPath]) {
   assert(fs.existsSync(file), `Required file exists: ${path.relative(root, file)}`);
 }
 
 const profiler = fs.readFileSync(profilerPath, 'utf8');
 const updater = fs.readFileSync(updaterPath, 'utf8');
 const builder = fs.readFileSync(builderPath, 'utf8');
+const backfill = fs.readFileSync(backfillPath, 'utf8');
 const canonical = functionBody(profiler, 'refreshCeramistCaseLevelResponsibilityNightlyV75');
 
-assert(profiler.includes('Version: 7.8.1'), 'Profiler version is 7.8.1.');
+assert(profiler.includes('Version: 7.8.2'), 'Profiler version is 7.8.1.');
 assert(profiler.includes("CeramistRemakeCache v0.6.0"), 'Profiler cache version is v0.6.0.');
 assert(canonical.includes('refreshCeramistIncrementalNightlyV780'), 'Canonical nightly entry point delegates to incremental maintenance.');
 assert(!canonical.includes('ceramistReconcileCompleteRemakePopulationV77_'), 'Canonical nightly entry point no longer performs the full historical population walk.');
 
 [
   'ceramistHistoricalSeedVersionV780',
-  'historical-seed-plus-open-month-upsert-v7.8.1',
+  'historical-seed-plus-open-month-upsert-v7.8.2',
   'readRemakeFactorCacheIndexV118',
   'incrementalPreservedClosedRows',
   'ceramistApplyCaseLevelResponsibilityV74_',
@@ -81,10 +83,12 @@ console.log('PASS: CeramistIncrementalUpdater.js JavaScript syntax is valid.');
 
 childProcess.execFileSync('python', ['-m', 'py_compile', builderPath], { stdio: 'inherit' });
 console.log('PASS: Colab historical builder Python syntax is valid.');
+childProcess.execFileSync('python', ['-m', 'py_compile', backfillPath], { stdio: 'inherit' });
+console.log('PASS: Invoice Notes backfill Python syntax is valid.');
 
 assert(
-  builder.includes('BUILDER_VERSION = "ceramist-colab-builder-v1.0.2"'),
-  'Colab builder version v1.0.2 is present.'
+  builder.includes('BUILDER_VERSION = "ceramist-colab-builder-v1.0.3"'),
+  'Colab builder version v1.0.3 is present.'
 );
 assert(
   builder.includes('allow_missing_remake_field_as_terminal: bool = False'),
@@ -122,5 +126,39 @@ assert(
 );
 console.log('PASS: Unconfirmed current-case link handling is preserved.');
 
+
+[
+  'invoiceNotes',
+  'InvoiceNotes',
+  'Cases_InvoiceNotes'
+].forEach(marker => {
+  assert(builder.includes(marker), `Historical builder reads direct Invoice Notes alias: ${marker}`);
+  assert(updater.includes(marker), `Incremental updater reads direct Invoice Notes alias: ${marker}`);
+  assert(backfill.includes(marker), `Backfill reads direct Invoice Notes alias: ${marker}`);
+});
+assert(
+  builder.includes('extract_tech_numbers') &&
+    builder.includes('[-/,;&+]') &&
+    builder.includes('technicianType'),
+  'Historical builder contains multi-number Invoice Notes parsing.'
+);
+assert(
+  updater.includes('ceramistIncrementalExtractTechNumbersV782') &&
+    updater.includes('[-/,;&+]'),
+  'Incremental updater contains multi-number Invoice Notes parsing.'
+);
+assert(
+  profiler.includes('ceramistCandidates.length === 1') &&
+    profiler.includes('/^ceramist$/i'),
+  'Profiler selects a multi-number Invoice Notes worker only when exactly one mapped worker is a Ceramist.'
+);
+assert(
+  backfill.includes('378035') &&
+    backfill.includes('377483') &&
+    backfill.includes('Ol Phann') &&
+    backfill.includes('Type WRITE to back up and replace the Ceramist cache'),
+  'One-time backfill includes the verified 378035 -> 377483 -> Ol Phann regression and guarded write.'
+);
+
 console.log('Ceramist historical seed + incremental maintenance validation passed.');
-console.log('Version: v6.577 / backend v7.8.1');
+console.log('Version: v6.578 / backend v7.8.2');

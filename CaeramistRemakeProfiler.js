@@ -2,7 +2,7 @@
  * Ceramist Remake Analysis - BigQuery profiler
  *
  * File: CeramistRemakeProfiler.gs
- * Version: 7.8.1
+ * Version: 7.8.2
  * Last confirmed: 2026-07-31
  * Purpose: CERAMICS attribution diagnostics plus a lightweight Drive-cache reader for the dashboard preview.
  *
@@ -31,6 +31,10 @@
  * Ceramist sidecar to the complete durable Remake Factor population before
  * calculating responsibility. Missing cases are no longer silently excluded.
  * v7.8 delegates normal maintenance to a historical-seed plus open-month upsert workflow. The complete historical chain is built once in Colab; nightly and dashboard refreshes replace only the same open month(s) refreshed by the Remake cache. v7.8.1 keeps current remake cases whose CRM detail omits remakeCaseID in the complete population as Unattributed with an accurate unconfirmed-link reason instead of treating them as a fatal chain error.
+ *
+ * v7.8.2 restores direct case-detail InvoiceNotes aliases and, when an
+ * invoice note lists multiple tech numbers, selects the worker only when
+ * exactly one mapped technician is a Ceramist.
  *
  * Confirmed attribution rule in v7:
  *   UPPER(TRIM(CaseTasks_Task)) = CERAMICS
@@ -61,7 +65,7 @@ const ceramistNightlyRefreshHourV75 = 22;
 const ceramistNightlyRefreshMinuteV75 = 45;
 const ceramistNightlyRefreshTimeZoneV75 = 'America/Los_Angeles';
 const ceramistNightlyRefreshLockWaitMsV75 = 30000;
-const ceramistResponsibilityVersionV75 = 'case-level-v7.8.1';
+const ceramistResponsibilityVersionV75 = 'case-level-v7.8.2';
 const ceramistBrowserCacheMetaVersionV76 = 'ceramist-browser-meta-v7.6.0';
 const ceramistPopulationVersionV77 = 'complete-remake-population-v7.7.1';
 const ceramistPopulationChainLookupVersionV771 = 'crm-remakeCaseID-confirmed-v7.7.1';
@@ -1234,12 +1238,17 @@ function ceramistSetWorkerMetadataV73_(row, idField, displayField, record, fallb
 function ceramistNormalizeTechNumbersV73_(value) {
   const values = Array.isArray(value) ? value : (value === null || value === undefined || value === '' ? [] : [value]);
   const seen = {};
-  return values.map(function(item) { return String(item || '').trim().replace(/^TECH\s*#?\s*/i, ''); })
-    .filter(function(item) {
-      if (!item || seen[item]) return false;
-      seen[item] = true;
-      return true;
+  const result = [];
+  values.forEach(function(item) {
+    const clean = String(item || '').trim().replace(/^TECH\s*#?\s*/i, '');
+    const numbers = clean.match(/\d{1,6}/g) || [];
+    numbers.forEach(function(number) {
+      if (!number || seen[number]) return;
+      seen[number] = true;
+      result.push(number);
     });
+  });
+  return result;
 }
 
 function ceramistLookupTechRecordV73_(techNumber, lookup, missing) {
@@ -1252,13 +1261,31 @@ function ceramistLookupTechRecordV73_(techNumber, lookup, missing) {
 
 function ceramistNoteWorkerV73_(row, prefix, lookup, missing) {
   const numbers = ceramistNormalizeTechNumbersV73_(row[prefix + 'InvoiceNoteTechNumbers']);
-  if (numbers.length !== 1) return null;
-  const record = ceramistLookupTechRecordV73_(numbers[0], lookup, missing);
-  if (!record || !record.name) return null;
+  if (!numbers.length) return null;
+
+  const candidates = numbers.map(function(techNumber) {
+    const record = ceramistLookupTechRecordV73_(techNumber, lookup, missing);
+    return record && record.name ? {
+      techNumber: techNumber,
+      record: record
+    } : null;
+  }).filter(Boolean);
+
+  let chosen = null;
+  if (numbers.length === 1) {
+    chosen = candidates.length ? candidates[0] : null;
+  } else {
+    const ceramistCandidates = candidates.filter(function(candidate) {
+      return /^ceramist$/i.test(String(candidate.record.technicianType || '').trim());
+    });
+    chosen = ceramistCandidates.length === 1 ? ceramistCandidates[0] : null;
+  }
+
+  if (!chosen) return null;
   return {
     source: prefix,
-    techNumber: numbers[0],
-    record: record,
+    techNumber: chosen.techNumber,
+    record: chosen.record,
     note: String(row[prefix + 'InvoiceNote'] || '').trim()
   };
 }

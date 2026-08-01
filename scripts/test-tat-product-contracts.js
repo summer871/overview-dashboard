@@ -4,7 +4,7 @@
 const fs = require('fs');
 const path = require('path');
 const root = path.resolve(__dirname,'..');
-const footerVersion = 'v6.577';
+const footerVersion = 'v6.578';
 const read = name => fs.readFileSync(path.join(root,name),'utf8');
 const assert = (condition,message) => { if (!condition) throw new Error(message); };
 

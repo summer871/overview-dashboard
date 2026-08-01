@@ -8,7 +8,7 @@ const childProcess = require('child_process');
 
 const root = path.resolve(__dirname,'..');
 const requiredVersion = 'v6.567';
-const footerVersion = 'v6.577';
+const footerVersion = 'v6.578';
 let failed = false;
 
 function fail(message){ console.error('ERROR: ' + message); failed = true; }

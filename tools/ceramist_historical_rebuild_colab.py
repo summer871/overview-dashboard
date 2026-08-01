@@ -1,5 +1,5 @@
 # Ceramist historical seed builder for Google Colab
-# Builder version: ceramist-colab-builder-v1.0.2
+# Builder version: ceramist-colab-builder-v1.0.3
 # Seed contract: ceramist-colab-seed-v1.0.0
 # Last confirmed: 2026-07-31
 #
@@ -15,7 +15,7 @@
 #   - The verified regression 389666 -> 385918 -> Jhan/Hoseung Han must pass.
 
 # In Colab, paste this entire file into one cell or upload it and run:
-#   %run /content/ceramist_historical_rebuild_colab_v1.0.2.py
+#   %run /content/ceramist_historical_rebuild_colab_v1.0.3.py
 
 from __future__ import annotations
 
@@ -37,11 +37,11 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload, MediaIoBaseUpload
 
 SEED_VERSION = "ceramist-colab-seed-v1.0.0"
-BUILDER_VERSION = "ceramist-colab-builder-v1.0.2"
+BUILDER_VERSION = "ceramist-colab-builder-v1.0.3"
 CACHE_VERSION = "CeramistRemakeCache v0.6.0"
-RESPONSIBILITY_VERSION = "case-level-v7.8.1"
-MAINTENANCE_MODEL = "historical-seed-plus-open-month-upsert-v7.8.1"
-CHAIN_INDEX_VERSION = "crm-remakeCaseID-seed-plus-incremental-v7.8.1"
+RESPONSIBILITY_VERSION = "case-level-v7.8.2"
+MAINTENANCE_MODEL = "historical-seed-plus-open-month-upsert-v7.8.2"
+CHAIN_INDEX_VERSION = "crm-remakeCaseID-seed-plus-incremental-v7.8.2"
 MAX_CHAIN_DEPTH = 8
 TASK_CODE = "CERAMICS"
 
@@ -243,28 +243,69 @@ def has_remake_case_field(detail: Dict[str, Any]) -> bool:
     return any(re.fullmatch(r"remakeCaseID", key, flags=re.IGNORECASE) for key in detail.keys())
 
 
+INVOICE_NOTE_KEYS = (
+    "invoiceNotes",
+    "InvoiceNotes",
+    "Cases_InvoiceNotes",
+    "invoiceNote",
+    "InvoiceNote",
+    "Cases_InvoiceNote",
+)
+
+
+def extract_tech_numbers(text: str) -> List[str]:
+    numbers: List[str] = []
+    patterns = [
+        re.compile(
+            r"\btech(?:nician)?(?:\s*(?:number|no\.?|#))?\s*[:\-]?\s*"
+            r"((?:\d{1,6})(?:\s*[-/,;&+]\s*\d{1,6})*)",
+            re.IGNORECASE,
+        ),
+        re.compile(
+            r"\bcompleted\s+by\s+(?:tech(?:nician)?\s*)?#?\s*"
+            r"((?:\d{1,6})(?:\s*[-/,;&+]\s*\d{1,6})*)",
+            re.IGNORECASE,
+        ),
+    ]
+    for pattern in patterns:
+        for match in pattern.finditer(clean(text)):
+            numbers.extend(re.findall(r"\d{1,6}", match.group(1)))
+    return unique_strings(numbers)
+
+
 def extract_note_text_and_tech_numbers(detail: Dict[str, Any]) -> Tuple[str, List[str]]:
-    notes = detail.get("notes") if isinstance(detail.get("notes"), list) else []
     accepted: List[str] = []
     tech_numbers: List[str] = []
-    patterns = [
-        re.compile(r"\btech(?:nician)?(?:\s*(?:number|no\.?|#))?\s*[:\-]?\s*(\d{1,6})\b", re.IGNORECASE),
-        re.compile(r"\bcompleted\s+by\s+(?:tech(?:nician)?\s*)?#?\s*(\d{1,6})\b", re.IGNORECASE),
-    ]
+
+    direct_values = unique_strings(detail.get(key) for key in INVOICE_NOTE_KEYS)
+    for note_text in direct_values:
+        found = extract_tech_numbers(note_text)
+        if not found:
+            continue
+        accepted.append(note_text)
+        tech_numbers.extend(found)
+
+    notes = detail.get("notes") if isinstance(detail.get("notes"), list) else []
     for note in notes:
         value = note if isinstance(note, dict) else {"text": note}
-        label = " | ".join(clean(value.get(key)) for key in ("type", "noteType", "subject", "title", "category") if clean(value.get(key)))
-        text = " ".join(clean(value.get(key)) for key in ("note", "notes", "text", "body", "description", "message", "comments") if clean(value.get(key)))
+        label = " | ".join(
+            clean(value.get(key))
+            for key in ("type", "noteType", "subject", "title", "category")
+            if clean(value.get(key))
+        )
+        text = " ".join(
+            clean(value.get(key))
+            for key in ("note", "notes", "text", "body", "description", "message", "comments")
+            if clean(value.get(key))
+        )
         combined = (label + " | " if label else "") + text
-        if not combined or not re.search(r"invoice|complete|completed|tech", combined, flags=re.IGNORECASE):
+        found = extract_tech_numbers(combined)
+        if not found:
             continue
-        found: List[str] = []
-        for pattern in patterns:
-            found.extend(pattern.findall(combined))
-        if found:
-            accepted.append(combined)
-            tech_numbers.extend(found)
-    return "\n".join(accepted)[:4000], unique_strings(tech_numbers)
+        accepted.append(combined)
+        tech_numbers.extend(found)
+
+    return "\n".join(unique_strings(accepted))[:4000], unique_strings(tech_numbers)
 
 
 @dataclass
@@ -589,18 +630,31 @@ def lookup_worker(raw_worker: str, badges: Dict[str, Dict[str, Dict[str, str]]])
 
 def note_worker(record: Dict[str, Any], badges: Dict[str, Dict[str, Dict[str, str]]]) -> Optional[Dict[str, str]]:
     numbers = unique_strings(record.get("invoiceNoteTechNumbers") or [])
-    if len(numbers) != 1:
+    if not numbers:
         return None
-    tech = numbers[0]
-    badge = badges["byTech"].get(tech) or badges["legacyByTech"].get(tech)
-    if not badge or not clean(badge.get("name")):
-        return None
-    return {
-        "techNumber": tech,
-        "name": clean(badge.get("name")),
-        "technicianType": clean(badge.get("technicianType")),
-        "taskUserId": clean(badge.get("taskUserId")) or f"TECH#{tech}",
-    }
+
+    candidates: List[Dict[str, str]] = []
+    for tech in numbers:
+        badge = badges["byTech"].get(tech) or badges["legacyByTech"].get(tech)
+        if not badge or not clean(badge.get("name")):
+            continue
+        candidates.append({
+            "techNumber": tech,
+            "name": clean(badge.get("name")),
+            "technicianType": clean(badge.get("technicianType")),
+            "taskUserId": clean(badge.get("taskUserId")) or f"TECH#{tech}",
+        })
+
+    if len(numbers) == 1:
+        return candidates[0] if candidates else None
+
+    ceramists = [
+        candidate
+        for candidate in candidates
+        if clean(candidate.get("technicianType")).lower() == "ceramist"
+    ]
+    return ceramists[0] if len(ceramists) == 1 else None
+
 
 
 def build_output_row(main: Dict[str, Any], chain: Dict[str, Any], chain_index: Dict[str, Dict[str, Any]]) -> Dict[str, Any]:

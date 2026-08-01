@@ -66,7 +66,7 @@ if (!failed) {
   requireMarker(cache, 'caseNumbers: [],', 'Packed browser-ready cache retains the case-number dictionary.');
   requireMarker(cache, "scalarIndex('caseNumbers', row.caseNumber || '')", 'Packed browser-ready rows append caseNumber.');
 
-  requireMarker(profiler, 'Version: 7.8.1', 'Ceramist profiler release stamp is current.');
+  requireMarker(profiler, 'Version: 7.8.2', 'Ceramist profiler release stamp is current.');
   requireMarker(profiler, "const ceramistPopulationVersionV77 = 'complete-remake-population-v7.7.1';", 'Complete-population contract is declared.');
   requireMarker(profiler, "const ceramistPopulationChainLookupVersionV771 = 'crm-remakeCaseID-confirmed-v7.7.1';", 'Confirmed CRM chain lookup contract is declared.');
   requireMarker(profiler, 'function ceramistReconcileCompleteRemakePopulationV77_(existingRows)', 'Complete Remake population reconciliation is installed.');
@@ -96,6 +96,8 @@ if (!failed) {
     "'unlinked_unconfirmed'",
     'The incremental updater preserves current cases whose CRM detail omits remakeCaseID.'
   );
+  requireMarker(updater, "'Cases_InvoiceNotes'", 'The incremental updater reads the known case-level Invoice Notes API alias.');
+  requireMarker(profiler, 'ceramistCandidates.length === 1', 'Multiple invoice-note tech numbers resolve only when one Ceramist remains.');
   requireMarker(profiler, 'QueryCases can expose the remakeCaseID field while leaving its value blank.', 'Blank QueryCases relationship values are not treated as authoritative.');
   requireMarker(profiler, 'row.populationChainConfirmed = !!(chain && chain.confirmed === true);', 'Confirmed chain state is persisted in the sidecar.');
   requireMarker(profiler, 'existing_confirmed_unlinked_case', 'Confirmed terminal cases can be safely reused.');
@@ -436,7 +438,7 @@ if (failed) {
   console.log('Complete Ceramist population validation passed.');
   console.log('Dashboard: v6.573');
   console.log('RemakeFactorCache: v1.34.2');
-  console.log('CaeramistRemakeProfiler: v7.8.1');
+  console.log('CaeramistRemakeProfiler: v7.8.2');
   console.log('Confirmed blank remakeCaseID handling: passed');
   console.log('Deferred/error retry contract: passed');
   console.log('Durable confirmed-unlinked reuse: passed');
