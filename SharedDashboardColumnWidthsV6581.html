@@ -1,7 +1,7 @@
 <!-- SharedDashboardColumnWidthsV6581.html
-Version: v6.581
-Date: 2026-07-31
-Purpose: Opt-in shared column-width feature with spreadsheet-style live resizing, stable pre-paint persisted widths, compact numeric defaults, wide primary text columns, no-wrap truncation, and one horizontal table scroll owner.
+Version: v6.582
+Date: 2026-08-01
+Purpose: Opt-in shared column-width feature with spreadsheet-style live resizing, compact numeric defaults, wide primary text columns, no-wrap truncation, and a dedicated contained horizontal viewport around each table.
 -->
 <style id="cdaSharedDashboardColumnWidthsStylesV6581">
   html body .cdaDashboardTableViewportV6581 {
@@ -10,21 +10,15 @@ Purpose: Opt-in shared column-width feature with spreadsheet-style live resizing
     width:100%!important;
     min-width:0!important;
     max-width:100%!important;
-    overflow:auto!important;
-    overscroll-behavior:contain!important;
+    overflow-x:auto!important;
+    overflow-y:hidden!important;
+    overscroll-behavior-x:contain!important;
     scrollbar-gutter:stable!important;
     -webkit-overflow-scrolling:touch;
   }
 
-  html body [data-cda-detached-component="true"] .cdaDashboardTableViewportV6581 {
-    max-height:none!important;
-    overflow-x:auto!important;
-    overflow-y:visible!important;
-  }
-
-  html body .cdaDashboardTableViewportV6581 > .cdaTableFrameV6542 {
-    width:var(--cda-column-widths-table-width-v6581,100%)!important;
-    min-width:var(--cda-column-widths-table-width-v6581,100%)!important;
+  html body .cdaDashboardTableViewportV6581 > table {
+    display:table!important;
     max-width:none!important;
   }
 
@@ -55,15 +49,6 @@ Purpose: Opt-in shared column-width feature with spreadsheet-style live resizing
     right:11px!important;
   }
 
-  html.cdaColumnWidthsBootV6581 body table[data-cda-column-widths-pending-v6581="true"]:not([data-cda-column-widths-ready-v6581="true"]),
-  html.cdaColumnWidthsBootV6581 body #remakeReasonTable:not([data-cda-column-widths-ready-v6581="true"]),
-  html.cdaColumnWidthsBootV6581 body #remakeDepartmentTable:not([data-cda-column-widths-ready-v6581="true"]),
-  html.cdaColumnWidthsBootV6581 body #remakeProductTable:not([data-cda-column-widths-ready-v6581="true"]),
-  html.cdaColumnWidthsBootV6581 body #remakeCustomerTable:not([data-cda-column-widths-ready-v6581="true"]),
-  html.cdaColumnWidthsBootV6581 body #remakeCeramistTableV6342:not([data-cda-column-widths-ready-v6581="true"]),
-  html.cdaColumnWidthsBootV6581 body #remakeCeramistDetailTableV6343:not([data-cda-column-widths-ready-v6581="true"]) {
-    visibility:hidden!important;
-  }
 
   .cdaColumnWidthHandleV6581 {
     position:absolute!important;
@@ -134,14 +119,12 @@ Purpose: Opt-in shared column-width feature with spreadsheet-style live resizing
 (function installSharedDashboardColumnWidthsV6581(){
   'use strict';
 
-  const VERSION_V6581 = 'v6.581';
+  const VERSION_V6581 = 'v6.582';
   if (window.cdaDashboardColumnWidthsV6581 &&
       window.cdaDashboardColumnWidthsV6581.version === VERSION_V6581) return;
 
-  if (document.documentElement) document.documentElement.classList.add('cdaColumnWidthsBootV6581');
-
   const storageKeyV6581 = 'cdaDashboardColumnWidths.v6581';
-  const migrationKeyV6581 = 'cdaDashboardColumnWidths.migrated.v6581';
+  const migrationKeyV6581 = 'cdaDashboardColumnWidths.recovered.v6582';
   const contextsByDocumentV6581 = new WeakMap();
   const observersByDocumentV6581 = new WeakMap();
   const pendingDocumentsV6581 = new WeakSet();
@@ -168,6 +151,8 @@ Purpose: Opt-in shared column-width feature with spreadsheet-style live resizing
     try {
       if (localStorage.getItem(migrationKeyV6581) === '1') return;
       localStorage.removeItem('cdaDashboardColumnWidths.v6580');
+      localStorage.removeItem(storageKeyV6581);
+      widthStateV6581 = {};
       localStorage.setItem(migrationKeyV6581,'1');
     } catch (error) {}
   }
@@ -290,12 +275,16 @@ Purpose: Opt-in shared column-width feature with spreadsheet-style live resizing
 
   function ensureViewportV6581(table){
     if (!table || !table.parentNode) return null;
-    let viewport = table.closest && table.closest('.cdaDashboardTableViewportV6581');
-    if (!viewport) viewport = table.closest && table.closest('.remakeTableWrap');
-    if (!viewport) viewport = table.closest && table.closest('.cdaTableFrameV6542');
+    let viewport = table.parentElement &&
+      table.parentElement.classList &&
+      table.parentElement.classList.contains('cdaDashboardTableViewportV6581')
+      ? table.parentElement
+      : null;
     if (!viewport) {
       const doc = table.ownerDocument || document;
       viewport = doc.createElement('div');
+      viewport.className = 'cdaDashboardTableViewportV6581';
+      viewport.setAttribute('data-cda-column-widths-viewport-v6581','true');
       table.parentNode.insertBefore(viewport,table);
       viewport.appendChild(table);
     }
@@ -430,12 +419,11 @@ Purpose: Opt-in shared column-width feature with spreadsheet-style live resizing
     table.style.setProperty('width',pixels,'important');
     table.style.setProperty('min-width',pixels,'important');
     table.style.setProperty('max-width','none','important');
-    if (viewport) viewport.style.setProperty('--cda-column-widths-table-width-v6581',pixels);
-    const frame = table.closest && table.closest('.cdaTableFrameV6542');
-    if (frame && frame !== viewport) {
-      frame.style.setProperty('width',pixels,'important');
-      frame.style.setProperty('min-width',pixels,'important');
-      frame.style.setProperty('max-width','none','important');
+    if (viewport) {
+      viewport.style.removeProperty('--cda-column-widths-table-width-v6581');
+      viewport.style.setProperty('width','100%','important');
+      viewport.style.setProperty('min-width','0','important');
+      viewport.style.setProperty('max-width','100%','important');
     }
   }
 
@@ -538,8 +526,8 @@ Purpose: Opt-in shared column-width feature with spreadsheet-style live resizing
       saveWidthMapV6581(drag.context,drag.source.id,drag.map);
     } else if (commit === false) {
       drag.map.set(drag.column.field,drag.startWidth);
+      applyContextV6581(drag.context,true);
     }
-    scheduleDocumentV6581(drag.doc);
   }
 
   function beginDragV6581(event,context,source,column,header,layout,map,application,viewport,available){
@@ -694,7 +682,6 @@ Purpose: Opt-in shared column-width feature with spreadsheet-style live resizing
     });
     addCellTitlesV6581(table);
     table.setAttribute('data-cda-column-widths-ready-v6581','true');
-    table.style.removeProperty('visibility');
     return true;
   }
 
@@ -817,7 +804,7 @@ Purpose: Opt-in shared column-width feature with spreadsheet-style live resizing
 
   window.cdaDashboardColumnWidthsV6581 = Object.freeze({
     version:VERSION_V6581,
-    mode:'opt-in-shared-spreadsheet-column-widths',
+    mode:'opt-in-contained-spreadsheet-column-widths',
     enabled:enabledV6581,
     enable:enableV6581,
     apply:enableV6581,

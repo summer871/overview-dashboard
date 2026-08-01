@@ -8,7 +8,7 @@ const childProcess = require('child_process');
 
 const root = path.resolve(__dirname,'..');
 const requiredVersion = 'v6.567';
-const footerVersion = 'v6.581';
+const footerVersion = 'v6.582';
 let failed = false;
 
 function fail(message){ console.error('ERROR: ' + message); failed = true; }
@@ -94,7 +94,7 @@ validateHtml('SharedFooter.html',footer);
 try { new vm.Script(router,{filename:'Code.js'}); } catch (error) { fail(error.message); }
 
 if (!footer.includes("'" + footerVersion + "'")) fail('Footer is not ' + footerVersion + '.');
-if (!footer.includes('SHARED-COLUMN-WIDTHS-22')) fail('Footer build label is incorrect.');
+if (!footer.includes('SHARED-COLUMN-WIDTHS-HOTFIX-23')) fail('Footer build label is incorrect.');
 if (!router.includes("'v6.567'")) fail('Router is not v6.567.');
 if (!footer.includes("appendItem(footer,'Remake cache'")) fail('Separate Remake cache footer item is missing.');
 if (!footer.includes("appendItem(footer,'Technician cache'")) fail('Separate technician cache footer item is missing.');
@@ -103,9 +103,9 @@ if (footer.includes("appendItem(footer,'Cache'")) fail('Ambiguous single Cache f
 
 if (!registry.includes("const VERSION_V6547 = 'v6.579'")) fail('Shared registry is not v6.579.');
 if (!registry.includes('featureOptions:normalizeFeatureOptionsV6579')) fail('Registry does not normalize feature options.');
-if (!runtime.includes("version:'v6.581'")) fail('Shared feature runtime is not v6.581.');
+if (!runtime.includes("version:'v6.582'")) fail('Shared feature runtime is not v6.582.');
 if (!runtime.includes("mode:'configuration-driven-shared-feature-runtime'")) fail('Shared feature runtime mode is missing.');
-if (!features.includes("CDA_DASHBOARD_FEATURES_VERSION = 'v6.581'")) fail('Feature catalog is not v6.581.');
+if (!features.includes("CDA_DASHBOARD_FEATURES_VERSION = 'v6.582'")) fail('Feature catalog is not v6.582.');
 if (!features.includes("key:'columnWidths'")) fail('Shared columnWidths feature is not registered.');
 if (features.includes('function callAdapter(')) fail('Feature catalog still owns adapter dispatch.');
 if (!toolbar.includes("version:'v6.579'")) fail('Shared toolbar is not v6.579.');
@@ -113,23 +113,28 @@ if (!toolbar.includes('runtime.run(featureKey')) fail('Toolbar bypasses the shar
 if (!titleToggle.includes("version:'v6.579'")) fail('Shared title toggle is not v6.579.');
 if (!titleToggle.includes("runtime.run('collapse'")) fail('Title collapse bypasses the shared runtime.');
 
-if (!columns.includes("const VERSION_V6581 = 'v6.581'")) fail('Shared column visibility is not v6.581.');
+if (!columns.includes("const VERSION_V6581 = 'v6.582'")) fail('Shared column visibility is not v6.582.');
 if (!columns.includes("mode:'shared-visibility-only-rerender-safe'")) fail('Shared column visibility still owns width behavior.');
 if (columns.includes('cdaColumnWidthHandleV6581') || columns.includes('cdaDashboardColumnWidths.v6581')) fail('Width behavior leaked back into the Columns service.');
-if (!columnWidths.includes("const VERSION_V6581 = 'v6.581'")) fail('Shared column-width feature is not v6.581.');
-if (!columnWidths.includes("mode:'opt-in-shared-spreadsheet-column-widths'")) fail('Shared column-width mode is missing.');
+if (!columnWidths.includes("const VERSION_V6581 = 'v6.582'")) fail('Shared column-width feature is not v6.582.');
+if (!columnWidths.includes("mode:'opt-in-contained-spreadsheet-column-widths'")) fail('Shared column-width mode is missing.');
 if (!columnWidths.includes("(component.features || []).indexOf('columnWidths') >= 0")) fail('Shared column widths are not opt-in.');
 if (!columnWidths.includes('cdaDashboardTableViewportV6581')) fail('Dedicated horizontal table viewport is missing.');
-if (!columnWidths.includes('overflow:auto!important')) fail('Dashboard table scroll ownership is missing.');
+if (!columnWidths.includes('overflow-x:auto!important')) fail('Dashboard table scroll ownership is missing.');
 if (!columnWidths.includes('overflow-x:auto!important')) fail('Detached horizontal table scrolling is missing.');
 if (!columnWidths.includes('setPointerCapture') || !columnWidths.includes('lostpointercapture')) fail('Pointer capture cleanup is incomplete.');
 if (!columnWidths.includes("view.addEventListener('blur'") || !columnWidths.includes("doc.addEventListener('visibilitychange'")) fail('Resize cleanup does not cover blur/visibility loss.');
 if (!columnWidths.includes('queueMicrotask')) fail('Before-paint persisted-width reapply is missing.');
-if (!columnWidths.includes('cdaColumnWidthsBootV6581')) fail('Reload width-flash guard is missing.');
 if (!columnWidths.includes('requestAnimationFrame')) fail('Resize updates are not animation-frame batched.');
 if (!columnWidths.includes('saveWidthMapV6581')) fail('Complete manual width layouts are not persisted.');
 if (!columnWidths.includes('numericMin') || !columnWidths.includes('firstColumnMin')) fail('Default width auto-fit rules are missing.');
 if (!runtime.includes('columnWidths:resetColumnWidthsV6581')) fail('Runtime does not route reset column widths.');
+if (!columnWidths.includes("table.parentElement.classList.contains('cdaDashboardTableViewportV6581')")) fail('Column widths do not create a dedicated table-only viewport.');
+if (columnWidths.includes("viewport = table.closest && table.closest('.remakeTableWrap')")) fail('Column widths still reuse outer dashboard wrappers.');
+if (columnWidths.includes("frame.style.setProperty('width'")) fail('Column widths still widen the shared table frame/card.');
+if (!columnWidths.includes('overflow-y:hidden!important')) fail('Contained table viewport vertical overflow rule is missing.');
+if (!columns.includes("resetWidths.textContent = 'Reset widths'")) fail('Reset widths is not in the Columns popover.');
+if (!features.includes("key:'columnWidths',placement:'service'")) fail('columnWidths must be service-only.');
 
 if (!theme.includes("version:'v6.566'")) fail('Shared theme is not v6.566.');
 if (!isolation.includes("version:'v6.561'")) fail('Isolation service is not v6.561.');
@@ -162,7 +167,6 @@ if (!definition.includes("const TABLE_FEATURES = ['columns','columnWidths'")) fa
 if (!definition.includes('renderHeaderControls:function(){ return layout.headerMarkup(); }')) fail('Performance header toggle is missing.');
 if (!definition.includes("tableIds:['tatLateTableV6509']")) fail('TAT Promise table is not registered for shared widths.');
 if (!definition.includes("features:CHART_FEATURES.concat(['columnWidths'])")) fail('TAT Promise table does not opt into shared widths.');
-if (!definition.includes('data-cda-column-widths-pending-v6581="true"')) fail('TAT pre-paint width guard is missing.');
 if (definition.indexOf("key:'performance'") >= definition.indexOf("key:'product'")) fail('Performance must render left of Products.');
 if (!audit.includes("version:'v6.565'")) fail('TAT audit is not v6.565.');
 if (!bootstrap.includes("version:'v6.565'")) fail('TAT bootstrap is not v6.565.');

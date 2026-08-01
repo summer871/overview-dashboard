@@ -1,6 +1,6 @@
 <!-- SharedDashboardColumnsV6548.html
-Version: v6.581
-Date: 2026-07-31
+Version: v6.582
+Date: 2026-08-01
 Purpose: One document-aware shared column-visibility service that persists through sorting, rerendering, and detached live components. Width behavior is owned separately by the opt-in columnWidths feature.
 -->
 <style id="cdaSharedDashboardColumnsStylesV6548">
@@ -14,7 +14,7 @@ Purpose: One document-aware shared column-visibility service that persists throu
 (function installSharedDashboardColumnsV6548(){
   'use strict';
 
-  const VERSION_V6581 = 'v6.581';
+  const VERSION_V6581 = 'v6.582';
   if (window.cdaDashboardColumnsV6548 &&
       window.cdaDashboardColumnsV6548.version === VERSION_V6581) return;
 
@@ -373,11 +373,21 @@ Purpose: One document-aware shared column-visibility service that persists throu
     show.type = 'button';
     show.textContent = 'Show all';
     show.addEventListener('click',function(){ showAll(context); context.popover.close(); });
+    const widths = window.cdaDashboardColumnWidthsV6581;
+    const resetWidths = doc.createElement('button');
+    resetWidths.type = 'button';
+    resetWidths.textContent = 'Reset widths';
+    resetWidths.hidden = !((context.component.features || []).indexOf('columnWidths') >= 0 &&
+      widths && typeof widths.reset === 'function');
+    resetWidths.addEventListener('click',function(){
+      if (widths && typeof widths.reset === 'function') widths.reset(context);
+      context.popover.close();
+    });
     const done = doc.createElement('button');
     done.type = 'button';
     done.textContent = 'Done';
     done.addEventListener('click',function(){ context.popover.close(); });
-    footer.append(show,done);
+    footer.append(show,resetWidths,done);
     panel.appendChild(footer);
     context.popover.position();
     applyContextV6581(context,true);

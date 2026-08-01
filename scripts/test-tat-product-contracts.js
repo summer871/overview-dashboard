@@ -4,7 +4,7 @@
 const fs = require('fs');
 const path = require('path');
 const root = path.resolve(__dirname,'..');
-const footerVersion = 'v6.581';
+const footerVersion = 'v6.582';
 const read = name => fs.readFileSync(path.join(root,name),'utf8');
 const assert = (condition,message) => { if (!condition) throw new Error(message); };
 
@@ -51,7 +51,6 @@ assert(definition.includes("key:'performance',title:'TAT Performance'"), 'TAT Pe
 assert(definition.includes("tableIds:['tatLateTableV6509']"), 'TAT Promise table is not explicitly registered for shared widths.');
 assert(definition.includes("features:CHART_FEATURES.concat(['columnWidths'])"), 'TAT Promise table does not opt into shared column widths.');
 assert(definition.includes("label:'Reset Promise column widths'"), 'TAT Promise reset-width action is missing.');
-assert(definition.includes('data-cda-column-widths-pending-v6581="true"'), 'TAT tables lack the pre-paint width guard.');
 assert(definition.includes('renderHeaderControls:function(){ return layout.headerMarkup(); }'), 'Performance header toggle is missing.');
 assert(definition.includes('[data-tat-performance-view-v6565="distribution"]') || definition.includes('data-tat-performance-view-v6565="distribution"'), 'Distribution view markup is missing.');
 assert(definition.includes('data-tat-performance-view-v6565="promise"'), 'Promise view markup is missing.');
@@ -74,7 +73,7 @@ assert(
   footer.includes("'" + footerVersion + "'"),
   'Footer is not ' + footerVersion + '.'
 );
-assert(footer.includes('SHARED-COLUMN-WIDTHS-22'), 'Footer build label is incorrect.');
+assert(footer.includes('SHARED-COLUMN-WIDTHS-HOTFIX-23'), 'Footer build label is incorrect.');
 assert(router.includes("'v6.567'"), 'Router is not v6.567.');
 
 console.log('TAT layout contracts passed.');

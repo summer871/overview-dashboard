@@ -1,6 +1,6 @@
 <!-- SharedDashboardFeatureRuntimeV6579.html
-Version: v6.581
-Date: 2026-07-31
+Version: v6.582
+Date: 2026-08-01
 Purpose: One configuration-driven runtime for shared dashboard features across TAT, Remake, future tabs, and detached live components, including opt-in shared column-width behavior.
 -->
 <script id="cdaSharedDashboardFeatureRuntimeControllerV6579">
@@ -8,7 +8,7 @@ Purpose: One configuration-driven runtime for shared dashboard features across T
   'use strict';
 
   if (window.cdaDashboardFeatureRuntimeV6579 &&
-      window.cdaDashboardFeatureRuntimeV6579.version === 'v6.581') return;
+      window.cdaDashboardFeatureRuntimeV6579.version === 'v6.582') return;
 
   const platform = window.cdaDashboardPlatformV6547;
   if (!platform) throw new Error('Dashboard registry must load before the feature runtime.');
@@ -330,7 +330,7 @@ Purpose: One configuration-driven runtime for shared dashboard features across T
   }
 
   window.cdaDashboardFeatureRuntimeV6579 = Object.freeze({
-    version:'v6.581',
+    version:'v6.582',
     mode:'configuration-driven-shared-feature-runtime',
     supports:supportsV6579,
     options:optionsForV6579,
