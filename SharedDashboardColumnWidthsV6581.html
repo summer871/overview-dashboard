@@ -1,139 +1,169 @@
 <!-- SharedDashboardColumnWidthsV6581.html
-Version: v6.582
+Version: v6.583
 Date: 2026-08-01
-Purpose: Opt-in shared column-width feature with spreadsheet-style live resizing, compact numeric defaults, wide primary text columns, no-wrap truncation, and a dedicated contained horizontal viewport around each table.
+Purpose: Opt-in shared column-width feature with independent Google-Sheets-style resizing, readable defaults, exact summed table widths, and a persistent synchronized horizontal scrollbar below every scrollable table surface.
 -->
 <style id="cdaSharedDashboardColumnWidthsStylesV6581">
   html body .cdaDashboardTableViewportV6581 {
-    position:relative!important;
-    display:block!important;
-    width:100%!important;
-    min-width:0!important;
-    max-width:100%!important;
-    overflow-x:auto!important;
-    overflow-y:hidden!important;
-    overscroll-behavior-x:contain!important;
-    scrollbar-gutter:stable!important;
-    -webkit-overflow-scrolling:touch;
+    position: relative !important;
+    display: block !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    overflow-x: auto !important;
+    overflow-y: visible !important;
+    overscroll-behavior-x: contain !important;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  html body .cdaDashboardTableViewportV6581::-webkit-scrollbar {
+    width: 0;
+    height: 0;
   }
 
   html body .cdaDashboardTableViewportV6581 > table {
-    display:table!important;
-    max-width:none!important;
+    display: table !important;
+    max-width: none !important;
   }
 
   html body table[data-cda-column-widths-ready-v6581="true"] {
-    table-layout:fixed!important;
-    width:var(--cda-column-widths-table-width-v6581,100%)!important;
-    min-width:var(--cda-column-widths-table-width-v6581,100%)!important;
-    max-width:none!important;
+    table-layout: fixed !important;
+    width: var(--cda-column-widths-table-width-v6581, 100%) !important;
+    min-width: var(--cda-column-widths-table-width-v6581, 100%) !important;
+    max-width: var(--cda-column-widths-table-width-v6581, none) !important;
   }
 
   html body table[data-cda-column-widths-ready-v6581="true"] th,
   html body table[data-cda-column-widths-ready-v6581="true"] td {
-    box-sizing:border-box!important;
-    width:auto!important;
-    min-width:0!important;
-    max-width:none!important;
-    white-space:nowrap!important;
-    overflow:hidden!important;
-    text-overflow:ellipsis!important;
+    box-sizing: border-box !important;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
   }
 
   html body table[data-cda-column-widths-ready-v6581="true"] th[data-cda-column-width-resizable-v6581="true"] {
-    position:relative!important;
-    padding-right:22px!important;
+    position: relative !important;
+    padding-right: 22px !important;
   }
 
   html body table[data-cda-column-widths-ready-v6581="true"] th .sortGlyphV6230 {
-    right:11px!important;
+    right: 11px !important;
   }
 
-
   .cdaColumnWidthHandleV6581 {
-    position:absolute!important;
-    z-index:12!important;
-    top:0!important;
-    right:-3px!important;
-    width:7px!important;
-    height:100%!important;
-    min-height:24px!important;
-    cursor:col-resize!important;
-    touch-action:none!important;
-    user-select:none!important;
-    background:transparent!important;
+    position: absolute !important;
+    z-index: 12 !important;
+    top: 0 !important;
+    right: -4px !important;
+    width: 9px !important;
+    height: 100% !important;
+    min-height: 24px !important;
+    cursor: col-resize !important;
+    touch-action: none !important;
+    user-select: none !important;
+    background: transparent !important;
   }
 
   .cdaColumnWidthHandleV6581::after {
-    content:'';
-    position:absolute;
-    top:18%;
-    bottom:18%;
-    left:3px;
-    width:1px;
-    background:rgba(255,255,255,.30);
+    content: '';
+    position: absolute;
+    top: 18%;
+    bottom: 18%;
+    left: 4px;
+    width: 1px;
+    background: rgba(255, 255, 255, .30);
   }
 
   .cdaColumnWidthHandleV6581:hover::after,
   .cdaColumnWidthHandleV6581:focus-visible::after,
   .cdaColumnWidthHandleV6581[data-cda-column-width-dragging-v6581="true"]::after {
-    width:2px;
-    background:#f2c94c;
+    width: 2px;
+    background: #f2c94c;
   }
 
   .cdaColumnWidthHandleV6581:focus-visible {
-    outline:2px solid #f2c94c!important;
-    outline-offset:-2px!important;
+    outline: 2px solid #f2c94c !important;
+    outline-offset: -2px !important;
+  }
+
+  .cdaColumnWidthBottomRailV6583 {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    height: 15px;
+    box-sizing: border-box;
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-x: contain;
+    scrollbar-gutter: stable;
+    border-top: 1px solid #e4e7ec;
+    background: #f8fafc;
+  }
+
+  .cdaColumnWidthBottomRailV6583[hidden] {
+    display: none !important;
+  }
+
+  .cdaColumnWidthBottomRailSpacerV6583 {
+    display: block;
+    height: 1px;
+    min-height: 1px;
+    pointer-events: none;
   }
 
   .cdaColumnWidthDragShieldV6581 {
-    position:fixed!important;
-    z-index:2147483645!important;
-    inset:0!important;
-    cursor:col-resize!important;
-    touch-action:none!important;
-    user-select:none!important;
-    background:transparent!important;
+    position: fixed !important;
+    z-index: 2147483645 !important;
+    inset: 0 !important;
+    cursor: col-resize !important;
+    touch-action: none !important;
+    user-select: none !important;
+    background: transparent !important;
   }
 
   .cdaColumnWidthGuideV6581 {
-    position:fixed!important;
-    z-index:2147483646!important;
-    top:0!important;
-    bottom:0!important;
-    left:0!important;
-    width:1px!important;
-    pointer-events:none!important;
-    background:#f2c94c!important;
-    box-shadow:0 0 0 1px rgba(242,201,76,.18)!important;
-    will-change:transform;
+    position: fixed !important;
+    z-index: 2147483646 !important;
+    top: 0 !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    width: 1px !important;
+    pointer-events: none !important;
+    background: #f2c94c !important;
+    box-shadow: 0 0 0 1px rgba(242, 201, 76, .18) !important;
+    will-change: transform;
   }
 
   html.cdaColumnWidthDragActiveV6581,
   html.cdaColumnWidthDragActiveV6581 body {
-    cursor:col-resize!important;
-    user-select:none!important;
+    cursor: col-resize !important;
+    user-select: none !important;
   }
 </style>
 <script id="cdaSharedDashboardColumnWidthsControllerV6581">
 (function installSharedDashboardColumnWidthsV6581(){
   'use strict';
 
-  const VERSION_V6581 = 'v6.582';
+  const VERSION_V6581 = 'v6.583';
   if (window.cdaDashboardColumnWidthsV6581 &&
       window.cdaDashboardColumnWidthsV6581.version === VERSION_V6581) return;
 
   const storageKeyV6581 = 'cdaDashboardColumnWidths.v6581';
-  const migrationKeyV6581 = 'cdaDashboardColumnWidths.recovered.v6582';
+  const recoveryKeyV6583 = 'cdaDashboardColumnWidths.recovered.v6583';
   const contextsByDocumentV6581 = new WeakMap();
   const observersByDocumentV6581 = new WeakMap();
   const pendingDocumentsV6581 = new WeakSet();
   const applyingDocumentsV6581 = new WeakSet();
   const resizeObserversV6581 = new WeakMap();
-  let widthStateV6581 = readJsonV6581(storageKeyV6581,{});
+  let widthStateV6581 = readJsonV6581(storageKeyV6581, {});
   let activeDragV6581 = null;
 
-  function readJsonV6581(key,fallback){
+  function readJsonV6581(key, fallback){
     try {
       const value = JSON.parse(localStorage.getItem(key) || 'null');
       return value && typeof value === 'object' && !Array.isArray(value) ? value : fallback;
@@ -142,18 +172,18 @@ Purpose: Opt-in shared column-width feature with spreadsheet-style live resizing
     }
   }
 
-  function writeJsonV6581(key,value){
-    try { localStorage.setItem(key,JSON.stringify(value || {})); }
+  function writeJsonV6581(key, value){
+    try { localStorage.setItem(key, JSON.stringify(value || {})); }
     catch (error) {}
   }
 
-  function migrateExperimentalWidthsV6581(){
+  function recoverBrokenWidthsV6583(){
     try {
-      if (localStorage.getItem(migrationKeyV6581) === '1') return;
+      if (localStorage.getItem(recoveryKeyV6583) === '1') return;
       localStorage.removeItem('cdaDashboardColumnWidths.v6580');
       localStorage.removeItem(storageKeyV6581);
       widthStateV6581 = {};
-      localStorage.setItem(migrationKeyV6581,'1');
+      localStorage.setItem(recoveryKeyV6583, '1');
     } catch (error) {}
   }
 
@@ -182,8 +212,8 @@ Purpose: Opt-in shared column-width feature with spreadsheet-style live resizing
       optionsForV6581(context).enabled !== false);
   }
 
-  function clampV6581(value,min,max){
-    return Math.max(min,Math.min(max,value));
+  function clampV6581(value, min, max){
+    return Math.max(min, Math.min(max, value));
   }
 
   function sourceListV6581(context){
@@ -195,7 +225,7 @@ Purpose: Opt-in shared column-width feature with spreadsheet-style live resizing
       : [];
   }
 
-  function widthBucketV6581(context,sourceId,create){
+  function widthBucketV6581(context, sourceId, create){
     const key = stateKeyV6581(context);
     if (create) {
       widthStateV6581[key] = widthStateV6581[key] && typeof widthStateV6581[key] === 'object'
@@ -209,44 +239,34 @@ Purpose: Opt-in shared column-width feature with spreadsheet-style live resizing
     return widthStateV6581[key] && widthStateV6581[key][sourceId] || null;
   }
 
-  function storedWidthV6581(context,sourceId,field){
-    const bucket = widthBucketV6581(context,sourceId,false);
+  function storedWidthV6581(context, sourceId, field){
+    const bucket = widthBucketV6581(context, sourceId, false);
     const value = bucket && Number(bucket[field]);
     return Number.isFinite(value) ? value : 0;
   }
 
-  function saveWidthV6581(context,sourceId,field,width){
+  function saveWidthMapV6581(context, sourceId, map){
     const options = optionsForV6581(context);
-    const min = Number(options.absoluteMin) || 48;
+    const min = Number(options.absoluteMin) || 54;
     const max = Number(options.absoluteMax) || 720;
-    const value = Math.round(clampV6581(Number(width) || min,min,max));
-    widthBucketV6581(context,sourceId,true)[field] = value;
-    writeJsonV6581(storageKeyV6581,widthStateV6581);
-    return value;
-  }
-
-
-  function saveWidthMapV6581(context,sourceId,map){
-    const options = optionsForV6581(context);
-    const min = Number(options.absoluteMin) || 48;
-    const max = Number(options.absoluteMax) || 720;
-    const bucket = widthBucketV6581(context,sourceId,true);
-    map.forEach(function(width,field){
-      bucket[field] = Math.round(clampV6581(Number(width) || min,min,max));
+    const bucket = widthBucketV6581(context, sourceId, true);
+    Object.keys(bucket).forEach(function(field){ delete bucket[field]; });
+    map.forEach(function(width, field){
+      bucket[field] = Math.round(clampV6581(Number(width) || min, min, max));
     });
-    writeJsonV6581(storageKeyV6581,widthStateV6581);
+    writeJsonV6581(storageKeyV6581, widthStateV6581);
     return true;
   }
 
-  function clearWidthV6581(context,sourceId,field){
-    const bucket = widthBucketV6581(context,sourceId,false);
-    if (!bucket || !Object.prototype.hasOwnProperty.call(bucket,field)) return false;
+  function clearWidthV6581(context, sourceId, field){
+    const bucket = widthBucketV6581(context, sourceId, false);
+    if (!bucket || !Object.prototype.hasOwnProperty.call(bucket, field)) return false;
     delete bucket[field];
     if (!Object.keys(bucket).length) {
       const key = stateKeyV6581(context);
       if (widthStateV6581[key]) delete widthStateV6581[key][sourceId];
     }
-    writeJsonV6581(storageKeyV6581,widthStateV6581);
+    writeJsonV6581(storageKeyV6581, widthStateV6581);
     return true;
   }
 
@@ -264,13 +284,6 @@ Purpose: Opt-in shared column-width feature with spreadsheet-style live resizing
     table.querySelectorAll('[data-cda-dashboard-resizable-v6580]').forEach(function(header){
       header.removeAttribute('data-cda-dashboard-resizable-v6580');
     });
-    const legacyViewport = table.closest && table.closest('[data-cda-dashboard-table-viewport-v6580="true"]');
-    if (legacyViewport) {
-      legacyViewport.removeAttribute('data-cda-dashboard-table-viewport-v6580');
-      legacyViewport.classList.remove('cdaDashboardTableViewportV6580');
-    }
-    const doc = table.ownerDocument || document;
-    if (doc.body) doc.body.classList.remove('cdaDashboardColumnResizeActiveV6580');
   }
 
   function ensureViewportV6581(table){
@@ -284,12 +297,12 @@ Purpose: Opt-in shared column-width feature with spreadsheet-style live resizing
       const doc = table.ownerDocument || document;
       viewport = doc.createElement('div');
       viewport.className = 'cdaDashboardTableViewportV6581';
-      viewport.setAttribute('data-cda-column-widths-viewport-v6581','true');
-      table.parentNode.insertBefore(viewport,table);
+      viewport.setAttribute('data-cda-column-widths-viewport-v6581', 'true');
+      table.parentNode.insertBefore(viewport, table);
       viewport.appendChild(table);
     }
     viewport.classList.add('cdaDashboardTableViewportV6581');
-    viewport.setAttribute('data-cda-column-widths-viewport-v6581','true');
+    viewport.setAttribute('data-cda-column-widths-viewport-v6581', 'true');
     observeViewportV6581(viewport);
     return viewport;
   }
@@ -301,7 +314,7 @@ Purpose: Opt-in shared column-width feature with spreadsheet-style live resizing
     if (!view.ResizeObserver) return;
     const observer = new view.ResizeObserver(function(){ scheduleDocumentV6581(doc); });
     observer.observe(viewport);
-    resizeObserversV6581.set(viewport,observer);
+    resizeObserversV6581.set(viewport, observer);
   }
 
   function visibleColumnsV6581(source){
@@ -313,74 +326,72 @@ Purpose: Opt-in shared column-width feature with spreadsheet-style live resizing
     return textIndex >= 0 ? textIndex : 0;
   }
 
-  function numericDefaultV6581(column,options){
-    const min = Number(options.numericMin) || 58;
-    const max = Number(options.numericMax) || 82;
-    const label = String(column && column.label || '').toLowerCase();
-    let width = 66;
-    if (/%|rate|share|otp/.test(label)) width = 60;
-    else if (/case|count/.test(label)) width = 64;
-    else if (/unit/.test(label)) width = 70;
-    else if (/avg|average|days?|late|tat/.test(label)) width = 78;
-    return Math.round(clampV6581(width,min,max));
+  function labelFloorV6583(column, numeric){
+    const label = String(column && column.label || column && column.field || 'Column');
+    const perCharacter = numeric ? 6.6 : 7.1;
+    return Math.ceil(label.length * perCharacter + 38);
   }
 
-  function textDefaultV6581(column,options,isPrimary){
-    if (isPrimary) return Number(options.firstColumnMin) || 132;
-    const min = Number(options.textMin) || 88;
-    const max = Number(options.textMax) || 150;
-    const label = String(column && column.label || '');
-    return Math.round(clampV6581(64 + label.length * 4.1,min,max));
+  function renderedCellFloorV6583(source, column, header, numeric){
+    let measured = labelFloorV6583(column, numeric);
+    if (header) measured = Math.max(measured, Number(header.scrollWidth) + 8 || 0);
+    const table = source && source.table;
+    const index = header && Number.isFinite(header.cellIndex) ? header.cellIndex : Number(column.index);
+    if (!table || !Number.isFinite(index)) return measured;
+    let seen = 0;
+    Array.from(table.tBodies || []).some(function(body){
+      return Array.from(body.rows || []).some(function(row){
+        const cell = row.cells && row.cells[index];
+        if (cell) {
+          measured = Math.max(measured, Number(cell.scrollWidth) + 14 || 0);
+          seen += 1;
+        }
+        return seen >= 50;
+      });
+    });
+    return measured;
   }
 
-  function availableWidthV6581(context,viewport){
+  function readableDefaultV6583(context, source, column, header, isPrimary){
+    const options = optionsForV6581(context);
+    const numeric = column.numeric === true;
+    const label = String(column.label || '').toLowerCase();
+    const measured = renderedCellFloorV6583(source, column, header, numeric);
+    if (numeric) {
+      let semantic = 82;
+      if (/disc|amount|sales|charge|credit|currency|\$/.test(label)) semantic = 104;
+      else if (/delta|prior|previous|2025|2024|2023|2022/.test(label)) semantic = 96;
+      else if (/%|rate|share|otp/.test(label)) semantic = 84;
+      else if (/unit/.test(label)) semantic = 92;
+      else if (/case|count/.test(label)) semantic = 88;
+      else if (/avg|average|days?|late|tat/.test(label)) semantic = 96;
+      const min = Math.max(Number(options.numericMin) || 0, 76);
+      const max = Math.max(Number(options.numericMax) || 0, 132);
+      return Math.round(clampV6581(Math.max(semantic, measured), min, max));
+    }
+    if (isPrimary) {
+      const min = Math.max(Number(options.firstColumnMin) || 0, 190);
+      const max = Math.max(Number(options.firstColumnMax) || 0, 520);
+      return Math.round(clampV6581(Math.max(min, measured), min, max));
+    }
+    const min = Math.max(Number(options.textMin) || 0, 110);
+    const max = Math.max(Number(options.textMax) || 0, 220);
+    return Math.round(clampV6581(Math.max(min, measured), min, max));
+  }
+
+  function availableWidthV6581(context, viewport){
     const direct = viewport && Number(viewport.clientWidth);
     if (direct > 8) return Math.floor(direct);
     const card = context && context.card;
     const cardWidth = card && Number(card.clientWidth);
-    if (cardWidth > 32) return Math.max(1,Math.floor(cardWidth - 24));
+    if (cardWidth > 32) return Math.max(1, Math.floor(cardWidth - 24));
     const parent = viewport && viewport.parentElement;
     const parentWidth = parent && Number(parent.clientWidth);
     if (parentWidth > 8) return Math.floor(parentWidth);
     return Number(optionsForV6581(context).fallbackWidth) || 560;
   }
 
-  function defaultWidthsV6581(context,source,available){
-    const options = optionsForV6581(context);
-    const columns = visibleColumnsV6581(source);
-    const primary = primaryIndexV6581(columns);
-    const widths = columns.map(function(column,index){
-      const stored = storedWidthV6581(context,source.id,column.field);
-      if (stored) return stored;
-      return column.numeric
-        ? numericDefaultV6581(column,options)
-        : textDefaultV6581(column,options,index === primary);
-    });
-
-    const primaryColumn = columns[primary];
-    const primaryStored = primaryColumn && storedWidthV6581(context,source.id,primaryColumn.field);
-    if (!primaryStored && columns.length) {
-      const others = widths.reduce(function(sum,width,index){
-        return index === primary ? sum : sum + width;
-      },0);
-      const min = Number(options.firstColumnMin) || 132;
-      const max = Number(options.firstColumnMax) || Number(options.absoluteMax) || 720;
-      widths[primary] = Math.round(clampV6581(Math.max(min,available - others),min,max));
-    }
-    const bucket = widthBucketV6581(context,source.id,false);
-    return {
-      columns:columns,
-      widths:widths,
-      primary:primary,
-      hasStored:!!(bucket && Object.keys(bucket).length)
-    };
-  }
-
-  function renderedColumnsV6581(source,layout){
-    return source.type === 'managed' ? layout.columns : (source.columns || []);
-  }
-
-  function headerForV6581(source,column){
+  function headerForV6581(source, column){
     const table = source && source.table;
     if (!table || !table.tHead || !table.tHead.rows.length) return null;
     if (source.type === 'managed') {
@@ -391,69 +402,173 @@ Purpose: Opt-in shared column-width feature with spreadsheet-style live resizing
     return table.tHead.rows[0].cells[column.index] || null;
   }
 
-  function ensureColgroupV6581(source,layout){
+  function defaultWidthsV6581(context, source, available){
+    const options = optionsForV6581(context);
+    const columns = visibleColumnsV6581(source);
+    const primary = primaryIndexV6581(columns);
+    const widths = columns.map(function(column, index){
+      const stored = storedWidthV6581(context, source.id, column.field);
+      if (stored) return stored;
+      return readableDefaultV6583(
+        context,
+        source,
+        column,
+        headerForV6581(source, column),
+        index === primary
+      );
+    });
+
+    const bucket = widthBucketV6581(context, source.id, false);
+    const hasStored = !!(bucket && Object.keys(bucket).length);
+    if (!hasStored && columns.length) {
+      const total = widths.reduce(function(sum, width){ return sum + width; }, 0);
+      if (total < available) {
+        const max = Number(options.firstColumnMax) || Number(options.absoluteMax) || 720;
+        widths[primary] = Math.min(max, widths[primary] + (available - total));
+      }
+    }
+
+    return { columns: columns, widths: widths, primary: primary, hasStored: hasStored };
+  }
+
+  function renderedColumnsV6581(source, layout){
+    return source.type === 'managed' ? layout.columns : (source.columns || []);
+  }
+
+  function ensureColgroupV6581(source, layout){
     const table = source.table;
     let colgroup = table.querySelector(':scope > colgroup[data-cda-column-widths-colgroup-v6581="true"]');
     if (!colgroup) {
       colgroup = table.ownerDocument.createElement('colgroup');
-      colgroup.setAttribute('data-cda-column-widths-colgroup-v6581','true');
-      table.insertBefore(colgroup,table.firstChild);
+      colgroup.setAttribute('data-cda-column-widths-colgroup-v6581', 'true');
+      table.insertBefore(colgroup, table.firstChild);
     }
-    const columns = renderedColumnsV6581(source,layout);
+    const columns = renderedColumnsV6581(source, layout);
     while (colgroup.children.length < columns.length) colgroup.appendChild(table.ownerDocument.createElement('col'));
     while (colgroup.children.length > columns.length) colgroup.lastChild.remove();
-    return {colgroup:colgroup,columns:columns};
+    return { colgroup: colgroup, columns: columns };
   }
 
-  function setColWidthV6581(col,width){
+  function setColWidthV6581(col, width){
     if (!col) return;
-    const value = Math.max(0,Math.round(width)) + 'px';
-    col.style.setProperty('width',value,'important');
-    col.style.setProperty('min-width',value,'important');
-    col.style.setProperty('max-width',value,'important');
+    const value = Math.max(0, Math.round(width)) + 'px';
+    col.style.setProperty('width', value, 'important');
+    col.style.setProperty('min-width', value, 'important');
+    col.style.setProperty('max-width', value, 'important');
   }
 
-  function setTableWidthV6581(table,viewport,width){
-    const pixels = Math.max(1,Math.ceil(width)) + 'px';
-    table.style.setProperty('--cda-column-widths-table-width-v6581',pixels);
-    table.style.setProperty('width',pixels,'important');
-    table.style.setProperty('min-width',pixels,'important');
-    table.style.setProperty('max-width','none','important');
-    if (viewport) {
-      viewport.style.removeProperty('--cda-column-widths-table-width-v6581');
-      viewport.style.setProperty('width','100%','important');
-      viewport.style.setProperty('min-width','0','important');
-      viewport.style.setProperty('max-width','100%','important');
-    }
+  function setTableWidthV6581(table, width){
+    const pixels = Math.max(1, Math.ceil(width)) + 'px';
+    table.style.setProperty('--cda-column-widths-table-width-v6581', pixels);
+    table.style.setProperty('width', pixels, 'important');
+    table.style.setProperty('min-width', pixels, 'important');
+    table.style.setProperty('max-width', pixels, 'important');
   }
 
   function widthMapV6581(layout){
     const map = new Map();
-    layout.columns.forEach(function(column,index){ map.set(column.field,layout.widths[index]); });
+    layout.columns.forEach(function(column, index){ map.set(column.field, layout.widths[index]); });
     return map;
   }
 
-  function applyWidthMapV6581(source,layout,map,viewport,available){
+  function railAnchorV6583(context, viewport){
+    const doc = viewport.ownerDocument || document;
+    const view = doc.defaultView || window;
+    const card = context && context.card;
+    let node = viewport.parentElement;
+    let fallback = viewport;
+    while (node && node !== doc.body && node !== card) {
+      fallback = node;
+      let overflowY = '';
+      try { overflowY = String(view.getComputedStyle(node).overflowY || ''); }
+      catch (error) {}
+      if (/auto|scroll/.test(overflowY) || /TableWrap|tableWrap|Scroll|scroll/.test(String(node.className || ''))) {
+        return node;
+      }
+      node = node.parentElement;
+    }
+    return fallback || viewport;
+  }
+
+  function ensureBottomRailV6583(context, source, viewport){
+    const doc = viewport.ownerDocument || document;
+    const selector = '.cdaColumnWidthBottomRailV6583[data-cda-column-width-rail-source-v6583="' +
+      String(source.id).replace(/"/g, '\\"') + '"]';
+    let rail = null;
+    const card = context && context.card;
+    try { rail = (card || doc).querySelector(selector); } catch (error) {}
+    if (!rail) {
+      rail = doc.createElement('div');
+      rail.className = 'cdaColumnWidthBottomRailV6583';
+      rail.setAttribute('data-cda-column-width-rail-source-v6583', String(source.id));
+      rail.setAttribute('role', 'scrollbar');
+      rail.setAttribute('aria-label', 'Horizontal table scroll');
+      rail.tabIndex = 0;
+      const spacer = doc.createElement('div');
+      spacer.className = 'cdaColumnWidthBottomRailSpacerV6583';
+      rail.appendChild(spacer);
+    }
+    const anchor = railAnchorV6583(context, viewport);
+    if (anchor.parentNode && (rail.parentNode !== anchor.parentNode || rail.previousSibling !== anchor)) {
+      anchor.parentNode.insertBefore(rail, anchor.nextSibling);
+    }
+    rail._cdaViewportV6583 = viewport;
+    viewport._cdaRailV6583 = rail;
+    if (rail.getAttribute('data-cda-column-width-sync-bound-v6583') !== 'true') {
+      rail.setAttribute('data-cda-column-width-sync-bound-v6583', 'true');
+      rail.addEventListener('scroll', function(){
+        const linked = rail._cdaViewportV6583;
+        if (!linked || rail._cdaSyncingV6583) return;
+        rail._cdaSyncingV6583 = true;
+        linked.scrollLeft = rail.scrollLeft;
+        rail._cdaSyncingV6583 = false;
+      }, { passive: true });
+    }
+    if (viewport.getAttribute('data-cda-column-width-sync-bound-v6583') !== 'true') {
+      viewport.setAttribute('data-cda-column-width-sync-bound-v6583', 'true');
+      viewport.addEventListener('scroll', function(){
+        const linked = viewport._cdaRailV6583;
+        if (!linked || linked._cdaSyncingV6583) return;
+        linked._cdaSyncingV6583 = true;
+        linked.scrollLeft = viewport.scrollLeft;
+        linked._cdaSyncingV6583 = false;
+      }, { passive: true });
+    }
+    return rail;
+  }
+
+  function updateBottomRailV6583(rail, viewport, tableWidth, available){
+    if (!rail) return;
+    const spacer = rail.firstElementChild;
+    if (spacer) spacer.style.width = Math.max(1, Math.ceil(tableWidth)) + 'px';
+    rail.hidden = tableWidth <= available + 1;
+    rail.setAttribute('aria-valuemin', '0');
+    rail.setAttribute('aria-valuemax', String(Math.max(0, Math.ceil(tableWidth - available))));
+    rail.setAttribute('aria-valuenow', String(Math.max(0, Math.round(viewport.scrollLeft || 0))));
+    if (!rail.hidden) rail.scrollLeft = viewport.scrollLeft || 0;
+  }
+
+  function applyWidthMapV6581(context, source, layout, map, viewport, available){
     const table = source.table;
-    const group = ensureColgroupV6581(source,layout);
+    const group = ensureColgroupV6581(source, layout);
     const colByField = new Map();
     let total = 0;
-    group.columns.forEach(function(column,index){
+    group.columns.forEach(function(column, index){
       const visible = column.visible !== false;
       const width = visible ? Number(map.get(column.field) || 0) : 0;
       const col = group.colgroup.children[index];
       col.style.display = visible ? '' : 'none';
-      setColWidthV6581(col,width);
+      setColWidthV6581(col, width);
       if (visible) {
         total += width;
-        colByField.set(column.field,col);
+        colByField.set(column.field, col);
       }
     });
-    const tableWidth = layout.hasStored
-      ? Math.max(1,Math.ceil(total))
-      : Math.max(Math.ceil(total),Math.max(1,available));
-    setTableWidthV6581(table,viewport,tableWidth);
-    return {total:total,tableWidth:tableWidth,colByField:colByField};
+    const tableWidth = Math.max(1, Math.ceil(total));
+    setTableWidthV6581(table, tableWidth);
+    const rail = ensureBottomRailV6583(context, source, viewport);
+    updateBottomRailV6583(rail, viewport, tableWidth, available);
+    return { total: total, tableWidth: tableWidth, colByField: colByField, rail: rail };
   }
 
   function stopEventV6581(event){
@@ -462,7 +577,7 @@ Purpose: Opt-in shared column-width feature with spreadsheet-style live resizing
     event.stopPropagation();
   }
 
-  function setGuidePositionV6581(drag,clientX){
+  function setGuidePositionV6581(drag, clientX){
     if (!drag || !drag.guide) return;
     drag.guide.style.transform = 'translate3d(' + Math.round(clientX) + 'px,0,0)';
   }
@@ -473,14 +588,12 @@ Purpose: Opt-in shared column-width feature with spreadsheet-style live resizing
     const width = drag.pendingWidth;
     const delta = width - drag.startWidth;
     drag.currentWidth = width;
-    drag.map.set(drag.column.field,width);
-    setColWidthV6581(drag.col,width);
-    setTableWidthV6581(
-      drag.source.table,
-      drag.viewport,
-      Math.max(1,drag.startTableWidth + delta)
-    );
-    setGuidePositionV6581(drag,drag.startRight + delta);
+    drag.map.set(drag.column.field, width);
+    setColWidthV6581(drag.col, width);
+    const tableWidth = Math.max(1, drag.startTableWidth + delta);
+    setTableWidthV6581(drag.source.table, tableWidth);
+    updateBottomRailV6583(drag.rail, drag.viewport, tableWidth, drag.available);
+    setGuidePositionV6581(drag, drag.startRight + delta);
   }
 
   function scheduleDragFrameV6581(drag){
@@ -489,18 +602,18 @@ Purpose: Opt-in shared column-width feature with spreadsheet-style live resizing
   }
 
   function removeDragListenersV6581(drag){
-    drag.doc.removeEventListener('pointermove',drag.move,true);
-    drag.doc.removeEventListener('pointerup',drag.finish,true);
-    drag.doc.removeEventListener('pointercancel',drag.cancel,true);
-    drag.doc.removeEventListener('keydown',drag.keydown,true);
-    drag.doc.removeEventListener('visibilitychange',drag.visibility,true);
-    drag.view.removeEventListener('pointerup',drag.finish,true);
-    drag.view.removeEventListener('pointercancel',drag.cancel,true);
-    drag.view.removeEventListener('blur',drag.blur,true);
-    drag.handle.removeEventListener('lostpointercapture',drag.lost,true);
+    drag.doc.removeEventListener('pointermove', drag.move, true);
+    drag.doc.removeEventListener('pointerup', drag.finish, true);
+    drag.doc.removeEventListener('pointercancel', drag.cancel, true);
+    drag.doc.removeEventListener('keydown', drag.keydown, true);
+    drag.doc.removeEventListener('visibilitychange', drag.visibility, true);
+    drag.view.removeEventListener('pointerup', drag.finish, true);
+    drag.view.removeEventListener('pointercancel', drag.cancel, true);
+    drag.view.removeEventListener('blur', drag.blur, true);
+    drag.handle.removeEventListener('lostpointercapture', drag.lost, true);
   }
 
-  function finishDragV6581(event,commit){
+  function finishDragV6581(event, commit){
     const drag = activeDragV6581;
     if (!drag) return;
     if (event) stopEventV6581(event);
@@ -523,48 +636,97 @@ Purpose: Opt-in shared column-width feature with spreadsheet-style live resizing
     if (drag.guide && drag.guide.parentNode) drag.guide.remove();
     if (drag.shield && drag.shield.parentNode) drag.shield.remove();
     if (commit !== false && drag.moved) {
-      saveWidthMapV6581(drag.context,drag.source.id,drag.map);
+      saveWidthMapV6581(drag.context, drag.source.id, drag.map);
     } else if (commit === false) {
-      drag.map.set(drag.column.field,drag.startWidth);
-      applyContextV6581(drag.context,true);
+      drag.map.set(drag.column.field, drag.startWidth);
+      setColWidthV6581(drag.col, drag.startWidth);
+      setTableWidthV6581(drag.source.table, drag.startTableWidth);
+      updateBottomRailV6583(drag.rail, drag.viewport, drag.startTableWidth, drag.available);
     }
   }
 
-  function beginDragV6581(event,context,source,column,header,layout,map,application,viewport,available){
+  function freshBindingV6583(handle){
+    const binding = handle && handle._cdaColumnWidthBindingV6583;
+    if (!binding || !binding.context || !binding.source || !binding.column) return null;
+    const context = binding.context;
+    const source = sourceListV6581(context).find(function(item){ return item.id === binding.source.id; }) || binding.source;
+    const table = source && source.table;
+    if (!table || !table.isConnected) return null;
+    const viewport = ensureViewportV6581(table);
+    const available = availableWidthV6581(context, viewport);
+    const layout = defaultWidthsV6581(context, source, available);
+    const map = widthMapV6581(layout);
+    const application = applyWidthMapV6581(context, source, layout, map, viewport, available);
+    const column = layout.columns.find(function(item){ return item.field === binding.column.field; });
+    const header = column && headerForV6581(source, column);
+    return column && header ? {
+      context: context,
+      source: source,
+      column: column,
+      header: header,
+      viewport: viewport,
+      available: available,
+      layout: layout,
+      map: map,
+      application: application
+    } : null;
+  }
+
+  function beginDragV6581(event, handle){
     if (event.button != null && event.button !== 0) return;
     stopEventV6581(event);
-    finishDragV6581(null,true);
-    const doc = header.ownerDocument || documentForV6581(context);
+    finishDragV6581(null, true);
+    const fresh = freshBindingV6583(handle);
+    if (!fresh) return;
+    const doc = fresh.header.ownerDocument || documentForV6581(fresh.context);
     const view = doc.defaultView || window;
-    const startWidth = Number(map.get(column.field)) || Number(header.offsetWidth) || 80;
-    const startRight = header.getBoundingClientRect().right;
+    const startWidth = Number(fresh.map.get(fresh.column.field)) || Number(fresh.header.offsetWidth) || 80;
+    const startRight = fresh.header.getBoundingClientRect().right;
     const guide = doc.createElement('div');
     guide.className = 'cdaColumnWidthGuideV6581';
     const shield = doc.createElement('div');
     shield.className = 'cdaColumnWidthDragShieldV6581';
-    doc.body.append(shield,guide);
+    doc.body.append(shield, guide);
     doc.documentElement.classList.add('cdaColumnWidthDragActiveV6581');
     if (doc.body) doc.body.classList.add('cdaColumnWidthDragActiveV6581');
 
     const drag = {
-      context:context,source:source,column:column,header:header,handle:event.currentTarget,
-      layout:layout,map:map,viewport:viewport,available:available,doc:doc,view:view,
-      guide:guide,shield:shield,col:application.colByField.get(column.field),
-      pointerId:event.pointerId,startX:event.clientX,startRight:startRight,
-      startWidth:startWidth,startTableWidth:application.tableWidth,
-      pendingWidth:startWidth,currentWidth:startWidth,moved:false,frame:0
+      context: fresh.context,
+      source: fresh.source,
+      column: fresh.column,
+      header: fresh.header,
+      handle: handle,
+      layout: fresh.layout,
+      map: fresh.map,
+      viewport: fresh.viewport,
+      available: fresh.available,
+      doc: doc,
+      view: view,
+      guide: guide,
+      shield: shield,
+      rail: fresh.application.rail,
+      col: fresh.application.colByField.get(fresh.column.field),
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startRight: startRight,
+      startWidth: startWidth,
+      startTableWidth: fresh.application.tableWidth,
+      pendingWidth: startWidth,
+      currentWidth: startWidth,
+      moved: false,
+      frame: 0
     };
-    setGuidePositionV6581(drag,startRight);
-    drag.handle.setAttribute('data-cda-column-width-dragging-v6581','true');
+    setGuidePositionV6581(drag, startRight);
+    handle.setAttribute('data-cda-column-width-dragging-v6581', 'true');
     drag.move = function(moveEvent){
       if (moveEvent.pointerId != null && drag.pointerId != null && moveEvent.pointerId !== drag.pointerId) return;
       if (moveEvent.buttons === 0) {
-        finishDragV6581(moveEvent,true);
+        finishDragV6581(moveEvent, true);
         return;
       }
       stopEventV6581(moveEvent);
-      const options = optionsForV6581(context);
-      const min = Number(options.absoluteMin) || 48;
+      const options = optionsForV6581(drag.context);
+      const min = Number(options.absoluteMin) || 54;
       const max = Number(options.absoluteMax) || 720;
       drag.pendingWidth = Math.round(clampV6581(
         drag.startWidth + moveEvent.clientX - drag.startX,
@@ -574,81 +736,72 @@ Purpose: Opt-in shared column-width feature with spreadsheet-style live resizing
       drag.moved = drag.moved || Math.abs(drag.pendingWidth - drag.startWidth) >= 1;
       scheduleDragFrameV6581(drag);
     };
-    drag.finish = function(finishEvent){ finishDragV6581(finishEvent,true); };
-    drag.cancel = function(cancelEvent){ finishDragV6581(cancelEvent,false); };
-    drag.lost = function(){ finishDragV6581(null,true); };
-    drag.blur = function(){ finishDragV6581(null,true); };
-    drag.visibility = function(){ if (doc.hidden) finishDragV6581(null,true); };
+    drag.finish = function(finishEvent){ finishDragV6581(finishEvent, true); };
+    drag.cancel = function(cancelEvent){ finishDragV6581(cancelEvent, false); };
+    drag.lost = function(){ finishDragV6581(null, true); };
+    drag.blur = function(){ finishDragV6581(null, true); };
+    drag.visibility = function(){ if (doc.hidden) finishDragV6581(null, true); };
     drag.keydown = function(keyEvent){
-      if (keyEvent.key === 'Escape') finishDragV6581(keyEvent,false);
+      if (keyEvent.key === 'Escape') finishDragV6581(keyEvent, false);
     };
     activeDragV6581 = drag;
 
-    doc.addEventListener('pointermove',drag.move,true);
-    doc.addEventListener('pointerup',drag.finish,true);
-    doc.addEventListener('pointercancel',drag.cancel,true);
-    doc.addEventListener('keydown',drag.keydown,true);
-    doc.addEventListener('visibilitychange',drag.visibility,true);
-    view.addEventListener('pointerup',drag.finish,true);
-    view.addEventListener('pointercancel',drag.cancel,true);
-    view.addEventListener('blur',drag.blur,true);
-    drag.handle.addEventListener('lostpointercapture',drag.lost,true);
+    doc.addEventListener('pointermove', drag.move, true);
+    doc.addEventListener('pointerup', drag.finish, true);
+    doc.addEventListener('pointercancel', drag.cancel, true);
+    doc.addEventListener('keydown', drag.keydown, true);
+    doc.addEventListener('visibilitychange', drag.visibility, true);
+    view.addEventListener('pointerup', drag.finish, true);
+    view.addEventListener('pointercancel', drag.cancel, true);
+    view.addEventListener('blur', drag.blur, true);
+    handle.addEventListener('lostpointercapture', drag.lost, true);
     try {
-      if (drag.handle.setPointerCapture && event.pointerId != null) {
-        drag.handle.setPointerCapture(event.pointerId);
-      }
+      if (handle.setPointerCapture && event.pointerId != null) handle.setPointerCapture(event.pointerId);
     } catch (error) {}
   }
 
-  function installHandleV6581(context,source,column,header,layout,map,application,viewport,available){
+  function installHandleV6581(context, source, column, header){
     if (!header) return;
-    header.setAttribute('data-cda-column-width-resizable-v6581','true');
+    header.setAttribute('data-cda-column-width-resizable-v6581', 'true');
     let handle = Array.from(header.children || []).find(function(child){
       return child.classList && child.classList.contains('cdaColumnWidthHandleV6581');
     }) || null;
     if (!handle) {
       handle = header.ownerDocument.createElement('span');
       handle.className = 'cdaColumnWidthHandleV6581';
-      handle.setAttribute('role','separator');
-      handle.setAttribute('aria-orientation','vertical');
-      handle.setAttribute('tabindex','0');
+      handle.setAttribute('role', 'separator');
+      handle.setAttribute('aria-orientation', 'vertical');
+      handle.setAttribute('tabindex', '0');
       header.appendChild(handle);
     }
-    handle.setAttribute('aria-label','Resize ' + column.label + ' column');
-    handle.title = 'Drag to resize. Double-click to restore the default width.';
-    if (handle.getAttribute('data-cda-column-width-bound-v6581') === 'true') return;
-    handle.setAttribute('data-cda-column-width-bound-v6581','true');
+    handle._cdaColumnWidthBindingV6583 = { context: context, source: source, column: column };
+    handle.setAttribute('aria-label', 'Resize ' + column.label + ' column');
+    handle.title = 'Drag to resize. Double-click to restore this column.';
+    if (handle.getAttribute('data-cda-column-width-bound-v6583') === 'true') return;
+    handle.setAttribute('data-cda-column-width-bound-v6583', 'true');
 
-    handle.addEventListener('click',stopEventV6581,true);
-    handle.addEventListener('dblclick',function(event){
+    handle.addEventListener('click', stopEventV6581, true);
+    handle.addEventListener('dblclick', function(event){
       stopEventV6581(event);
-      clearWidthV6581(context,source.id,column.field);
-      applyContextV6581(context,true);
-    },true);
-    handle.addEventListener('keydown',function(event){
+      const binding = handle._cdaColumnWidthBindingV6583;
+      if (!binding) return;
+      clearWidthV6581(binding.context, binding.source.id, binding.column.field);
+      applyContextV6581(binding.context, true);
+    }, true);
+    handle.addEventListener('keydown', function(event){
       if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
       stopEventV6581(event);
-      const current = Number(map.get(column.field)) || Number(header.offsetWidth) || 80;
-      const options = optionsForV6581(context);
-      const min = Number(options.absoluteMin) || 48;
+      const fresh = freshBindingV6583(handle);
+      if (!fresh) return;
+      const current = Number(fresh.map.get(fresh.column.field)) || Number(fresh.header.offsetWidth) || 80;
+      const options = optionsForV6581(fresh.context);
+      const min = Number(options.absoluteMin) || 54;
       const max = Number(options.absoluteMax) || 720;
-      map.set(column.field,clampV6581(current + (event.key === 'ArrowRight' ? 10 : -10),min,max));
-      saveWidthMapV6581(context,source.id,map);
-      applyContextV6581(context,true);
+      fresh.map.set(fresh.column.field, clampV6581(current + (event.key === 'ArrowRight' ? 10 : -10), min, max));
+      saveWidthMapV6581(fresh.context, fresh.source.id, fresh.map);
+      applyContextV6581(fresh.context, true);
     });
-    handle.addEventListener('pointerdown',function(event){
-      beginDragV6581(event,context,source,column,header,layout,map,application,viewport,available);
-    },true);
-  }
-
-  function normalizeCellWidthsV6581(table){
-    Array.from(table.querySelectorAll('th,td')).forEach(function(cell){
-      if (cell.getAttribute('data-cda-column-width-normalized-v6581') === 'true') return;
-      cell.style.setProperty('width','auto','important');
-      cell.style.setProperty('min-width','0','important');
-      cell.style.setProperty('max-width','none','important');
-      cell.setAttribute('data-cda-column-width-normalized-v6581','true');
-    });
+    handle.addEventListener('pointerdown', function(event){ beginDragV6581(event, handle); }, true);
   }
 
   function addCellTitlesV6581(table){
@@ -656,45 +809,42 @@ Purpose: Opt-in shared column-width feature with spreadsheet-style live resizing
       Array.from(body.rows || []).forEach(function(row){
         Array.from(row.cells || []).forEach(function(cell){
           if (cell.hasAttribute('title')) return;
-          const text = String(cell.textContent || '').replace(/\s+/g,' ').trim();
-          if (text) cell.setAttribute('title',text);
+          const text = String(cell.textContent || '').replace(/\s+/g, ' ').trim();
+          if (text) cell.setAttribute('title', text);
         });
       });
     });
   }
 
-  function applySourceV6581(context,source){
+  function applySourceV6581(context, source){
     const table = source && source.table;
     if (!table || !table.isConnected) return false;
     cleanLegacyV6580(table);
     const viewport = ensureViewportV6581(table);
     if (!viewport) return false;
-    table.setAttribute('data-cda-column-widths-enabled-v6581','true');
-    normalizeCellWidthsV6581(table);
-    const available = availableWidthV6581(context,viewport);
-    const layout = defaultWidthsV6581(context,source,available);
+    table.setAttribute('data-cda-column-widths-enabled-v6581', 'true');
+    const available = availableWidthV6581(context, viewport);
+    const layout = defaultWidthsV6581(context, source, available);
     const map = widthMapV6581(layout);
-    const application = applyWidthMapV6581(source,layout,map,viewport,available);
+    applyWidthMapV6581(context, source, layout, map, viewport, available);
     layout.columns.forEach(function(column){
-      installHandleV6581(
-        context,source,column,headerForV6581(source,column),layout,map,application,viewport,available
-      );
+      installHandleV6581(context, source, column, headerForV6581(source, column));
     });
     addCellTitlesV6581(table);
-    table.setAttribute('data-cda-column-widths-ready-v6581','true');
+    table.setAttribute('data-cda-column-widths-ready-v6581', 'true');
     return true;
   }
 
-  function snapshotContextV6581(context,doc){
+  function snapshotContextV6581(context, doc){
     return {
-      tab:context.tab,
-      component:context.component,
-      adapter:context.adapter || context.tab && context.tab.adapter || {},
-      platform:context.platform || window.cdaDashboardPlatformV6547 || null,
-      document:doc,
-      window:doc.defaultView || window,
-      card:context.card && context.card.ownerDocument === doc ? context.card : null,
-      popover:context.popover || window.cdaDashboardPopoverV6547 || null
+      tab: context.tab,
+      component: context.component,
+      adapter: context.adapter || context.tab && context.tab.adapter || {},
+      platform: context.platform || window.cdaDashboardPlatformV6547 || null,
+      document: doc,
+      window: doc.defaultView || window,
+      card: context.card && context.card.ownerDocument === doc ? context.card : null,
+      popover: context.popover || window.cdaDashboardPopoverV6547 || null
     };
   }
 
@@ -704,18 +854,18 @@ Purpose: Opt-in shared column-width feature with spreadsheet-style live resizing
     let map = contextsByDocumentV6581.get(doc);
     if (!map) {
       map = new Map();
-      contextsByDocumentV6581.set(doc,map);
+      contextsByDocumentV6581.set(doc, map);
     }
-    map.set(stateKeyV6581(context),snapshotContextV6581(context,doc));
+    map.set(stateKeyV6581(context), snapshotContextV6581(context, doc));
     observeDocumentV6581(doc);
   }
 
-  function applyContextV6581(context,remember){
+  function applyContextV6581(context, remember){
     if (!enabledV6581(context)) return false;
     if (remember !== false) rememberContextV6581(context);
     let applied = false;
     sourceListV6581(context).forEach(function(source){
-      applied = applySourceV6581(context,source) || applied;
+      applied = applySourceV6581(context, source) || applied;
     });
     return applied;
   }
@@ -729,7 +879,7 @@ Purpose: Opt-in shared column-width feature with spreadsheet-style live resizing
     const map = contextsByDocumentV6581.get(doc);
     if (!map) return;
     applyingDocumentsV6581.add(doc);
-    try { map.forEach(function(context){ applyContextV6581(context,false); }); }
+    try { map.forEach(function(context){ applyContextV6581(context, false); }); }
     finally { applyingDocumentsV6581.delete(doc); }
   }
 
@@ -756,64 +906,63 @@ Purpose: Opt-in shared column-width feature with spreadsheet-style live resizing
         const target = record.target && record.target.nodeType === 1
           ? record.target
           : record.target && record.target.parentElement;
-        return !(target && target.closest &&
-          target.closest('.cdaColumnWidthGuideV6581,.cdaColumnWidthDragShieldV6581'));
+        return !(target && target.closest && target.closest(
+          '.cdaColumnWidthGuideV6581,.cdaColumnWidthDragShieldV6581,.cdaColumnWidthBottomRailV6583'
+        ));
       });
       if (relevant) scheduleDocumentV6581(doc);
     });
-    observer.observe(doc.body,{
-      childList:true,
-      subtree:true,
-      attributes:true,
-      attributeFilter:['hidden']
+    observer.observe(doc.body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['hidden']
     });
-    observersByDocumentV6581.set(doc,observer);
-    doc.addEventListener('cdaTableRendered',function(){ applyDocumentV6581(doc); });
-    doc.addEventListener('cdaDashboardColumnsChanged',function(event){
+    observersByDocumentV6581.set(doc, observer);
+    doc.addEventListener('cdaTableRendered', function(){ applyDocumentV6581(doc); });
+    doc.addEventListener('cdaDashboardColumnsChanged', function(event){
       const context = event && event.detail && event.detail.context;
-      if (context) applyContextV6581(context,true);
+      if (context) applyContextV6581(context, true);
       else applyDocumentV6581(doc);
     });
-    view.addEventListener('resize',function(){ scheduleDocumentV6581(doc); },{passive:true});
+    view.addEventListener('resize', function(){ scheduleDocumentV6581(doc); }, { passive: true });
   }
 
-  function enableV6581(context){ return applyContextV6581(context,true); }
-  function refreshV6581(context){ return applyContextV6581(context,true); }
+  function enableV6581(context){ return applyContextV6581(context, true); }
+  function refreshV6581(context){ return applyContextV6581(context, true); }
 
   function resetV6581(context){
-    finishDragV6581(null,false);
+    finishDragV6581(null, false);
     const key = stateKeyV6581(context);
-    const existed = !!widthStateV6581[key];
     delete widthStateV6581[key];
-    writeJsonV6581(storageKeyV6581,widthStateV6581);
-    applyContextV6581(context,true);
-    return existed || true;
+    writeJsonV6581(storageKeyV6581, widthStateV6581);
+    applyContextV6581(context, true);
+    return true;
   }
 
-  function resetFieldV6581(context,sourceId,field){
-    finishDragV6581(null,false);
-    const changed = clearWidthV6581(context,sourceId,field);
-    applyContextV6581(context,true);
+  function resetFieldV6581(context, sourceId, field){
+    finishDragV6581(null, false);
+    const changed = clearWidthV6581(context, sourceId, field);
+    applyContextV6581(context, true);
     return changed;
   }
 
-  migrateExperimentalWidthsV6581();
+  recoverBrokenWidthsV6583();
   if (document.documentElement) document.documentElement.classList.remove('cdaColumnWidthDragActiveV6581');
   if (document.body) document.body.classList.remove('cdaColumnWidthDragActiveV6581');
   observeDocumentV6581(document);
 
   window.cdaDashboardColumnWidthsV6581 = Object.freeze({
-    version:VERSION_V6581,
-    mode:'opt-in-contained-spreadsheet-column-widths',
-    enabled:enabledV6581,
-    enable:enableV6581,
-    apply:enableV6581,
-    refresh:refreshV6581,
-    reset:resetV6581,
-    resetField:resetFieldV6581,
-    storedWidth:storedWidthV6581,
-    saveWidth:saveWidthV6581,
-    finishActiveDrag:function(){ finishDragV6581(null,true); return true; }
+    version: VERSION_V6581,
+    mode:'opt-in-independent-column-widths-with-fixed-bottom-scrollbar',
+    enabled: enabledV6581,
+    enable: enableV6581,
+    apply: enableV6581,
+    refresh: refreshV6581,
+    reset: resetV6581,
+    resetField: resetFieldV6581,
+    storedWidth: storedWidthV6581,
+    finishActiveDrag: function(){ finishDragV6581(null, true); return true; }
   });
 })();
 </script>

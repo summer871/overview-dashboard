@@ -105,16 +105,20 @@ function runColumnWidthFeatureContract(){
   assert(!columns.includes('cdaColumnWidthHandleV6581'), 'Visibility service still owns resizing.');
   assert(!columns.includes('cdaDashboardColumnWidths.v6581'), 'Visibility service still owns width persistence.');
 
-  assert(widths.includes("const VERSION_V6581 = 'v6.582'"), 'Shared column-width feature is not v6.582.');
-  assert(widths.includes("mode:'opt-in-contained-spreadsheet-column-widths'"), 'Shared column-width mode is missing.');
+  assert(widths.includes("const VERSION_V6581 = 'v6.583'"), 'Shared column-width feature is not v6.583.');
+  assert(widths.includes("mode:'opt-in-independent-column-widths-with-fixed-bottom-scrollbar'"), 'Shared column-width mode is missing.');
+  assert(widths.includes('cdaColumnWidthBottomRailV6583'), 'Persistent bottom horizontal scrollbar is missing.');
+  assert(widths.includes('freshBindingV6583(handle)'), 'Resize handles do not rebuild fresh bindings.');
+  assert(widths.includes('const tableWidth = Math.max(1, Math.ceil(total));'), 'Table width is not the exact sum of visible columns.');
+  assert(widths.includes('drag.map.set(drag.column.field, width);'), 'Resize does not update only the selected column.');
   assert(widths.includes("(component.features || []).indexOf('columnWidths') >= 0"), 'Column widths are not opt-in.');
   const enabledBlock = widths.match(/function enabledV6581[\s\S]*?\n  }/)?.[0] || '';
   assert(enabledBlock && !enabledBlock.includes("component.kind === 'table'"), 'Embedded tables are incorrectly excluded by component kind.');
   assert(!widths.includes("viewport = table.closest && table.closest('.remakeTableWrap')"), 'Outer table wrappers are still reused as scroll owners.');
-  assert(widths.includes('overflow-x:auto!important'), 'Horizontal and vertical table scrolling are not owned by one wrapper.');
-  assert(widths.includes('overflow-x:auto!important'), 'Detached horizontal scrolling is missing.');
-  assert(widths.includes('white-space:nowrap!important'), 'No-wrap behavior is missing.');
-  assert(widths.includes('text-overflow:ellipsis!important'), 'Truncation behavior is missing.');
+  assert(/overflow-x\s*:\s*auto\s*!important/.test(widths), 'Contained horizontal table scrolling is missing.');
+  assert(/overflow-x\s*:\s*auto\s*!important/.test(widths), 'Detached horizontal scrolling is missing.');
+  assert(/white-space\s*:\s*nowrap\s*!important/.test(widths), 'No-wrap behavior is missing.');
+  assert(/text-overflow\s*:\s*ellipsis\s*!important/.test(widths), 'Truncation behavior is missing.');
   assert(widths.includes('cdaColumnWidthDragShieldV6581'), 'Spreadsheet-style drag shield is missing.');
   assert(widths.includes('requestAnimationFrame'), 'Resize updates are not animation-frame batched.');
   const moveBlock = widths.match(/drag\.move = function\(moveEvent\)[\s\S]*?\n    };/)?.[0] || '';
@@ -129,15 +133,15 @@ function runColumnWidthFeatureContract(){
   assert(widths.includes("keyEvent.key === 'Escape'"), 'Escape-to-cancel cleanup is missing.');
   assert(widths.includes('queueMicrotask'), 'Before-paint rerender reapply is missing.');
   assert(widths.includes("localStorage.removeItem('cdaDashboardColumnWidths.v6580')"), 'Experimental v6.580 widths are not cleared once.');
-  assert(widths.includes('numericDefaultV6581') && widths.includes('firstColumnMin'), 'Compact numeric and wide primary-column defaults are missing.');
-  assert(widths.includes('reset:resetV6581'), 'Reset-to-default width action is missing.');
+  assert(widths.includes('readableDefaultV6583') && widths.includes('renderedCellFloorV6583'), 'Readable header-aware defaults are missing.');
+  assert(/\breset\s*:\s*resetV6581\b/.test(widths), 'Reset-to-default width action is missing.');
   assert(runtime.includes('columnWidths:resetColumnWidthsV6581'), 'Shared runtime does not route reset widths.');
 
   assert(widths.includes("table.parentElement.classList.contains('cdaDashboardTableViewportV6581')"), 'Column widths do not create a dedicated table-only viewport.');
   assert(!widths.includes("viewport = table.closest && table.closest('.remakeTableWrap')"), 'Column widths still reuse outer dashboard wrappers.');
   assert(!widths.includes("frame.style.setProperty('width'"), 'Column widths still widen the shared table frame/card.');
-  assert(widths.includes("overflow-x:auto!important"), 'Contained horizontal scrolling is missing.');
-  assert(widths.includes("overflow-y:hidden!important"), 'Horizontal viewport does not contain vertical overflow safely.');
+  assert(/overflow-x\s*:\s*auto\s*!important/.test(widths), 'Contained horizontal scrolling is missing.');
+  assert(/overflow-y\s*:\s*visible\s*!important/.test(widths), 'Inner viewport incorrectly owns vertical scrolling.');
   assert(columns.includes("resetWidths.textContent = 'Reset widths'"), 'Reset widths is not in the Columns popover.');
   assert(features.includes("key:'columnWidths',placement:'service'"), 'columnWidths must be service-only, not a More-menu item.');
 }
@@ -186,7 +190,7 @@ console.log('All 11 shared table surfaces, including TAT Promise: passed');
 console.log('Opt-in shared column-width feature: passed');
 console.log('Animation-frame spreadsheet-style resizing: passed');
 console.log('Complete width-layout persistence and pre-paint restore: passed');
-console.log('One table scroll owner with detached horizontal scrolling: passed');
-console.log('Compact numeric and elastic primary-column defaults: passed');
+console.log('Persistent bottom horizontal scrollbar with contained table overflow: passed');
+console.log('Readable header-aware numeric and primary-column defaults: passed');
 console.log('Native Remake collapse ownership: passed');
 console.log('Live-node pop-out and restore: passed');
