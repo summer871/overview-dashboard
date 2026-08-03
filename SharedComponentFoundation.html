@@ -1,7 +1,7 @@
 <!-- SharedComponentFoundation.html
-Version: v6.567
+Version: v6.628
 Date: 2026-07-31
-Purpose: Load the shared configuration-driven dashboard platform, opt-in shared column widths, independent cache timestamps, stable detached Remake controls, and the Remake-parity TAT layout.
+Purpose: Continue the shared dashboard feature chain after Index preloads the layout editor, stable table-width platform, and Chart.js first-draw controller in the document head.
 Every included file is a complete independently valid Apps Script HTML partial.
 -->
 <?!= includeDashboardFile('SharedTableStyles') ?>
@@ -10,8 +10,7 @@ Every included file is a complete independently valid Apps Script HTML partial.
 <?!= includeDashboardFile('SharedDashboardRegistryV6547') ?>
 <?!= includeDashboardFile('SharedDashboardPopoverV6547') ?>
 <?!= includeDashboardFile('SharedDashboardKpiV6547') ?>
-<?!= includeDashboardFile('SharedDashboardColumnsV6548') ?>
-<?!= includeDashboardFile('SharedDashboardColumnWidthsV6581') ?>
+<!-- v6.628: layout, table, and visual-fit controllers are preloaded once in Index head before dashboard construction. -->
 <?!= includeDashboardFile('SharedDashboardCatalogV6555') ?>
 <?!= includeDashboardFile('SharedDashboardIsolationV6555') ?>
 <?!= includeDashboardFile('SharedDashboardPopoutV6548') ?>

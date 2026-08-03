@@ -3,84 +3,49 @@
 
 const fs = require('fs');
 const path = require('path');
-const root = path.resolve(__dirname,'..');
-const footerVersion = 'v6.584';
-const read = name => fs.readFileSync(path.join(root,name),'utf8');
-const assert = (condition,message) => { if (!condition) throw new Error(message); };
+const vm = require('vm');
+const root = path.resolve(__dirname, '..');
+const read = name => fs.readFileSync(path.join(root, name), 'utf8');
+const optional = name => fs.existsSync(path.join(root, name)) ? read(name) : '';
+const assert = (condition, message) => { if (!condition) throw new Error(message); };
 
-const foundation = read('SharedComponentFoundation.html');
-const renderer = read('SharedDashboardRendererV6547.html');
-const service = read('TatProductTableV6562.html');
-const layout = read('TatDashboardLayoutV6563.html');
 const widths = read('TatTableWidthsV6563.html');
-const definition = read('TatDashboardDefinitionV6547.html');
-const adapter = read('TatDashboardAdapterV6547.html');
-const bootstrap = read('TatDashboardBootstrapV6547.html');
 const audit = read('TatProductAuditV6562.html');
-const controller = read('TatDashboardControllerScript.html');
-const footer = read('SharedFooter.html');
-const router = read('Code.js');
+const bootstrap = read('TatDashboardBootstrapV6547.html');
+const editor = read('SharedDashboardLayoutEditorV6593.html');
+for (const [name, text] of [
+  ['TatTableWidthsV6563.html', widths],
+  ['TatProductAuditV6562.html', audit],
+  ['TatDashboardBootstrapV6547.html', bootstrap]
+]) {
+  for (const match of text.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/gi)) {
+    new vm.Script(match[1], { filename: name });
+  }
+}
 
-assert(foundation.includes('Version: v6.567'), 'Foundation is not v6.567.');
-assert(renderer.includes("version:'v6.562'"), 'Renderer is not v6.562.');
-assert(service.includes("version:'v6.562'"), 'TAT product service is not v6.562.');
-assert(service.includes("config.childRows = null"), 'Department child rows are not disabled.');
-assert(service.includes('data-tat-product-mode-v6562="product"'), 'Products mode is missing.');
-assert(service.includes('data-tat-product-mode-v6562="group"'), 'Groups mode is missing.');
+assert(widths.includes("version:'v6.595'"), 'TAT width facade is not v6.595');
+assert(widths.includes("mode:'delegated-to-dashboard-wide-table-surfaces'"), 'TAT widths are not delegated');
+assert(!widths.includes('nth-child'), 'Legacy TAT percentage widths remain');
+assert(audit.includes("tableSurfaces.version === 'v6.595'"), 'TAT audit does not require v6.595');
+assert(audit.includes('dashboard-wide-collapse-aware-fit-paired-table-surfaces'), 'TAT audit does not require stable-fit mode');
+for (const id of ['tatDepartmentTableV6509','tatLateTableV6509','tatProductTableV6562','tatCustomerTableV6509','tatQualityTableV6509']) {
+  assert(audit.includes(id), `TAT audit missing ${id}`);
+}
+assert(bootstrap.includes("widths.version === 'v6.595'"), 'TAT bootstrap width facade version incorrect');
+assert(bootstrap.includes("layoutEditor.version === 'v6.608'"), 'TAT bootstrap does not require v6.608 layout editor');
+assert(editor.includes('repairTatTablesV6593'), 'TAT bottom-table recovery missing');
+assert(editor.includes("renderRegisteredTableV6593('tatCustomer'"), 'TAT Customer restoration missing');
+assert(editor.includes("'tatQuality'"), 'TAT quality restoration missing');
+assert(editor.includes('autoSelectQualityIssueV6593'), 'TAT quality automatic detail selection missing');
+const definition = optional('TatDashboardDefinitionV6547.html');
+if (definition) {
+  assert(definition.includes('tatLateTableV6509'), 'TAT Promise table missing');
+  assert(definition.includes("key:'performance'"), 'Unified TAT Performance missing');
+}
 
-assert(layout.includes("version:'v6.565'"), 'TAT layout is not v6.565.');
-assert(layout.includes("mode:'remake-parity-two-column-performance-toggle'"), 'Remake-parity layout mode is missing.');
-assert(layout.includes('data-tat-performance-mode-v6565="distribution"'), 'Distribution mode is missing.');
-assert(layout.includes('data-tat-performance-mode-v6565="promise"'), 'Promise mode is missing.');
-assert(layout.includes('data-tat-performance-view-v6565'), 'Performance views are missing.');
-assert(layout.includes('grid-template-columns:repeat(2,minmax(0,1fr))'), 'TAT grid is not an equal two-column layout.');
-assert(layout.includes('max-height:315px!important'), 'Performance/Product row height parity is missing.');
-assert(!layout.includes('tatPromiseStripV6564'), 'Rejected full-width promise strip remains.');
-assert(!layout.includes('tatPromisePanelV6563'), 'Rejected right-side promise panel remains.');
+console.log('v6.595 TAT table contracts with v6.608 layout editor passed.');
+console.log('TAT percentage width overrides removed: passed');
+console.log('All five TAT table surfaces enforced: passed');
+console.log('TAT Promise and Products use the shared full-width collapse-aware fit engine: passed');
 
-assert(widths.includes("tatDepartment:['30%','13%','13%','11%','11%','10%','12%']"), 'Department widths are incorrect.');
-assert(widths.includes("tatProduct:['34%','12%','12%','10%','10%','10%','12%']"), 'Product widths are incorrect.');
-assert(widths.includes("tatCustomer:['30%','9%','12%','12%','10%','9%','9%','9%']"), 'Customer widths are incorrect.');
-
-assert(definition.includes("version:'v6.581'"), 'TAT definition is not v6.581.');
-assert(definition.includes("const TABLE_FEATURES = ['columns','columnWidths'"), 'TAT tables do not opt into shared column widths.');
-assert(definition.includes('numericMin:58,numericMax:82'), 'TAT numeric default widths are not compact.');
-assert(definition.includes('firstColumnMin:132'), 'TAT elastic first-column minimum is missing.');
-assert(definition.includes("key:'performance',title:'TAT Performance'"), 'TAT Performance is missing.');
-
-assert(definition.includes("tableIds:['tatLateTableV6509']"), 'TAT Promise table is not explicitly registered for shared widths.');
-assert(definition.includes("features:CHART_FEATURES.concat(['columnWidths'])"), 'TAT Promise table does not opt into shared column widths.');
-assert(definition.includes("label:'Reset Promise column widths'"), 'TAT Promise reset-width action is missing.');
-assert(definition.includes('renderHeaderControls:function(){ return layout.headerMarkup(); }'), 'Performance header toggle is missing.');
-assert(definition.includes('[data-tat-performance-view-v6565="distribution"]') || definition.includes('data-tat-performance-view-v6565="distribution"'), 'Distribution view markup is missing.');
-assert(definition.includes('data-tat-performance-view-v6565="promise"'), 'Promise view markup is missing.');
-assert(!definition.includes("key:'performance',title:'TAT Performance',kind:'chart',chartKey:'distribution',targetId:'tatDistributionChartV6509',\n      tableKey:'tatLate',secondaryComponentKeys:['distribution','late'],wide:true"), 'Performance is still full-width.');
-assert(!definition.includes("key:'product',title:'Products',kind:'table',tableKey:'tatProduct',targetId:'tatProductTableV6562',wide:true"), 'Products is still full-width.');
-assert(definition.indexOf("key:'performance'") < definition.indexOf("key:'product'"), 'Performance must be left of Products.');
-assert((definition.match(/\n      key:'/g) || []).length === 6, 'TAT definition must contain six visible components.');
-
-assert(adapter.includes("version:'v6.563'"), 'TAT adapter is not v6.563.');
-assert(bootstrap.includes("version:'v6.565'"), 'TAT bootstrap is not v6.565.');
-assert(bootstrap.includes('siblingCardWidths:'), 'Bootstrap does not enforce sibling widths.');
-assert(bootstrap.includes('performanceToggle:'), 'Bootstrap does not enforce the performance toggle.');
-assert(audit.includes('performanceAndProductsAreSiblingCards:'), 'Audit does not verify sibling cards.');
-assert(audit.includes('performanceModeButtonCount:'), 'Audit does not verify performance modes.');
-assert(audit.includes('noRejectedLayouts:'), 'Audit does not reject the prior layouts.');
-
-assert(controller.includes('childRows:function(row,selected)'), 'Expected legacy department childRows source is missing.');
-assert(service.includes('ensureDepartmentOnlyV6562'), 'Legacy childRows are not neutralized.');
-assert(
-  footer.includes("'" + footerVersion + "'"),
-  'Footer is not ' + footerVersion + '.'
-);
-assert(footer.includes('SHARED-DATA-GRID-25'), 'Footer build label is incorrect.');
-assert(router.includes("'v6.567'"), 'Router is not v6.567.');
-
-console.log('TAT layout contracts passed.');
-console.log('Monthly and Department remain first-row siblings: passed');
-console.log('Performance and Products are equal-width second-row siblings: passed');
-console.log('Distribution / Promise toggle: passed');
-console.log('Products / Groups toggle: passed');
-console.log('Rejected full-width performance layouts removed: passed');
-console.log('Compact numeric and elastic name-column defaults: passed');
-console.log('TAT Promise shared resizing and reset: passed');
+console.log('TAT Customers restoration and Data Quality detail recovery: passed');

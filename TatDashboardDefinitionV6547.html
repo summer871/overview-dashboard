@@ -44,8 +44,10 @@ Purpose: Declarative TAT layout with per-component feature configuration for the
   }
 
   function tableV6547(bodyId,headers,extraClass){
-    const cells = headers.map(function(header){
-      return '<th' + (header.numeric ? ' class="num"' : '') + '>' + platform.util.escapeHtml(header.label) + '</th>';
+    const cells = headers.map(function(header,index){
+      const field = header.field || String(header.label || ('column-' + String(index + 1))).toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+      const role = header.role === 'extended' ? 'extended' : 'standard';
+      return '<th' + (header.numeric ? ' class="num"' : '') + ' data-cda-field="' + platform.util.escapeHtml(field) + '" data-cda-column-role="' + role + '">' + platform.util.escapeHtml(header.label) + '</th>';
     }).join('');
     return '<div class="remakeTableWrap ' + platform.util.escapeHtml(extraClass || '') + '"><table data-cda-column-widths-pending-v6581="true" class="tatTableV6509 remakeTable">' +
       '<thead><tr>' + cells + '</tr></thead><tbody id="' + platform.util.escapeHtml(bodyId) + '"></tbody></table></div>';

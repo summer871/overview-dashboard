@@ -1,0 +1,3685 @@
+<!-- SharedDashboardLayoutEditorV6593.html
+Version: v6.628
+Compatibility API: v6.608
+Date: 2026-08-03
+Purpose: Universal Power BI-style canvas with single-authority saved geometry, incremental pre-paint card hydration, immutable runtime outer boxes, settled user viewport resizing, idempotent inner visual fitting, collision-safe pass-through drag placement, TAT table-surface recovery, persistent hidden-tab geometry, prepaint collapse/expand reflow, page-anchored geometry, independent collapsible cards, dynamic page extent, and exact alignment.
+-->
+<style id="cdaSharedDashboardLayoutEditorStylesV6593">
+  #cdaLayoutEditButtonV6593 {
+    position: fixed !important;
+    right: 18px !important;
+    bottom: 18px !important;
+    z-index: 2147482500 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 7px !important;
+    height: 36px !important;
+    padding: 0 13px !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 999px !important;
+    background: #ffffff !important;
+    color: #172033 !important;
+    box-shadow: 0 5px 18px rgba(15,23,42,.18) !important;
+    font: 800 12px/1 Roboto,Arial,sans-serif !important;
+    cursor: pointer !important;
+  }
+
+  #cdaLayoutEditButtonV6593:hover,
+  #cdaLayoutEditButtonV6593:focus-visible {
+    border-color: #f2c94c !important;
+    background: #fff7d6 !important;
+    color: #704300 !important;
+    outline: none !important;
+  }
+
+  #cdaLayoutEditorBarV6593 {
+    position: fixed !important;
+    left: 50% !important;
+    bottom: 18px !important;
+    z-index: 2147482600 !important;
+    display: none !important;
+    align-items: center !important;
+    gap: 8px !important;
+    max-width: calc(100vw - 30px) !important;
+    padding: 8px 10px !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 12px !important;
+    background: rgba(255,255,255,.98) !important;
+    box-shadow: 0 10px 32px rgba(15,23,42,.24) !important;
+    transform: translateX(-50%) !important;
+    font: 700 12px/1.2 Roboto,Arial,sans-serif !important;
+  }
+
+  html.cdaLayoutEditorActiveV6593 #cdaLayoutEditButtonV6593 { display: none !important; }
+  html.cdaLayoutEditorActiveV6593 #cdaLayoutEditorBarV6593 { display: flex !important; }
+
+  #cdaLayoutEditorBarV6593 button {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-height: 31px !important;
+    padding: 0 10px !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 8px !important;
+    background: #ffffff !important;
+    color: #172033 !important;
+    font: 800 11.5px/1 Roboto,Arial,sans-serif !important;
+    cursor: pointer !important;
+  }
+
+  #cdaLayoutEditorBarV6593 button:hover,
+  #cdaLayoutEditorBarV6593 button:focus-visible {
+    border-color: #f2c94c !important;
+    background: #fff7d6 !important;
+    color: #704300 !important;
+    outline: none !important;
+  }
+
+  #cdaLayoutEditorBarV6593 button:disabled {
+    cursor: not-allowed !important;
+    opacity: .46 !important;
+  }
+
+  #cdaLayoutEditorSaveV6593 {
+    border-color: #0f766e !important;
+    background: #0f766e !important;
+    color: #ffffff !important;
+  }
+
+  #cdaLayoutEditorStatusV6593 {
+    max-width: 560px !important;
+    color: #475569 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  [data-cda-layout-grid-v6593="true"] {
+    position: relative !important;
+    box-sizing: border-box !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    overflow: visible !important;
+  }
+
+  .cdaLayoutPlaceholderV6606 {
+    display: block !important;
+    box-sizing: border-box !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+    user-select: none !important;
+  }
+
+  #cdaLayoutCanvasSpacerV6606 {
+    display: block !important;
+    width: 1px !important;
+    min-width: 1px !important;
+    max-width: 1px !important;
+    height: 0;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    pointer-events: none !important;
+    visibility: hidden !important;
+  }
+
+  html.cdaLayoutEditorActiveV6593 [data-cda-layout-grid-v6593="true"] {
+    background-image:
+      linear-gradient(to right, rgba(245,158,11,.13) 1px, transparent 1px),
+      linear-gradient(to right, rgba(245,158,11,.045) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(15,118,110,.07) 1px, transparent 1px) !important;
+    background-size: calc(100% / 12) 100%, calc(100% / 48) 100%, 100% 10px !important;
+    background-position: 0 0 !important;
+  }
+
+  .cdaLayoutGuideV6595 {
+    position: absolute !important;
+    z-index: 1004 !important;
+    display: none !important;
+    pointer-events: none !important;
+    background: rgba(217,119,6,.92) !important;
+    box-shadow: 0 0 0 1px rgba(255,255,255,.72), 0 0 8px rgba(217,119,6,.28) !important;
+  }
+
+  .cdaLayoutGuideV6595[data-axis="x"] { top: 0 !important; bottom: 0 !important; width: 1px !important; }
+  .cdaLayoutGuideV6595[data-axis="y"] { left: 0 !important; right: 0 !important; height: 1px !important; }
+  .cdaLayoutGuideV6595[data-visible="true"] { display: block !important; }
+  .cdaLayoutGuideV6595[data-state="locked"] {
+    background: #16a34a !important;
+    box-shadow: 0 0 0 1px rgba(255,255,255,.90), 0 0 12px rgba(22,163,74,.65) !important;
+  }
+  .cdaLayoutGuideV6595[data-axis="x"][data-state="locked"] { width: 2px !important; }
+  .cdaLayoutGuideV6595[data-axis="y"][data-state="locked"] { height: 2px !important; }
+  .cdaLayoutGuideV6595::after {
+    content: attr(data-label);
+    position: absolute !important;
+    display: none !important;
+    min-width: max-content !important;
+    padding: 3px 6px !important;
+    border: 1px solid currentColor !important;
+    border-radius: 999px !important;
+    background: rgba(255,255,255,.98) !important;
+    color: #9a5a00 !important;
+    box-shadow: 0 2px 8px rgba(15,23,42,.15) !important;
+    font: 900 10px/1 Roboto,Arial,sans-serif !important;
+    letter-spacing: .02em !important;
+    white-space: nowrap !important;
+  }
+  .cdaLayoutGuideV6595[data-visible="true"][data-label]:not([data-label=""])::after { display: block !important; }
+  .cdaLayoutGuideV6595[data-state="locked"]::after { color: #15803d !important; }
+  .cdaLayoutGuideV6595[data-axis="x"]::after { top: 10px !important; left: 50% !important; transform: translateX(-50%) !important; }
+  .cdaLayoutGuideV6595[data-axis="y"]::after { top: 50% !important; left: 10px !important; transform: translateY(-50%) !important; }
+
+  .cdaLayoutItemShellV6594[data-cda-layout-item-v6593="true"] {
+    position: absolute !important;
+    box-sizing: border-box !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    margin: 0 !important;
+    contain: layout paint !important;
+    overflow: hidden !important;
+  }
+
+
+  .cdaLayoutItemShellV6594 {
+    box-sizing: border-box !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    overflow: visible !important;
+  }
+
+  .cdaLayoutItemShellV6594 > [data-cda-layout-card-v6594="true"] {
+    box-sizing: border-box !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    height: 100% !important;
+    min-height: 100% !important;
+    max-height: 100% !important;
+    margin: 0 !important;
+    contain: layout paint !important;
+    overflow: hidden !important;
+  }
+
+  .cdaLayoutItemShellV6594[data-cda-layout-shell-collapsed-v6594="true"] > [data-cda-layout-card-v6594="true"] {
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+  }
+
+  html.cdaLayoutEditorActiveV6593 .cdaLayoutItemShellV6594[data-cda-layout-item-v6593="true"] {
+    outline: 2px solid rgba(245,158,11,.72) !important;
+    outline-offset: -2px !important;
+  }
+
+  html.cdaLayoutEditorActiveV6593 .cdaLayoutItemShellV6594[data-cda-layout-item-v6593="true"][data-cda-layout-dragging-v6593="true"] {
+    z-index: 1000 !important;
+    opacity: .92 !important;
+    box-shadow: 0 16px 38px rgba(15,23,42,.28) !important;
+  }
+
+  html.cdaLayoutEditorActiveV6593 .cdaLayoutItemShellV6594[data-cda-layout-item-v6593="true"][data-cda-layout-dragging-v6593="true"] {
+    transition: none !important;
+    will-change: transform !important;
+    backface-visibility: hidden !important;
+  }
+
+
+  /* v6.614: the dragged card is a lifted preview. It may pass over a card while the
+     pointer crosses it, but the green drop outline is always collision-free and the
+     committed card can never overlap another visual. */
+  html.cdaLayoutEditorActiveV6593 .cdaLayoutItemShellV6594[data-cda-layout-drag-ghost-v6614="true"] {
+    opacity: .48 !important;
+    outline-style: dashed !important;
+    outline-color: #0f766e !important;
+    box-shadow: 0 18px 42px rgba(15,23,42,.24) !important;
+  }
+
+  .cdaLayoutDropPreviewV6614 {
+    position: absolute !important;
+    z-index: 999 !important;
+    display: none !important;
+    box-sizing: border-box !important;
+    border: 2px dashed #0f766e !important;
+    border-radius: 8px !important;
+    background: rgba(204,251,241,.20) !important;
+    box-shadow: 0 0 0 2px rgba(15,118,110,.10), inset 0 0 0 1px rgba(255,255,255,.75) !important;
+    pointer-events: none !important;
+  }
+
+  .cdaLayoutDropPreviewV6614[data-visible="true"] { display: block !important; }
+  .cdaLayoutDropPreviewV6614::after {
+    content: "Drop";
+    position: absolute !important;
+    left: 50% !important;
+    top: -25px !important;
+    transform: translateX(-50%) !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    min-height: 20px !important;
+    padding: 0 8px !important;
+    border: 1px solid #0f766e !important;
+    border-radius: 999px !important;
+    background: rgba(255,255,255,.98) !important;
+    color: #0f766e !important;
+    font: 900 10px/1 Roboto,Arial,sans-serif !important;
+    white-space: nowrap !important;
+  }
+
+  .cdaLayoutResizePreviewV6597 {
+    position: absolute !important;
+    z-index: 1002 !important;
+    display: none !important;
+    box-sizing: border-box !important;
+    border: 2px solid #d99a00 !important;
+    border-radius: 8px !important;
+    background: rgba(255,247,214,.22) !important;
+    box-shadow: 0 10px 28px rgba(15,23,42,.14), inset 0 0 0 1px rgba(255,255,255,.72) !important;
+    pointer-events: none !important;
+    will-change: left, top, width, height !important;
+  }
+
+  .cdaLayoutResizePreviewV6597[data-visible="true"] {
+    display: block !important;
+  }
+
+  .cdaLayoutResizePreviewV6597[data-snap-state="locked"] {
+    border-color: #16a34a !important;
+    background: rgba(220,252,231,.20) !important;
+    box-shadow: 0 10px 28px rgba(15,23,42,.14), 0 0 0 2px rgba(22,163,74,.16), inset 0 0 0 1px rgba(255,255,255,.78) !important;
+  }
+
+  .cdaLayoutResizePreviewV6597[data-size-label]:not([data-size-label=""])::after {
+    content: attr(data-size-label);
+    position: absolute !important;
+    top: -25px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    min-height: 20px !important;
+    padding: 0 7px !important;
+    border: 1px solid #16a34a !important;
+    border-radius: 999px !important;
+    background: rgba(255,255,255,.98) !important;
+    color: #15803d !important;
+    box-shadow: 0 2px 8px rgba(15,23,42,.15) !important;
+    font: 900 10px/1 Roboto,Arial,sans-serif !important;
+    white-space: nowrap !important;
+  }
+
+  /* v6.603 universal visual canvas: moved visuals may cross former grid rows without clipping. */
+  [data-cda-layout-grid-v6593="true"],
+  [data-cda-layout-universal-grid-v6603="true"] {
+    overflow: visible !important;
+  }
+
+  .cdaLayoutItemShellV6594[data-cda-layout-item-v6593="true"] > [data-cda-layout-card-v6594="true"],
+  .cdaLayoutItemShellV6594[data-cda-layout-item-v6593="true"] > [data-cda-layout-card-v6594="true"] * {
+    box-sizing: border-box !important;
+  }
+
+  /* v6.612: collapse/expand geometry is committed before the next paint.
+     The source card and every collision-shifted peer animate together, so cards never
+     visibly merge before the lower card moves. */
+  [data-cda-layout-smooth-reflow-v6612="true"] .cdaLayoutItemShellV6594[data-cda-layout-item-v6593="true"]:not([data-cda-layout-dragging-v6593="true"]):not([data-cda-layout-live-resize-v6604="true"]) {
+    transition-property: top,height,min-height,max-height !important;
+    transition-duration: 190ms !important;
+    transition-timing-function: cubic-bezier(.2,.75,.25,1) !important;
+    will-change: top,height !important;
+  }
+
+  [data-cda-layout-prepaint-reflow-v6612="true"] .cdaLayoutItemShellV6594[data-cda-layout-item-v6593="true"],
+  [data-cda-layout-smooth-reflow-v6612="true"] .cdaLayoutItemShellV6594[data-cda-layout-item-v6593="true"] {
+    overflow: hidden !important;
+  }
+
+  [data-cda-layout-prepaint-reflow-v6612="true"] .cdaLayoutItemShellV6594[data-cda-layout-item-v6593="true"] > [data-cda-layout-card-v6594="true"],
+  [data-cda-layout-smooth-reflow-v6612="true"] .cdaLayoutItemShellV6594[data-cda-layout-item-v6593="true"] > [data-cda-layout-card-v6594="true"] {
+    overflow: hidden !important;
+  }
+
+  [data-cda-layout-prepaint-reflow-v6612="true"] .cdaLayoutItemShellV6594[data-cda-layout-toggle-source-v6612] > [data-cda-layout-card-v6594="true"],
+  [data-cda-layout-smooth-reflow-v6612="true"] .cdaLayoutItemShellV6594[data-cda-layout-toggle-source-v6612] > [data-cda-layout-card-v6594="true"] {
+    height: 100% !important;
+    min-height: 100% !important;
+    max-height: 100% !important;
+  }
+
+  [data-cda-layout-smooth-reflow-v6612="true"] > #cdaLayoutCanvasSpacerV6606 {
+    transition: height 190ms cubic-bezier(.2,.75,.25,1) !important;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    [data-cda-layout-smooth-reflow-v6612="true"] .cdaLayoutItemShellV6594[data-cda-layout-item-v6593="true"],
+    [data-cda-layout-smooth-reflow-v6612="true"] > #cdaLayoutCanvasSpacerV6606 {
+      transition-duration: 0ms !important;
+    }
+  }
+
+  html.cdaLayoutViewportResizeV6617 .cdaLayoutItemShellV6594[data-cda-layout-item-v6593="true"] {
+    transition: none !important;
+  }
+
+  .cdaLayoutItemShellV6594[data-cda-layout-item-v6593="true"] [data-cda-layout-chart-host-v6617="true"] {
+    box-sizing: border-box !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
+  }
+
+  .cdaLayoutItemShellV6594[data-cda-layout-item-v6593="true"] canvas[data-cda-layout-chart-fit-v6617="true"] {
+    display: block !important;
+    width: 100% !important;
+    height: 100% !important;
+    max-width: 100% !important;
+    max-height: 100% !important;
+  }
+
+  .cdaLayoutItemShellV6594[data-cda-layout-item-v6593="true"] canvas,
+  .cdaLayoutItemShellV6594[data-cda-layout-item-v6593="true"] svg,
+  .cdaLayoutItemShellV6594[data-cda-layout-item-v6593="true"] [class*="ChartBox"],
+  .cdaLayoutItemShellV6594[data-cda-layout-item-v6593="true"] [class*="ChartHost"],
+  .cdaLayoutItemShellV6594[data-cda-layout-item-v6593="true"] [class*="TableViewport"],
+  .cdaLayoutItemShellV6594[data-cda-layout-item-v6593="true"] [class*="TableScroll"],
+  .cdaLayoutItemShellV6594[data-cda-layout-item-v6593="true"] [class*="CustomerScroll"],
+  .cdaLayoutItemShellV6594[data-cda-layout-item-v6593="true"] [class*="TechnicianScroll"] {
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  .cdaLayoutItemShellV6594[data-cda-layout-live-resize-v6603="true"] {
+    transition: none !important;
+    will-change: left, top, width, height !important;
+  }
+
+  /* v6.604: former rows are not clipping boundaries while the universal editor is active. */
+  html.cdaLayoutEditorActiveV6593 #remakeFactorPage,
+  html.cdaLayoutEditorActiveV6593 #tatDashboardPageV6509,
+  html.cdaLayoutEditorActiveV6593 #remakeFactorPage .remakeGridV6230,
+  html.cdaLayoutEditorActiveV6593 #tatDashboardPageV6509 .tatGridV6509,
+  html.cdaLayoutEditorActiveV6593 [data-cda-layout-grid-v6593="true"] {
+    overflow: visible !important;
+  }
+
+  /* The card is frozen at its starting geometry and GPU-scaled with the border during resize.
+     Chart.js and table engines reflow once on release instead of on every pointer frame. */
+  .cdaLayoutItemShellV6594[data-cda-layout-live-resize-v6604="true"] > [data-cda-layout-card-v6594="true"] {
+    width: var(--cda-layout-live-base-width-v6604) !important;
+    height: var(--cda-layout-live-base-height-v6604) !important;
+    min-height: var(--cda-layout-live-base-height-v6604) !important;
+    max-height: var(--cda-layout-live-base-height-v6604) !important;
+    transform: scale(var(--cda-layout-live-scale-x-v6604),var(--cda-layout-live-scale-y-v6604)) !important;
+    transform-origin: var(--cda-layout-live-origin-v6604) !important;
+    will-change: transform !important;
+    transition: none !important;
+  }
+
+  .cdaLayoutResizePreviewV6597[data-collapsed-expanded-preview-v6604="true"]::before {
+    content: "Collapsed card · resizing expanded size";
+    position: absolute !important;
+    left: 10px !important;
+    top: 10px !important;
+    padding: 5px 8px !important;
+    border-radius: 999px !important;
+    background: rgba(255,255,255,.94) !important;
+    color: #7a4a00 !important;
+    font: 800 11px/1 Roboto,Arial,sans-serif !important;
+    box-shadow: 0 1px 4px rgba(15,23,42,.16) !important;
+  }
+
+  html.cdaLayoutInteractionActiveV6597,
+  html.cdaLayoutInteractionActiveV6597 * {
+    cursor: grabbing !important;
+    user-select: none !important;
+  }
+
+  html.cdaLayoutEditorActiveV6593 .cdaLayoutItemShellV6594[data-cda-layout-item-v6593="true"][data-cda-layout-overlap-v6594="true"] {
+    outline-color: #dc2626 !important;
+    box-shadow: inset 0 0 0 2px rgba(220,38,38,.22) !important;
+  }
+
+  html.cdaLayoutEditorActiveV6593 .cdaLayoutItemShellV6594[data-cda-layout-collision-blocked-v6607="true"] {
+    outline-color: #dc2626 !important;
+    box-shadow: inset 0 0 0 2px rgba(220,38,38,.24), 0 0 0 2px rgba(220,38,38,.10) !important;
+  }
+
+
+  html.cdaLayoutEditorActiveV6593 .cdaLayoutItemShellV6594[data-cda-layout-item-v6593="true"][data-cda-layout-size-peer-v6601="true"],
+  html.cdaLayoutEditorActiveV6593 .cdaLayoutItemShellV6594[data-cda-layout-item-v6593="true"][data-cda-layout-size-active-v6601="true"] {
+    outline: 3px solid #16a34a !important;
+    outline-offset: -3px !important;
+    box-shadow: 0 0 0 2px rgba(22,163,74,.24), 0 0 18px rgba(22,163,74,.34) !important;
+  }
+
+  .cdaLayoutDragHandleV6593 {
+    position: absolute !important;
+    top: 3px !important;
+    left: 50% !important;
+    right: auto !important;
+    z-index: 35 !important;
+    display: none !important;
+    width: 72px !important;
+    height: 25px !important;
+    border: 0 !important;
+    border-radius: 999px !important;
+    background: transparent !important;
+    transform: translateX(-50%) !important;
+    cursor: move !important;
+    user-select: none !important;
+    touch-action: none !important;
+  }
+
+  .cdaLayoutDragHandleV6593::before {
+    content: "Move";
+    position: absolute;
+    left: 50%;
+    top: 4px;
+    transform: translateX(-50%);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 21px;
+    min-width: 52px;
+    padding: 0 8px;
+    border: 1px solid #f2c94c;
+    border-radius: 999px;
+    background: #fff7d6;
+    color: #704300;
+    box-shadow: 0 1px 3px rgba(15,23,42,.10);
+    font: 900 10px/1 Roboto,Arial,sans-serif;
+    letter-spacing: .03em;
+    pointer-events: none;
+  }
+
+  .cdaLayoutResizeHandleV6593 {
+    position: absolute !important;
+    z-index: 38 !important;
+    display: none !important;
+    box-sizing: border-box !important;
+    border: 1px solid #d99a00 !important;
+    background: #fff7d6 !important;
+    box-shadow: 0 1px 4px rgba(15,23,42,.18) !important;
+    touch-action: none !important;
+    user-select: none !important;
+  }
+
+  .cdaLayoutResizeHandleV6593[data-direction="n"],
+  .cdaLayoutResizeHandleV6593[data-direction="s"] {
+    left: 30px !important;
+    right: 30px !important;
+    width: auto !important;
+    height: 8px !important;
+    border-radius: 999px !important;
+    cursor: ns-resize !important;
+  }
+
+  .cdaLayoutResizeHandleV6593[data-direction="n"] { top: -4px !important; }
+  .cdaLayoutResizeHandleV6593[data-direction="s"] { bottom: -4px !important; }
+
+  .cdaLayoutResizeHandleV6593[data-direction="e"],
+  .cdaLayoutResizeHandleV6593[data-direction="w"] {
+    top: 30px !important;
+    bottom: 30px !important;
+    width: 8px !important;
+    height: auto !important;
+    border-radius: 999px !important;
+    cursor: ew-resize !important;
+  }
+
+  .cdaLayoutResizeHandleV6593[data-direction="e"] { right: -4px !important; }
+  .cdaLayoutResizeHandleV6593[data-direction="w"] { left: -4px !important; }
+
+  .cdaLayoutResizeHandleV6593[data-direction="ne"],
+  .cdaLayoutResizeHandleV6593[data-direction="se"],
+  .cdaLayoutResizeHandleV6593[data-direction="sw"],
+  .cdaLayoutResizeHandleV6593[data-direction="nw"] {
+    width: 16px !important;
+    height: 16px !important;
+    border-radius: 4px !important;
+  }
+
+  .cdaLayoutResizeHandleV6593[data-direction="ne"] {
+    top: -7px !important;
+    right: -7px !important;
+    cursor: nesw-resize !important;
+  }
+
+  .cdaLayoutResizeHandleV6593[data-direction="se"] {
+    right: -7px !important;
+    bottom: -7px !important;
+    cursor: nwse-resize !important;
+  }
+
+  .cdaLayoutResizeHandleV6593[data-direction="sw"] {
+    left: -7px !important;
+    bottom: -7px !important;
+    cursor: nesw-resize !important;
+  }
+
+  .cdaLayoutResizeHandleV6593[data-direction="nw"] {
+    top: -7px !important;
+    left: -7px !important;
+    cursor: nwse-resize !important;
+  }
+
+  html.cdaLayoutEditorActiveV6593 .cdaLayoutDragHandleV6593,
+  html.cdaLayoutEditorActiveV6593 .cdaLayoutResizeHandleV6593 {
+    display: block !important;
+  }
+
+  html.cdaLayoutEditorActiveV6593 .cdaLayoutItemShellV6594[data-cda-layout-item-v6593="true"] > :not(.cdaLayoutDragHandleV6593):not(.cdaLayoutResizeHandleV6593) :is(button,a,input,select,textarea,[role="button"]):not(.tatCollapseButtonV6509):not([data-remake-section-toggle-v6402]):not([data-cda-dashboard-title-toggle="true"]) {
+    pointer-events: none !important;
+  }
+
+  /* Collapse/expand remains a first-class card action in edit mode. */
+  html.cdaLayoutEditorActiveV6593 .cdaLayoutItemShellV6594[data-cda-layout-item-v6593="true"] > [data-cda-layout-card-v6594="true"] :is(.tatCollapseButtonV6509,[data-remake-section-toggle-v6402],[data-cda-dashboard-title-toggle="true"],[aria-expanded]) {
+    position: relative !important;
+    z-index: 70 !important;
+    pointer-events: auto !important;
+    cursor: pointer !important;
+  }
+
+  html.cdaLayoutEditorActiveV6593 .cdaLayoutItemShellV6594[data-cda-layout-item-v6593="true"] > [data-cda-layout-card-v6594="true"][data-cda-layout-collapsible-v6606="true"] > :is(.remakeCardHeader,.tatCardHeadV6509,[class*="CardHeader"],[class*="CardHead"]),
+  html.cdaLayoutEditorActiveV6593 .cdaLayoutItemShellV6594[data-cda-layout-item-v6593="true"] > [data-cda-layout-card-v6594="true"][data-cda-layout-collapsible-v6606="true"] > :is(.remakeCardHeader,.tatCardHeadV6509,[class*="CardHeader"],[class*="CardHead"]) * {
+    pointer-events: auto !important;
+  }
+
+  html.cdaLayoutEditorActiveV6593,
+  html.cdaLayoutEditorActiveV6593 body {
+    overscroll-behavior: contain !important;
+  }
+
+  #cdaLayoutToastV6593 {
+    position: fixed !important;
+    left: 50% !important;
+    bottom: 68px !important;
+    z-index: 2147482700 !important;
+    display: none !important;
+    padding: 9px 12px !important;
+    border-radius: 8px !important;
+    background: #172033 !important;
+    color: #ffffff !important;
+    box-shadow: 0 8px 24px rgba(15,23,42,.25) !important;
+    transform: translateX(-50%) !important;
+    font: 700 12px/1.2 Roboto,Arial,sans-serif !important;
+  }
+
+  #tatDashboardPageV6509 #tatCustomerCardV6509:not(.collapsed) > .tatCollapsibleBodyV6509,
+  #tatDashboardPageV6509 #tatQualityCardV6509:not(.collapsed) > .tatCollapsibleBodyV6509 {
+    display: flex !important;
+    flex-direction: column !important;
+    flex: 1 1 0 !important;
+    min-height: 0 !important;
+  }
+
+
+  /* v6.615: a TAT card can be natively expanded while the shared table surface
+     still carries a stale collapsed marker. Never let that stale marker blank an
+     expanded customer or quality card while the recovery pass synchronizes it. */
+  #tatDashboardPageV6509 :is(#tatCustomerCardV6509,#tatQualityCardV6509):not(.collapsed)
+    [data-cda-table-surface-path-v6590="true"][data-cda-table-path-collapsed-v6590="true"] {
+    display: flex !important;
+    flex: 1 1 0 !important;
+    flex-direction: column !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    height: auto !important;
+    max-height: none !important;
+    visibility: visible !important;
+    overflow: hidden !important;
+  }
+
+  #tatDashboardPageV6509 :is(#tatCustomerCardV6509,#tatQualityCardV6509):not(.collapsed)
+    [data-cda-table-surface-host-v6586="true"][data-cda-table-host-collapsed-v6590="true"] {
+    display: block !important;
+    flex: 1 1 0 !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    max-height: 100% !important;
+    visibility: visible !important;
+    overflow-y: auto !important;
+  }
+
+  @media (max-width: 980px) {
+    #cdaLayoutEditButtonV6593,
+    #cdaLayoutEditorBarV6593 { display: none !important; }
+  }
+</style>
+<script id="cdaSharedDashboardLayoutEditorControllerV6593">
+(function installSharedDashboardLayoutEditorV6593(){
+  'use strict';
+
+  const versionV6593 = 'v6.608';
+  const releaseV6612 = 'v6.628';
+  if (window.cdaDashboardLayoutEditorV6593 &&
+      window.cdaDashboardLayoutEditorV6593.version === versionV6593) return;
+
+  const storageKeyV6593 = 'cdaDashboardPersonalLayout.v6611';
+  const legacyStorageKeysV6598 = [];
+
+  const verticalSnapV6593 = 10;
+  const horizontalSnapDivisionsV6595 = 48;
+  const horizontalMagnetToleranceV6596 = 6;
+  const verticalMagnetToleranceV6596 = 5;
+  const exactPeerSnapToleranceV6599 = 2;
+  const smartGuideNearToleranceV6598 = 14;
+  const minHeightV6593 = 130;
+  const minColumnsV6593 = 2;
+  const maxHistoryV6593 = 40;
+  const pageSelectorV6593 = '#remakeFactorPage,#tatDashboardPageV6509';
+  const gridSelectorV6593 = '.remakeGridV6230,.tatGridV6509,[data-cda-layout-editor-grid]';
+  const cardSelectorV6593 = '.remakeCard,.tatCardV6509,article,[data-cda-dashboard-component],#remakeCustomerCardV6230,#remakeCeramistCardV6342,[data-cda-layout-shared-card-v6601="true"]';
+  let sessionV6593 = null;
+  let activePointerV6593 = null;
+  let observerV6593 = null;
+  let repairTimerV6593 = 0;
+  let layoutTimerV6593 = 0;
+  let toastTimerV6593 = 0;
+  let tatFullRenderRequestedV6593 = false;
+  let tatQualityAutoSelectBusyV6593 = false;
+  let tatRepairRetryCountV6615 = 0;
+  let tatSurfaceSyncFrameV6615 = 0;
+  let internalResizeV6593 = false;
+  let memoryStoreV6593 = {};
+  let pointerFrameV6595 = 0;
+  let pendingPointerV6595 = null;
+  let resizePreviewV6597 = null;
+  let dropPreviewV6614 = null;
+  let observerFrameV6597 = 0;
+  let lastStatusUpdateV6604 = 0;
+  let reconcileTimerV6608 = 0;
+  let resizeTimerV6608 = 0;
+  let observerMutedV6608 = false;
+  let lastStructureSignatureV6608 = '';
+  let lastReconcileAtV6608 = 0;
+  let reconcileBurstStartedV6608 = 0;
+  let reconcileBurstCountV6608 = 0;
+  let refreshLastRunV6608 = 0;
+  let refreshPendingPageV6608 = null;
+  let universalReflowBusyV6611 = false;
+  const universalCollisionGapV6611 = 8;
+  let smoothToggleBusyV6612 = false;
+  let smoothToggleTokenV6612 = 0;
+  let smoothToggleTimerV6612 = 0;
+  const smoothToggleDurationV6612 = 190;
+  const visibleTabActivationTimersV6613 = new Map();
+  let visibleTabActivationBusyV6613 = false;
+  const viewportResizeSettleMsV6617 = 140;
+  const firstPaintActivatedPagesV6619 = new WeakSet();
+  const authoritativeHydratedPagesV6622 = new WeakSet();
+  const authoritativeHydratedCardsV6623 = new WeakSet();
+  let editorStartedV6622 = false;
+  let lastViewportWidthV6622 = Math.round(Number(document.documentElement.clientWidth || window.innerWidth || 0));
+  let lastOuterWidthV6623 = Math.round(Number(window.outerWidth || lastViewportWidthV6622 || 0));
+  let authoritativeHydrationCountV6622 = 0;
+  let incrementalCardHydrationCountV6623 = 0;
+  let ignoredRuntimeMutationCountV6623 = 0;
+
+  function signalFirstPaintGeometryReadyV6619(page,reason){
+    if (!page) return;
+    document.dispatchEvent(new CustomEvent('cdaAuthoritativeLayoutReadyV6623',{detail:{page:page,tabKey:tabKeyV6593(page),reason:reason || 'single-authority-layout-ready',release:'v6.623'}}));
+  }
+
+  function cloneV6593(value){ return JSON.parse(JSON.stringify(value == null ? null : value)); }
+
+  function readStoreV6593(){
+    try {
+      const parsed = JSON.parse(localStorage.getItem(storageKeyV6593) || '{}');
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        memoryStoreV6593 = cloneV6593(parsed);
+        return parsed;
+      }
+    } catch (error) {}
+    return cloneV6593(memoryStoreV6593 || {});
+  }
+
+  function writeStoreV6593(store){
+    memoryStoreV6593 = cloneV6593(store || {});
+    try { localStorage.setItem(storageKeyV6593,JSON.stringify(store || {})); }
+    catch (error) {}
+  }
+
+
+  function normalizeStoredLayoutV6598(store){
+    const normalized = cloneV6593(store && typeof store === 'object' ? store : {});
+    normalized.version = versionV6593;
+    normalized.tabs = normalized.tabs && typeof normalized.tabs === 'object' ? normalized.tabs : {};
+    Object.keys(normalized.tabs).forEach(function(tab){
+      const layout = normalized.tabs[tab];
+      if (!layout || typeof layout !== 'object' || !layout.grids) {
+        delete normalized.tabs[tab];
+        return;
+      }
+      layout.version = versionV6593;
+    });
+    return normalized;
+  }
+
+  function migrateLegacyStoreV6598(){
+    try {
+      const currentRaw = localStorage.getItem(storageKeyV6593);
+      if (currentRaw) {
+        const current = normalizeStoredLayoutV6598(JSON.parse(currentRaw));
+        writeStoreV6593(current);
+        return;
+      }
+      for (let i=0;i<legacyStorageKeysV6598.length;i+=1) {
+        const raw = localStorage.getItem(legacyStorageKeysV6598[i]);
+        if (!raw) continue;
+        const migrated = normalizeStoredLayoutV6598(JSON.parse(raw));
+        if (Object.keys(migrated.tabs || {}).length) {
+          writeStoreV6593(migrated);
+          return;
+        }
+      }
+    } catch (error) {}
+  }
+
+  function cleanTextV6593(value){
+    return String(value == null ? '' : value).replace(/[▲▼▴▾▸]/g,'').replace(/\s+/g,' ').trim();
+  }
+
+  function safeKeyV6593(value){
+    return cleanTextV6593(value).toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'') || 'card';
+  }
+
+  function clampV6593(value,min,max){ return Math.max(min,Math.min(max,value)); }
+
+  function stableGridWidthV6593(grid){
+    if (!grid) return 1;
+    const parent = grid.parentElement;
+    if (parent) {
+      const rect = parent.getBoundingClientRect();
+      let leftPadding = 0;
+      let rightPadding = 0;
+      try {
+        const style = (parent.ownerDocument.defaultView || window).getComputedStyle(parent);
+        leftPadding = parseFloat(style.paddingLeft) || 0;
+        rightPadding = parseFloat(style.paddingRight) || 0;
+      } catch (error) {}
+      const width = rect.width - leftPadding - rightPadding;
+      const viewportWidth = document.documentElement.clientWidth || window.innerWidth || width;
+      const viewportAvailable = Math.max(1,viewportWidth - Math.max(0,rect.left) - rightPadding);
+      if (width > 1) return Math.min(width,viewportAvailable);
+    }
+    const rect = grid.getBoundingClientRect();
+    return Math.max(1,Math.min(rect.width || grid.clientWidth || 1,document.documentElement.clientWidth || rect.width || 1));
+  }
+
+  function canvasMetricsV6611(page){
+    if (!page) return {left:0,top:0,width:1};
+    const grids = Array.from(page.querySelectorAll(gridSelectorV6593)).filter(function(grid){
+      return directCardsV6593(grid).length >= 1 || grid.hasAttribute('data-cda-layout-editor-grid');
+    });
+    const rects = grids.map(function(grid){ return grid.getBoundingClientRect(); }).filter(function(rect){ return rect && rect.width > 1; });
+    if (!rects.length) {
+      const rect = page.getBoundingClientRect();
+      return {left:rect.left,top:rect.top,width:Math.max(1,rect.width)};
+    }
+    const left = Math.min.apply(Math,rects.map(function(rect){ return rect.left; }));
+    const right = Math.max.apply(Math,rects.map(function(rect){ return rect.right; }));
+    const top = Math.min.apply(Math,rects.map(function(rect){ return rect.top; }));
+    return {left:left,top:top,width:Math.max(1,right-left)};
+  }
+
+  function pageVisibleV6593(page){
+    if (!page || page.hidden || page.closest('[hidden]')) return false;
+    try {
+      const style = (page.ownerDocument.defaultView || window).getComputedStyle(page);
+      return style.display !== 'none' && style.visibility !== 'hidden' && page.getClientRects().length > 0;
+    } catch (error) { return false; }
+  }
+
+  function activePageV6593(){
+    const pages = Array.from(document.querySelectorAll(pageSelectorV6593));
+    return pages.find(pageVisibleV6593) || pages[0] || null;
+  }
+
+  function tabKeyV6593(page){ return page && page.id === 'tatDashboardPageV6509' ? 'tat' : 'remake'; }
+
+  function pageMeasurableV6613(page){
+    const preparing = !!(page && page.getAttribute('data-cda-tab-preparing-v6627') === 'true');
+    if (!preparing && !pageVisibleV6593(page)) return false;
+    if (!page) return false;
+    const pageRect = page.getBoundingClientRect();
+    if (!pageRect || pageRect.width < 240 || pageRect.height < 1) return false;
+    const grids = Array.from(page.querySelectorAll(gridSelectorV6593));
+    return grids.some(function(grid){
+      const rect = grid.getBoundingClientRect();
+      if (!rect || rect.width < 160) return false;
+      return Array.from(grid.children || []).some(function(node){
+        if (!node || !node.matches) return false;
+        if (node.classList.contains('cdaLayoutItemShellV6594')) return !!node.querySelector(cardSelectorV6593);
+        return node.matches(cardSelectorV6593);
+      });
+    });
+  }
+
+  function layoutMatchesVisiblePageV6613(page,layout){
+    if (!page || !layout || !layout.grids) return false;
+    let actualCards = 0;
+    let matchedCards = 0;
+    let validItems = 0;
+    gridsForPageV6593(page).forEach(function(grid,gridIndex){
+      const gridKey = gridKeyV6593(grid,gridIndex);
+      const gridLayout = layout.grids[gridKey];
+      directCardsV6593(grid).forEach(function(card,cardIndex){
+        actualCards += 1;
+        const cardKey = cardKeyV6593(card,cardIndex);
+        const item = gridLayout && gridLayout.items && gridLayout.items[cardKey];
+        if (!item) return;
+        matchedCards += 1;
+        const widthRatio = Number.isFinite(Number(item.pageWidthRatio)) ? Number(item.pageWidthRatio) : Number(item.widthRatio);
+        const top = Number.isFinite(Number(item.pageTop)) ? Number(item.pageTop) : Number(item.top);
+        const height = Number(item.height);
+        if (Number.isFinite(widthRatio) && widthRatio >= .05 && widthRatio <= 1.05 && Number.isFinite(top) && top > -5000 && top < 200000 && Number.isFinite(height) && height >= 40 && height < 20000) validItems += 1;
+      });
+    });
+    if (!actualCards) return false;
+    const required = Math.max(1,Math.ceil(actualCards * .6));
+    return matchedCards >= required && validItems >= required;
+  }
+
+  function directCardsV6593(grid){
+    const cards = [];
+    Array.from(grid && grid.children || []).forEach(function(node){
+      if (!node || !node.matches || node.matches('[hidden]') || node.closest('[hidden]')) return;
+      if (node.classList.contains('cdaLayoutItemShellV6594')) {
+        const card = Array.from(node.children || []).find(function(child){ return child.matches && child.matches(cardSelectorV6593); });
+        if (card) cards.push(card);
+      } else if (node.matches(cardSelectorV6593)) cards.push(node);
+    });
+    return cards;
+  }
+
+  function shellForCardV6593(card){
+    const parent = card && card.parentElement;
+    return parent && parent.classList && parent.classList.contains('cdaLayoutItemShellV6594') ? parent : null;
+  }
+
+  function placeholderForKeyV6606(grid,key){
+    return Array.from(grid && grid.children || []).find(function(node){
+      return node && node.getAttribute && node.getAttribute('data-cda-layout-placeholder-key-v6606') === String(key || '');
+    }) || null;
+  }
+
+  function copyPlaceholderPlacementV6606(placeholder,source){
+    if (!placeholder || !source) return;
+    const rect = source.getBoundingClientRect();
+    let style = null;
+    try { style = (source.ownerDocument.defaultView || window).getComputedStyle(source); } catch (error) {}
+    setImportantV6593(placeholder.style,'height','1px');
+    setImportantV6593(placeholder.style,'min-height','1px');
+    setImportantV6593(placeholder.style,'max-height','1px');
+    if (!style) return;
+    ['grid-column-start','grid-column-end','grid-row-start','grid-row-end','grid-area','order','align-self','justify-self','margin-left','margin-right','margin-top','margin-bottom'].forEach(function(name){
+      const value = style.getPropertyValue(name);
+      if (value && value !== 'auto' && value !== 'normal' && value !== '0px') setImportantV6593(placeholder.style,name,value);
+    });
+  }
+
+  function ensurePlaceholderV6606(card,grid,key){
+    let placeholder = placeholderForKeyV6606(grid,key);
+    if (placeholder) return placeholder;
+    placeholder = document.createElement('div');
+    placeholder.className = 'cdaLayoutPlaceholderV6606';
+    placeholder.setAttribute('data-cda-layout-placeholder-key-v6606',String(key || ''));
+    placeholder.setAttribute('aria-hidden','true');
+    const shell = shellForCardV6593(card);
+    const reference = shell || card;
+    copyPlaceholderPlacementV6606(placeholder,reference);
+    grid.insertBefore(placeholder,reference);
+    return placeholder;
+  }
+
+  function setPlaceholderHeightV6607(card,height){
+    if (!card) return;
+    const shell = shellForCardV6593(card);
+    const grid = shell ? shell.parentElement : card.parentElement;
+    if (!grid) return;
+    const key = (shell && shell.getAttribute('data-cda-layout-card-key-v6593')) || card.getAttribute('data-cda-layout-card-key-v6593') || cardKeyV6593(card,directCardsV6593(grid).indexOf(card));
+    const placeholder = placeholderForKeyV6606(grid,key) || ensurePlaceholderV6606(card,grid,key);
+    setImportantV6593(placeholder.style,'height','1px');
+    setImportantV6593(placeholder.style,'min-height','1px');
+    setImportantV6593(placeholder.style,'max-height','1px');
+  }
+
+  function ensureShellV6593(card,grid,key){
+    let shell = shellForCardV6593(card);
+    ensurePlaceholderV6606(card,grid,key);
+    if (!shell) {
+      shell = document.createElement('div');
+      shell.className = 'cdaLayoutItemShellV6594';
+      grid.insertBefore(shell,card);
+      shell.appendChild(card);
+    }
+    shell.setAttribute('data-cda-layout-item-v6593','true');
+    shell.setAttribute('data-cda-layout-card-key-v6593',key);
+    card.setAttribute('data-cda-layout-card-v6594','true');
+    card.setAttribute('data-cda-layout-card-key-v6593',key);
+    if (cardCollapsedV6593(card) || card.hasAttribute('data-remake-section-collapsed-v6402') || card.hasAttribute('data-cda-table-card-collapsed-v6590') || card.querySelector('[aria-expanded]')) {
+      card.setAttribute('data-cda-layout-collapsible-v6606','true');
+    }
+    return shell;
+  }
+
+  function unwrapCardV6593(card){
+    const shell = shellForCardV6593(card);
+    if (!shell || !shell.parentNode) return;
+    const grid = shell.parentNode;
+    const key = shell.getAttribute('data-cda-layout-card-key-v6593') || card.getAttribute('data-cda-layout-card-key-v6593') || '';
+    const placeholder = placeholderForKeyV6606(grid,key);
+    if (placeholder && placeholder.parentNode === grid) grid.insertBefore(card,placeholder);
+    else grid.insertBefore(card,shell);
+    shell.remove();
+    if (placeholder) placeholder.remove();
+    card.removeAttribute('data-cda-layout-card-v6594');
+    card.removeAttribute('data-cda-layout-card-key-v6593');
+    card.removeAttribute('data-cda-layout-card-height-v6593');
+    card.removeAttribute('data-cda-layout-collapsible-v6606');
+  }
+
+  function normalizedRemakeSectionLabelV6601(value){
+    return cleanTextV6593(value || '')
+      .replace(/[\u25B2-\u25BC\u25C0-\u25C4\u203A\u00BB\u2190-\u2193]+/g,' ')
+      .replace(/\s+/g,' ')
+      .trim()
+      .toLowerCase();
+  }
+
+  function remakeCardTitleV6601(card){
+    if (!card || !card.querySelector) return '';
+    const title = card.querySelector(
+      ':scope > .remakeCardHeader .remakeCardTitle,' +
+      ':scope > .remakeCardHeader [class*="Title"],' +
+      ':scope > .remakeCardHeader,' +
+      ':scope > [class*="CardHeader"] [class*="Title"],' +
+      ':scope > [class*="CardHeader"],' +
+      ':scope > [class*="CardHead"],' +
+      ':scope > [data-remake-section-toggle-v6402],' +
+      ':scope > * [data-remake-section-toggle-v6402]'
+    );
+    return cleanTextV6593(title && title.textContent || '');
+  }
+
+  function visibleRectV6601(node){
+    if (!node || !node.getBoundingClientRect) return null;
+    const rect = node.getBoundingClientRect();
+    if (!rect || rect.width < 1 || rect.height < 1) return null;
+    return rect;
+  }
+
+  function titleNodesV6601(page,label){
+    const expected = String(label || '').toLowerCase();
+    const selectors = [
+      '[data-remake-section-toggle-v6402]',
+      '[data-cda-dashboard-title-toggle="true"]',
+      'button[aria-expanded]',
+      '[role="button"][aria-expanded]',
+      '.remakeCardTitle',
+      '[class*="CardTitle"]',
+      'h1','h2','h3','h4','h5','h6','strong','span','button','div'
+    ].join(',');
+    return Array.from(page.querySelectorAll(selectors)).filter(function(node){
+      if (!visibleRectV6601(node)) return false;
+      const labelText = normalizedRemakeSectionLabelV6601(node.textContent || '');
+      if (labelText !== expected) return false;
+      return !Array.from(node.children || []).some(function(child){
+        return normalizedRemakeSectionLabelV6601(child.textContent || '') === expected;
+      });
+    });
+  }
+
+  function cardCandidateScoreV6601(page,node,titleNode,label){
+    if (!node || node === page || !node.contains(titleNode)) return Number.NEGATIVE_INFINITY;
+    const pageRect = visibleRectV6601(page);
+    const rect = visibleRectV6601(node);
+    if (!pageRect || !rect || rect.width < Math.max(420,pageRect.width * .55) || rect.height < 30) return Number.NEGATIVE_INFINITY;
+    const idClass = String((node.id || '') + ' ' + (node.className || '')).toLowerCase();
+    const exactLabel = String(label || '').toLowerCase();
+    let score = 0;
+    if (node.matches('.remakeCard,article,[data-cda-dashboard-component],[data-cda-dashboard-decorated-component]')) score += 180;
+    if (idClass.indexOf('card') >= 0) score += 90;
+    if (idClass.indexOf('section') >= 0 || idClass.indexOf('panel') >= 0) score += 70;
+    if (idClass.indexOf(exactLabel === 'customers' ? 'customer' : 'technician') >= 0) score += 85;
+    if (node.querySelector('table,tbody,[class*="Table"],[class*="table"],[data-column-chooser-v6357],.cdaDashboardToolbarV6547')) score += 120;
+    if (node.querySelector('[data-remake-section-toggle-v6402],[data-cda-dashboard-title-toggle="true"],button[aria-expanded]')) score += 80;
+    if (node.children && node.children.length > 1) score += 30;
+    if (node.scrollHeight > rect.height + 8) score += 35;
+    if (/header|head|title|toolbar/.test(idClass)) score -= 130;
+    if (node === titleNode) score -= 200;
+    const depth = (function(){ let d=0,c=titleNode; while(c && c!==node){ d += 1; c=c.parentElement; } return d; })();
+    score += Math.max(0,25 - depth * 3);
+    score -= Math.min(80,(rect.width * rect.height) / Math.max(1,pageRect.width * pageRect.height) * 60);
+    return score;
+  }
+
+  function resolveRemakeBottomCardV6601(page,label){
+    const directSelectors = label === 'Customers' ? [
+      '#remakeCustomerCardV6230','#remakeCustomerSectionV6402','#remakeCustomersSectionV6402',
+      '[data-remake-customers-card]','[data-remake-customers-section]'
+    ] : [
+      '#remakeCeramistCardV6342','#remakeTechnicianCardV6342','#remakeTechniciansCardV6342',
+      '#remakeTechnicianSectionV6402','#remakeTechniciansSectionV6402',
+      '[data-remake-technicians-card]','[data-remake-technicians-section]'
+    ];
+    for (let i=0;i<directSelectors.length;i+=1) {
+      const direct = page.querySelector(directSelectors[i]);
+      if (direct && visibleRectV6601(direct)) return direct;
+    }
+    let best = null;
+    let bestScore = Number.NEGATIVE_INFINITY;
+    titleNodesV6601(page,label).forEach(function(titleNode){
+      let current = titleNode;
+      let depth = 0;
+      while (current && current !== page && depth < 10) {
+        const score = cardCandidateScoreV6601(page,current,titleNode,label);
+        if (score > bestScore) {
+          best = current;
+          bestScore = score;
+        }
+        current = current.parentElement;
+        depth += 1;
+      }
+    });
+    return best;
+  }
+
+  function remakeBottomCardsV6601(page){
+    if (!page || page.id !== 'remakeFactorPage') return [];
+    const cards = [];
+    function add(card,label){
+      if (!card || !page.contains(card) || cards.indexOf(card) >= 0) return;
+      card.setAttribute('data-cda-layout-shared-card-v6601','true');
+      card.setAttribute('data-cda-layout-shared-card-label-v6601',String(label || ''));
+      cards.push(card);
+    }
+    add(resolveRemakeBottomCardV6601(page,'Customers'),'Customers');
+    add(resolveRemakeBottomCardV6601(page,'Technicians'),'Technicians');
+    return cards;
+  }
+
+  function candidateCardsV6603(page){
+    if (!page) return [];
+    const candidates = Array.from(page.querySelectorAll(cardSelectorV6593));
+    const unique = [];
+    candidates.forEach(function(card){
+      if (!card || !card.matches || unique.indexOf(card) >= 0) return;
+      const nestedParent = card.parentElement && card.parentElement.closest && card.parentElement.closest(cardSelectorV6593);
+      if (nestedParent && nestedParent !== card && page.contains(nestedParent)) return;
+      if (card.closest('[role="dialog"],.remakeColumnChooserPopoverV6357,.cdaPopoverV6547,#cdaLayoutEditorBarV6593')) return;
+      unique.push(card);
+    });
+    remakeBottomCardsV6601(page).forEach(function(card){ if (unique.indexOf(card) < 0) unique.push(card); });
+    return unique;
+  }
+
+  function ensureUniversalGridMarkersV6603(page){
+    if (!page) return;
+    candidateCardsV6603(page).forEach(function(card,index){
+      if (!card) return;
+      card.setAttribute('data-cda-layout-universal-card-v6603','true');
+      const shell = shellForCardV6593(card);
+      let parent = shell ? shell.parentElement : card.parentElement;
+      if (!parent) return;
+      const naturalGrid = card.closest('.remakeGridV6230,.tatGridV6509,[data-cda-layout-editor-grid]');
+      if (naturalGrid && page.contains(naturalGrid)) parent = naturalGrid;
+      if (!parent.getAttribute('data-cda-layout-editor-grid')) {
+        parent.setAttribute('data-cda-layout-editor-grid','universal-' + safeKeyV6593(parent.id || cardKeyV6593(card,index) || String(index + 1)));
+      }
+      if (!parent.getAttribute('data-cda-layout-editor-grid-key-v6593')) {
+        parent.setAttribute('data-cda-layout-editor-grid-key-v6593',parent.id || 'universal-grid-' + String(index + 1));
+      }
+      parent.setAttribute('data-cda-layout-universal-grid-v6603','true');
+    });
+  }
+
+  function ensureSupplementalGridMarkersV6597(page){
+    ensureUniversalGridMarkersV6603(page);
+  }
+
+
+  function supplementalGridV6599(grid){
+    return !!(grid && grid.hasAttribute('data-cda-layout-universal-grid-v6603'));
+  }
+
+  function universalCanvasTopV6603(page){
+    if (!page) return 0;
+    const grids = Array.from(page.querySelectorAll(gridSelectorV6593)).filter(function(grid){ return directCardsV6593(grid).length >= 1; });
+    const tops = grids.map(function(grid){ return grid.getBoundingClientRect().top; }).filter(Number.isFinite);
+    if (tops.length) return Math.min.apply(Math,tops);
+    const cards = candidateCardsV6603(page);
+    const cardTops = cards.map(function(card){ return card.getBoundingClientRect().top; }).filter(Number.isFinite);
+    return cardTops.length ? Math.min.apply(Math,cardTops) : page.getBoundingClientRect().top;
+  }
+
+  function minimumTopForGridV6599(grid){
+    const page = grid && (grid.closest(pageSelectorV6593) || activePageV6593());
+    if (!grid || !page) return 0;
+    const gridRect = grid.getBoundingClientRect();
+    return Math.min(0,Math.floor(universalCanvasTopV6603(page) - gridRect.top));
+  }
+
+  function gridsForPageV6593(page){
+    if (!page) return [];
+    ensureSupplementalGridMarkersV6597(page);
+    const candidates = Array.from(page.querySelectorAll(gridSelectorV6593));
+    if (page.matches && page.matches(gridSelectorV6593)) candidates.unshift(page);
+    const unique = [];
+    candidates.forEach(function(grid){
+      if (unique.indexOf(grid) >= 0) return;
+      const count = directCardsV6593(grid).length;
+      if (count >= 1) unique.push(grid);
+    });
+    return unique;
+  }
+
+  function gridKeyV6593(grid,index){
+    return grid.getAttribute('data-cda-layout-editor-grid-key-v6593') || grid.id || 'grid-' + String(index + 1);
+  }
+
+  function cardKeyV6593(card,index){
+    const title = card.querySelector && card.querySelector('.remakeCardTitle,.tatCardTitleV6509,[class*="CardTitle"]');
+    const sharedLabel = card.getAttribute('data-cda-layout-shared-card-label-v6601');
+    const titleText = sharedLabel || (title && title.textContent) || remakeCardTitleV6601(card) || 'card-' + String(index + 1);
+    return card.getAttribute('data-cda-dashboard-component') ||
+      card.getAttribute('data-cda-dashboard-decorated-component') || card.id ||
+      safeKeyV6593(titleText);
+  }
+
+  function cardCollapsedV6593(card){
+    if (!card) return false;
+    const nativeToggle = card.querySelector('[data-cda-dashboard-title-toggle="true"][aria-expanded],.tatCollapseButtonV6509[aria-expanded],[data-remake-section-toggle-v6402][aria-expanded]');
+    if (nativeToggle) return String(nativeToggle.getAttribute('aria-expanded') || '').toLowerCase() === 'false';
+    const remakeState = card.getAttribute('data-remake-section-collapsed-v6402');
+    if (remakeState !== null) return String(remakeState) === '1' || String(remakeState).toLowerCase() === 'true';
+    const nativeState = card.getAttribute('data-collapsed');
+    if (nativeState !== null) return String(nativeState).toLowerCase() === 'true' || String(nativeState) === '1';
+    if (card.classList.contains('collapsed') || card.classList.contains('remakeSectionCollapsedV6402')) return true;
+    const tableState = card.getAttribute('data-cda-table-card-collapsed-v6590');
+    if (tableState !== null) return String(tableState).toLowerCase() === 'true';
+    return false;
+  }
+
+  function syncCollapseMarkersV6607(card){
+    if (!card) return false;
+    const collapsed = cardCollapsedV6593(card);
+    card.setAttribute('data-cda-table-card-collapsed-v6590',collapsed ? 'true' : 'false');
+    const shell = shellForCardV6593(card);
+    if (shell) shell.setAttribute('data-cda-layout-shell-collapsed-v6594',collapsed ? 'true' : 'false');
+    return collapsed;
+  }
+
+  function collapsedHeightV6593(card){
+    const header = card && card.querySelector(':scope > .remakeCardHeader,:scope > .tatCardHeadV6509,:scope > [class*="CardHeader"],:scope > [class*="CardHead"]');
+    const height = header && header.getBoundingClientRect().height;
+    return Math.max(40,Math.round(Number(height) || 42));
+  }
+
+  function expandedHeightV6593(card,currentHeight){
+    if (!cardCollapsedV6593(card)) return Math.max(minimumVisualHeightV6617(card),Math.round(currentHeight));
+    const attr = Number(card.getAttribute('data-cda-layout-card-height-v6593') || card.getAttribute('data-cda-table-card-height-v6590'));
+    if (Number.isFinite(attr) && attr >= minHeightV6593) return attr;
+    try {
+      const style = getComputedStyle(card);
+      const variable = parseFloat(style.getPropertyValue('--cda-table-card-height-v6590'));
+      if (Number.isFinite(variable) && variable >= minHeightV6593) return variable;
+    } catch (error) {}
+    const profile = String(card.getAttribute('data-cda-table-card-profile-v6590') || card.getAttribute('data-cda-table-card-profile-v6589') || '').toLowerCase();
+    const identity = [card.id,card.getAttribute('data-cda-dashboard-component'),profile].filter(Boolean).join(' ').toLowerCase();
+    if (profile === 'multi' || /technician|ceramist|worker/.test(identity)) return 560;
+    if (profile === 'wide' || card.matches('.tatWideV6509,.wide,[data-cda-dashboard-wide="true"]')) return 410;
+    return 350;
+  }
+
+  function capturePageV6593(page){
+    const grids = {};
+    const canvas = canvasMetricsV6611(page);
+    gridsForPageV6593(page).forEach(function(grid,index){
+      const rect = grid.getBoundingClientRect();
+      const width = stableGridWidthV6593(grid);
+      const items = {};
+      let maxBottom = 0;
+      directCardsV6593(grid).forEach(function(card,cardIndex){
+        const cardRect = card.getBoundingClientRect();
+        const key = cardKeyV6593(card,cardIndex);
+        const left = Math.max(0,cardRect.left - rect.left);
+        const top = Math.max(minimumTopForGridV6599(grid),cardRect.top - rect.top);
+        const itemWidth = Math.max(1,cardRect.width);
+        const itemHeight = expandedHeightV6593(card,cardRect.height);
+        items[key] = {
+          leftRatio:clampV6593(left / width,0,1),
+          widthRatio:clampV6593(itemWidth / width,.05,1),
+          top:Math.round(top),
+          pageLeftRatio:clampV6593((cardRect.left - canvas.left) / canvas.width,0,1),
+          pageWidthRatio:clampV6593(itemWidth / canvas.width,.05,1),
+          pageTop:Math.round(cardRect.top - canvas.top),
+          height:Math.round(itemHeight),
+          z:cardIndex + 1
+        };
+        maxBottom = Math.max(maxBottom,top + (cardCollapsedV6593(card) ? collapsedHeightV6593(card) : itemHeight));
+      });
+      const capturedHeight = Math.max(42,Math.ceil(maxBottom + 12));
+      grids[gridKeyV6593(grid,index)] = {height:capturedHeight,baseHeight:42,items:items};
+    });
+    return {version:versionV6593,tab:tabKeyV6593(page),grids:grids};
+  }
+
+  function layoutForTabV6593(tab){
+    const store = readStoreV6593();
+    const value = store && store.tabs && store.tabs[tab];
+    if (!value || !value.grids) return null;
+    const layout = cloneV6593(value);
+    layout.version = versionV6593;
+    return layout;
+  }
+
+  function saveLayoutV6593(tab,layout){
+    const store = readStoreV6593();
+    store.version = versionV6593;
+    store.tabs = store.tabs && typeof store.tabs === 'object' ? store.tabs : {};
+    const savedLayout = cloneV6593(layout);
+    savedLayout.version = versionV6593;
+    store.tabs[tab] = savedLayout;
+    writeStoreV6593(store);
+  }
+
+  function clearSavedLayoutV6593(tab){
+    const store = readStoreV6593();
+    if (store.tabs) delete store.tabs[tab];
+    writeStoreV6593(store);
+  }
+
+  function setImportantV6593(style,name,value){ if (style) style.setProperty(name,String(value),'important'); }
+
+  function clearItemV6593(card){
+    if (!card) return;
+    const shell = shellForCardV6593(card);
+    if (shell && shell.style) {
+      ['position','left','top','width','height','min-height','max-height','z-index'].forEach(function(name){ shell.style.removeProperty(name); });
+      ['data-cda-layout-item-v6593','data-cda-layout-card-key-v6593','data-cda-layout-card-height-v6593','data-cda-layout-dragging-v6593','data-cda-layout-overlap-v6594','data-cda-layout-shell-collapsed-v6594'].forEach(function(name){ shell.removeAttribute(name); });
+    }
+    unwrapCardV6593(card);
+  }
+
+  function clearGridV6593(grid){
+    if (!grid) return;
+    grid.removeAttribute('data-cda-layout-grid-v6593');
+    grid.removeAttribute('data-cda-layout-editor-grid-key-v6593');
+    ['position','height','min-height','max-height','overflow','overflow-x'].forEach(function(name){ grid.style.removeProperty(name); });
+    const cards = [];
+    Array.from(grid.children || []).forEach(function(node){
+      if (!node || !node.matches) return;
+      if (node.classList.contains('cdaLayoutItemShellV6594')) {
+        const card = Array.from(node.children || []).find(function(child){ return child.matches && child.matches(cardSelectorV6593); });
+        if (card) cards.push(card);
+      } else if (node.matches(cardSelectorV6593)) cards.push(node);
+    });
+    cards.forEach(clearItemV6593);
+    grid.querySelectorAll(':scope > .cdaLayoutPlaceholderV6606').forEach(function(node){ node.remove(); });
+  }
+
+  function itemRectV6593(item,gridWidth,card,grid){
+    const page = grid && (grid.closest(pageSelectorV6593) || activePageV6593());
+    const canvas = canvasMetricsV6611(page);
+    const gridRect = grid ? grid.getBoundingClientRect() : {left:canvas.left,top:canvas.top};
+    const hasPageGeometry = Number.isFinite(Number(item.pageTop)) && Number.isFinite(Number(item.pageLeftRatio)) && Number.isFinite(Number(item.pageWidthRatio));
+    let width;
+    let left;
+    let top;
+    if (hasPageGeometry) {
+      width = clampV6593(Number(item.pageWidthRatio) * canvas.width,Math.min(canvas.width,minColumnsV6593 * canvas.width / 12),canvas.width);
+      const desiredPageLeft = canvas.left + clampV6593(Number(item.pageLeftRatio),0,1) * canvas.width;
+      const desiredPageTop = canvas.top + Number(item.pageTop);
+      left = desiredPageLeft - gridRect.left;
+      top = desiredPageTop - gridRect.top;
+    } else {
+      width = clampV6593(item.widthRatio * gridWidth,Math.min(gridWidth,minColumnsV6593 * gridWidth / 12),gridWidth);
+      left = clampV6593(item.leftRatio * gridWidth,0,Math.max(0,gridWidth - width));
+      top = Math.max(minimumTopForGridV6599(grid),Number(item.top) || 0);
+    }
+    const height = cardCollapsedV6593(card)
+      ? collapsedHeightV6593(card)
+      : Math.max(minimumVisualHeightV6617(card),Number(item.height) || minHeightV6593);
+    return {left:left,top:top,width:width,height:height};
+  }
+
+  function applyItemV6593(card,item,gridWidth,grid,key){
+    const rect = itemRectV6593(item,gridWidth,card,grid);
+    const shell = ensureShellV6593(card,grid,key);
+    const expandedHeight = Math.round(Math.max(minimumVisualHeightV6617(card),Number(item.height) || rect.height));
+    shell.setAttribute('data-cda-layout-card-height-v6593',String(expandedHeight));
+    card.setAttribute('data-cda-layout-card-height-v6593',String(expandedHeight));
+    shell.setAttribute('data-cda-layout-shell-collapsed-v6594',cardCollapsedV6593(card) ? 'true' : 'false');
+    setImportantV6593(shell.style,'position','absolute');
+    setImportantV6593(shell.style,'left',Math.round(rect.left) + 'px');
+    setImportantV6593(shell.style,'top',Math.round(rect.top) + 'px');
+    setImportantV6593(shell.style,'width',Math.round(rect.width) + 'px');
+    setImportantV6593(shell.style,'height',Math.round(rect.height) + 'px');
+    setImportantV6593(shell.style,'min-height',Math.round(rect.height) + 'px');
+    setImportantV6593(shell.style,'max-height',Math.round(rect.height) + 'px');
+    setImportantV6593(shell.style,'z-index',String(Number(item.z) || 1));
+    return rect;
+  }
+
+  function ensureCanvasSpacerV6606(page){
+    if (!page) return null;
+    let spacer = page.querySelector(':scope > #cdaLayoutCanvasSpacerV6606');
+    if (!spacer) {
+      spacer = document.createElement('div');
+      spacer.id = 'cdaLayoutCanvasSpacerV6606';
+      spacer.setAttribute('aria-hidden','true');
+      page.appendChild(spacer);
+    }
+    return spacer;
+  }
+
+  function baseContentBottomV6606(page){
+    if (!page) return 0;
+    const scrollY = window.scrollY || window.pageYOffset || 0;
+    let bottom = page.getBoundingClientRect().top + scrollY;
+    Array.from(page.children || []).forEach(function(node){
+      if (!node || node.id === 'cdaLayoutCanvasSpacerV6606' || !node.getBoundingClientRect) return;
+      const rect = node.getBoundingClientRect();
+      if (rect.width < 1 && rect.height < 1) return;
+      bottom = Math.max(bottom,rect.bottom + scrollY);
+    });
+    return bottom;
+  }
+
+  function updatePageExtentV6606(page,active,rect){
+    if (!page) return 0;
+    const spacer = ensureCanvasSpacerV6606(page);
+    const scrollY = window.scrollY || window.pageYOffset || 0;
+    const baseBottom = active && Number.isFinite(active.baseContentBottomV6606) ? active.baseContentBottomV6606 : baseContentBottomV6606(page);
+    let visualBottom = active && Number.isFinite(active.otherVisualBottomV6606) ? active.otherVisualBottomV6606 : baseBottom;
+    (page.querySelectorAll('.cdaLayoutItemShellV6594[data-cda-layout-item-v6593="true"]') || []).forEach(function(shell){
+      if (active && shell === active.shell && rect) return;
+      const visual = shell.getBoundingClientRect();
+      visualBottom = Math.max(visualBottom,visual.bottom + scrollY);
+    });
+    if (active && rect) visualBottom = Math.max(visualBottom,active.gridRect.top + scrollY + rect.top + rect.height);
+    const extra = Math.max(0,Math.ceil(visualBottom - baseBottom + 18));
+    setImportantV6593(spacer.style,'height',extra + 'px');
+    spacer.setAttribute('data-cda-layout-extra-height-v6606',String(extra));
+    return extra;
+  }
+
+  function cachePageExtentV6606(active){
+    if (!active || !sessionV6593 || !sessionV6593.page) return;
+    const page = sessionV6593.page;
+    const scrollY = window.scrollY || window.pageYOffset || 0;
+    active.baseContentBottomV6606 = baseContentBottomV6606(page);
+    active.otherVisualBottomV6606 = active.baseContentBottomV6606;
+    page.querySelectorAll('.cdaLayoutItemShellV6594[data-cda-layout-item-v6593="true"]').forEach(function(shell){
+      if (shell === active.shell) return;
+      const visual = shell.getBoundingClientRect();
+      active.otherVisualBottomV6606 = Math.max(active.otherVisualBottomV6606,visual.bottom + scrollY);
+    });
+  }
+
+  function updateGridHeightV6593(grid,gridLayout){
+    if (!grid) return 0;
+    ['height','min-height','max-height'].forEach(function(name){ grid.style.removeProperty(name); });
+    return Math.round(grid.getBoundingClientRect().height || 0);
+  }
+
+  function applyLiveGridExtentV6605(active,rect){
+    if (!active || !rect || !sessionV6593) return;
+    updatePageExtentV6606(sessionV6593.page,active,rect);
+  }
+
+  function updateAllGridHeightsV6605(page,layout){
+    if (!page) return;
+    gridsForPageV6593(page).forEach(function(grid){ updateGridHeightV6593(grid,null); });
+    updatePageExtentV6606(page,null,null);
+  }
+
+  function directCardHeaderV6617(card){
+    return card && card.querySelector
+      ? card.querySelector(':scope > .remakeCardHeader,:scope > .tatCardHeadV6509,:scope > [class*="CardHeader"],:scope > [class*="CardHead"]')
+      : null;
+  }
+
+  function visualFitControllerV6617(){
+    const controller = window.cdaDashboardVisualFitV6617;
+    return controller && typeof controller.minimumCardHeight === 'function' &&
+      typeof controller.schedule === 'function' ? controller : null;
+  }
+
+  function minimumVisualHeightV6617(card){
+    if (!card) return minHeightV6593;
+    const controller = visualFitControllerV6617();
+    if (controller && typeof controller.minimumCardHeight === 'function') {
+      return Math.max(minHeightV6593,Number(controller.minimumCardHeight(card,minHeightV6593)) || minHeightV6593);
+    }
+    if (cardCollapsedV6593(card)) return collapsedHeightV6593(card);
+    const header = directCardHeaderV6617(card);
+    const headerHeight = Math.max(0,Math.round(Number(header && header.getBoundingClientRect().height) || 0));
+    if (card.querySelector('canvas')) return Math.max(minHeightV6593,headerHeight + 268);
+    if (card.querySelector('table')) return Math.max(minHeightV6593,headerHeight + 112);
+    return minHeightV6593;
+  }
+
+  function scheduleVisualFitV6617(scope,reason,delay){
+    if (activePointerV6593) return;
+    const controller = visualFitControllerV6617();
+    if (!controller || typeof controller.schedule !== 'function') return;
+    controller.schedule(scope || document,reason || 'layout-editor',Math.max(0,Number(delay) || 0));
+  }
+
+  function applySavedLayoutInPlaceV6617(page){
+    if (!page || !pageVisibleV6593(page) || !pageMeasurableV6613(page)) return false;
+    const layout = sessionV6593 && sessionV6593.page === page ? sessionV6593.working : layoutForTabV6593(tabKeyV6593(page));
+    if (!layout || !layoutMatchesVisiblePageV6613(page,layout)) return false;
+    applyLayoutV6593(page,layout,true);
+    updatePageExtentV6606(page,null,null);
+    scheduleVisualFitV6617(page,'saved-layout-in-place',40);
+    return true;
+  }
+
+  function scheduleRefreshV6593(page){
+    const elapsed = Date.now() - refreshLastRunV6608;
+    refreshLastRunV6608 = Date.now();
+    scheduleVisualFitV6617(page || document,'layout-refresh',Math.max(40,120 - Math.min(80,elapsed)));
+  }
+
+  function findGridLayoutV6593(layout,grid,index){
+    const key = gridKeyV6593(grid,index);
+    return {key:key,value:layout && layout.grids && layout.grids[key]};
+  }
+
+  function applyLayoutV6593(page,layout,suppressRefreshV6608,skipUniversalReflowV6611){
+    if (!page || !layout) return false;
+    const targets = [];
+    gridsForPageV6593(page).forEach(function(grid,index){
+      const resolvedGrid = findGridLayoutV6593(layout,grid,index);
+      const gridLayout = resolvedGrid.value;
+      if (!gridLayout) return;
+      grid.setAttribute('data-cda-layout-grid-v6593','true');
+      grid.setAttribute('data-cda-layout-editor-grid-key-v6593',resolvedGrid.key);
+      setImportantV6593(grid.style,'position','relative');
+      setImportantV6593(grid.style,'overflow','visible');
+      directCardsV6593(grid).forEach(function(card,cardIndex){
+        const key = cardKeyV6593(card,cardIndex);
+        const item = gridLayout.items && gridLayout.items[key];
+        if (!item) return;
+        ensureShellV6593(card,grid,key);
+        targets.push({grid:grid,gridLayout:gridLayout,card:card,key:key,item:item});
+      });
+      updateGridHeightV6593(grid,gridLayout);
+    });
+    targets.forEach(function(target){
+      applyItemV6593(target.card,target.item,stableGridWidthV6593(target.grid),target.grid,target.key);
+    });
+    if (!skipUniversalReflowV6611) applyUniversalCollisionReflowV6611(page,layout);
+    updatePageExtentV6606(page,null,null);
+    updateOverlapStateV6593();
+    if (!suppressRefreshV6608) scheduleRefreshV6593(page);
+    return true;
+  }
+
+  function markHydratedCardsV6623(page){
+    if (!page) return;
+    gridsForPageV6593(page).forEach(function(grid){
+      directCardsV6593(grid).forEach(function(card){
+        if (shellForCardV6593(card)) authoritativeHydratedCardsV6623.add(card);
+      });
+    });
+  }
+
+  function hydrateNewSavedCardsV6623(page,reason){
+    if (!page || Number(window.innerWidth || 0) < 981 || !pageMeasurableV6613(page)) return 0;
+    const saved = layoutForTabV6593(tabKeyV6593(page));
+    if (!saved || !saved.grids) return 0;
+    let applied = 0;
+    withObserverMutedV6608(function(){
+      gridsForPageV6593(page).forEach(function(grid,index){
+        const resolvedGrid = findGridLayoutV6593(saved,grid,index);
+        const gridLayout = resolvedGrid.value;
+        if (!gridLayout || !gridLayout.items) return;
+        grid.setAttribute('data-cda-layout-grid-v6593','true');
+        grid.setAttribute('data-cda-layout-editor-grid-key-v6593',resolvedGrid.key);
+        setImportantV6593(grid.style,'position','relative');
+        setImportantV6593(grid.style,'overflow','visible');
+        const gridWidth = stableGridWidthV6593(grid);
+        directCardsV6593(grid).forEach(function(card,cardIndex){
+          if (authoritativeHydratedCardsV6623.has(card) && shellForCardV6593(card)) return;
+          const key = cardKeyV6593(card,cardIndex);
+          const item = gridLayout.items[key];
+          if (!item) return;
+          applyItemV6593(card,item,gridWidth,grid,key);
+          authoritativeHydratedCardsV6623.add(card);
+          incrementalCardHydrationCountV6623 += 1;
+          applied += 1;
+        });
+      });
+      if (applied) updatePageExtentV6606(page,null,null);
+    });
+    if (applied) {
+      page.setAttribute('data-cda-layout-source-v6622','saved');
+      page.setAttribute('data-cda-layout-hydrated-v6622','true');
+      page.setAttribute('data-cda-layout-authority-v6623','saved-locked');
+      authoritativeHydratedPagesV6622.add(page);
+      signalFirstPaintGeometryReadyV6619(page,reason || 'incremental-card-hydration');
+    }
+    return applied;
+  }
+
+  function hydrateSavedLayoutAuthoritativelyV6622(page,reason){
+    if (!page || Number(window.innerWidth || 0) < 981 || !pageMeasurableV6613(page)) return false;
+    const tab = tabKeyV6593(page);
+    const saved = layoutForTabV6593(tab);
+    if (!saved) {
+      page.setAttribute('data-cda-layout-source-v6622','default');
+      page.setAttribute('data-cda-layout-authority-v6623','default');
+      return false;
+    }
+    withObserverMutedV6608(function(){
+      applyLayoutV6593(page,saved,true,true);
+      updatePageExtentV6606(page,null,null);
+    });
+    markHydratedCardsV6623(page);
+    page.setAttribute('data-cda-layout-source-v6622','saved');
+    page.setAttribute('data-cda-layout-hydrated-v6622','true');
+    page.setAttribute('data-cda-layout-authority-v6623','saved-locked');
+    page.removeAttribute('data-cda-layout-tab-activating-v6613');
+    authoritativeHydratedPagesV6622.add(page);
+    firstPaintActivatedPagesV6619.add(page);
+    authoritativeHydrationCountV6622 += 1;
+    signalFirstPaintGeometryReadyV6619(page,reason || 'single-authority-hydration');
+    return true;
+  }
+
+  function hydrateVisibleSavedLayoutsV6622(reason){
+    let applied = 0;
+    document.querySelectorAll(pageSelectorV6593).forEach(function(page){
+      if (pageVisibleV6593(page) && hydrateSavedLayoutAuthoritativelyV6622(page,reason || 'startup')) applied += 1;
+    });
+    return applied;
+  }
+
+  function clearPageLayoutV6593(page){
+    if (!page) return;
+    const grids = [];
+    if (page.matches && page.matches(gridSelectorV6593)) grids.push(page);
+    Array.from(page.querySelectorAll(gridSelectorV6593)).forEach(function(grid){ if (grids.indexOf(grid) < 0) grids.push(grid); });
+    grids.forEach(clearGridV6593);
+    const spacer = page.querySelector(':scope > #cdaLayoutCanvasSpacerV6606');
+    if (spacer) spacer.remove();
+    scheduleRefreshV6593(page);
+  }
+
+  function applySavedForPageV6593(page){
+    if (!page || Number(window.innerWidth || 0) < 981 || !pageMeasurableV6613(page)) return false;
+    const saved = layoutForTabV6593(tabKeyV6593(page));
+    if (!saved) return false;
+    return hydrateSavedLayoutAuthoritativelyV6622(page,'explicit-apply-saved');
+  }
+
+  function preparePageForActivationV6627(page,reason){
+    if (!page || Number(window.innerWidth || 0) < 981 || !pageMeasurableV6613(page)) return false;
+    let applied = true;
+    if (authoritativeHydratedPagesV6622.has(page)) {
+      hydrateNewSavedCardsV6623(page,reason || 'tab-prepare-new-cards');
+      updatePageExtentV6606(page,null,null);
+    } else {
+      const savedApplied = hydrateSavedLayoutAuthoritativelyV6622(page,reason || 'tab-prepare');
+      if (!savedApplied) {
+        page.setAttribute('data-cda-layout-source-v6622','default');
+        page.setAttribute('data-cda-layout-authority-v6623','default');
+        firstPaintActivatedPagesV6619.add(page);
+        signalFirstPaintGeometryReadyV6619(page,'default-layout-authority');
+      }
+    }
+    page.setAttribute('data-cda-layout-prepared-v6627','true');
+    lastStructureSignatureV6608 = structureSignatureV6608();
+    updateButtonV6593();
+    return applied;
+  }
+
+  function commitPageActivationV6627(page){
+    if (!page) return false;
+    page.removeAttribute('data-cda-layout-prepared-v6627');
+    updateButtonV6593();
+    return true;
+  }
+
+  function clearManagedLayoutForHiddenPageV6613(page){
+    if (!page || pageVisibleV6593(page)) return false;
+    const timer = visibleTabActivationTimersV6613.get(page);
+    if (timer) window.clearTimeout(timer);
+    visibleTabActivationTimersV6613.delete(page);
+    page.removeAttribute('data-cda-layout-tab-activating-v6613');
+    return false;
+  }
+
+  function activateVisiblePageLayoutV6613(page){
+    if (!page || !pageMeasurableV6613(page) || visibleTabActivationBusyV6613) return false;
+    if (authoritativeHydratedPagesV6622.has(page)) {
+      hydrateNewSavedCardsV6623(page,'visible-page-new-cards');
+      updatePageExtentV6606(page,null,null);
+      return true;
+    }
+    visibleTabActivationBusyV6613 = true;
+    try {
+      const applied = hydrateSavedLayoutAuthoritativelyV6622(page,'visible-page-activation');
+      if (!applied) {
+        page.setAttribute('data-cda-layout-source-v6622','default');
+        page.setAttribute('data-cda-layout-authority-v6623','default');
+        firstPaintActivatedPagesV6619.add(page);
+        signalFirstPaintGeometryReadyV6619(page,'default-layout-authority');
+      }
+      lastStructureSignatureV6608 = structureSignatureV6608();
+      updateButtonV6593();
+      scheduleTatRepairV6593(20);
+      return true;
+    } finally {
+      visibleTabActivationBusyV6613 = false;
+    }
+  }
+
+  function scheduleVisiblePageActivationV6613(page,delay){
+    if (!page) return;
+    const oldTimer = visibleTabActivationTimersV6613.get(page);
+    if (oldTimer) window.clearTimeout(oldTimer);
+    const timer = window.setTimeout(function(){
+      visibleTabActivationTimersV6613.delete(page);
+      if (!pageVisibleV6593(page)) { clearManagedLayoutForHiddenPageV6613(page); return; }
+      if (!pageMeasurableV6613(page)) return;
+      activateVisiblePageLayoutV6613(page);
+    },Math.max(0,Number(delay) || 0));
+    visibleTabActivationTimersV6613.set(page,timer);
+  }
+
+  function scheduleActivePageActivationV6613(delay){
+    const page = activePageV6593();
+    if (page && pageVisibleV6593(page)) scheduleVisiblePageActivationV6613(page,delay);
+  }
+
+  function mountControlsV6593(){
+    if (!document.body) return;
+    if (!document.getElementById('cdaLayoutEditButtonV6593')) {
+      const button = document.createElement('button');
+      button.id = 'cdaLayoutEditButtonV6593';
+      button.type = 'button';
+      button.textContent = '✎ Edit layout';
+      button.title = 'Edit this dashboard layout in this browser';
+      button.setAttribute('aria-label','Edit dashboard layout');
+      button.addEventListener('click',startEditingV6593);
+      document.body.appendChild(button);
+    }
+    if (!document.getElementById('cdaLayoutEditorBarV6593')) {
+      const bar = document.createElement('div');
+      bar.id = 'cdaLayoutEditorBarV6593';
+      bar.innerHTML = '<span id="cdaLayoutEditorStatusV6593">Move freely. Orange means near. Green lines mean exact peer alignment. Matching width/height highlights both cards green.</span>' +
+        '<button id="cdaLayoutEditorUndoV6593" type="button">Undo</button>' +
+        '<button id="cdaLayoutEditorResetV6593" type="button">Reset layout</button>' +
+        '<button id="cdaLayoutEditorCancelV6593" type="button">Cancel</button>' +
+        '<button id="cdaLayoutEditorSaveV6593" type="button">Save</button>';
+      document.body.appendChild(bar);
+      bar.querySelector('#cdaLayoutEditorUndoV6593').addEventListener('click',undoV6593);
+      bar.querySelector('#cdaLayoutEditorResetV6593').addEventListener('click',resetLayoutV6593);
+      bar.querySelector('#cdaLayoutEditorCancelV6593').addEventListener('click',cancelEditingV6593);
+      bar.querySelector('#cdaLayoutEditorSaveV6593').addEventListener('click',saveEditingV6593);
+    }
+    if (!document.getElementById('cdaLayoutToastV6593')) {
+      const toast = document.createElement('div');
+      toast.id = 'cdaLayoutToastV6593';
+      document.body.appendChild(toast);
+    }
+    updateButtonV6593();
+  }
+
+  function showToastV6593(message){
+    const toast = document.getElementById('cdaLayoutToastV6593');
+    if (!toast) return;
+    toast.textContent = message;
+    toast.style.setProperty('display','block','important');
+    if (toastTimerV6593) window.clearTimeout(toastTimerV6593);
+    toastTimerV6593 = window.setTimeout(function(){ toast.style.removeProperty('display'); },2200);
+  }
+
+  function updateButtonV6593(){
+    const button = document.getElementById('cdaLayoutEditButtonV6593');
+    if (!button) return;
+    const page = activePageV6593();
+    button.hidden = !page || Number(window.innerWidth || 0) < 981;
+    if (page) button.textContent = '✎ Edit ' + (tabKeyV6593(page) === 'tat' ? 'TAT' : 'Remake') + ' layout';
+  }
+
+  function ensureHandlesV6593(card){
+    const shell = shellForCardV6593(card);
+    if (!shell) return;
+    const existingDrag = shell.querySelector(':scope > .cdaLayoutDragHandleV6593');
+    const existingResizeHandles = shell.querySelectorAll(':scope > .cdaLayoutResizeHandleV6593');
+    if (existingDrag && existingResizeHandles.length === 8) return;
+    if (existingDrag) existingDrag.remove();
+    existingResizeHandles.forEach(function(node){ node.remove(); });
+    const drag = document.createElement('div');
+    drag.className = 'cdaLayoutDragHandleV6593';
+    drag.setAttribute('role','button');
+    drag.setAttribute('aria-label','Move card');
+    drag.addEventListener('pointerdown',startCardDragV6593);
+    shell.appendChild(drag);
+    ['n','ne','e','se','s','sw','w','nw'].forEach(function(direction){
+      const resize = document.createElement('div');
+      resize.className = 'cdaLayoutResizeHandleV6593';
+      resize.setAttribute('data-direction',direction);
+      resize.setAttribute('role','button');
+      resize.setAttribute('aria-label','Resize card from ' + direction.toUpperCase());
+      resize.addEventListener('pointerdown',startCardResizeV6593);
+      shell.appendChild(resize);
+    });
+  }
+
+  function removeHandlesV6593(page){
+    (page || document).querySelectorAll('.cdaLayoutDragHandleV6593,.cdaLayoutResizeHandleV6593').forEach(function(node){ node.remove(); });
+  }
+
+  function snapshotWorkingV6593(){ return sessionV6593 ? cloneV6593(sessionV6593.working) : null; }
+
+  function pushHistoryV6593(){
+    if (!sessionV6593) return;
+    sessionV6593.history.push(snapshotWorkingV6593());
+    if (sessionV6593.history.length > maxHistoryV6593) sessionV6593.history.shift();
+  }
+
+  function markChangedV6593(){ if (sessionV6593) sessionV6593.changed = true; }
+
+  function registryAuditV6603(page){
+    const candidates = candidateCardsV6603(page);
+    const registered = [];
+    gridsForPageV6593(page).forEach(function(grid){
+      directCardsV6593(grid).forEach(function(card){ if (registered.indexOf(card) < 0) registered.push(card); });
+    });
+    const skipped = candidates.filter(function(card){ return registered.indexOf(card) < 0; });
+    return {discovered:candidates.length,registered:registered.length,skipped:skipped.length,skippedCards:skipped};
+  }
+
+  function geometryMapV6593(page){
+    const out = {};
+    gridsForPageV6593(page).forEach(function(grid){
+      directCardsV6593(grid).forEach(function(card,index){
+        const r = card.getBoundingClientRect();
+        out[cardKeyV6593(card,index)] = {left:r.left,top:r.top,width:r.width,height:r.height};
+      });
+    });
+    return out;
+  }
+
+  function maximumGeometryDeltaV6593(before,after){
+    let max = 0;
+    Object.keys(before || {}).forEach(function(key){
+      if (!after[key]) return;
+      ['left','top','width','height'].forEach(function(field){ max = Math.max(max,Math.abs(Number(before[key][field]) - Number(after[key][field]))); });
+    });
+    return max;
+  }
+
+  function startEditingV6593(){
+    if (sessionV6593 || Number(window.innerWidth || 0) < 981) return;
+    const page = activePageV6593();
+    if (!page) return;
+    const tab = tabKeyV6593(page);
+    const saved = layoutForTabV6593(tab);
+    const before = geometryMapV6593(page);
+    const working = saved ? cloneV6593(saved) : capturePageV6593(page);
+    sessionV6593 = {page:page,tab:tab,savedBefore:saved,working:cloneV6593(working),history:[],changed:false,entryGeometry:before,entryDelta:0,collapseShiftsV6607:{}};
+    document.documentElement.classList.add('cdaLayoutEditorActiveV6593');
+    applyLayoutV6593(page,sessionV6593.working);
+    gridsForPageV6593(page).forEach(function(grid){ directCardsV6593(grid).forEach(ensureHandlesV6593); });
+    sessionV6593.entryDelta = maximumGeometryDeltaV6593(before,geometryMapV6593(page));
+    const status = document.getElementById('cdaLayoutEditorStatusV6593');
+    const registry = registryAuditV6603(page);
+    if (status) status.textContent = registry.skipped
+      ? 'Editor registry warning · ' + registry.skipped + ' visual(s) skipped'
+      : 'Editing ' + (tab === 'tat' ? 'TAT' : 'Remake') + ' · all ' + registry.registered + ' visuals editable · independent cards · pass-through drag · collision-safe drop · cross-row movement · orange = near · green = exact';
+    updateOverlapStateV6593();
+  }
+
+  function exitEditingV6593(){
+    const page = sessionV6593 && sessionV6593.page;
+    document.documentElement.classList.remove('cdaLayoutEditorActiveV6593');
+    removeHandlesV6593(page || document);
+    (page || document).querySelectorAll('.cdaLayoutGuideV6595').forEach(function(node){ node.remove(); });
+    if (pointerFrameV6595) window.cancelAnimationFrame(pointerFrameV6595);
+    pointerFrameV6595 = 0;
+    pendingPointerV6595 = null;
+    clearInteractionPreviewV6597(activePointerV6593);
+    activePointerV6593 = null;
+    sessionV6593 = null;
+    updateButtonV6593();
+    scheduleTatRepairV6593(20);
+  }
+
+  function saveEditingV6593(){
+    if (!sessionV6593) return;
+    if (updateOverlapStateV6593()) {
+      showToastV6593('Move overlapping cards apart before saving.');
+      return;
+    }
+    saveLayoutV6593(sessionV6593.tab,sessionV6593.working);
+    const page = sessionV6593.page;
+    const tab = sessionV6593.tab;
+    exitEditingV6593();
+    applySavedForPageV6593(page);
+    showToastV6593((tab === 'tat' ? 'TAT' : 'Remake') + ' layout saved in this browser.');
+  }
+
+  function cancelEditingV6593(){
+    if (!sessionV6593) return;
+    const page = sessionV6593.page;
+    const saved = sessionV6593.savedBefore;
+    exitEditingV6593();
+    if (saved) applyLayoutV6593(page,saved); else clearPageLayoutV6593(page);
+    showToastV6593('Layout changes cancelled.');
+  }
+
+  function resetLayoutV6593(){
+    if (!sessionV6593) return;
+    const page = sessionV6593.page;
+    const tab = sessionV6593.tab;
+    clearSavedLayoutV6593(tab);
+    exitEditingV6593();
+    clearPageLayoutV6593(page);
+    showToastV6593((tab === 'tat' ? 'TAT' : 'Remake') + ' layout reset.');
+  }
+
+  function undoV6593(){
+    if (!sessionV6593 || !sessionV6593.history.length) return;
+    sessionV6593.working = sessionV6593.history.pop();
+    applyLayoutV6593(sessionV6593.page,sessionV6593.working);
+  }
+
+  function workingItemV6593(card){
+    if (!sessionV6593 || !card) return null;
+    const shell = shellForCardV6593(card);
+    const grid = shell ? shell.parentElement : card.parentElement;
+    const grids = gridsForPageV6593(sessionV6593.page);
+    const gridIndex = grids.indexOf(grid);
+    if (gridIndex < 0) return null;
+    const gridKey = gridKeyV6593(grid,gridIndex);
+    const cardIndex = directCardsV6593(grid).indexOf(card);
+    const cardKey = cardKeyV6593(card,cardIndex);
+    const gridLayout = sessionV6593.working.grids && sessionV6593.working.grids[gridKey];
+    const item = gridLayout && gridLayout.items && gridLayout.items[cardKey];
+    return item ? {grid:grid,gridKey:gridKey,cardKey:cardKey,gridLayout:gridLayout,item:item} : null;
+  }
+
+  function horizontalStepV6595(gridWidth){
+    return Math.max(1,gridWidth / horizontalSnapDivisionsV6595);
+  }
+
+  function magneticSnapV6596(value,step,tolerance){
+    const snapped = Math.round(value / Math.max(1,step)) * Math.max(1,step);
+    return Math.abs(snapped - value) <= Math.max(0,tolerance) ? snapped : value;
+  }
+
+  function snapHorizontalV6593(value,gridWidth){
+    return magneticSnapV6596(value,horizontalStepV6595(gridWidth),horizontalMagnetToleranceV6596);
+  }
+
+  function snapVerticalV6593(value){
+    return magneticSnapV6596(value,verticalSnapV6593,verticalMagnetToleranceV6596);
+  }
+
+  function ensureGuidesV6595(grid){
+    if (!grid) return [];
+    const names = ['x','y'];
+    return names.map(function(name){
+      let guide = grid.querySelector(':scope > .cdaLayoutGuideV6595[data-guide="' + name + '"]');
+      if (!guide) {
+        guide = document.createElement('div');
+        guide.className = 'cdaLayoutGuideV6595';
+        guide.setAttribute('data-guide',name);
+        guide.setAttribute('data-axis',name);
+        grid.appendChild(guide);
+      }
+      return guide;
+    });
+  }
+
+  function clearGuidesV6595(grid){
+    (grid || document).querySelectorAll('.cdaLayoutGuideV6595').forEach(function(guide){
+      guide.removeAttribute('data-visible');
+      guide.removeAttribute('data-state');
+      guide.removeAttribute('data-label');
+    });
+  }
+
+  function updateGuidesV6598(grid,alignment){
+    if (!grid) return;
+    const guides = ensureGuidesV6595(grid);
+    const byAxis = {x:alignment && alignment.x,y:alignment && alignment.y};
+    guides.forEach(function(guide){
+      const axis = guide.getAttribute('data-axis');
+      const match = byAxis[axis];
+      if (!match || match.kind === 'size' || match.kind === 'grid') {
+        guide.removeAttribute('data-visible');
+        guide.removeAttribute('data-state');
+        guide.removeAttribute('data-label');
+        return;
+      }
+      if (axis === 'x') guide.style.setProperty('left',Math.round(match.target) + 'px','important');
+      else guide.style.setProperty('top',Math.round(match.target) + 'px','important');
+      guide.setAttribute('data-state',match.state || 'near');
+      guide.setAttribute('data-label',match.label || (match.state === 'locked' ? 'Aligned' : 'Near alignment'));
+      guide.setAttribute('data-visible','true');
+    });
+  }
+
+  function statusForRectV6595(active,rect,gridWidth,alignment){
+    const now = window.performance && typeof window.performance.now === 'function' ? window.performance.now() : Date.now();
+    if (now - lastStatusUpdateV6604 < 80) return;
+    lastStatusUpdateV6604 = now;
+    const status = document.getElementById('cdaLayoutEditorStatusV6593');
+    if (!status || !sessionV6593 || !rect) return;
+    const xColumns = rect.left / Math.max(1,gridWidth) * 12;
+    const widthColumns = rect.width / Math.max(1,gridWidth) * 12;
+    const matches = [alignment && alignment.x,alignment && alignment.y].filter(Boolean);
+    const locked = matches.filter(function(match){ return match.state === 'locked'; }).map(function(match){ return match.label; });
+    const near = matches.filter(function(match){ return match.state !== 'locked'; }).map(function(match){ return match.label; });
+    const snapText = locked.length ? ' · LOCKED: ' + locked.join(' + ') : (near.length ? ' · near ' + near.join(' + ') : '');
+    const collapsedText = active.type === 'resize' && active.collapsedAtStart && /[ns]/.test(String(active.direction || '')) ? ' · collapsed preview sets expanded height' : '';
+    const collisionText = active.collisionBlockedV6607 ? ' · stopped at neighboring card' : '';
+    status.textContent = (active.type === 'resize' ? 'Resizing ' + String(active.direction || '').toUpperCase() : 'Moving') + ' ' +
+      cleanTextV6593((active.card.querySelector('.remakeCardTitle,.tatCardTitleV6509,[class*="CardTitle"]') || {}).textContent || 'card') +
+      ' · x ' + xColumns.toFixed(2) + '/12 · y ' + Math.round(rect.top) + 'px · w ' + widthColumns.toFixed(2) + '/12 · h ' + Math.round(rect.height) + 'px' + collapsedText + collisionText + snapText;
+  }
+
+  function logicalOverlapStateV6595(){
+    if (!sessionV6593) return false;
+    let hasOverlap = false;
+    const cards = [];
+    gridsForPageV6593(sessionV6593.page).forEach(function(grid){
+      directCardsV6593(grid).forEach(function(card){
+        const shell = shellForCardV6593(card);
+        if (!shell) return;
+        shell.removeAttribute('data-cda-layout-overlap-v6594');
+        const rect = shell.getBoundingClientRect();
+        cards.push({shell:shell,rect:{left:rect.left,top:rect.top,right:rect.right,bottom:rect.bottom}});
+      });
+    });
+    for (let i=0;i<cards.length;i+=1) {
+      for (let j=i+1;j<cards.length;j+=1) {
+        const a = cards[i].rect;
+        const b = cards[j].rect;
+        if (a.left + 2 < b.right && a.right - 2 > b.left && a.top + 2 < b.bottom && a.bottom - 2 > b.top) {
+          cards[i].shell.setAttribute('data-cda-layout-overlap-v6594','true');
+          cards[j].shell.setAttribute('data-cda-layout-overlap-v6594','true');
+          hasOverlap = true;
+        }
+      }
+    }
+    const save = document.getElementById('cdaLayoutEditorSaveV6593');
+    if (save) save.disabled = hasOverlap;
+    return hasOverlap;
+  }
+
+  function startCardDragV6593(event){
+    if (!sessionV6593 || event.button !== 0) return;
+    const shell = event.currentTarget.closest('.cdaLayoutItemShellV6594[data-cda-layout-item-v6593="true"]');
+    const card = shell && Array.from(shell.children || []).find(function(child){ return child.matches && child.matches(cardSelectorV6593); });
+    const resolved = workingItemV6593(card);
+    if (!resolved) return;
+    event.preventDefault();
+    event.stopPropagation();
+    pushHistoryV6593();
+    const gridRect = resolved.grid.getBoundingClientRect();
+    const cardRect = shell.getBoundingClientRect();
+    activePointerV6593 = {
+      type:'drag',pointerId:event.pointerId,card:card,shell:shell,resolved:resolved,
+      pointerOffsetX:event.clientX - cardRect.left,pointerOffsetY:event.clientY - cardRect.top,
+      width:cardRect.width,height:cardRect.height,gridWidth:stableGridWidthV6593(resolved.grid),gridRect:gridRect,
+      startVisualLeft:cardRect.left - gridRect.left,startVisualTop:cardRect.top - gridRect.top,
+      rawLeft:cardRect.left - gridRect.left,rawTop:cardRect.top - gridRect.top,rawWidth:cardRect.width,rawHeight:cardRect.height,
+      collapsedAtStart:cardCollapsedV6593(card),
+      expandedHeightAtStart:Math.max(minimumVisualHeightV6617(card),Number(resolved.item.height) || expandedHeightV6593(card,cardRect.height)),
+      minTop:minimumTopForGridV6599(resolved.grid),
+      lastValidRectV6607:rectWithEdgesV6607(cardRect.left - gridRect.left,cardRect.top - gridRect.top,cardRect.width,cardRect.height)
+    };
+    cacheOverlapPeersV6597(activePointerV6593);
+    cachePageExtentV6606(activePointerV6593);
+    document.documentElement.classList.add('cdaLayoutInteractionActiveV6597');
+    shell.setAttribute('data-cda-layout-dragging-v6593','true');
+    try { event.currentTarget.setPointerCapture(event.pointerId); } catch (error) {}
+  }
+
+  function startCardResizeV6593(event){
+    if (!sessionV6593 || event.button !== 0) return;
+    const shell = event.currentTarget.closest('.cdaLayoutItemShellV6594[data-cda-layout-item-v6593="true"]');
+    const card = shell && Array.from(shell.children || []).find(function(child){ return child.matches && child.matches(cardSelectorV6593); });
+    const resolved = workingItemV6593(card);
+    const direction = String(event.currentTarget.getAttribute('data-direction') || 'se').toLowerCase();
+    if (!resolved || !/^(n|ne|e|se|s|sw|w|nw)$/.test(direction)) return;
+    event.preventDefault();
+    event.stopPropagation();
+    pushHistoryV6593();
+    const gridRect = resolved.grid.getBoundingClientRect();
+    const cardRect = shell.getBoundingClientRect();
+    const left = cardRect.left - gridRect.left;
+    const top = cardRect.top - gridRect.top;
+    const pointerGridX = event.clientX - gridRect.left;
+    const pointerGridY = event.clientY - gridRect.top;
+    activePointerV6593 = {
+      type:'resize',direction:direction,pointerId:event.pointerId,card:card,shell:shell,resolved:resolved,
+      startLeft:left,startTop:top,startRight:left + cardRect.width,startBottom:top + cardRect.height,
+      startPointerGridX:pointerGridX,startPointerGridY:pointerGridY,
+      westGrabOffset:pointerGridX - left,eastGrabOffset:left + cardRect.width - pointerGridX,
+      northGrabOffset:pointerGridY - top,southGrabOffset:top + cardRect.height - pointerGridY,
+      gridWidth:stableGridWidthV6593(resolved.grid),gridRect:gridRect,
+      startVisualLeft:left,startVisualTop:top,
+      rawLeft:left,rawTop:top,rawWidth:cardRect.width,rawHeight:cardRect.height,
+      startWidth:cardRect.width,startHeight:cardRect.height,
+      collapsedAtStart:cardCollapsedV6593(card),
+      expandedHeightAtStart:Math.max(minimumVisualHeightV6617(card),Number(resolved.item.height) || expandedHeightV6593(card,cardRect.height)),
+      minimumHeight:cardCollapsedV6593(card) ? collapsedHeightV6593(card) : minimumVisualHeightV6617(card),
+      minTop:minimumTopForGridV6599(resolved.grid),
+      lastValidRectV6607:rectWithEdgesV6607(left,top,cardRect.width,cardRect.height)
+    };
+    cacheOverlapPeersV6597(activePointerV6593);
+    cachePageExtentV6606(activePointerV6593);
+    document.documentElement.classList.add('cdaLayoutInteractionActiveV6597');
+    shell.setAttribute('data-cda-layout-dragging-v6593','true');
+    try { event.currentTarget.setPointerCapture(event.pointerId); } catch (error) {}
+  }
+
+  function ensureResizePreviewV6597(grid){
+    if (resizePreviewV6597 && resizePreviewV6597.isConnected && resizePreviewV6597.parentElement === grid) return resizePreviewV6597;
+    if (resizePreviewV6597) resizePreviewV6597.remove();
+    resizePreviewV6597 = document.createElement('div');
+    resizePreviewV6597.className = 'cdaLayoutResizePreviewV6597';
+    grid.appendChild(resizePreviewV6597);
+    return resizePreviewV6597;
+  }
+
+
+  function ensureDropPreviewV6614(grid){
+    if (dropPreviewV6614 && dropPreviewV6614.isConnected && dropPreviewV6614.parentElement === grid) return dropPreviewV6614;
+    if (dropPreviewV6614) dropPreviewV6614.remove();
+    dropPreviewV6614 = document.createElement('div');
+    dropPreviewV6614.className = 'cdaLayoutDropPreviewV6614';
+    grid.appendChild(dropPreviewV6614);
+    return dropPreviewV6614;
+  }
+
+  function clearDropPreviewV6614(){
+    if (!dropPreviewV6614) return;
+    dropPreviewV6614.removeAttribute('data-visible');
+    dropPreviewV6614.remove();
+    dropPreviewV6614 = null;
+  }
+
+  function clearSizeHighlightsV6601(page,active){
+    if (active && Array.isArray(active.sizeHighlightShellsV6604)) {
+      active.sizeHighlightShellsV6604.forEach(function(shell){ if (shell) shell.removeAttribute('data-cda-layout-size-peer-v6601'); });
+      active.sizeHighlightShellsV6604 = [];
+      if (active.shell) active.shell.removeAttribute('data-cda-layout-size-active-v6601');
+      return;
+    }
+    (page || document).querySelectorAll('[data-cda-layout-size-peer-v6601],[data-cda-layout-size-active-v6601]').forEach(function(node){
+      node.removeAttribute('data-cda-layout-size-peer-v6601');
+      node.removeAttribute('data-cda-layout-size-active-v6601');
+    });
+  }
+
+  function clearInteractionPreviewV6597(active){
+    clearSizeHighlightsV6601(sessionV6593 && sessionV6593.page,active);
+    if (active && active.shell && active.shell.style) {
+      active.shell.style.removeProperty('transform');
+      active.shell.style.removeProperty('will-change');
+      active.shell.removeAttribute('data-cda-layout-live-resize-v6604');
+      active.shell.removeAttribute('data-cda-layout-collision-blocked-v6607');
+      active.shell.removeAttribute('data-cda-layout-drag-ghost-v6614');
+      ['--cda-layout-live-base-width-v6604','--cda-layout-live-base-height-v6604','--cda-layout-live-scale-x-v6604','--cda-layout-live-scale-y-v6604','--cda-layout-live-origin-v6604'].forEach(function(name){ active.shell.style.removeProperty(name); });
+      if (active.card && active.card.style) {
+        active.card.style.removeProperty('width');
+        active.card.style.removeProperty('height');
+        active.card.style.removeProperty('min-height');
+        active.card.style.removeProperty('max-height');
+        active.card.style.removeProperty('transform');
+        active.card.style.removeProperty('transform-origin');
+        active.card.style.removeProperty('will-change');
+      }
+    }
+    clearDropPreviewV6614();
+    if (resizePreviewV6597) {
+      resizePreviewV6597.removeAttribute('data-visible');
+      resizePreviewV6597.removeAttribute('data-snap-state');
+      resizePreviewV6597.removeAttribute('data-size-label');
+      resizePreviewV6597.removeAttribute('data-collapsed-expanded-preview-v6604');
+      resizePreviewV6597.remove();
+      resizePreviewV6597 = null;
+    }
+    document.documentElement.classList.remove('cdaLayoutInteractionActiveV6597');
+  }
+
+  function rectFromRawV6597(active){
+    return {
+      left:active.rawLeft,
+      top:active.rawTop,
+      width:active.rawWidth,
+      height:active.rawHeight,
+      right:active.rawLeft + active.rawWidth,
+      bottom:active.rawTop + active.rawHeight
+    };
+  }
+
+
+  function roundedRectV6598(rect){
+    const left = Math.round(rect.left);
+    const top = Math.round(rect.top);
+    const width = Math.max(1,Math.round(rect.width));
+    const height = Math.max(1,Math.round(rect.height));
+    return {left:left,top:top,width:width,height:height,right:left + width,bottom:top + height};
+  }
+
+  function candidateStateV6598(distance,lockTolerance,nearTolerance){
+    if (distance <= lockTolerance) return 'locked';
+    if (distance <= nearTolerance) return 'near';
+    return '';
+  }
+
+  function chooseCandidateV6598(candidates){
+    const valid = (candidates || []).filter(function(candidate){ return !!candidate.state; });
+    valid.sort(function(a,b){
+      const stateRankA = a.state === 'locked' ? 0 : 1;
+      const stateRankB = b.state === 'locked' ? 0 : 1;
+      if (stateRankA !== stateRankB) return stateRankA - stateRankB;
+      const kindRankA = a.kind === 'line' ? 0 : (a.kind === 'size' ? 1 : 2);
+      const kindRankB = b.kind === 'line' ? 0 : (b.kind === 'size' ? 1 : 2);
+      if (kindRankA !== kindRankB) return kindRankA - kindRankB;
+      if (a.distance !== b.distance) return a.distance - b.distance;
+      return Number(a.priority || 0) - Number(b.priority || 0);
+    });
+    return valid[0] || null;
+  }
+
+  function alignmentCandidateV6598(delta,target,label,priority,kind){
+    const distance = Math.abs(delta);
+    const state = candidateStateV6598(distance,exactPeerSnapToleranceV6599,smartGuideNearToleranceV6598);
+    return {delta:delta,target:target,label:label,priority:priority || 0,distance:distance,state:state,kind:kind || 'line',peer:true};
+  }
+
+  function gridCandidateV6599(delta,target,label){
+    const distance = Math.abs(delta);
+    return {delta:0,target:target,label:label || 'Grid',priority:9,distance:distance,state:distance <= smartGuideNearToleranceV6598 ? 'near' : '',kind:'grid',peer:false};
+  }
+
+  function axisAnchorsV6598(rect,axis){
+    if (axis === 'x') return [
+      {name:'left',value:rect.left},
+      {name:'center',value:rect.left + rect.width / 2},
+      {name:'right',value:rect.right}
+    ];
+    return [
+      {name:'top',value:rect.top},
+      {name:'center',value:rect.top + rect.height / 2},
+      {name:'bottom',value:rect.bottom}
+    ];
+  }
+
+  function alignmentLabelV6598(axis,activeName,peerName){
+    if (activeName === 'center' && peerName === 'center') return axis === 'x' ? 'Centers aligned' : 'Middle aligned';
+    if (activeName === peerName) return 'Align ' + activeName;
+    if ((activeName === 'left' && peerName === 'right') || (activeName === 'right' && peerName === 'left') ||
+        (activeName === 'top' && peerName === 'bottom') || (activeName === 'bottom' && peerName === 'top')) return 'Edges aligned';
+    return 'Smart alignment';
+  }
+
+  function dragAxisMatchV6598(active,rect,axis){
+    const candidates = [];
+    const activeAnchors = axisAnchorsV6598(rect,axis);
+    const minimumStart = axis === 'x' ? 0 : active.minTop;
+    (active.alignmentPeers || []).forEach(function(peer){
+      const peerAnchors = axisAnchorsV6598(peer.rect,axis);
+      activeAnchors.forEach(function(source){
+        peerAnchors.forEach(function(target){
+          const delta = target.value - source.value;
+          const nextStart = (axis === 'x' ? rect.left : rect.top) + delta;
+          const nextEnd = nextStart + (axis === 'x' ? rect.width : rect.height);
+          const limit = axis === 'x' ? active.gridWidth : Number.POSITIVE_INFINITY;
+          if (nextStart < minimumStart || nextEnd > limit) return;
+          const priority = source.name === target.name ? 0 : (source.name === 'center' && target.name === 'center' ? 0 : 1);
+          candidates.push(alignmentCandidateV6598(delta,target.value,alignmentLabelV6598(axis,source.name,target.name),priority,'line'));
+        });
+      });
+    });
+    const step = axis === 'x' ? horizontalStepV6595(active.gridWidth) : verticalSnapV6593;
+    activeAnchors.forEach(function(source){
+      const target = Math.round(source.value / Math.max(1,step)) * Math.max(1,step);
+      const delta = target - source.value;
+      const nextStart = (axis === 'x' ? rect.left : rect.top) + delta;
+      const nextEnd = nextStart + (axis === 'x' ? rect.width : rect.height);
+      const limit = axis === 'x' ? active.gridWidth : Number.POSITIVE_INFINITY;
+      if (nextStart < minimumStart || nextEnd > limit) return;
+      candidates.push(gridCandidateV6599(delta,target,'Grid'));
+    });
+    return chooseCandidateV6598(candidates);
+  }
+
+  function resizeAxisMatchV6598(active,rect,axis){
+    const direction = String(active.direction || '');
+    const movingLow = axis === 'x' ? direction.indexOf('w') >= 0 : direction.indexOf('n') >= 0;
+    const movingHigh = axis === 'x' ? direction.indexOf('e') >= 0 : direction.indexOf('s') >= 0;
+    if (!movingLow && !movingHigh) return null;
+    const low = axis === 'x' ? rect.left : rect.top;
+    const high = axis === 'x' ? rect.right : rect.bottom;
+    const fixed = movingLow ? high : low;
+    const moving = movingLow ? low : high;
+    const minimum = axis === 'x' ? minColumnsV6593 * active.gridWidth / 12 : Math.max(1,Number(active.minimumHeight) || minHeightV6593);
+    const minimumStart = axis === 'x' ? 0 : active.minTop;
+    const maximum = axis === 'x' ? active.gridWidth : Number.POSITIVE_INFINITY;
+    const candidates = [];
+    function addTarget(target,label,priority,kind){
+      const newLow = movingLow ? target : fixed;
+      const newHigh = movingLow ? fixed : target;
+      if (newLow < minimumStart || newHigh > maximum || newHigh - newLow < minimum) return;
+      candidates.push(alignmentCandidateV6598(target - moving,target,label,priority,kind));
+    }
+    (active.alignmentPeers || []).forEach(function(peer){
+      const peerRect = peer.rect;
+      const peerLow = axis === 'x' ? peerRect.left : peerRect.top;
+      const peerHigh = axis === 'x' ? peerRect.right : peerRect.bottom;
+      const peerCenter = (peerLow + peerHigh) / 2;
+      addTarget(peerLow,movingLow ? 'Align ' + (axis === 'x' ? 'left' : 'top') : 'Edges aligned',0,'line');
+      addTarget(peerHigh,movingHigh ? 'Align ' + (axis === 'x' ? 'right' : 'bottom') : 'Edges aligned',0,'line');
+      addTarget(peerCenter,axis === 'x' ? 'Center guide' : 'Middle guide',2,'line');
+      const peerSize = axis === 'x' ? peerRect.width : peerRect.height;
+      const sameSizeTarget = movingLow ? fixed - peerSize : fixed + peerSize;
+      addTarget(sameSizeTarget,axis === 'x' ? 'Same width' : 'Same height',1,'size');
+    });
+    const step = axis === 'x' ? horizontalStepV6595(active.gridWidth) : verticalSnapV6593;
+    const target = Math.round(moving / Math.max(1,step)) * Math.max(1,step);
+    const newLow = movingLow ? target : fixed;
+    const newHigh = movingLow ? fixed : target;
+    if (newLow >= minimumStart && newHigh <= maximum && newHigh - newLow >= minimum) {
+      candidates.push(gridCandidateV6599(target - moving,target,'Grid'));
+    }
+    return chooseCandidateV6598(candidates);
+  }
+
+  function overlapStrictV6607(a,b){
+    const tolerance = 1;
+    return a.left + tolerance < b.right && a.right - tolerance > b.left && a.top + tolerance < b.bottom && a.bottom - tolerance > b.top;
+  }
+
+  function overlapsAnyPeerV6607(active,rect){
+    return (active.overlapPeers || []).some(function(peer){ return overlapStrictV6607(rect,peer.rect); });
+  }
+
+  function rectWithEdgesV6607(left,top,width,height){
+    return roundedRectV6598({left:left,top:top,width:width,height:height,right:left + width,bottom:top + height});
+  }
+
+  function resolveDragDropRectV6614(active,target){
+    if (!active || !target) return target;
+    const width = Math.max(1,Number(target.width) || Number(active.width) || 1);
+    const height = Math.max(1,Number(target.height) || Number(active.height) || 1);
+    const maxLeft = Math.max(0,Number(active.gridWidth) - width);
+    const minTop = Number.isFinite(Number(active.minTop)) ? Number(active.minTop) : 0;
+    const gap = universalCollisionGapV6611;
+    const peers = active.overlapPeers || [];
+    let result = rectWithEdgesV6607(clampV6593(Number(target.left) || 0,0,maxLeft),Math.max(minTop,Number(target.top) || 0),width,height);
+    if (!overlapsAnyPeerV6607(active,result)) return result;
+
+    const dx = result.left - Number(active.startVisualLeft || 0);
+    const dy = result.top - Number(active.startVisualTop || 0);
+    const preferVertical = Math.abs(dy) >= Math.abs(dx) || width >= Number(active.gridWidth || width) * .72;
+
+    function overlapping(rect){ return peers.filter(function(peer){ return overlapStrictV6607(rect,peer.rect); }); }
+    function moveDown(rect){
+      let next = rect;
+      let guard = 0;
+      while (guard < peers.length + 6) {
+        guard += 1;
+        const hits = overlapping(next);
+        if (!hits.length) return next;
+        const top = Math.max.apply(Math,hits.map(function(peer){ return peer.rect.bottom + gap; }));
+        next = rectWithEdgesV6607(next.left,top,width,height);
+      }
+      return next;
+    }
+    function moveUp(rect){
+      let next = rect;
+      let guard = 0;
+      while (guard < peers.length + 6) {
+        guard += 1;
+        const hits = overlapping(next);
+        if (!hits.length) return next;
+        const top = Math.min.apply(Math,hits.map(function(peer){ return peer.rect.top - height - gap; }));
+        next = rectWithEdgesV6607(next.left,Math.max(minTop,top),width,height);
+        if (next.top <= minTop && overlapping(next).length) break;
+      }
+      return next;
+    }
+    function moveRight(rect){
+      let next = rect;
+      let guard = 0;
+      while (guard < peers.length + 6) {
+        guard += 1;
+        const hits = overlapping(next);
+        if (!hits.length) return next;
+        const left = Math.max.apply(Math,hits.map(function(peer){ return peer.rect.right + gap; }));
+        next = rectWithEdgesV6607(Math.min(maxLeft,left),next.top,width,height);
+        if (next.left >= maxLeft && overlapping(next).length) break;
+      }
+      return next;
+    }
+    function moveLeft(rect){
+      let next = rect;
+      let guard = 0;
+      while (guard < peers.length + 6) {
+        guard += 1;
+        const hits = overlapping(next);
+        if (!hits.length) return next;
+        const left = Math.min.apply(Math,hits.map(function(peer){ return peer.rect.left - width - gap; }));
+        next = rectWithEdgesV6607(Math.max(0,left),next.top,width,height);
+        if (next.left <= 0 && overlapping(next).length) break;
+      }
+      return next;
+    }
+
+    if (preferVertical) result = dy < 0 ? moveUp(result) : moveDown(result);
+    else result = dx < 0 ? moveLeft(result) : moveRight(result);
+    if (!overlapsAnyPeerV6607(active,result)) return result;
+
+    /* A full-width card cannot route around a narrower card horizontally. The
+       deterministic fallback places it below the entire collision chain. */
+    result = moveDown(rectWithEdgesV6607(clampV6593(Number(target.left) || 0,0,maxLeft),Math.max(minTop,Number(target.top) || 0),width,height));
+    return overlapsAnyPeerV6607(active,result) ? (active.lastValidRectV6607 || result) : result;
+  }
+
+  function constrainDragNoOverlapV6607(active,target){
+    const previous = active.lastValidRectV6607 || rectWithEdgesV6607(active.startVisualLeft,active.startVisualTop,active.width,active.height);
+    let left = target.left;
+    let top = previous.top;
+    const dx = target.left - previous.left;
+    const dy = target.top - previous.top;
+    const width = target.width;
+    const height = target.height;
+    const verticalProbe = function(peer){ return top + 1 < peer.rect.bottom && top + height - 1 > peer.rect.top; };
+    if (dx > 0) {
+      (active.overlapPeers || []).forEach(function(peer){
+        if (verticalProbe(peer) && previous.right <= peer.rect.left + 1 && left + width > peer.rect.left) left = Math.min(left,peer.rect.left - width);
+      });
+    } else if (dx < 0) {
+      (active.overlapPeers || []).forEach(function(peer){
+        if (verticalProbe(peer) && previous.left >= peer.rect.right - 1 && left < peer.rect.right) left = Math.max(left,peer.rect.right);
+      });
+    }
+    left = clampV6593(left,0,Math.max(0,active.gridWidth - width));
+    top = target.top;
+    const horizontalProbe = function(peer){ return left + 1 < peer.rect.right && left + width - 1 > peer.rect.left; };
+    if (dy > 0) {
+      (active.overlapPeers || []).forEach(function(peer){
+        if (horizontalProbe(peer) && previous.bottom <= peer.rect.top + 1 && top + height > peer.rect.top) top = Math.min(top,peer.rect.top - height);
+      });
+    } else if (dy < 0) {
+      (active.overlapPeers || []).forEach(function(peer){
+        if (horizontalProbe(peer) && previous.top >= peer.rect.bottom - 1 && top < peer.rect.bottom) top = Math.max(top,peer.rect.bottom);
+      });
+    }
+    top = Math.max(active.minTop,top);
+    let result = rectWithEdgesV6607(left,top,width,height);
+    if (overlapsAnyPeerV6607(active,result)) {
+      const xOnly = rectWithEdgesV6607(left,previous.top,width,height);
+      const yOnly = rectWithEdgesV6607(previous.left,top,width,height);
+      if (!overlapsAnyPeerV6607(active,xOnly)) result = xOnly;
+      else if (!overlapsAnyPeerV6607(active,yOnly)) result = yOnly;
+      else result = previous;
+    }
+    return result;
+  }
+
+  function constrainResizeNoOverlapV6607(active,target){
+    let left = target.left;
+    let top = target.top;
+    let right = target.right;
+    let bottom = target.bottom;
+    const direction = String(active.direction || '');
+    const minimumWidth = minColumnsV6593 * active.gridWidth / 12;
+    const minimumHeight = Math.max(1,Number(active.minimumHeight) || minHeightV6593);
+    (active.overlapPeers || []).forEach(function(peer){
+      const horizontal = left + 1 < peer.rect.right && right - 1 > peer.rect.left;
+      const vertical = top + 1 < peer.rect.bottom && bottom - 1 > peer.rect.top;
+      if (direction.indexOf('e') >= 0 && vertical && active.startRight <= peer.rect.left + 1 && right > peer.rect.left) right = Math.min(right,peer.rect.left);
+      if (direction.indexOf('w') >= 0 && vertical && active.startLeft >= peer.rect.right - 1 && left < peer.rect.right) left = Math.max(left,peer.rect.right);
+      if (direction.indexOf('s') >= 0 && horizontal && active.startBottom <= peer.rect.top + 1 && bottom > peer.rect.top) bottom = Math.min(bottom,peer.rect.top);
+      if (direction.indexOf('n') >= 0 && horizontal && active.startTop >= peer.rect.bottom - 1 && top < peer.rect.bottom) top = Math.max(top,peer.rect.bottom);
+    });
+    if (right - left < minimumWidth) {
+      if (direction.indexOf('w') >= 0) left = right - minimumWidth;
+      else right = left + minimumWidth;
+    }
+    if (bottom - top < minimumHeight) {
+      if (direction.indexOf('n') >= 0) top = bottom - minimumHeight;
+      else bottom = top + minimumHeight;
+    }
+    left = clampV6593(left,0,Math.max(0,active.gridWidth - minimumWidth));
+    right = clampV6593(right,left + minimumWidth,active.gridWidth);
+    top = Math.max(active.minTop,top);
+    bottom = Math.max(top + minimumHeight,bottom);
+    const result = rectWithEdgesV6607(left,top,right-left,bottom-top);
+    return overlapsAnyPeerV6607(active,result) ? (active.lastValidRectV6607 || result) : result;
+  }
+
+  function constrainNoOverlapV6607(active,rect){
+    if (!active || !rect) return rect;
+    const constrained = active.type === 'drag' ? constrainDragNoOverlapV6607(active,rect) : constrainResizeNoOverlapV6607(active,rect);
+    const blocked = Math.abs(constrained.left - rect.left) > 1 || Math.abs(constrained.top - rect.top) > 1 || Math.abs(constrained.width - rect.width) > 1 || Math.abs(constrained.height - rect.height) > 1;
+    if (active.shell) {
+      if (blocked) active.shell.setAttribute('data-cda-layout-collision-blocked-v6607','true');
+      else active.shell.removeAttribute('data-cda-layout-collision-blocked-v6607');
+    }
+    active.collisionBlockedV6607 = blocked;
+    if (!overlapsAnyPeerV6607(active,constrained)) active.lastValidRectV6607 = constrained;
+    return constrained;
+  }
+
+  function resolveInteractionRectV6598(active,rawRect,disableSnap){
+    const rect = roundedRectV6598(rawRect);
+    const alignment = {x:null,y:null};
+    if (disableSnap) {
+      if (active.type === 'drag') {
+        const dropRect = resolveDragDropRectV6614(active,rect);
+        active.collisionBlockedV6607 = false;
+        if (active.shell) active.shell.removeAttribute('data-cda-layout-collision-blocked-v6607');
+        return {rect:rect,commitRect:dropRect,alignment:alignment,locked:false,collisionBlocked:false};
+      }
+      const collisionSafe = constrainNoOverlapV6607(active,rect);
+      return {rect:collisionSafe,commitRect:collisionSafe,alignment:alignment,locked:false,collisionBlocked:!!active.collisionBlockedV6607};
+    }
+    const xMatch = active.type === 'drag' ? dragAxisMatchV6598(active,rect,'x') : resizeAxisMatchV6598(active,rect,'x');
+    const yMatch = active.type === 'drag' ? dragAxisMatchV6598(active,rect,'y') : resizeAxisMatchV6598(active,rect,'y');
+    if (xMatch) {
+      alignment.x = xMatch;
+      if (xMatch.state === 'locked') {
+        if (active.type === 'drag') rect.left += xMatch.delta;
+        else if (String(active.direction || '').indexOf('w') >= 0) {
+          rect.left += xMatch.delta;
+          rect.width -= xMatch.delta;
+        } else rect.width += xMatch.delta;
+        xMatch.distance = 0;
+      }
+    }
+    rect.right = rect.left + rect.width;
+    if (yMatch) {
+      alignment.y = yMatch;
+      if (yMatch.state === 'locked') {
+        if (active.type === 'drag') rect.top += yMatch.delta;
+        else if (String(active.direction || '').indexOf('n') >= 0) {
+          rect.top += yMatch.delta;
+          rect.height -= yMatch.delta;
+        } else rect.height += yMatch.delta;
+        yMatch.distance = 0;
+      }
+    }
+    rect.bottom = rect.top + rect.height;
+    const snapped = roundedRectV6598(rect);
+    if (active.type === 'drag') {
+      const dropRect = resolveDragDropRectV6614(active,snapped);
+      active.collisionBlockedV6607 = false;
+      if (active.shell) active.shell.removeAttribute('data-cda-layout-collision-blocked-v6607');
+      return {rect:snapped,commitRect:dropRect,alignment:alignment,locked:!!((xMatch && xMatch.state === 'locked') || (yMatch && yMatch.state === 'locked')),collisionBlocked:false};
+    }
+    const collisionSafe = constrainNoOverlapV6607(active,snapped);
+    return {rect:collisionSafe,commitRect:collisionSafe,alignment:alignment,locked:!!((xMatch && xMatch.state === 'locked') || (yMatch && yMatch.state === 'locked')),collisionBlocked:!!active.collisionBlockedV6607};
+  }
+
+  function cacheOverlapPeersV6597(active){
+    const peers = [];
+    gridsForPageV6593(sessionV6593 && sessionV6593.page).forEach(function(grid){
+      directCardsV6593(grid).forEach(function(card,index){
+        const shell = shellForCardV6593(card);
+        if (!shell || shell === active.shell) return;
+        const visual = shell.getBoundingClientRect();
+        const left = visual.left - active.gridRect.left;
+        const top = visual.top - active.gridRect.top;
+        peers.push({
+          card:card,
+          shell:shell,
+          key:cardKeyV6593(card,index),
+          rect:roundedRectV6598({left:left,top:top,width:visual.width,height:visual.height,right:left + visual.width,bottom:top + visual.height})
+        });
+      });
+    });
+    active.overlapPeers = peers;
+    active.alignmentPeers = peers;
+    active.previewOverlapShells = [];
+  }
+
+  function exactSizeMatchesV6601(active,rect){
+    if (!active || active.type !== 'resize') return [];
+    const direction = String(active.direction || '');
+    const matches = [];
+    if (direction.indexOf('w') >= 0 || direction.indexOf('e') >= 0) {
+      const peer = (active.alignmentPeers || []).find(function(candidate){ return Math.abs(Number(candidate.rect.width) - Number(rect.width)) <= exactPeerSnapToleranceV6599; });
+      if (peer) matches.push({axis:'x',kind:'size',state:'locked',label:'Same width',peer:peer});
+    }
+    if (direction.indexOf('n') >= 0 || direction.indexOf('s') >= 0) {
+      const peer = (active.alignmentPeers || []).find(function(candidate){ return Math.abs(Number(candidate.rect.height) - Number(rect.height)) <= exactPeerSnapToleranceV6599; });
+      if (peer) matches.push({axis:'y',kind:'size',state:'locked',label:'Same height',peer:peer});
+    }
+    return matches;
+  }
+
+  function updateSizeHighlightsV6601(active,rect,alignment){
+    if (!active || active.type !== 'resize') return [];
+    const matches = exactSizeMatchesV6601(active,rect);
+    const nextShells = matches.map(function(match){ return match.peer && match.peer.shell; }).filter(Boolean);
+    (active.sizeHighlightShellsV6604 || []).forEach(function(shell){
+      if (nextShells.indexOf(shell) < 0) shell.removeAttribute('data-cda-layout-size-peer-v6601');
+    });
+    nextShells.forEach(function(shell){ shell.setAttribute('data-cda-layout-size-peer-v6601','true'); });
+    active.sizeHighlightShellsV6604 = nextShells;
+    if (active.shell) {
+      if (matches.length) active.shell.setAttribute('data-cda-layout-size-active-v6601','true');
+      else active.shell.removeAttribute('data-cda-layout-size-active-v6601');
+    }
+    if (alignment) {
+      alignment.sizeX = matches.find(function(match){ return match.axis === 'x'; }) || null;
+      alignment.sizeY = matches.find(function(match){ return match.axis === 'y'; }) || null;
+    }
+    return matches;
+  }
+
+  function updateActiveOverlapPreviewV6597(active,rect){
+    const next = [];
+    let activeOverlaps = false;
+    if (active && active.type === 'drag') {
+      (active.previewOverlapShells || []).forEach(function(shell){ if (shell) shell.removeAttribute('data-cda-layout-overlap-v6594'); });
+      if (active.shell) active.shell.removeAttribute('data-cda-layout-overlap-v6594');
+      active.previewOverlapShells = [];
+      const save = document.getElementById('cdaLayoutEditorSaveV6593');
+      if (save) save.disabled = false;
+      return;
+    }
+    (active.overlapPeers || []).forEach(function(peer){
+      const overlap = rect.left + 2 < peer.rect.right && rect.right - 2 > peer.rect.left && rect.top + 2 < peer.rect.bottom && rect.bottom - 2 > peer.rect.top;
+      if (overlap) {
+        activeOverlaps = true;
+        next.push(peer.shell);
+        peer.shell.setAttribute('data-cda-layout-overlap-v6594','true');
+      } else if ((active.previewOverlapShells || []).indexOf(peer.shell) >= 0) {
+        peer.shell.removeAttribute('data-cda-layout-overlap-v6594');
+      }
+    });
+    if (activeOverlaps) active.shell.setAttribute('data-cda-layout-overlap-v6594','true');
+    else active.shell.removeAttribute('data-cda-layout-overlap-v6594');
+    active.previewOverlapShells = next;
+    const save = document.getElementById('cdaLayoutEditorSaveV6593');
+    if (save) save.disabled = activeOverlaps;
+  }
+
+  function liveResizeOriginV6604(direction){
+    const value = String(direction || 'se');
+    const x = value.indexOf('w') >= 0 ? 'right' : 'left';
+    const y = value.indexOf('n') >= 0 ? 'bottom' : 'top';
+    return x + ' ' + y;
+  }
+
+  function applyLiveResizeShellV6604(active,rect){
+    if (!active || active.type !== 'resize' || !active.shell) return;
+    const collapsedVerticalPreview = !!(active.collapsedAtStart && /[ns]/.test(String(active.direction || '')));
+    const visibleHeight = collapsedVerticalPreview ? Math.max(1,Number(active.startHeight) || collapsedHeightV6593(active.card)) : rect.height;
+    active.shell.setAttribute('data-cda-layout-live-resize-v6604','true');
+    setImportantV6593(active.shell.style,'left',Math.round(rect.left) + 'px');
+    setImportantV6593(active.shell.style,'top',Math.round(rect.top) + 'px');
+    setImportantV6593(active.shell.style,'width',Math.round(rect.width) + 'px');
+    setImportantV6593(active.shell.style,'height',Math.round(visibleHeight) + 'px');
+    setImportantV6593(active.shell.style,'min-height',Math.round(visibleHeight) + 'px');
+    setImportantV6593(active.shell.style,'max-height',Math.round(visibleHeight) + 'px');
+    if (collapsedVerticalPreview) return;
+    const baseWidth = Math.max(1,Number(active.startWidth) || rect.width);
+    const baseHeight = Math.max(1,Number(active.startHeight) || rect.height);
+    active.shell.style.setProperty('--cda-layout-live-base-width-v6604',baseWidth.toFixed(2) + 'px');
+    active.shell.style.setProperty('--cda-layout-live-base-height-v6604',baseHeight.toFixed(2) + 'px');
+    active.shell.style.setProperty('--cda-layout-live-scale-x-v6604',(rect.width / baseWidth).toFixed(5));
+    active.shell.style.setProperty('--cda-layout-live-scale-y-v6604',(rect.height / baseHeight).toFixed(5));
+    active.shell.style.setProperty('--cda-layout-live-origin-v6604',liveResizeOriginV6604(active.direction));
+  }
+
+  function updateInteractionPreviewV6597(active,rect,alignment,commitRect){
+    const exactSizeMatches = updateSizeHighlightsV6601(active,rect,alignment);
+    if (active.type === 'drag') {
+      const dx = rect.left - active.startVisualLeft;
+      const dy = rect.top - active.startVisualTop;
+      active.shell.setAttribute('data-cda-layout-drag-ghost-v6614','true');
+      active.shell.style.setProperty('transform','translate3d(' + dx.toFixed(2) + 'px,' + dy.toFixed(2) + 'px,0)','important');
+      const landing = commitRect || rect;
+      const preview = ensureDropPreviewV6614(active.resolved.grid);
+      preview.style.setProperty('left',landing.left.toFixed(2) + 'px','important');
+      preview.style.setProperty('top',landing.top.toFixed(2) + 'px','important');
+      preview.style.setProperty('width',landing.width.toFixed(2) + 'px','important');
+      preview.style.setProperty('height',landing.height.toFixed(2) + 'px','important');
+      preview.setAttribute('data-visible','true');
+    } else {
+      clearDropPreviewV6614();
+      applyLiveResizeShellV6604(active,rect);
+      const preview = ensureResizePreviewV6597(active.resolved.grid);
+      preview.style.setProperty('left',rect.left.toFixed(2) + 'px','important');
+      preview.style.setProperty('top',rect.top.toFixed(2) + 'px','important');
+      preview.style.setProperty('width',rect.width.toFixed(2) + 'px','important');
+      preview.style.setProperty('height',rect.height.toFixed(2) + 'px','important');
+      preview.setAttribute('data-visible','true');
+      if (active.collapsedAtStart && /[ns]/.test(String(active.direction || ''))) preview.setAttribute('data-collapsed-expanded-preview-v6604','true');
+      else preview.removeAttribute('data-collapsed-expanded-preview-v6604');
+      const matches = [alignment && alignment.x,alignment && alignment.y].filter(Boolean);
+      const locked = matches.some(function(match){ return match.state === 'locked'; }) || exactSizeMatches.length > 0;
+      const sizeMatch = exactSizeMatches[0] || matches.find(function(match){ return match.state === 'locked' && match.kind === 'size'; });
+      if (locked) preview.setAttribute('data-snap-state','locked');
+      else preview.removeAttribute('data-snap-state');
+      if (sizeMatch) preview.setAttribute('data-size-label',sizeMatch.label || 'Same size');
+      else preview.removeAttribute('data-size-label');
+    }
+    updateActiveOverlapPreviewV6597(active,active.type === 'drag' ? (commitRect || rect) : rect);
+    updateGuidesV6598(active.resolved.grid,alignment);
+    statusForRectV6595(active,active.type === 'drag' ? (commitRect || rect) : rect,active.gridWidth,alignment);
+  }
+
+  function autoScrollPendingV6597(active,pending){
+    const edge = 70;
+    const speed = 18;
+    let delta = 0;
+    if (pending.clientY < edge) delta = -speed;
+    else if (pending.clientY > window.innerHeight - edge) delta = speed;
+    if (!delta) return;
+    window.scrollBy(0,delta);
+    active.gridRect = active.resolved.grid.getBoundingClientRect();
+  }
+
+  function applyPendingPointerV6595(){
+    pointerFrameV6595 = 0;
+    const active = activePointerV6593;
+    const pending = pendingPointerV6595;
+    pendingPointerV6595 = null;
+    if (!active || !pending || !sessionV6593) return;
+    autoScrollPendingV6597(active,pending);
+    const pointerGridX = pending.clientX - active.gridRect.left;
+    const pointerGridY = pending.clientY - active.gridRect.top;
+    active.disableSnap = !!pending.altKey;
+    if (active.type === 'drag') {
+      active.rawLeft = clampV6593(pointerGridX - active.pointerOffsetX,0,Math.max(0,active.gridWidth - active.width));
+      active.rawTop = Math.max(active.minTop,pointerGridY - active.pointerOffsetY);
+      active.rawWidth = active.width;
+      active.rawHeight = active.height;
+    } else {
+      const direction = active.direction;
+      const minimumWidth = minColumnsV6593 * active.gridWidth / 12;
+      const minimumHeight = Math.max(1,Number(active.minimumHeight) || minHeightV6593);
+      const collapsedVertical = !!(active.collapsedAtStart && /[ns]/.test(direction));
+      let left = active.startLeft;
+      let right = active.startRight;
+      let top = active.startTop;
+      let bottom = collapsedVertical ? active.startTop + active.expandedHeightAtStart : active.startBottom;
+      if (direction.indexOf('w') >= 0) left = pointerGridX - active.westGrabOffset;
+      if (direction.indexOf('e') >= 0) right = pointerGridX + active.eastGrabOffset;
+      if (direction.indexOf('n') >= 0) {
+        if (collapsedVertical) top = active.startTop + (pointerGridY - active.startPointerGridY);
+        else top = pointerGridY - active.northGrabOffset;
+      }
+      if (direction.indexOf('s') >= 0) {
+        if (collapsedVertical) bottom = active.startTop + active.expandedHeightAtStart + (pointerGridY - active.startPointerGridY);
+        else bottom = pointerGridY + active.southGrabOffset;
+      }
+      if (direction.indexOf('w') >= 0) left = clampV6593(left,0,right - minimumWidth);
+      else if (direction.indexOf('e') >= 0) right = clampV6593(right,left + minimumWidth,active.gridWidth);
+      if (direction.indexOf('n') >= 0) top = clampV6593(top,active.minTop,bottom - minimumHeight);
+      else if (direction.indexOf('s') >= 0) bottom = Math.max(top + minimumHeight,bottom);
+      active.rawLeft = left;
+      active.rawTop = top;
+      active.rawWidth = Math.max(minimumWidth,right - left);
+      active.rawHeight = Math.max(minimumHeight,bottom - top);
+    }
+    const resolvedPreview = resolveInteractionRectV6598(active,rectFromRawV6597(active),active.disableSnap);
+    active.commitRectV6598 = resolvedPreview.commitRect || resolvedPreview.rect;
+    active.alignmentV6598 = resolvedPreview.alignment;
+    markChangedV6593();
+    applyLiveGridExtentV6605(active,resolvedPreview.commitRect || resolvedPreview.rect);
+    updateInteractionPreviewV6597(active,resolvedPreview.rect,resolvedPreview.alignment,resolvedPreview.commitRect || resolvedPreview.rect);
+  }
+
+  function pointerMoveV6593(event){
+    const active = activePointerV6593;
+    if (!active || event.pointerId !== active.pointerId || !sessionV6593) return;
+    event.preventDefault();
+    pendingPointerV6595 = {clientX:event.clientX,clientY:event.clientY,altKey:event.altKey};
+    if (!pointerFrameV6595) pointerFrameV6595 = window.requestAnimationFrame(applyPendingPointerV6595);
+  }
+
+  function adoptCommittedPreviewV6598(active,disableSnap){
+    const resolved = resolveInteractionRectV6598(active,rectFromRawV6597(active),disableSnap);
+    const rect = resolved.commitRect || resolved.rect;
+    active.commitRectV6598 = rect;
+    active.alignmentV6598 = resolved.alignment;
+    active.rawLeft = rect.left;
+    active.rawTop = rect.top;
+    active.rawWidth = rect.width;
+    active.rawHeight = rect.height;
+    return resolved;
+  }
+
+  function commitActivePointerV6597(active){
+    const gridWidth = active.gridWidth;
+    const committed = roundedRectV6598(active.commitRectV6598 || rectFromRawV6597(active));
+    active.rawLeft = committed.left;
+    active.rawTop = committed.top;
+    active.rawWidth = committed.width;
+    active.rawHeight = committed.height;
+    active.resolved.item.leftRatio = committed.left / gridWidth;
+    active.resolved.item.top = committed.top;
+    active.resolved.item.widthRatio = committed.width / gridWidth;
+    if (sessionV6593 && sessionV6593.page) {
+      const canvas = canvasMetricsV6611(sessionV6593.page);
+      active.resolved.item.pageLeftRatio = clampV6593((active.gridRect.left + committed.left - canvas.left) / canvas.width,0,1);
+      active.resolved.item.pageWidthRatio = clampV6593(committed.width / canvas.width,.05,1);
+      active.resolved.item.pageTop = Math.round(active.gridRect.top + committed.top - canvas.top);
+    }
+    const collapsedHorizontalResize = active.type === 'resize' && active.collapsedAtStart && !/[ns]/.test(String(active.direction || ''));
+    const collapsedDrag = active.type === 'drag' && active.collapsedAtStart;
+    if (collapsedDrag || collapsedHorizontalResize) {
+      active.resolved.item.height = Math.max(minimumVisualHeightV6617(active.card),Number(active.expandedHeightAtStart) || Number(active.resolved.item.height) || minimumVisualHeightV6617(active.card));
+    } else {
+      active.resolved.item.height = committed.height;
+    }
+    clearInteractionPreviewV6597(active);
+    const rect = applyItemV6593(active.card,active.resolved.item,gridWidth,active.resolved.grid,active.resolved.cardKey);
+    updateGridHeightV6593(active.resolved.grid,active.resolved.gridLayout);
+    if (sessionV6593) updatePageExtentV6606(sessionV6593.page,null,null);
+    return rect;
+  }
+
+  function refreshReleasedVisualV6604(active){
+    if (!active || !active.card) return;
+    document.dispatchEvent(new CustomEvent('cdaLayoutVisualCommittedV6617',{detail:{card:active.card,release:'v6.628'}}));
+  }
+
+  function pointerEndV6593(event){
+    const active = activePointerV6593;
+    if (!active || event.pointerId !== active.pointerId) return;
+    if (pointerFrameV6595) {
+      window.cancelAnimationFrame(pointerFrameV6595);
+      pointerFrameV6595 = 0;
+      applyPendingPointerV6595();
+    }
+    if (event.altKey) active.disableSnap = true;
+    adoptCommittedPreviewV6598(active,active.disableSnap);
+    commitActivePointerV6597(active);
+    active.shell.removeAttribute('data-cda-layout-dragging-v6593');
+    active.shell.removeAttribute('data-cda-layout-live-resize-v6604');
+    active.shell.removeAttribute('data-cda-layout-collision-blocked-v6607');
+    clearGuidesV6595(active.resolved.grid);
+    activePointerV6593 = null;
+    pendingPointerV6595 = null;
+    if (sessionV6593) {
+      applyLayoutV6593(sessionV6593.page,sessionV6593.working,true);
+      gridsForPageV6593(sessionV6593.page).forEach(function(grid){ directCardsV6593(grid).forEach(ensureHandlesV6593); });
+      updateOverlapStateV6593();
+      refreshReleasedVisualV6604(active);
+      scheduleTatRepairV6593(30);
+    }
+  }
+
+  function rectanglesOverlapV6593(a,b){
+    const tolerance = 2;
+    return a.left + tolerance < b.right && a.right - tolerance > b.left && a.top + tolerance < b.bottom && a.bottom - tolerance > b.top;
+  }
+
+  function updateOverlapStateV6593(){
+    if (!sessionV6593) return false;
+    const hasOverlap = logicalOverlapStateV6595();
+    const status = document.getElementById('cdaLayoutEditorStatusV6593');
+    if (status && sessionV6593 && !activePointerV6593) {
+      status.textContent = hasOverlap
+        ? 'Cards overlap · move them apart before Save'
+        : 'Editing ' + (sessionV6593.tab === 'tat' ? 'TAT' : 'Remake') + ' · collision-safe canvas · all visuals editable · drag through and release into a valid slot · orange = near · green = exact';
+    }
+    return hasOverlap;
+  }
+
+  function cardIdentityV6607(card){
+    const resolved = workingItemV6593(card);
+    return resolved ? resolved.gridKey + '::' + resolved.cardKey : (card && (card.id || card.getAttribute('data-cda-dashboard-component'))) || '';
+  }
+
+  function applyResolvedItemV6607(resolved){
+    if (!resolved) return;
+    const width = stableGridWidthV6593(resolved.grid);
+    applyItemV6593(resolved.card || null,resolved.item,width,resolved.grid,resolved.cardKey);
+  }
+
+  function allResolvedCardsV6607(exceptCard){
+    const out = [];
+    if (!sessionV6593) return out;
+    gridsForPageV6593(sessionV6593.page).forEach(function(grid,gridIndex){
+      const gridKey = gridKeyV6593(grid,gridIndex);
+      directCardsV6593(grid).forEach(function(card,cardIndex){
+        if (card === exceptCard) return;
+        const cardKey = cardKeyV6593(card,cardIndex);
+        const gridLayout = sessionV6593.working.grids && sessionV6593.working.grids[gridKey];
+        const item = gridLayout && gridLayout.items && gridLayout.items[cardKey];
+        const shell = shellForCardV6593(card);
+        if (item && shell) out.push({card:card,shell:shell,grid:grid,gridKey:gridKey,cardKey:cardKey,gridLayout:gridLayout,item:item});
+      });
+    });
+    return out;
+  }
+
+  function moveResolvedByV6607(resolved,dy){
+    if (!resolved || !Number.isFinite(dy) || Math.abs(dy) < 1) return 0;
+    resolved.item.top = Math.round((Number(resolved.item.top) || 0) + dy);
+    const width = stableGridWidthV6593(resolved.grid);
+    applyItemV6593(resolved.card,resolved.item,width,resolved.grid,resolved.cardKey);
+    return dy;
+  }
+
+  function resolvedCardsForLayoutV6611(page,layout){
+    const out = [];
+    if (!page || !layout || !layout.grids) return out;
+    gridsForPageV6593(page).forEach(function(grid,gridIndex){
+      const gridKey = gridKeyV6593(grid,gridIndex);
+      const gridLayout = layout.grids[gridKey];
+      if (!gridLayout || !gridLayout.items) return;
+      directCardsV6593(grid).forEach(function(card,cardIndex){
+        const cardKey = cardKeyV6593(card,cardIndex);
+        const item = gridLayout.items[cardKey];
+        const shell = shellForCardV6593(card);
+        if (!item || !shell) return;
+        const rect = shell.getBoundingClientRect();
+        out.push({card:card,shell:shell,grid:grid,gridKey:gridKey,cardKey:cardKey,item:item,rect:{left:rect.left,top:rect.top,right:rect.right,bottom:rect.bottom,width:rect.width,height:rect.height},order:out.length});
+      });
+    });
+    return out;
+  }
+
+  function shiftRuntimeItemV6611(entry,deltaY){
+    if (!entry || !Number.isFinite(deltaY) || deltaY <= 0) return;
+    entry.item.top = Math.round((Number(entry.item.top) || 0) + deltaY);
+    if (Number.isFinite(Number(entry.item.pageTop))) entry.item.pageTop = Math.round(Number(entry.item.pageTop) + deltaY);
+    else {
+      const canvas = canvasMetricsV6611(entry.grid.closest(pageSelectorV6593));
+      const gridRect = entry.grid.getBoundingClientRect();
+      entry.item.pageTop = Math.round(gridRect.top - canvas.top + Number(entry.item.top || 0));
+    }
+  }
+
+  function applyUniversalCollisionReflowV6611(page,baseLayout){
+    if (!page || !baseLayout || universalReflowBusyV6611) return 0;
+    universalReflowBusyV6611 = true;
+    try {
+      const runtime = cloneV6593(baseLayout);
+      const entries = resolvedCardsForLayoutV6611(page,runtime);
+      entries.forEach(function(entry){ entry.shell.removeAttribute('data-cda-layout-auto-shift-v6611'); });
+      entries.sort(function(a,b){ return a.rect.top - b.rect.top || a.rect.left - b.rect.left || a.order - b.order; });
+      const placed = [];
+      let shifted = 0;
+      entries.forEach(function(entry){
+        let rect = Object.assign({},entry.rect);
+        let totalShift = 0;
+        let guard = 0;
+        while (guard < entries.length + 4) {
+          guard += 1;
+          let requiredTop = rect.top;
+          placed.forEach(function(blocker){
+            const horizontal = rect.left + 2 < blocker.rect.right && rect.right - 2 > blocker.rect.left;
+            const vertical = rect.top + 2 < blocker.rect.bottom && rect.bottom - 2 > blocker.rect.top;
+            if (horizontal && vertical) requiredTop = Math.max(requiredTop,blocker.rect.bottom + universalCollisionGapV6611);
+          });
+          if (requiredTop <= rect.top + .5) break;
+          const delta = Math.ceil(requiredTop - rect.top);
+          totalShift += delta;
+          rect.top += delta;
+          rect.bottom += delta;
+        }
+        if (totalShift > 0) {
+          shiftRuntimeItemV6611(entry,totalShift);
+          applyItemV6593(entry.card,entry.item,stableGridWidthV6593(entry.grid),entry.grid,entry.cardKey);
+          entry.shell.setAttribute('data-cda-layout-auto-shift-v6611',String(totalShift));
+          shifted += 1;
+        }
+        const finalRect = entry.shell.getBoundingClientRect();
+        placed.push({rect:{left:finalRect.left,top:finalRect.top,right:finalRect.right,bottom:finalRect.bottom,width:finalRect.width,height:finalRect.height}});
+      });
+      updatePageExtentV6606(page,null,null);
+      return shifted;
+    } finally {
+      universalReflowBusyV6611 = false;
+    }
+  }
+
+  function queueAfterNativeToggleV6612(callback){
+    /* requestAnimationFrame runs after the complete click dispatch and native toggle
+       handlers, but before that frame is painted. */
+    window.requestAnimationFrame(function(){ callback(); });
+  }
+
+  function beginSmoothToggleV6612(page,card){
+    if (!page) return null;
+    smoothToggleTokenV6612 += 1;
+    smoothToggleBusyV6612 = true;
+    if (smoothToggleTimerV6612) window.clearTimeout(smoothToggleTimerV6612);
+    page.removeAttribute('data-cda-layout-smooth-reflow-v6612');
+    page.setAttribute('data-cda-layout-prepaint-reflow-v6612','true');
+    const sourceShell = card && shellForCardV6593(card);
+    if (sourceShell) sourceShell.setAttribute('data-cda-layout-toggle-source-v6612',cardCollapsedV6593(card) ? 'expand' : 'collapse');
+    const before = [];
+    page.querySelectorAll('.cdaLayoutItemShellV6594[data-cda-layout-item-v6593="true"]').forEach(function(shell){
+      const rect = shell.getBoundingClientRect();
+      const grid = shell.parentElement;
+      const gridRect = grid && grid.getBoundingClientRect ? grid.getBoundingClientRect() : {top:0};
+      before.push({shell:shell,grid:grid,top:rect.top - gridRect.top,height:rect.height});
+    });
+    page.getBoundingClientRect();
+    return {token:smoothToggleTokenV6612,page:page,before:before,sourceShell:sourceShell};
+  }
+
+  function finishSmoothToggleV6612(page,card,token){
+    if (!page || token !== smoothToggleTokenV6612) return;
+    if (smoothToggleTimerV6612) window.clearTimeout(smoothToggleTimerV6612);
+    smoothToggleTimerV6612 = window.setTimeout(function(){
+      if (token !== smoothToggleTokenV6612) return;
+      page.removeAttribute('data-cda-layout-prepaint-reflow-v6612');
+      page.removeAttribute('data-cda-layout-smooth-reflow-v6612');
+      page.querySelectorAll('[data-cda-layout-toggle-source-v6612]').forEach(function(shell){ shell.removeAttribute('data-cda-layout-toggle-source-v6612'); });
+      smoothToggleBusyV6612 = false;
+      lastStructureSignatureV6608 = structureSignatureV6608();
+      updatePageExtentV6606(page,null,null);
+      refreshReleasedVisualV6604({card:card});
+      scheduleRefreshV6593(page);
+      scheduleTatRepairV6593(20);
+    },smoothToggleDurationV6612 + 35);
+  }
+
+  function applySmoothToggleLayoutV6612(page,card,transaction){
+    const token = transaction && transaction.token;
+    if (!page || !transaction || token !== smoothToggleTokenV6612) return;
+    if (card) syncCollapseMarkersV6607(card);
+    if (sessionV6593 && sessionV6593.page === page) {
+      const resolved = card && workingItemV6593(card);
+      if (resolved) {
+        const expandedHeight = Math.max(minHeightV6593,Number(resolved.item.height) || expandedHeightV6593(card,card.getBoundingClientRect().height));
+        resolved.item.height = expandedHeight;
+      }
+      applyLayoutV6593(page,sessionV6593.working,true);
+      gridsForPageV6593(page).forEach(function(grid){ directCardsV6593(grid).forEach(ensureHandlesV6593); });
+      updateOverlapStateV6593();
+    } else {
+      const saved = layoutForTabV6593(tabKeyV6593(page));
+      if (saved) applyLayoutV6593(page,saved,true);
+    }
+    /* The collision pass above calculated final geometry without transitions. Restore
+       each shell to its prior visible geometry, commit that state, then animate every
+       changed shell to the final collision-safe geometry in one coordinated frame. */
+    const finals = [];
+    transaction.before.forEach(function(entry){
+      const shell = entry.shell;
+      if (!shell || !shell.isConnected) return;
+      const finalTop = parseFloat(shell.style.getPropertyValue('top'));
+      const finalHeight = parseFloat(shell.style.getPropertyValue('height'));
+      finals.push({shell:shell,top:Number.isFinite(finalTop) ? finalTop : entry.top,height:Number.isFinite(finalHeight) ? finalHeight : entry.height});
+      setImportantV6593(shell.style,'top',Math.round(entry.top) + 'px');
+      setImportantV6593(shell.style,'height',Math.round(entry.height) + 'px');
+      setImportantV6593(shell.style,'min-height',Math.round(entry.height) + 'px');
+      setImportantV6593(shell.style,'max-height',Math.round(entry.height) + 'px');
+    });
+    page.getBoundingClientRect();
+    page.removeAttribute('data-cda-layout-prepaint-reflow-v6612');
+    page.setAttribute('data-cda-layout-smooth-reflow-v6612','true');
+    page.getBoundingClientRect();
+    finals.forEach(function(entry){
+      setImportantV6593(entry.shell.style,'top',Math.round(entry.top) + 'px');
+      setImportantV6593(entry.shell.style,'height',Math.round(entry.height) + 'px');
+      setImportantV6593(entry.shell.style,'min-height',Math.round(entry.height) + 'px');
+      setImportantV6593(entry.shell.style,'max-height',Math.round(entry.height) + 'px');
+    });
+    updatePageExtentV6606(page,null,null);
+    finishSmoothToggleV6612(page,card,token);
+  }
+
+  function reflowExpandedCardV6607(card){
+    if (!sessionV6593 || !card || cardCollapsedV6593(card)) return [];
+    const sourceShell = shellForCardV6593(card);
+    if (!sourceShell) return [];
+    const sourceIdentity = cardIdentityV6607(card);
+    const gap = 8;
+    const shiftTotals = {};
+    const queue = [{shell:sourceShell,identity:sourceIdentity}];
+    let passes = 0;
+    while (queue.length && passes < 80) {
+      passes += 1;
+      const blocker = queue.shift();
+      const blockerRect = blocker.shell.getBoundingClientRect();
+      const peers = allResolvedCardsV6607(card).sort(function(a,b){ return a.shell.getBoundingClientRect().top - b.shell.getBoundingClientRect().top; });
+      peers.forEach(function(peer){
+        const identity = peer.gridKey + '::' + peer.cardKey;
+        if (identity === blocker.identity) return;
+        const peerRect = peer.shell.getBoundingClientRect();
+        if (peerRect.top < blockerRect.top - 1) return;
+        const blockerBox = {left:blockerRect.left,top:blockerRect.top,right:blockerRect.right,bottom:blockerRect.bottom,width:blockerRect.width,height:blockerRect.height};
+        const peerBox = {left:peerRect.left,top:peerRect.top,right:peerRect.right,bottom:peerRect.bottom,width:peerRect.width,height:peerRect.height};
+        if (!overlapStrictV6607(blockerBox,peerBox)) return;
+        const dy = Math.ceil(blockerRect.bottom - peerRect.top + gap);
+        moveResolvedByV6607(peer,dy);
+        shiftTotals[identity] = (shiftTotals[identity] || 0) + dy;
+        queue.push({shell:peer.shell,identity:identity});
+      });
+    }
+    const shifts = Object.keys(shiftTotals).map(function(identity){ return {identity:identity,delta:shiftTotals[identity]}; });
+    sessionV6593.collapseShiftsV6607 = sessionV6593.collapseShiftsV6607 || {};
+    sessionV6593.collapseShiftsV6607[sourceIdentity] = shifts;
+    return shifts;
+  }
+
+  function restoreCollapsedReflowV6607(card){
+    if (!sessionV6593 || !card) return;
+    const sourceIdentity = cardIdentityV6607(card);
+    const map = sessionV6593.collapseShiftsV6607 || {};
+    const shifts = map[sourceIdentity] || [];
+    if (!shifts.length) return;
+    const all = allResolvedCardsV6607(card);
+    shifts.slice().reverse().forEach(function(entry){
+      const peer = all.find(function(candidate){ return candidate.gridKey + '::' + candidate.cardKey === entry.identity; });
+      if (!peer) return;
+      const oldTop = Number(peer.item.top) || 0;
+      peer.item.top = Math.max(minimumTopForGridV6599(peer.grid),Math.round(oldTop - Number(entry.delta || 0)));
+      const width = stableGridWidthV6593(peer.grid);
+      const rect = applyItemV6593(peer.card,peer.item,width,peer.grid,peer.cardKey);
+      const peerActive = {shell:peer.shell,overlapPeers:allResolvedCardsV6607(peer.card).map(function(other){
+        const r=other.shell.getBoundingClientRect();
+        const g=peer.grid.getBoundingClientRect();
+        return {rect:roundedRectV6598({left:r.left-g.left,top:r.top-g.top,width:r.width,height:r.height,right:r.right-g.left,bottom:r.bottom-g.top})};
+      })};
+      const localRect = roundedRectV6598(rect);
+      if (overlapsAnyPeerV6607(peerActive,localRect)) {
+        peer.item.top = oldTop;
+        applyItemV6593(peer.card,peer.item,width,peer.grid,peer.cardKey);
+      }
+    });
+    delete map[sourceIdentity];
+  }
+
+  function expandedCardV6593(card){ return !!(card && !cardCollapsedV6593(card)); }
+
+  function clearCollapsedInlineGeometryV6615(node){
+    if (!node || !node.style) return;
+    ['display','visibility','flex','flex-direction','align-self','width','max-width','min-width',
+     'height','max-height','min-height','overflow','overflow-x','overflow-y'].forEach(function(name){
+      node.style.removeProperty(name);
+    });
+  }
+
+  function restoreExpandedTatSurfaceV6615(card){
+    if (!card || !expandedCardV6593(card)) return false;
+    card.setAttribute('data-cda-table-card-collapsed-v6590','false');
+    const body = card.querySelector(':scope > .tatCollapsibleBodyV6509');
+    if (body) {
+      body.hidden = false;
+      body.removeAttribute('hidden');
+      body.setAttribute('data-cda-table-path-collapsed-v6590','false');
+      clearCollapsedInlineGeometryV6615(body);
+    }
+    card.querySelectorAll('[data-cda-table-surface-path-v6590="true"]').forEach(function(node){
+      node.hidden = false;
+      node.removeAttribute('hidden');
+      node.setAttribute('data-cda-table-path-collapsed-v6590','false');
+      clearCollapsedInlineGeometryV6615(node);
+    });
+    card.querySelectorAll('[data-cda-table-surface-host-v6586="true"]').forEach(function(host){
+      host.hidden = false;
+      host.removeAttribute('hidden');
+      host.setAttribute('data-cda-table-host-collapsed-v6590','false');
+      clearCollapsedInlineGeometryV6615(host);
+    });
+    card.querySelectorAll('table').forEach(function(table){
+      table.hidden = false;
+      table.removeAttribute('hidden');
+      table.style.removeProperty('display');
+      table.style.removeProperty('visibility');
+    });
+    return true;
+  }
+
+  function showExpandedBodyV6593(card){
+    if (!expandedCardV6593(card)) return;
+    restoreExpandedTatSurfaceV6615(card);
+    const body = card.querySelector(':scope > .tatCollapsibleBodyV6509');
+    if (!body) return;
+    body.hidden = false;
+    body.removeAttribute('hidden');
+    body.style.removeProperty('display');
+    body.style.removeProperty('visibility');
+    body.style.removeProperty('height');
+    body.style.removeProperty('max-height');
+    body.style.removeProperty('overflow');
+  }
+
+  function tableHasRenderedRowsV6593(tbody){
+    if (!tbody) return false;
+    return Array.from(tbody.rows || []).some(function(row){ return !row.querySelector('.cdaEmptyV6540'); });
+  }
+
+  function tableExpectedRowsV6615(key){
+    const table = window.cdaTable;
+    if (!table) return [];
+    const config = typeof table.config === 'function' ? table.config(key) : null;
+    const rows = typeof table.getRows === 'function' ? table.getRows(key) : config && config.rows || [];
+    return Array.isArray(rows) ? rows : [];
+  }
+
+  function renderRegisteredTableV6593(key,tbodyId,emptyText){
+    const table = window.cdaTable;
+    if (!table || typeof table.config !== 'function' || typeof table.render !== 'function') return false;
+    const config = table.config(key);
+    const tbody = document.getElementById(tbodyId);
+    if (!config || !tbody) return false;
+    if (emptyText) config.emptyText = emptyText;
+    const rows = tableExpectedRowsV6615(key);
+    const rendered = tableHasRenderedRowsV6593(tbody);
+    const emptyMessage = tbody.querySelector('.cdaEmptyV6540');
+    const expectedEmpty = !rows.length && !!emptyMessage && (!emptyText || cleanTextV6593(emptyMessage.textContent) === cleanTextV6593(emptyText));
+    if ((rows.length && !rendered) || (!rows.length && !expectedEmpty)) {
+      table.render(key);
+      return true;
+    }
+    return false;
+  }
+
+  function tatTableSurfaceBlankV6615(card,key,tbodyId){
+    if (!card || !expandedCardV6593(card)) return false;
+    const tbody = document.getElementById(tbodyId);
+    const rows = tableExpectedRowsV6615(key);
+    if (!tbody) return true;
+    const hiddenHost = card.querySelector('[data-cda-table-host-collapsed-v6590="true"], [data-cda-table-surface-host-v6586="true"][hidden]');
+    const hiddenPath = card.querySelector('[data-cda-table-path-collapsed-v6590="true"], .tatCollapsibleBodyV6509[hidden]');
+    if (hiddenHost || hiddenPath) return true;
+    if (rows.length && !tableHasRenderedRowsV6593(tbody)) return true;
+    return false;
+  }
+
+  function syncTatSurfaceAfterRenderV6615(card){
+    if (!card || !expandedCardV6593(card)) return;
+    restoreExpandedTatSurfaceV6615(card);
+    const surfaces = window.cdaDashboardTableSurfacesV6586;
+    if (surfaces && typeof surfaces.apply === 'function') surfaces.apply({card:card,document:document});
+    restoreExpandedTatSurfaceV6615(card);
+  }
+
+  function qualityIssueFromButtonV6593(button){
+    if (!button) return '';
+    const label = button.querySelector('span');
+    return cleanTextV6593(label && label.textContent || button.textContent || '').replace(/\s+\d[\d,]*(?:\.\d+)?\s*$/,'').trim();
+  }
+
+  function autoSelectQualityIssueV6593(){
+    const state = window.cdaTatStateV6509;
+    if (state && state.cross && state.cross.issue) return false;
+    if (tatQualityAutoSelectBusyV6593 || typeof window.selectTatIssueV6509 !== 'function') return tatQualityAutoSelectBusyV6593;
+    const buttons = Array.from(document.querySelectorAll('#tatIssueSummaryV6509 .tatIssueButtonV6509,#tatIssueSummaryV6509 button'));
+    const candidate = buttons.find(function(button){
+      const strong = button.querySelector('strong');
+      const count = Number(String(strong && strong.textContent || '').replace(/[^0-9.-]+/g,''));
+      return Number.isFinite(count) && count > 0 && qualityIssueFromButtonV6593(button);
+    });
+    const issue = qualityIssueFromButtonV6593(candidate);
+    if (!issue) return false;
+    tatQualityAutoSelectBusyV6593 = true;
+    window.setTimeout(function(){
+      try { window.selectTatIssueV6509(issue); } catch (error) {}
+      window.setTimeout(function(){ tatQualityAutoSelectBusyV6593 = false; repairTatTablesV6593(); },80);
+    },0);
+    return true;
+  }
+
+  function repairTatTablesV6593(){
+    const page = document.getElementById('tatDashboardPageV6509');
+    if (!page || !pageVisibleV6593(page)) return false;
+    const customerCard = document.getElementById('tatCustomerCardV6509');
+    const qualityCard = document.getElementById('tatQualityCardV6509');
+    const surfaces = window.cdaDashboardTableSurfacesV6586;
+    let repaired = false;
+
+    if (expandedCardV6593(customerCard)) restoreExpandedTatSurfaceV6615(customerCard);
+    if (expandedCardV6593(qualityCard)) restoreExpandedTatSurfaceV6615(qualityCard);
+    if (surfaces && typeof surfaces.apply === 'function') {
+      if (customerCard) surfaces.apply({card:customerCard,document:document});
+      if (qualityCard) surfaces.apply({card:qualityCard,document:document});
+    }
+
+    if (expandedCardV6593(customerCard)) {
+      showExpandedBodyV6593(customerCard);
+      const rows = tableExpectedRowsV6615('tatCustomer');
+      const state = window.cdaTatStateV6509;
+      const tbody = document.getElementById('tatCustomerTableV6509');
+      if ((!tbody || !rows.length) && state && state.loaded && Array.isArray(state.rows) && state.rows.length &&
+          !tatFullRenderRequestedV6593 && typeof window.setTatDistributionModeV6509 === 'function') {
+        tatFullRenderRequestedV6593 = true;
+        window.setTimeout(function(){
+          try { window.setTatDistributionModeV6509(); } catch (error) {}
+          window.setTimeout(function(){ tatFullRenderRequestedV6593 = false; scheduleTatRepairV6593(0); },80);
+        },0);
+        repaired = true;
+      } else {
+        repaired = renderRegisteredTableV6593('tatCustomer','tatCustomerTableV6509','No customers match the filters.') || repaired;
+      }
+      syncTatSurfaceAfterRenderV6615(customerCard);
+    }
+
+    if (expandedCardV6593(qualityCard)) {
+      showExpandedBodyV6593(qualityCard);
+      const rows = tableExpectedRowsV6615('tatQuality');
+      if (!rows.length && autoSelectQualityIssueV6593()) repaired = true;
+      else repaired = renderRegisteredTableV6593('tatQuality','tatQualityTableV6509','No data-quality cases match the selected issue.') || repaired;
+      syncTatSurfaceAfterRenderV6615(qualityCard);
+    }
+
+    const stillBlank = tatTableSurfaceBlankV6615(customerCard,'tatCustomer','tatCustomerTableV6509') ||
+      tatTableSurfaceBlankV6615(qualityCard,'tatQuality','tatQualityTableV6509');
+    if (stillBlank && tatRepairRetryCountV6615 < 4) {
+      tatRepairRetryCountV6615 += 1;
+      window.setTimeout(function(){ scheduleTatRepairV6593(0); },60 * tatRepairRetryCountV6615);
+    } else if (!stillBlank) {
+      tatRepairRetryCountV6615 = 0;
+    }
+    return repaired || !stillBlank;
+  }
+
+  function scheduleTatRepairV6593(delay){
+    if (repairTimerV6593) window.clearTimeout(repairTimerV6593);
+    repairTimerV6593 = window.setTimeout(function(){
+      repairTimerV6593 = 0;
+      repairTatTablesV6593();
+    },Math.max(0,Number(delay) || 0));
+  }
+
+  const editorOwnedSelectorV6608 = '.cdaLayoutItemShellV6594,.cdaLayoutPlaceholderV6606,.cdaLayoutDragHandleV6593,.cdaLayoutResizeHandleV6593,.cdaLayoutGuideV6595,.cdaLayoutDropPreviewV6614,.cdaLayoutResizePreviewV6597,#cdaLayoutCanvasSpacerV6606,#cdaLayoutEditorBarV6593,#cdaLayoutEditButtonV6593,#cdaLayoutToastV6593,#cdaSharedAppFooterV6531';
+  const editorOverlaySelectorV6615 = '.cdaLayoutPlaceholderV6606,.cdaLayoutDragHandleV6593,.cdaLayoutResizeHandleV6593,.cdaLayoutGuideV6595,.cdaLayoutDropPreviewV6614,.cdaLayoutResizePreviewV6597,#cdaLayoutCanvasSpacerV6606,#cdaLayoutEditorBarV6593,#cdaLayoutEditButtonV6593,#cdaLayoutToastV6593,#cdaSharedAppFooterV6531';
+
+  function editorOwnedNodeV6608(node){
+    if (!node || node.nodeType !== 1 || !node.matches) return false;
+    if (node.matches(editorOverlaySelectorV6615)) return true;
+    if (node.closest && node.closest(editorOverlaySelectorV6615)) return true;
+    return node.matches('.cdaLayoutItemShellV6594');
+  }
+
+  function editorOwnedRecordV6608(record){
+    if (!record) return false;
+    const target = record.target;
+    if (target && target.nodeType === 1 && target.matches && target.matches('.cdaLayoutItemShellV6594')) return true;
+    if (editorOwnedNodeV6608(target)) return true;
+    if (record.type !== 'childList') return false;
+    const nodes = Array.from(record.addedNodes || []).concat(Array.from(record.removedNodes || []));
+    return nodes.length > 0 && nodes.every(editorOwnedNodeV6608);
+  }
+
+  function layoutObserverOptionsV6608(){
+    return {childList:true,subtree:true,attributes:true,attributeFilter:['class','hidden','aria-expanded','data-remake-section-collapsed-v6402','data-cda-table-card-collapsed-v6590','data-collapsed']};
+  }
+
+  function observeLayoutV6608(){
+    if (!observerV6593 || !document.body || observerMutedV6608) return;
+    observerV6593.observe(document.body,layoutObserverOptionsV6608());
+  }
+
+  function withObserverMutedV6608(callback){
+    if (!observerV6593) return callback();
+    observerMutedV6608 = true;
+    try { observerV6593.disconnect(); } catch (error) {}
+    try { return callback(); }
+    finally {
+      observerMutedV6608 = false;
+      observeLayoutV6608();
+    }
+  }
+
+  function structureSignatureV6608(){
+    const parts = [];
+    document.querySelectorAll(pageSelectorV6593).forEach(function(page){
+      parts.push('p:' + (page.id || 'page') + ':' + (page.hidden ? 'h' : 'v'));
+      candidateCardsV6603(page).forEach(function(card,index){
+        const collapsed = cardCollapsedV6593(card) ? '1' : '0';
+        parts.push('c:' + cardKeyV6593(card,index) + ':' + collapsed + ':' + (card.isConnected ? '1' : '0'));
+      });
+    });
+    return parts.join('|');
+  }
+
+  function reconcileAllowedV6608(){
+    const now = Date.now();
+    if (!reconcileBurstStartedV6608 || now - reconcileBurstStartedV6608 > 2000) {
+      reconcileBurstStartedV6608 = now;
+      reconcileBurstCountV6608 = 0;
+    }
+    reconcileBurstCountV6608 += 1;
+    if (reconcileBurstCountV6608 <= 8) return true;
+    if (observerV6593) {
+      observerMutedV6608 = true;
+      try { observerV6593.disconnect(); } catch (error) {}
+      window.setTimeout(function(){
+        observerMutedV6608 = false;
+        observeLayoutV6608();
+        reconcileV6593(true);
+      },1200);
+    }
+    return false;
+  }
+
+  function reconcileV6593(forceV6608){
+    if (smoothToggleBusyV6612 || activePointerV6593 || !document.body || document.hidden) return false;
+    const signature = structureSignatureV6608();
+    if (!forceV6608 && signature === lastStructureSignatureV6608) {
+      updateButtonV6593();
+      return false;
+    }
+    lastStructureSignatureV6608 = signature;
+    withObserverMutedV6608(function(){
+      mountControlsV6593();
+      if (!sessionV6593) {
+        document.querySelectorAll(pageSelectorV6593).forEach(function(page){
+          if (!pageVisibleV6593(page)) return;
+          if (authoritativeHydratedPagesV6622.has(page)) hydrateNewSavedCardsV6623(page,'structure-new-cards');
+          else hydrateSavedLayoutAuthoritativelyV6622(page,'structure-first-hydration');
+        });
+      } else {
+        applyLayoutV6593(sessionV6593.page,sessionV6593.working,true);
+        gridsForPageV6593(sessionV6593.page).forEach(function(grid){ directCardsV6593(grid).forEach(ensureHandlesV6593); });
+      }
+    });
+    return true;
+  }
+
+  function nodeAffectsLayoutV6593(node){
+    if (!node || node.nodeType !== 1 || !node.matches) return false;
+    const selector = pageSelectorV6593 + ',' + gridSelectorV6593 + ',' + cardSelectorV6593;
+    return node.matches(selector) || !!(node.querySelector && node.querySelector(selector));
+  }
+
+  function recordAffectsLayoutV6593(record){
+    if (!record || activePointerV6593 || record.type !== 'childList') return false;
+    return Array.from(record.addedNodes || []).some(function(node){
+      if (!node || node.nodeType !== 1 || !node.matches) return false;
+      const selector = pageSelectorV6593 + ',' + gridSelectorV6593 + ',' + cardSelectorV6593;
+      return node.matches(selector) || !!(node.querySelector && node.querySelector(selector));
+    });
+  }
+
+  function recordAffectsTatTablesV6593(record){
+    const target = record && record.target && record.target.nodeType === 1 ? record.target : null;
+    return !!(target && target.closest && target.closest('#tatCustomerCardV6509,#tatQualityCardV6509'));
+  }
+
+  function installObserverV6593(){
+    if (observerV6593 || !document.body || !window.MutationObserver) return;
+    observerV6593 = new MutationObserver(function(records){
+      if (smoothToggleBusyV6612 || observerMutedV6608 || activePointerV6593 || document.hidden) return;
+      const externalRecords = records.filter(function(record){ return !editorOwnedRecordV6608(record); });
+      if (!externalRecords.length) return;
+      if (externalRecords.some(recordAffectsTatTablesV6593)) scheduleTatRepairV6593(180);
+      if (!externalRecords.some(recordAffectsLayoutV6593)) {
+        ignoredRuntimeMutationCountV6623 += externalRecords.length;
+        return;
+      }
+      document.querySelectorAll(pageSelectorV6593).forEach(function(page){
+        if (!pageVisibleV6593(page) || !pageMeasurableV6613(page)) return;
+        if (authoritativeHydratedPagesV6622.has(page)) hydrateNewSavedCardsV6623(page,'mutation-new-cards');
+        else hydrateSavedLayoutAuthoritativelyV6622(page,'mutation-first-hydration');
+      });
+      lastStructureSignatureV6608 = structureSignatureV6608();
+      updateButtonV6593();
+    });
+    observeLayoutV6608();
+  }
+
+  function startV6593(){
+    if (editorStartedV6622) return;
+    editorStartedV6622 = true;
+    migrateLegacyStoreV6598();
+    mountControlsV6593();
+    installObserverV6593();
+    hydrateVisibleSavedLayoutsV6622('script-start');
+    document.querySelectorAll(pageSelectorV6593).forEach(function(page){
+      if (!pageVisibleV6593(page)) clearManagedLayoutForHiddenPageV6613(page);
+    });
+    reconcileV6593(false);
+    const activeAtStartV6622 = activePageV6593();
+    if (activeAtStartV6622 && pageMeasurableV6613(activeAtStartV6622)) preparePageForActivationV6627(activeAtStartV6622,'script-start-active');
+    window.addEventListener('resize',function(){
+      if (internalResizeV6593) return;
+      const nextViewportWidthV6622 = Math.round(Number(document.documentElement.clientWidth || window.innerWidth || 0));
+      const nextOuterWidthV6623 = Math.round(Number(window.outerWidth || nextViewportWidthV6622 || 0));
+      if (Math.abs(nextOuterWidthV6623 - lastOuterWidthV6623) < 2) {
+        lastViewportWidthV6622 = nextViewportWidthV6622;
+        return;
+      }
+      lastOuterWidthV6623 = nextOuterWidthV6623;
+      lastViewportWidthV6622 = nextViewportWidthV6622;
+      document.documentElement.classList.add('cdaLayoutViewportResizeV6617');
+      if (resizeTimerV6608) window.clearTimeout(resizeTimerV6608);
+      resizeTimerV6608 = window.setTimeout(function(){
+        resizeTimerV6608 = 0;
+        updateButtonV6593();
+        const narrow = Number(window.innerWidth || 0) < 981;
+        document.querySelectorAll(pageSelectorV6593).forEach(function(page){
+          if (narrow) {
+            clearPageLayoutV6593(page);
+            return;
+          }
+          if (pageVisibleV6593(page)) applySavedLayoutInPlaceV6617(page);
+          else clearManagedLayoutForHiddenPageV6613(page);
+        });
+        window.requestAnimationFrame(function(){
+          window.requestAnimationFrame(function(){
+            document.documentElement.classList.remove('cdaLayoutViewportResizeV6617');
+            const page = sessionV6593 ? sessionV6593.page : activePageV6593();
+            if (page) scheduleVisualFitV6617(page,'viewport-settled',20);
+          });
+        });
+      },viewportResizeSettleMsV6617);
+    },{passive:true});
+    document.addEventListener('click',function(event){
+      if (!event.target || !event.target.closest) return;
+      let toggle = event.target.closest('.tatCollapseButtonV6509,[data-remake-section-toggle-v6402],[data-cda-dashboard-title-toggle="true"],[aria-expanded]');
+      if (!toggle) {
+        const header = event.target.closest('.remakeCardHeader,.tatCardHeadV6509,[class*="CardHeader"],[class*="CardHead"]');
+        const card = header && header.closest(cardSelectorV6593);
+        if (card && (card.hasAttribute('data-remake-section-collapsed-v6402') || card.hasAttribute('data-cda-table-card-collapsed-v6590') || card.hasAttribute('data-collapsed'))) toggle = header;
+      }
+      if (!toggle) return;
+      const toggledCard = toggle.closest(cardSelectorV6593) || (toggle.matches && toggle.matches(cardSelectorV6593) ? toggle : null);
+      const page = toggledCard ? toggledCard.closest(pageSelectorV6593) : toggle.closest(pageSelectorV6593);
+      const hasManagedLayout = !!(page && ((sessionV6593 && sessionV6593.page === page) || layoutForTabV6593(tabKeyV6593(page))));
+      if (!hasManagedLayout) {
+        scheduleTatRepairV6593(80);
+        return;
+      }
+      const smoothTransactionV6612 = beginSmoothToggleV6612(page,toggledCard);
+      /* The frame callback runs after native toggle handlers and before the next paint.
+         The observer is paused by smoothToggleBusyV6612 during this transaction. */
+      queueAfterNativeToggleV6612(function(){
+        applySmoothToggleLayoutV6612(page,toggledCard,smoothTransactionV6612);
+      });
+    },true);
+    /* v6.628: the tab controller is the sole activation owner. It calls
+       preparePage()/commitPage() directly before and after reveal. */
+    document.addEventListener('cdaTableRendered',function(event){
+      const key = event && event.detail && event.detail.key;
+      if (key !== 'tatCustomer' && key !== 'tatQuality') return;
+      if (tatSurfaceSyncFrameV6615) window.cancelAnimationFrame(tatSurfaceSyncFrameV6615);
+      tatSurfaceSyncFrameV6615 = window.requestAnimationFrame(function(){
+        tatSurfaceSyncFrameV6615 = 0;
+        const card = document.getElementById(key === 'tatCustomer' ? 'tatCustomerCardV6509' : 'tatQualityCardV6509');
+        syncTatSurfaceAfterRenderV6615(card);
+      });
+    });
+    document.addEventListener('pointermove',pointerMoveV6593,true);
+    document.addEventListener('pointerup',pointerEndV6593,true);
+    document.addEventListener('pointercancel',pointerEndV6593,true);
+  }
+
+  const apiV6593 = Object.freeze({
+    version:versionV6593,
+    mode:'universal-collision-safe-stable-canvas',
+    release:releaseV6612,
+    releaseMode:'single-tab-owner-stable-grid-lifecycle',
+    start:startV6593,
+    edit:startEditingV6593,
+    save:saveEditingV6593,
+    cancel:cancelEditingV6593,
+    undo:undoV6593,
+    reset:resetLayoutV6593,
+    applySaved:function(){ document.querySelectorAll(pageSelectorV6593).forEach(function(page){ if (pageMeasurableV6613(page)) preparePageForActivationV6627(page,'explicit-apply'); }); },
+    preparePage:preparePageForActivationV6627,
+    commitPage:commitPageActivationV6627,
+    repairTatTables:repairTatTablesV6593,
+    active:function(){ return !!sessionV6593; },
+    stored:function(tab){ return layoutForTabV6593(tab); },
+    audit:function(){
+      const button = document.getElementById('cdaLayoutEditButtonV6593');
+      return {
+        version:versionV6593,
+        buttonPresent:!!button,
+        personalStorageKey:storageKeyV6593,
+        rendererCrashGuardV6608:true,
+        boundedMutationReconciliationV6608:true,
+        observerOwnMutationFilterV6608:true,
+        nativeCardContentMutationsRemainObservableV6615:true,
+        noClearRewrapOnViewportResizeV6617:true,
+        previsibleTabHydrationV6627:true,
+        tabControllerSoleActivationOwnerV6628:true,
+        savedExpandedHeightClampedToVisualMinimumV6628:true,
+        noTabClickTimerHydrationV6627:true,
+        hiddenPageGeometryRetainedV6627:true,
+        settledViewportResizeV6617:true,
+        tableScansExcludedFromGenericVisualRefreshV6617:true,
+        sharedVisualFitControllerV6617:!!visualFitControllerV6617(),
+        editorOwnsOnlyOuterGeometryV6617:true,
+        chartInternalsDelegatedV6617:true,
+        chartAxisAndTitleProtectionV6617:true,
+        dynamicVisualMinimumHeightV6617:true,
+        expandedTatSurfaceMarkersAreRepairedV6615:true,
+        tatCustomerRowsAreRerenderedWhenSurfaceIsBlankV6615:true,
+        tatTableRepairRetriesUntilVisibleV6615:true,
+        noSyntheticWindowResizeV6608:true,
+        debouncedWindowResizeV6608:true,
+        ignoresBrokenV6593Storage:true,
+        freeDrag:true,
+        upwardDrag:true,
+        smoothPointer:true,
+        gpuDragPreview:true,
+        deferredResizeCommit:true,
+        deferredGridHeight:true,
+        lightweightOverlapPreview:true,
+        observesCollapseClassChanges:true,
+        sharedRemakeBottomCards:true,
+        oneCardBottomGridsRegistered:true,
+        universalVisualRegistry:true,
+        allOneCardAndMultiCardGridsIncluded:true,
+        noCardCountIncludeRule:true,
+        pageWideCrossRowMovement:true,
+        universalBehaviorAcrossRegisteredCards:true,
+        liveResponsiveVisualResize:true,
+        collapsedCardsHaveAllEightResizeHandles:true,
+        collapseToggleInteractiveDuringEditing:true,
+        moveHandleDoesNotCoverWholeHeader:true,
+        dynamicCanvasExtendsBelowMovedCards:true,
+        dynamicCanvasShrinksAfterCollapseOrMoveUp:true,
+        footerRemainsAfterDynamicCanvas:true,
+        movedCardsDoNotMoveSiblingSections:true,
+        hardCollisionPreventsDragOverlap:true,
+        hardCollisionPreventsResizeOverlap:true,
+        passThroughDragPreviewV6614:true,
+        collisionSafeDropPlacementV6614:true,
+        fullWidthCardCanReorderPastNarrowCardV6614:true,
+        dropPreviewShowsCommittedSlotV6614:true,
+        movedCollapsedCardsExpandReliably:true,
+        nativeAndTableCollapseMarkersStaySynchronized:true,
+        expandPushesOnlyConflictingCards:true,
+        collapseRestoresAutoShiftedCards:true,
+        universalSizeChangeCollisionReflow:true,
+        prepaintCollapseExpandReflow:true,
+        noVisibleMergeBeforeAutoShift:true,
+        coordinatedHeightAndPeerMotion:true,
+        hiddenTabsNeverReceiveAbsoluteGeometry:true,
+        visibleTabActivationClearsStaleShells:true,
+        tatTabActivationReappliesAfterMeasurable:true,
+        invalidSavedTabGeometryResetsOnlyThatTab:true,
+        dragPreviewMayCrossButCommittedCardsNeverOverlap:true,
+        smoothToggleReflowDurationMs:smoothToggleDurationV6612,
+        pageAnchoredGeometry:true,
+        placeholdersDoNotReserveCardHeight:true,
+        nativeGridSlotsPreservedByPlaceholders:true,
+        movedCollapsedCardCanExpand:true,
+        collapseStateDataAttributesObserved:true,
+        collapsedHorizontalResizeIsLive:true,
+        collapsedVerticalResizeEditsExpandedFootprint:true,
+        noChartResizeDuringPointerMove:true,
+        noTableScanDuringPointerMove:true,
+        gpuScaledActiveVisualPreview:true,
+        finalActiveVisualReflowOnRelease:true,
+        noGlobalDashboardRefreshAfterEachPointerRelease:true,
+        statusTextThrottled:true,
+        chartAndTableContentFollowsBorders:true,
+        unclippedCrossGridMovement:true,
+        collapsedBottomCardsReceiveMoveHandles:true,
+        separateBottomGridContainersSupported:true,
+        resizeHandles:8,
+        magneticSnap:true,
+        exactReleaseAwayFromGrid:true,
+        horizontalDivisions:horizontalSnapDivisionsV6595,
+        alignmentGuides:true,
+        orangeNearGuides:true,
+        greenLockedGuides:true,
+        exactPeerOnlyGreenGuides:true,
+        sizeBadgeWithoutGuideLine:true,
+        sameSizePeerHighlight:true,
+        exactSameWidthHeightGreenOutline:true,
+        robustRemakeBottomCardDiscovery:true,
+        liveDomTitleAndToolbarDiscovery:true,
+        crossGridAlignment:true,
+        crossGridOverlapProtection:true,
+        movableRemakeBottomCards:true,
+        remakeBottomCardsHaveMoveHandles:true,
+        stableGridFlowDuringEditing:true,
+        sameWidthHeightGuides:true,
+        stableMouseupGeometry:true,
+        migratesLegacyLayouts:false,
+        resetsIncompatibleLegacyLayouts:true,
+        preservesEntryGeometry:!sessionV6593 || sessionV6593.entryDelta <= 2,
+        separateTabs:!!(readStoreV6593().tabs && typeof readStoreV6593().tabs === 'object'),
+        registry:activePageV6593() ? registryAuditV6603(activePageV6593()) : null,
+        passThroughDragRelease:'v6.614',
+        sharedVisualFitPlatformRelease:'v6.617',
+        singleAuthorityStableLoadRelease:'v6.623',
+        savedOuterGeometryImmutableAtRuntimeV6623:true,
+        existingCardsNeverRehydratedByRuntimeMutationsV6623:true,
+        newCardsHydrateIndividuallyV6623:true,
+        hiddenTabsRetainManagedGeometryV6623:true,
+        scrollbarResizeCannotReapplyLayoutV6623:true,
+        incrementalCardHydrationCountV6623:incrementalCardHydrationCountV6623,
+        ignoredRuntimeMutationCountV6623:ignoredRuntimeMutationCountV6623,
+        savedLayoutReplacesDefaultV6622:true,
+        synchronousMutationHydrationV6622:true,
+        oneAuthoritativeOuterGeometryPassV6622:true,
+        visualFitCannotRewriteSavedOuterHeightV6622:true,
+        duplicateStartupReconcilesRemovedV6622:true,
+        heightOnlyViewportResizeIgnoredV6622:true,
+        authoritativeHydrationCountV6622:authoritativeHydrationCountV6622,
+        ok:!!button
+      };
+    }
+  });
+
+  window.cdaDashboardLayoutEditorV6593 = apiV6593;
+  if (document.querySelector(pageSelectorV6593)) startV6593();
+  else if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded',startV6593,{once:true});
+  else startV6593();
+})();
+</script>

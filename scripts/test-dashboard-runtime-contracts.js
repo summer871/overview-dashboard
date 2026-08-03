@@ -1,195 +1,69 @@
 #!/usr/bin/env node
 'use strict';
-
-const fs = require('fs');
-const path = require('path');
-const root = path.resolve(__dirname,'..');
-const read = name => fs.readFileSync(path.join(root,name),'utf8');
-const assert = (condition,message) => { if (!condition) throw new Error(message); };
-
-function componentBlock(text,key,nextKey){
-  const start = text.indexOf("key:'" + key + "'");
-  assert(start >= 0,'Missing component: ' + key);
-  const end = nextKey ? text.indexOf("key:'" + nextKey + "'",start + 1) : text.length;
-  return text.slice(start,end >= 0 ? end : text.length);
-}
-
-function runSharedFeatureRuntimeContract(){
-  const registry = read('SharedDashboardRegistryV6547.html');
-  const runtime = read('SharedDashboardFeatureRuntimeV6579.html');
-  const features = read('SharedDashboardFeaturesV6547.html');
-  const toolbar = read('SharedDashboardToolbarV6548.html');
-  const titleToggle = read('SharedDashboardTitleToggleV6555.html');
-  const foundation = read('SharedComponentFoundation.html');
-
-  assert(registry.includes("const VERSION_V6547 = 'v6.579'"), 'Registry is not v6.579.');
-  assert(registry.includes('featureOptions:normalizeFeatureOptionsV6579'), 'Component feature options are not normalized.');
-  assert(runtime.includes("version:'v6.582'"), 'Shared feature runtime is not v6.582.');
-  assert(runtime.includes("mode:'configuration-driven-shared-feature-runtime'"), 'Shared feature runtime mode is missing.');
-  ['columns','columnWidths','popout','reset','more','collapse','exportCurrent','exportAll'].forEach(key => {
-    assert(runtime.includes(key + ':'), 'Shared runtime handler is missing: ' + key);
-  });
-  assert(runtime.includes('enableColumnWidthsV6581(context)'), 'Shared runtime does not enable column widths.');
-  assert(runtime.includes('resetColumnWidthsV6581(context)'), 'Shared runtime does not reset column widths.');
-  assert(runtime.includes('detachedContextV6581(context)'), 'Detached components do not receive their own width context.');
-
-  assert(features.includes("window.CDA_DASHBOARD_FEATURES_VERSION = 'v6.582'"), 'Feature catalog is not v6.582.');
-  assert(features.includes("key:'columnWidths'"), 'columnWidths is not a registered shared feature.');
-  assert(features.includes("key:'columnWidths',placement:'service'"), 'columnWidths is not registered as a shared service.');
-  assert(features.includes('runtime.run(definition.key,context)'), 'Feature catalog bypasses the shared runtime.');
-
-  assert(toolbar.includes("version:'v6.579'"), 'Toolbar changed unexpectedly.');
-  assert(toolbar.includes('runtime.run(featureKey'), 'Toolbar does not dispatch through the shared runtime.');
-  assert(toolbar.includes('runtime.syncToolbar'), 'Toolbar does not sync through the shared runtime.');
-  assert(titleToggle.includes("version:'v6.579'"), 'Title toggle changed unexpectedly.');
-
-  assert(foundation.includes("includeDashboardFile('SharedDashboardColumnWidthsV6581')"), 'Foundation does not include the shared column-width feature.');
-  assert(foundation.indexOf("includeDashboardFile('SharedDashboardColumnsV6548')") < foundation.indexOf("includeDashboardFile('SharedDashboardColumnWidthsV6581')"), 'Visibility must load before column widths.');
-  assert(foundation.indexOf("includeDashboardFile('SharedDashboardColumnWidthsV6581')") < foundation.indexOf("includeDashboardFile('SharedDashboardFeatureRuntimeV6579')"), 'Column widths must load before the feature runtime.');
-}
-
-function runAllTableCoverageContract(){
-  const tat = read('TatDashboardDefinitionV6547.html');
-  const remake = read('RemakeDashboardDefinitionV6548.html');
-
-  const tatComponents = [
-    ['department','performance'],
-    ['performance','product'],
-    ['product','customer'],
-    ['customer','quality'],
-    ['quality',null]
-  ];
-  tatComponents.forEach(([key,next]) => {
-    const block = componentBlock(tat,key,next);
-    assert(block.includes('columnWidths'), 'TAT component does not opt into columnWidths: ' + key);
-  });
-  const promise = componentBlock(tat,'performance','product');
-  assert(promise.includes("tableIds:['tatLateTableV6509']"), 'TAT Promise table ID is not explicitly registered.');
-  assert(promise.includes("features:CHART_FEATURES.concat(['columnWidths'])"), 'TAT Promise table is not enabled inside the Performance component.');
-  assert(promise.includes("label:'Reset Promise column widths'"), 'TAT Promise reset action is not labeled clearly.');
-
-  const remakeComponents = [
-    ['reason','department'],
-    ['department','product'],
-    ['product','customer'],
-    ['customer','ceramist'],
-    ['ceramist',null]
-  ];
-  remakeComponents.forEach(([key,next]) => {
-    const block = componentBlock(remake,key,next);
-    assert(block.includes('columnWidths'), 'Remake component does not opt into columnWidths: ' + key);
-  });
-
-  [
-    'tatDepartmentTableV6509','tatLateTableV6509','tatProductTableV6562',
-    'tatCustomerTableV6509','tatQualityTableV6509',
-    'remakeReasonTable','remakeDepartmentTable','remakeProductTable',
-    'remakeCustomerTable','remakeCeramistTableV6342','remakeCeramistDetailTableV6343'
-  ].forEach(id => {
-    assert(tat.includes(id) || remake.includes(id), 'Shared width coverage is missing table surface: ' + id);
-  });
-}
-
-function runColumnWidthFeatureContract(){
-  const columns = read('SharedDashboardColumnsV6548.html');
-  const widths = read('SharedDashboardColumnWidthsV6581.html');
-  const runtime = read('SharedDashboardFeatureRuntimeV6579.html');
-  const features = read('SharedDashboardFeaturesV6547.html');
-
-  assert(columns.includes("const VERSION_V6581 = 'v6.582'"), 'Column visibility service is not v6.582.');
-  assert(columns.includes("mode:'shared-visibility-only-rerender-safe'"), 'Column visibility service is not visibility-only.');
-  assert(columns.includes('MutationObserver'), 'Column visibility is not reapplied after DOM rerenders.');
-  assert(columns.includes('cdaTableRendered'), 'Managed-table visibility rerender hook is missing.');
-  assert(columns.includes('cdaDashboardColumnsChanged'), 'Column-change event is missing.');
-  assert(columns.includes('numericLabelV6581'), 'DOM text and numeric columns are not classified separately.');
-  assert(!columns.includes('cdaColumnWidthHandleV6581'), 'Visibility service still owns resizing.');
-  assert(!columns.includes('cdaDashboardColumnWidths.v6581'), 'Visibility service still owns width persistence.');
-
-  assert(widths.includes("const VERSION_V6581 = 'v6.584'"), 'Shared data-grid feature is not v6.584.');
-  assert(widths.includes("mode: 'opt-in-standard-data-grid-column-widths'"), 'Standard data-grid mode is missing.');
-  assert(widths.includes("(component.features || []).indexOf('columnWidths') >= 0"), 'Column widths are not opt-in.');
-  const enabledBlock = widths.match(/function enabledV6581[\s\S]*?\n  }/)?.[0] || '';
-  assert(enabledBlock && !enabledBlock.includes("component.kind === 'table'"), 'Embedded tables are incorrectly excluded by component kind.');
-  assert(!widths.includes("viewport = table.closest && table.closest('.remakeTableWrap')"), 'Outer table wrappers are still reused as scroll owners.');
-  assert(/overflow:\s*auto\s*!important/.test(widths), 'One grid viewport does not own both scroll axes.');
-  assert(widths.includes('position: sticky !important'), 'Sticky grid headers are missing.');
-  assert(widths.includes('cdaDashboardDataGridHostV6584'), 'Data-grid host conversion is missing.');
-  assert(!widths.includes('cdaColumnWidthBottomRailV6583'), 'Rejected duplicate bottom rail remains.');
-  assert(/white-space:\s*nowrap\s*!important/.test(widths), 'No-wrap behavior is missing.');
-  assert(/text-overflow:\s*ellipsis\s*!important/.test(widths), 'Truncation behavior is missing.');
-  assert(widths.includes('cdaColumnWidthDragShieldV6581'), 'Spreadsheet-style drag shield is missing.');
-  assert(widths.includes('requestAnimationFrame'), 'Resize updates are not animation-frame batched.');
-  const moveBlock = widths.match(/drag\.move = function\(moveEvent\)[\s\S]*?\n    };/)?.[0] || '';
-  assert(moveBlock, 'Pointer-move handler is missing.');
-  assert(!moveBlock.includes('getBoundingClientRect'), 'Pointer movement performs layout measurement and may stutter.');
-  assert(!moveBlock.includes('applyWidthMapV6581'), 'Pointer movement rewrites the entire table layout.');
-  assert(widths.includes('saveWidthMapV6581'), 'The complete visible width layout is not persisted after a drag.');
-  assert(widths.includes('setPointerCapture'), 'Pointer capture is missing.');
-  assert(widths.includes('lostpointercapture'), 'Lost pointer-capture cleanup is missing.');
-  assert(widths.includes("view.addEventListener('blur'"), 'Window-blur cleanup is missing.');
-  assert(widths.includes("doc.addEventListener('visibilitychange'"), 'Visibility cleanup is missing.');
-  assert(widths.includes("keyEvent.key === 'Escape'"), 'Escape-to-cancel cleanup is missing.');
-  assert(widths.includes('queueMicrotask'), 'Before-paint rerender reapply is missing.');
-  assert(widths.includes("localStorage.removeItem('cdaDashboardColumnWidths.v6580')"), 'Experimental v6.580 widths are not cleared once.');
-  assert(widths.includes('measureTextV6584') && widths.includes('renderedContentFloorV6584') && widths.includes('firstColumnMin'), 'Readable measured defaults are missing.');
-  assert(/reset:\s*resetV6581/.test(widths), 'Reset-to-default width action is missing.');
-  assert(runtime.includes('columnWidths:resetColumnWidthsV6581'), 'Shared runtime does not route reset widths.');
-
-  assert(widths.includes("table.parentElement.classList.contains('cdaDashboardTableViewportV6581')"), 'Column widths do not create a dedicated table-only viewport.');
-  assert(!widths.includes("viewport = table.closest && table.closest('.remakeTableWrap')"), 'Column widths still reuse outer dashboard wrappers.');
-  assert(!widths.includes("frame.style.setProperty('width'"), 'Column widths still widen the shared table frame/card.');
-  assert(/overflow:\s*auto\s*!important/.test(widths), 'Native two-axis grid scrolling is missing.');
-  assert(widths.includes('max-height: inherit'), 'Grid viewport does not inherit the table height constraint.');
-  assert(widths.includes("data-cda-dashboard-grid-detached-v6584"), 'Detached-window scroll preservation is missing.');
-  assert(columns.includes("resetWidths.textContent = 'Reset widths'"), 'Reset widths is not in the Columns popover.');
-  assert(features.includes("key:'columnWidths',placement:'service'"), 'columnWidths must be service-only, not a More-menu item.');
-}
-
-function runDetachedPopoutContract(){
-  const isolation = read('SharedDashboardIsolationV6555.html');
-  const facade = read('SharedDashboardPopoutV6548.html');
-  assert(isolation.includes("version:'v6.561'"), 'Isolation service is not v6.561.');
-  assert(isolation.includes("tableMode:'window-scroll-full-table'"), 'Popup window is not the vertical scroll owner.');
-  assert(isolation.includes('popup.document.adoptNode(card)'), 'Pop-out does not move the actual card node.');
-  assert(isolation.includes('placeholder.replaceWith(session.card)'), 'Pop-out does not restore the same card node.');
-  assert(facade.includes("version:'v6.561'"), 'Pop-out facade changed unexpectedly.');
-}
-
-function runRemakeNativeHeaderContract(){
-  const bridge = read('RemakeDashboardLegacyBridgeV6554.html');
-  const adapter = read('RemakeDashboardAdapterV6548.html');
-  const decorator = read('SharedDashboardDecoratorV6548.html');
-  assert(bridge.includes("version:'v6.566'"), 'Remake bridge is not v6.566.');
-  assert(adapter.includes('nativeTitleToggle:true'), 'Remake native title ownership is missing.');
-  assert(decorator.includes('if (titleToggle && !nativeTitle)'), 'Decorator rewrites native Remake titles.');
-}
-
-function runTatLayoutContract(){
-  const definition = read('TatDashboardDefinitionV6547.html');
-  const product = read('TatProductTableV6562.html');
-  const layout = read('TatDashboardLayoutV6563.html');
-  const audit = read('TatProductAuditV6562.html');
-  assert(definition.includes('renderHeaderControls:function(){ return layout.headerMarkup(); }'), 'Performance header toggle is missing.');
-  assert(definition.indexOf("key:'performance'") < definition.indexOf("key:'product'"), 'Performance must precede Products.');
-  assert(product.includes("config.childRows = null"), 'Department product drill-down is not disabled.');
-  assert(layout.includes("mode:'remake-parity-two-column-performance-toggle'"), 'Remake-parity mode is missing.');
-  assert(!layout.includes('tatPromiseStripV6564') && !layout.includes('tatPromisePanelV6563'), 'Rejected TAT layout remains.');
-  assert(audit.includes('performanceAndProductsAreSiblingCards:'), 'TAT audit does not verify sibling cards.');
-}
-
-runSharedFeatureRuntimeContract();
-runAllTableCoverageContract();
-runColumnWidthFeatureContract();
-runDetachedPopoutContract();
-runRemakeNativeHeaderContract();
-runTatLayoutContract();
-
-console.log('Dashboard runtime contracts passed.');
-console.log('All 11 shared table surfaces, including TAT Promise: passed');
-console.log('Opt-in shared standard data-grid feature: passed');
-console.log('Animation-frame spreadsheet-style resizing: passed');
-console.log('Complete width-layout persistence and full-rerender restore: passed');
-console.log('One native two-axis scroll owner with sticky headers: passed');
-console.log('Compact numeric and elastic primary-column defaults: passed');
-console.log('Native Remake collapse ownership: passed');
-console.log('Live-node pop-out and restore: passed');
+const fs=require('fs'),path=require('path');
+const root=path.resolve(__dirname,'..');
+const read=f=>fs.readFileSync(path.join(root,f),'utf8');
+const assert=(c,m)=>{if(!c)throw new Error(m);};
+const index=read('Index.html');
+const sharedTable=read('SharedTableModule.html');
+const table=read('SharedDashboardTablePlatformV6586.html');
+const editor=read('SharedDashboardLayoutEditorV6593.html');
+const visual=read('SharedVisualFitControllerV6617.html');
+const controller=read('TatDashboardControllerScript.html');
+const remakeBootstrap=read('RemakeDashboardBootstrapV6548.html');
+const adapter=read('TatDashboardAdapterV6547.html');
+const layout=read('TatDashboardLayoutV6563.html');
+const product=read('TatProductTableV6562.html');
+const widths=read('TatTableWidthsV6563.html');
+const renderer=read('SharedDashboardRendererV6547.html');
+assert(table.includes("const RELEASE_V6627 = 'v6.628'"),'Table release is not v6.628');
+assert(editor.includes("const releaseV6612 = 'v6.628'"),'Layout release is not v6.628');
+assert(visual.includes("const VERSION_V6617 = 'v6.628'"),'Visual-fit release is not v6.628');
+assert(!index.includes('html.cdaRemakeTatBootV6501 body { visibility:hidden'),'Global boot body hiding remains');
+assert(table.includes('drag.startRightWidth - delta'),'Adjacent column does not receive inverse drag delta');
+assert(table.includes('setTableWidthV6586(drag.surface.table,drag.startTableWidth)'),'Table total can change during divider drag');
+assert(!table.includes("mode !== 'fit-content'"),'Legacy fit-content exception still disables exact widths');
+assert(sharedTable.includes('replaceRowsAndTotalsV6628'),'Shared table renderer does not preserve the header during sorting');
+assert(sharedTable.includes('stableHeaderV6628: true'),'Table-render lifecycle does not report stable-header behavior');
+assert(!/function renderV6540[\s\S]*?table\.innerHTML\s*=/.test(sharedTable),'Shared table render still replaces the complete table');
+assert(table.includes("data-cda-table-interactions-v6628','delegated'"),'Header interactions are not delegated to the stable table');
+assert(table.includes("if (savedComplete && sameViewport)"),'Saved exact widths are not authoritative in every sizing mode');
+assert(table.includes("fit-compact")&&table.includes("fit-cell-content"),'Compact and true cell-content sizing modes are not separate');
+assert(table.includes('host-resize-observer-v6628'),'Per-host ResizeObserver is not enabled');
+assert(table.includes("attributeFilter:['aria-expanded','data-collapsed']"),'Observer is not limited to external collapse sources');
+assert(table.includes('recordAffectsTableStructureV6628'),'Observer does not filter ordinary non-table child changes');
+assert(table.includes("data-cda-table-page-registered-v6628"),'Tab switches do not reuse prepared table surfaces');
+assert(table.includes('platformOwnedMutationV6627'),'Platform-owned DOM mutations are not excluded');
+assert(controller.includes('preparePageV6627(page'),'Tab activation does not prepare the target page');
+assert(controller.includes("editor.preparePage(page,'controller-prepare')"),'Tab controller is not the direct saved-layout owner');
+assert(controller.includes('revealPageV6627(page'),'Tab activation does not use one reveal');
+assert(!editor.includes("document.addEventListener('cdaDashboardTabWillActivateV6627'"),'Layout editor still duplicates tab preparation through an event listener');
+assert(!editor.includes("document.addEventListener('cdaDashboardTabActivatedV6627'"),'Layout editor still duplicates tab commit through an event listener');
+assert((controller.match(/previousSwitch\.call\(/g)||[]).length===1,'Legacy default renderer can run more than once');
+assert(!controller.includes('},5000);'),'Delayed fallback can restore the default tab');
+assert(renderer.includes('{tabKey:tab.key,page:page,wasActive:wasActive}'),'Renderer does not identify the exact page');
+assert(!remakeBootstrap.includes('tableSurfaces.scan(document)'),'Remake decoration still triggers a full-document table scan');
+assert(remakeBootstrap.includes('tableSurfaces.preparePage(target)'),'Remake does not prepare its exact page');
+assert(editor.includes('Math.max(minimumVisualHeightV6617(card),Number(item.height)'),'Saved card height is not clamped to its visual minimum');
+assert(editor.includes('tabControllerSoleActivationOwnerV6628:true'),'Layout audit does not expose the sole tab owner');
+assert(controller.includes('let local=null;')&&(controller.match(/readLocalCache\(\)/g)||[]).length>=2,'TAT cache contract is missing');
+const loadBody=(controller.match(/async function load\(force\)\{([\s\S]*?)\n\s*\}/)||[])[1]||'';
+assert((loadBody.match(/readLocalCache\(\)/g)||[]).length===1,'TAT initial load reads the browser cache more than once');
+assert(loadBody.includes('state.meta=meta')&&!loadBody.includes('handlePayload(local.payload,meta)'),'Matching TAT cache token rerenders the same payload');
+assert(!adapter.includes('requestAnimationFrame(function(){'),'TAT adapter retains a post-render frame');
+assert(!adapter.includes("window.dispatchEvent(new Event('resize'))"),'TAT adapter retains synthetic resize');
+assert(!layout.includes('chart.resize(')&&!layout.includes("chart.update('none')"),'TAT layout retains post-paint chart changes');
+assert(!layout.includes('cdaDashboardTabRenderedV6547'),'TAT layout has a duplicate tab pass');
+assert(!product.includes('cdaDashboardTabRenderedV6547'),'TAT product has a duplicate tab pass');
+assert(!widths.includes('cdaDashboardTabRenderedV6547'),'TAT widths have a duplicate tab pass');
+assert(!editor.includes("document.addEventListener('cdaDashboardTabRenderedV6547'"),'Layout editor still has a renderer-driven duplicate pass');
+console.log('v6.628 stable grid lifecycle contracts passed.');
+console.log('Saved geometry is prepared once before reveal: passed');
+console.log('Legacy/default tab renderer runs once only: passed');
+console.log('Adjacent column absorbs the exact opposite delta: passed');
+console.log('Table total and standard viewport boundary stay fixed: passed');
+console.log('Sorting preserves the interactive header and width state: passed');
+console.log('Compact sizing and cell-content sizing are separate: passed');
+console.log('Per-host resize observation replaces ordinary full-document rescans: passed');
+console.log('TAT cached payload is rendered once: passed');
+console.log('Global body hiding is removed: passed');

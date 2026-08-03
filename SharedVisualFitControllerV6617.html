@@ -1,0 +1,257 @@
+<!-- SharedVisualFitControllerV6617.html
+Version: v6.628
+Date: 2026-08-03
+Purpose: Use authoritative card geometry as the chart host from the first draw, disable chart resize animation before Chart.js initializes, and never run a post-paint chart resize/update loop.
+-->
+<style id="cdaSharedVisualFitStylesV6617">
+  .cdaLayoutItemShellV6594[data-cda-layout-item-v6593="true"] > [data-cda-layout-card-v6594="true"][data-cda-visual-fit-card-v6617="true"] {
+    display:flex!important;
+    flex-direction:column!important;
+    min-width:0!important;
+    min-height:0!important;
+    overflow:hidden!important;
+  }
+
+  .cdaLayoutItemShellV6594[data-cda-layout-item-v6593="true"] > [data-cda-layout-card-v6594="true"][data-cda-visual-fit-card-v6617="true"] > :is(.remakeCardHeader,.tatCardHeadV6509,[class*="CardHeader"],[class*="CardHead"]) {
+    flex:0 0 auto!important;
+  }
+
+  .cdaLayoutItemShellV6594[data-cda-layout-item-v6593="true"] :is(
+    [data-cda-visual-fit-chart-host-v6617="true"],
+    .cdaChartCanvasWrapV6544,
+    .cdaChartFrameV6544,
+    .tatChartV6509,
+    .remakeChartBoxV6230,
+    .remakeTrendCanvasWrapV6230,
+    .remakeOverviewChartBox,
+    .remakeChartSurface
+  ) {
+    box-sizing:border-box!important;
+    display:block!important;
+    flex:1 1 0!important;
+    width:100%!important;
+    min-width:0!important;
+    max-width:100%!important;
+    height:auto!important;
+    min-height:0!important;
+    max-height:none!important;
+    overflow:hidden!important;
+  }
+
+  .cdaLayoutItemShellV6594[data-cda-layout-item-v6593="true"] :is(.tatPerformanceViewsV6565,.tatPerformanceViewV6565:not([hidden]),.tatPerformanceChartPanelV6565) {
+    box-sizing:border-box!important;
+    display:flex!important;
+    flex:1 1 0!important;
+    flex-direction:column!important;
+    width:100%!important;
+    min-width:0!important;
+    min-height:0!important;
+    height:auto!important;
+    max-height:none!important;
+  }
+
+  .cdaLayoutItemShellV6594[data-cda-layout-item-v6593="true"] canvas,
+  [data-cda-visual-fit-canvas-v6617="true"] {
+    box-sizing:border-box!important;
+    display:block!important;
+    width:100%!important;
+    min-width:0!important;
+    max-width:100%!important;
+    height:100%!important;
+    min-height:0!important;
+    max-height:100%!important;
+  }
+</style>
+<script id="cdaSharedVisualFitControllerV6617">
+(function installCdaSharedVisualFitControllerV6617(){
+  'use strict';
+
+  if (window.cdaDashboardVisualFitV6617 && window.cdaDashboardVisualFitV6617.version === 'v6.628') return;
+
+  const VERSION_V6617 = 'v6.628';
+  const cardSelectorV6617 = '[data-cda-layout-card-v6594="true"],.remakeCard,.tatCardV6509,article,[data-cda-dashboard-component]';
+  const hostSelectorV6617 = '.cdaChartCanvasWrapV6544,.cdaChartFrameV6544,.tatChartV6509,.remakeChartBoxV6230,.remakeTrendCanvasWrapV6230,.remakeOverviewChartBox,.remakeChartSurface,[data-cda-chart-host],[class*="ChartWrap"],[class*="chartWrap"],[class*="ChartBox"],[class*="chartBox"],[class*="ChartSurface"],[class*="chartSurface"]';
+  const adaptersV6617 = new Map();
+  let pluginRegisteredV6624 = false;
+  let markedCanvasCountV6624 = 0;
+  let pluginInitCountV6624 = 0;
+  let mutationObserverV6624 = null;
+
+  function numberV6617(value,fallback){
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : fallback;
+  }
+
+  function collapsedV6617(card){
+    if (!card) return false;
+    const value = String(card.getAttribute('data-cda-collapsed') || card.getAttribute('data-cda-table-card-collapsed-v6590') || card.getAttribute('data-collapsed') || '');
+    return /^(?:1|true|yes|collapsed)$/i.test(value) || card.classList.contains('collapsed') || card.classList.contains('collapsedV6402');
+  }
+
+  function findCardV6617(node){ return node && node.closest ? node.closest(cardSelectorV6617) : null; }
+
+  function chartHostV6617(canvas,card){
+    if (!canvas) return null;
+    const explicit = canvas.closest ? canvas.closest(hostSelectorV6617) : null;
+    if (explicit && (!card || card.contains(explicit))) return explicit;
+    return canvas.parentElement || null;
+  }
+
+  function tickLimitV6617(width){ return Math.max(5,Math.min(18,Math.floor(Math.max(280,numberV6617(width,280)) / 58))); }
+
+  function minimumCardHeightV6617(card,fallback){
+    const floor = Math.max(44,numberV6617(fallback,110));
+    if (!card) return floor;
+    const header = card.querySelector && card.querySelector(':scope > .remakeCardHeader,:scope > .tatCardHeadV6509,:scope > [class*="CardHeader"],:scope > [class*="CardHead"]');
+    const headerHeight = Math.max(0,Math.ceil(numberV6617(header && header.getBoundingClientRect().height,0)));
+    if (collapsedV6617(card)) return Math.max(44,headerHeight || 44);
+    if (card.querySelector && card.querySelector('canvas')) return Math.max(floor,headerHeight + 268);
+    if (card.querySelector && card.querySelector('table')) return Math.max(floor,headerHeight + 112);
+    return floor;
+  }
+
+  function markCanvasV6624(canvas,reason){
+    if (!canvas || !canvas.isConnected) return false;
+    const card = findCardV6617(canvas);
+    const host = chartHostV6617(canvas,card);
+    if (!card || !host) return false;
+    card.setAttribute('data-cda-visual-fit-card-v6617','true');
+    host.setAttribute('data-cda-visual-fit-chart-host-v6617','true');
+    canvas.setAttribute('data-cda-visual-fit-canvas-v6617','true');
+    canvas.setAttribute('data-cda-visual-fit-reason-v6617',String(reason || 'mark'));
+    markedCanvasCountV6624 += 1;
+    return true;
+  }
+
+  function applyXAxisProtectionV6617(chart){
+    const options = chart && chart.config && chart.config.options ? chart.config.options : chart && chart.options;
+    if (!options) return;
+    options.responsive = true;
+    options.maintainAspectRatio = false;
+    options.resizeDelay = 0;
+    options.animation = false;
+    options.animations = false;
+    options.transitions = options.transitions || {};
+    options.transitions.resize = {animation:{duration:0}};
+    options.transitions.active = {animation:{duration:0}};
+    const scales = options.scales || (options.scales = {});
+    const x = scales.x;
+    if (!x) return;
+    x.ticks = x.ticks || {};
+    if (x.ticks.autoSkip !== false) x.ticks.maxTicksLimit = tickLimitV6617(chart && chart.width);
+    x.ticks.maxRotation = Math.min(30,numberV6617(x.ticks.maxRotation,0));
+    x.ticks.minRotation = Math.min(x.ticks.maxRotation,numberV6617(x.ticks.minRotation,0));
+    x.ticks.padding = Math.max(6,numberV6617(x.ticks.padding,0));
+  }
+
+  const firstDrawPluginV6624 = {
+    id:'cdaStableDashboardFirstDrawV6624',
+    beforeInit:function(chart){
+      const canvas = chart && chart.canvas;
+      if (!canvas || !canvas.closest || !canvas.closest('#remakeFactorPage,#tatDashboardPageV6509,[data-cda-detached-component="true"]')) return;
+      markCanvasV6624(canvas,'chart-before-init');
+      applyXAxisProtectionV6617(chart);
+      pluginInitCountV6624 += 1;
+    },
+    beforeUpdate:function(chart){
+      const canvas = chart && chart.canvas;
+      if (!canvas || !canvas.closest || !canvas.closest('#remakeFactorPage,#tatDashboardPageV6509,[data-cda-detached-component="true"]')) return;
+      applyXAxisProtectionV6617(chart);
+    }
+  };
+
+  function installChartPluginV6624(){
+    if (pluginRegisteredV6624 || !window.Chart || typeof window.Chart.register !== 'function') return false;
+    try { window.Chart.register(firstDrawPluginV6624); pluginRegisteredV6624 = true; return true; }
+    catch (error) { return false; }
+  }
+
+  function fitChartCanvasV6617(canvas,reason){
+    const marked = markCanvasV6624(canvas,reason || 'fit-contract');
+    if (!marked) return false;
+    if (window.Chart && typeof window.Chart.getChart === 'function') {
+      try { const chart = window.Chart.getChart(canvas); if (chart) applyXAxisProtectionV6617(chart); } catch (error) {}
+    }
+    return true;
+  }
+
+  function fitCardV6617(card,reason){
+    if (!card || !card.querySelectorAll) return 0;
+    let count = 0;
+    card.querySelectorAll('canvas').forEach(function(canvas){ if (fitChartCanvasV6617(canvas,reason)) count += 1; });
+    adaptersV6617.forEach(function(adapter){
+      try { if (adapter && adapter.match && adapter.fit && adapter.match(card)) adapter.fit(card,{reason:reason || 'mark',version:VERSION_V6617}); } catch (error) {}
+    });
+    return count;
+  }
+
+  function scanScopeV6617(scope){
+    installChartPluginV6624();
+    const target = scope && scope.querySelectorAll ? scope : document;
+    let count = 0;
+    if (target.matches && target.matches('canvas')) count += fitChartCanvasV6617(target,'scan-root') ? 1 : 0;
+    target.querySelectorAll('canvas').forEach(function(canvas){ if (fitChartCanvasV6617(canvas,'scan')) count += 1; });
+    return count;
+  }
+
+  function fitScopeV6617(scope,reason){ return scanScopeV6617(scope,reason); }
+  function scheduleV6617(scope,reason){ return scanScopeV6617(scope || document,reason || 'synchronous-scan'); }
+
+  function registerAdapterV6617(key,adapter){ adaptersV6617.set(String(key),adapter); return adapter; }
+  function unregisterAdapterV6617(key){ adaptersV6617.delete(String(key)); }
+
+  function startV6617(){
+    installChartPluginV6624();
+    scanScopeV6617(document);
+    if (window.MutationObserver && document.body && !mutationObserverV6624) {
+      mutationObserverV6624 = new MutationObserver(function(records){
+        records.forEach(function(record){
+          Array.from(record.addedNodes || []).forEach(function(node){
+            if (!node || node.nodeType !== 1) return;
+            if (node.matches && node.matches('canvas')) fitChartCanvasV6617(node,'dom-insert');
+            if (node.querySelectorAll) node.querySelectorAll('canvas').forEach(function(canvas){ fitChartCanvasV6617(canvas,'dom-insert'); });
+          });
+        });
+      });
+      mutationObserverV6624.observe(document.body,{subtree:true,childList:true});
+    }
+  }
+
+  const apiV6617 = Object.freeze({
+    version:VERSION_V6617,
+    minimumCardHeight:minimumCardHeightV6617,
+    fitChart:fitChartCanvasV6617,
+    fitCard:fitCardV6617,
+    fitScope:fitScopeV6617,
+    schedule:scheduleV6617,
+    scan:scanScopeV6617,
+    registerAdapter:registerAdapterV6617,
+    unregisterAdapter:unregisterAdapterV6617,
+    audit:function(){
+      return {
+        version:VERSION_V6617,
+        sharedReusableController:true,
+        layoutEditorOwnsOnlyOuterGeometry:true,
+        chartJsAdapter:true,
+        xAxisTitleProtected:true,
+        dynamicTickDensity:true,
+        browserNativeResponsiveOnlyV6624:true,
+        chartOptionsAppliedBeforeInitV6624:true,
+        noPostPaintChartResizeV6624:true,
+        noPostPaintChartUpdateV6624:true,
+        noChartReadyPollingV6624:true,
+        dynamicMinimumHeightContractV6628:true,
+        markedCanvasCount:markedCanvasCountV6624,
+        pluginInitCount:pluginInitCountV6624,
+        pluginRegistered:pluginRegisteredV6624
+      };
+    }
+  });
+
+  window.cdaDashboardVisualFitV6617 = apiV6617;
+  installChartPluginV6624();
+  document.addEventListener('cdaLayoutVisualCommittedV6617',function(event){ scanScopeV6617(event && event.detail && event.detail.card || document); });
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded',startV6617,{once:true});
+  else startV6617();
+})();
+</script>

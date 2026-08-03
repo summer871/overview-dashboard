@@ -233,13 +233,8 @@ Purpose: TAT bridge for shared dashboard capabilities, separate Products / Group
   }
 
   function afterReplaceV6547(){
-    window.requestAnimationFrame(function(){
-      if (typeof window.setTatDistributionModeV6509 === 'function') window.setTatDistributionModeV6509();
-      if (window.cdaDashboardTitleToggleV6555) window.cdaDashboardTitleToggleV6555.syncAll('tat');
-      if (window.cdaTatProductTableV6562) window.cdaTatProductTableV6562.afterReplace();
-      if (window.cdaTatDashboardLayoutV6563) window.cdaTatDashboardLayoutV6563.afterReplace();
-      window.dispatchEvent(new Event('resize'));
-    });
+    if (window.cdaDashboardTitleToggleV6555) window.cdaDashboardTitleToggleV6555.syncAll('tat');
+    return true;
   }
 
   window.cdaTatDashboardAdapterV6547 = Object.freeze({

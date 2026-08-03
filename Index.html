@@ -4,6 +4,10 @@
   <base target="_top">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- v6.628 stable grid lifecycle platform: register saved geometry, stable table widths, and Chart.js first-draw rules before any dashboard body or startup script is parsed. -->
+  <?!= includeDashboardFile('SharedDashboardLayoutEditorV6593') ?>
+  <?!= includeDashboardFile('SharedDashboardTablePlatformV6586') ?>
+  <?!= includeDashboardFile('SharedVisualFitControllerV6617') ?>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script id="dashboardFuzzySearchV6412">
     (function installDashboardFuzzySearchV6412() {
@@ -240,7 +244,8 @@
 document.documentElement.classList.add('cdaRemakeTatBootV6501');
 </script>
 <style id="cdaRemakeTatBootStylesV6501">
-  html.cdaRemakeTatBootV6501 body { visibility:hidden !important; }
+  /* v6.628: keep the usable shell visible during data and saved-state hydration.
+     Individual inactive tabs are prepared while hidden by the tab controller. */
   #tabOneBtn,
   .managerTabs > .tabGroup,
   #underConstructionBtn,

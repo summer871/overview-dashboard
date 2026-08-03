@@ -1,7 +1,7 @@
 <!-- SharedFooter.html
-Version: v6.584
+Version: v6.628
 Date: 2026-07-31
-Purpose: Show independent Remake and technician cache timestamps plus the v6.581 final shared column-width deployment identity.
+Purpose: Render the shared bottom-of-page cache and build footer, then load the shared dashboard component foundation.
 -->
 <style id="cdaSharedFooterStylesV6567">
   #remakeLastRefresh,#tatStampV6509,.remakePageFooterV6338{display:none!important;visibility:hidden!important}
@@ -15,8 +15,8 @@ Purpose: Show independent Remake and technician cache timestamps plus the v6.581
 (function installCdaSharedFooterV6567(){
   'use strict';
 
-  const UI_VERSION = 'v6.584';
-  const BUILD_LABEL = 'SHARED-DATA-GRID-25';
+  const UI_VERSION = 'v6.628';
+  const BUILD_LABEL = 'STABLE-GRID-LIFECYCLE-69';
   const FOOTER_ID = 'cdaSharedAppFooterV6531';
   const TECH_RE = /technician|ceramist|worker/i;
   const REMAKE_RE = /remake/i;

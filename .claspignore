@@ -1,4 +1,5 @@
-**/**
+# Overview Dashboard Apps Script source allowlist - v6.628 stable grid lifecycle
+**/*
 !appsscript.json
 !*.js
 !*.html

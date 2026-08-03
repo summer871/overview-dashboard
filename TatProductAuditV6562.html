@@ -1,7 +1,7 @@
 <!-- TatProductAuditV6562.html
-Version: v6.565
-Date: 2026-07-30
-Purpose: Audit department-only Products / Groups plus Remake-parity TAT Performance / Products sibling cards.
+Version: v6.595
+Date: 2026-08-01
+Purpose: Audit the unified TAT layout and verify that every rendered TAT table, including the Promise table embedded in TAT Performance, is governed by the dashboard-wide table-surface platform.
 -->
 <script id="cdaTatProductAuditControllerV6562">
 (function installTatProductAuditV6562(){
@@ -11,14 +11,16 @@ Purpose: Audit department-only Products / Groups plus Remake-parity TAT Performa
   if (!previous || typeof previous.audit !== 'function') {
     throw new Error('Shared dashboard audit must load before the TAT layout audit.');
   }
-  if (window.cdaTatProductAuditV6562 && window.cdaTatProductAuditV6562.version === 'v6.565') return;
+  if (window.cdaTatProductAuditV6562 && window.cdaTatProductAuditV6562.version === 'v6.595') return;
 
-  function auditProductContractV6565(){
+  function auditProductContractV6586(){
     const platform = window.cdaDashboardPlatformV6547;
     const definition = window.cdaTatDashboardDefinitionV6547;
     const service = window.cdaTatProductTableV6562;
     const layout = window.cdaTatDashboardLayoutV6563;
-    const widths = window.cdaTatTableWidthsV6563;
+    const tableSurfaces = window.cdaDashboardTableSurfacesV6586;
+    const runtime = window.cdaDashboardFeatureRuntimeV6579;
+    const widthsFacade = window.cdaTatTableWidthsV6563;
     const tableApi = window.cdaTable;
     const page = document.getElementById('tatDashboardPageV6509');
     const departmentConfig = tableApi && tableApi.config ? tableApi.config('tatDepartment') : null;
@@ -45,15 +47,30 @@ Purpose: Audit department-only Products / Groups plus Remake-parity TAT Performa
       !page.querySelector('.tatPromisePanelV6563') && !page.querySelector('.tatPerformanceLayoutV6564'));
     const siblingOrder = keys.indexOf('performance') === 2 && keys.indexOf('product') === 3;
     const siblingWidths = !!performanceComponent && !!productComponent && !performanceComponent.wide && !productComponent.wide;
-    const definitionCorrect = !!definition && definition.version === 'v6.565' && components.length === 6 &&
+    const definitionCorrect = !!definition && definition.version === 'v6.581' && components.length === 6 &&
       !!departmentComponent && !!productComponent && !!performanceComponent && siblingOrder && siblingWidths &&
       departmentComponent.tableKey === 'tatDepartment' && productComponent.tableKey === 'tatProduct' &&
       performanceComponent.chartKey === 'distribution' && performanceComponent.tableKey === 'tatLate';
     const serviceCorrect = !!service && service.version === 'v6.562' && service.tableKey === 'tatProduct';
     const layoutCorrect = !!layout && layout.version === 'v6.565' &&
       layout.mode === 'remake-parity-two-column-performance-toggle';
-    const widthsCorrect = !!widths && widths.version === 'v6.563' && widths.widths &&
-      widths.widths.tatProduct && widths.widths.tatProduct[0] === '34%';
+    const widthsDelegated = !!widthsFacade && widthsFacade.version === 'v6.595' &&
+      widthsFacade.mode === 'delegated-to-dashboard-wide-table-surfaces';
+    const surfaceAudit = tableSurfaces && typeof tableSurfaces.audit === 'function'
+      ? tableSurfaces.audit(document)
+      : {ok:false,tables:[],unregisteredTables:['table platform unavailable']};
+    const tatSurfaceIds = (surfaceAudit.tables || []).filter(function(item){ return /^tat:/.test(item.id || ''); });
+    const expectedTatTableIds = [
+      'tatDepartmentTableV6509','tatLateTableV6509','tatProductTableV6562',
+      'tatCustomerTableV6509','tatQualityTableV6509'
+    ];
+    const registeredTatIds = new Set(tatSurfaceIds.map(function(item){ return item.tableId; }));
+    const allTatTablesRegistered = expectedTatTableIds.every(function(id){ return registeredTatIds.has(id); });
+    const tablePlatformCorrect = !!tableSurfaces && tableSurfaces.version === 'v6.595' &&
+      tableSurfaces.mode === 'dashboard-wide-collapse-aware-fit-paired-table-surfaces' &&
+      surfaceAudit.ok && allTatTablesRegistered;
+    const runtimeModeAware = !!runtime && runtime.version === 'v6.595' &&
+      typeof runtime.tableControlMode === 'function' && typeof runtime.hasVisibleTableSurfaces === 'function';
     const rendererCorrect = !!window.cdaDashboardRendererV6547 && window.cdaDashboardRendererV6547.version === 'v6.562';
     const adapterCorrect = !!window.cdaTatDashboardAdapterV6547 && window.cdaTatDashboardAdapterV6547.version === 'v6.563';
     return {
@@ -61,7 +78,11 @@ Purpose: Audit department-only Products / Groups plus Remake-parity TAT Performa
       definitionCorrect:definitionCorrect,
       serviceCorrect:serviceCorrect,
       layoutCorrect:layoutCorrect,
-      widthsCorrect:widthsCorrect,
+      widthsDelegated:widthsDelegated,
+      tablePlatformCorrect:tablePlatformCorrect,
+      runtimeModeAware:runtimeModeAware,
+      tableSurfaceAudit:surfaceAudit,
+      allTatTablesRegistered:allTatTablesRegistered,
       rendererCorrect:rendererCorrect,
       adapterCorrect:adapterCorrect,
       departmentOnly:departmentOnly,
@@ -77,33 +98,32 @@ Purpose: Audit department-only Products / Groups plus Remake-parity TAT Performa
       performanceAndProductsAreSiblingCards:siblingOrder && siblingWidths,
       noRejectedLayouts:noRejectedLayouts,
       visibleCardCount:page ? page.querySelectorAll('[data-cda-dashboard-component]').length : 0,
-      ok:definitionCorrect && serviceCorrect && layoutCorrect && widthsCorrect && rendererCorrect && adapterCorrect &&
-        departmentOnly && noProductRowsInsideDepartment && productTablePresent && !!productConfig &&
-        productButtons.length === 2 && productActive.length === 1 && performanceButtons.length === 2 &&
-        performanceActive.length === 1 && performancePresent && performanceViewsPresent && noRejectedLayouts
+      ok:definitionCorrect && serviceCorrect && layoutCorrect && widthsDelegated && tablePlatformCorrect &&
+        runtimeModeAware && rendererCorrect && adapterCorrect && departmentOnly && noProductRowsInsideDepartment &&
+        productTablePresent && !!productConfig && productButtons.length === 2 && productActive.length === 1 &&
+        performanceButtons.length === 2 && performanceActive.length === 1 && performancePresent &&
+        performanceViewsPresent && noRejectedLayouts
     };
   }
 
-  function auditV6565(){
+  function auditV6586(){
     const base = previous.audit();
-    const product = auditProductContractV6565();
+    const product = auditProductContractV6586();
     const services = Object.assign({},base.services || {},{
+      tableSurfaces:window.cdaDashboardTableSurfacesV6586 && window.cdaDashboardTableSurfacesV6586.version,
+      featureRuntime:window.cdaDashboardFeatureRuntimeV6579 && window.cdaDashboardFeatureRuntimeV6579.version,
+      columns:window.cdaDashboardColumnsV6548 && window.cdaDashboardColumnsV6548.version,
+      columnWidths:window.cdaDashboardColumnWidthsV6581 && window.cdaDashboardColumnWidthsV6581.version,
       tatAdapter:window.cdaTatDashboardAdapterV6547 && window.cdaTatDashboardAdapterV6547.version,
       tatProduct:window.cdaTatProductTableV6562 && window.cdaTatProductTableV6562.version,
       tatLayout:window.cdaTatDashboardLayoutV6563 && window.cdaTatDashboardLayoutV6563.version,
       tatWidths:window.cdaTatTableWidthsV6563 && window.cdaTatTableWidthsV6563.version,
       renderer:window.cdaDashboardRendererV6547 && window.cdaDashboardRendererV6547.version
     });
-    const otherServicesCorrect = !!base.serviceVersionsCorrect ||
-      (services.theme === 'v6.550' && services.columns === 'v6.558' &&
-       services.popover === 'v6.558' && services.toolbar === 'v6.558' &&
-       services.bridge === 'v6.559' && services.catalog === 'v6.555' &&
-       services.isolation === 'v6.561' && services.popout === 'v6.561' &&
-       services.titleToggle === 'v6.556' && services.adapter === 'v6.558' &&
-       services.decorator === 'v6.558');
-    const serviceVersionsCorrect = otherServicesCorrect &&
-      services.tatAdapter === 'v6.563' && services.tatProduct === 'v6.562' &&
-      services.tatLayout === 'v6.565' && services.tatWidths === 'v6.563' && services.renderer === 'v6.562';
+    const serviceVersionsCorrect = services.tableSurfaces === 'v6.595' && services.featureRuntime === 'v6.595' &&
+      services.columns === 'v6.595' && services.columnWidths === 'v6.595' && services.tatAdapter === 'v6.563' &&
+      services.tatProduct === 'v6.562' && services.tatLayout === 'v6.565' &&
+      services.tatWidths === 'v6.595' && services.renderer === 'v6.562';
     const baseBehaviorOk = [
       base.componentCatalog,base.iconOwnership,base.everyFeatureInstanceStyleParity,
       base.toolbarActionOrder,base.visibleLegacyHeaderActions,base.remakeVisibleCardCoverage,
@@ -111,28 +131,30 @@ Purpose: Audit department-only Products / Groups plus Remake-parity TAT Performa
       base.remakeActionHosts,base.titleOwnership,base.detachedLivePopout
     ].every(function(check){ return !check || check.ok; });
     return Object.assign({},base,{
+      version:'v6.595',
       services:services,
       serviceVersionsCorrect:serviceVersionsCorrect,
       tatProductContract:product,
       tatPerformanceContract:product,
+      tableSurfaceAudit:product.tableSurfaceAudit,
       ok:serviceVersionsCorrect && baseBehaviorOk && product.ok
     });
   }
 
-  window.cdaTatProductAuditV6562 = Object.freeze({version:'v6.565',audit:auditProductContractV6565});
+  window.cdaTatProductAuditV6562 = Object.freeze({version:'v6.595',audit:auditProductContractV6586});
   window.cdaDashboardAuditV6550 = Object.freeze({
-    version:'v6.561',
+    version:'v6.595',
     visible:previous.visible,
     styleSignature:previous.styleSignature,
     expectedIconName:previous.expectedIconName,
-    audit:auditV6565,
+    audit:auditV6586,
     remakeActionHosts:previous.remakeActionHosts,
     titleOwnership:previous.titleOwnership,
     detachedLivePopout:previous.detachedLivePopout,
     detachedFullTables:previous.detachedFullTables,
     detachedButtonParity:previous.detachedButtonParity,
-    tatProductContract:auditProductContractV6565,
-    tatPerformanceContract:auditProductContractV6565
+    tatProductContract:auditProductContractV6586,
+    tatPerformanceContract:auditProductContractV6586
   });
 })();
 </script>

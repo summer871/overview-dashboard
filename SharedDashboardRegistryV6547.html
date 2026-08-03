@@ -144,7 +144,7 @@ Purpose: Shared registry and validation layer for replace-mode and decorate-mode
     util:{
       byId:function(id){ return document.getElementById(id); },
       escapeHtml:escapeHtmlV6547,
-      emit:function(name,detail){ document.dispatchEvent(new CustomEvent(name,{detail:detail})); }
+      emit:function(name,detail){ document.dispatchEvent(new CustomEvent(name,{detail:detail,bubbles:true,composed:true})); }
     }
   };
 

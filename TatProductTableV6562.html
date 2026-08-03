@@ -395,7 +395,7 @@ Purpose: Keep TAT departments department-only and provide a separate shared Prod
     ensureDepartmentOnlyV6562();
     installControllerBridgesV6562();
     const rows = window.cdaTable ? window.cdaTable.getRows('tatDepartment') : latestDepartmentRows;
-    scheduleRenderV6562(rows);
+    renderV6562(rows);
   }
 
   function startV6562(){
@@ -420,9 +420,6 @@ Purpose: Keep TAT departments department-only and provide a separate shared Prod
     afterReplace:afterReplaceV6562
   });
 
-  window.addEventListener('cdaDashboardTabRenderedV6547',function(event){
-    if (event && event.detail && event.detail.tabKey === 'tat') afterReplaceV6562();
-  });
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded',startV6562,{once:true});

@@ -1,14 +1,15 @@
 <!-- TatDashboardBootstrapV6547.html
-Version: v6.565
-Date: 2026-07-30
-Purpose: Register, render, and audit TAT with Remake-parity Performance / Products sibling cards.
+Version: v6.608
+Release: v6.628
+Date: 2026-08-03
+Purpose: Register, render, and audit the unified TAT dashboard while requiring the same dashboard-wide table-surface platform used by Remake.
 -->
 <script id="cdaTatDashboardBootstrapControllerV6547">
 (function installTatDashboardBootstrapV6547(){
   'use strict';
 
-  if (window.__cdaTatDashboardBootstrapV6565) return;
-  window.__cdaTatDashboardBootstrapV6565 = true;
+  if (window.__cdaTatDashboardBootstrapV6586) return;
+  window.__cdaTatDashboardBootstrapV6586 = true;
 
   const platform = window.cdaDashboardPlatformV6547;
   const renderer = window.cdaDashboardRendererV6547;
@@ -18,44 +19,51 @@ Purpose: Register, render, and audit TAT with Remake-parity Performance / Produc
   const productAudit = window.cdaTatProductAuditV6562;
   const layout = window.cdaTatDashboardLayoutV6563;
   const widths = window.cdaTatTableWidthsV6563;
-  if (!platform || !renderer || !definition || !sharedAudit || !productTable || !productAudit || !layout || !widths) {
-    throw new Error('TAT bootstrap requires registry, renderer, definition, audits, product table, layout, and width services.');
+  const tableSurfaces = window.cdaDashboardTableSurfacesV6586;
+  const layoutEditor = window.cdaDashboardLayoutEditorV6593;
+  if (!platform || !renderer || !definition || !sharedAudit || !productTable || !productAudit ||
+      !layout || !widths || !tableSurfaces || !layoutEditor) {
+    throw new Error('TAT bootstrap requires registry, renderer, definition, audits, product table, layout, compatibility widths, the dashboard-wide table platform, and the personal layout editor.');
   }
+
+  window.__cdaTatDashboardBootstrapV6587 = 'v6.628';
 
   platform.registerTab(definition);
   const registrationAudit = platform.validateTab('tat');
   if (!registrationAudit.ok) throw new Error('TAT definition is invalid:\n' + registrationAudit.errors.join('\n'));
 
-  function dependencyAuditV6565(){
+  function dependencyAuditV6586(){
     const keys = definition.components.map(function(item){ return item.key; });
     const performance = definition.components.find(function(item){ return item.key === 'performance'; });
     const product = definition.components.find(function(item){ return item.key === 'product'; });
     return {
       tableModule:!!window.cdaTable,
-      sharedTheme:window.cdaDashboardThemeV6549 && window.cdaDashboardThemeV6549.version === 'v6.550',
-      sharedColumns:window.cdaDashboardColumnsV6548 && window.cdaDashboardColumnsV6548.version === 'v6.558',
-      sharedPopover:window.cdaDashboardPopoverV6547 && window.cdaDashboardPopoverV6547.version === 'v6.558',
-      sharedToolbar:window.cdaDashboardToolbarV6548 && window.cdaDashboardToolbarV6548.version === 'v6.558',
-      componentCatalog:window.cdaDashboardCatalogV6555 && window.cdaDashboardCatalogV6555.version === 'v6.555',
-      componentIsolation:window.cdaDashboardIsolationV6555 && window.cdaDashboardIsolationV6555.version === 'v6.561',
-      livePopout:window.cdaDashboardPopoutV6548 && window.cdaDashboardPopoutV6548.version === 'v6.561' &&
+      tableSurfaces:tableSurfaces.version === 'v6.595' && tableSurfaces.mode === 'universal-standard-partition-adjacent-pair-column-authority',
+      layoutEditor:layoutEditor.version === 'v6.608' && layoutEditor.mode === 'universal-collision-safe-stable-canvas',
+      sharedColumns:window.cdaDashboardColumnsV6548 && window.cdaDashboardColumnsV6548.version === 'v6.595',
+      sharedColumnWidths:window.cdaDashboardColumnWidthsV6581 && window.cdaDashboardColumnWidthsV6581.version === 'v6.595',
+      sharedPopover:!!window.cdaDashboardPopoverV6547,
+      sharedToolbar:!!window.cdaDashboardToolbarV6548,
+      componentCatalog:!!window.cdaDashboardCatalogV6555,
+      componentIsolation:window.cdaDashboardIsolationV6555 && window.cdaDashboardIsolationV6555.version === 'v6.595',
+      livePopout:window.cdaDashboardPopoutV6548 && window.cdaDashboardPopoutV6548.version === 'v6.595' &&
         window.cdaDashboardPopoutV6548.mode === 'detached-live-component' &&
-        window.cdaDashboardPopoutV6548.tableMode === 'window-scroll-full-table',
-      titleToggle:window.cdaDashboardTitleToggleV6555 && window.cdaDashboardTitleToggleV6555.version === 'v6.556',
+        window.cdaDashboardPopoutV6548.tableMode === 'bounded-shared-table-surface',
+      titleToggle:!!window.cdaDashboardTitleToggleV6555,
       renderer:renderer.version === 'v6.562',
-      sharedAudit:sharedAudit.version === 'v6.561',
+      sharedAudit:typeof sharedAudit.audit === 'function',
       adapter:window.cdaTatDashboardAdapterV6547 && window.cdaTatDashboardAdapterV6547.version === 'v6.563',
-      definition:definition.version === 'v6.565',
+      definition:definition.version === 'v6.581',
       productTable:productTable.version === 'v6.562',
-      productAudit:productAudit.version === 'v6.565',
+      productAudit:productAudit.version === 'v6.595',
       layout:layout.version === 'v6.565',
-      widths:widths.version === 'v6.563',
+      widths:widths.version === 'v6.595' && widths.mode === 'delegated-to-dashboard-wide-table-surfaces',
       sixComponents:definition.components.length === 6,
       noStandalonePerformanceCards:keys.indexOf('late') < 0 && keys.indexOf('distribution') < 0,
       remakeParityOrder:keys.indexOf('performance') === 2 && keys.indexOf('product') === 3,
       siblingCardWidths:!!performance && !!product && !performance.wide && !product.wide,
       performanceToggle:layout.mode === 'remake-parity-two-column-performance-toggle' && typeof layout.setMode === 'function',
-      bindings:window.cdaTatDashboardBindingsV6547 && window.cdaTatDashboardBindingsV6547.version === 'v6.555',
+      bindings:!!window.cdaTatDashboardBindingsV6547,
       kpi:!!window.cdaDashboardKpiV6547,
       clearTatComponentV6509:typeof window.clearTatComponentV6509 === 'function',
       exportTatComponentV6509:typeof window.exportTatComponentV6509 === 'function',
@@ -64,16 +72,17 @@ Purpose: Register, render, and audit TAT with Remake-parity Performance / Produc
     };
   }
 
-  function auditV6565(){
+  function auditV6586(){
     const base = renderer.audit('tat');
-    const dependencies = dependencyAuditV6565();
+    const dependencies = dependencyAuditV6586();
     const sharedControls = sharedAudit.audit();
     const catalog = window.cdaDashboardCatalogV6555.audit();
     const productContract = productAudit.audit();
+    const tableSurfaceAudit = tableSurfaces.audit(document);
     const allRequiredDependenciesPresent = Object.keys(dependencies).every(function(key){ return dependencies[key] === true; });
     return Object.assign({},base,{
-      version:'v6.565',
-      mode:'remake-parity-two-column-performance-and-products',
+      version:'v6.608',
+      mode:'remake-parity-two-column-performance-and-products-with-dashboard-wide-table-surfaces',
       registeredFeatures:platform.listFeatures(),
       registeredTabs:platform.listTabs(),
       dependencies:dependencies,
@@ -81,47 +90,59 @@ Purpose: Register, render, and audit TAT with Remake-parity Performance / Produc
       componentCatalog:catalog,
       productContract:productContract,
       performanceContract:productContract,
+      tableSurfaceAudit:tableSurfaceAudit,
       departmentOnly:productContract.departmentOnly,
       productGroupsToggle:productContract.productModeButtonCount === 2 && productContract.oneActiveProductMode,
       performanceToggle:productContract.performanceModeButtonCount === 2 && productContract.oneActivePerformanceMode,
       performanceAndProductsAreSiblingCards:productContract.performanceAndProductsAreSiblingCards,
-      readableTableWidths:productContract.widthsCorrect,
+      allTablesGoverned:tableSurfaceAudit.ok,
       noRemakeCardReplacement:document.querySelectorAll('#remakeFactorPage [data-cda-dashboard-tab],#remakeFactorPage [data-cda-dashboard-component]').length === 0,
       tatHasNoYearControl:document.querySelectorAll('#tatDashboardPageV6509 [data-cda-dashboard-feature-key="year"],#tatDashboardPageV6509 [data-cda-dashboard-feature-key="comparePriorYear"]').length === 0,
       sharedControls:sharedControls,
       sharedControlsValidated:sharedControls.ok,
       ok:base.validation && base.validation.ok && allRequiredDependenciesPresent && catalog.ok &&
         base.noDuplicateIds && base.oneCardPerComponent && base.headerControlsOwned &&
-        productContract.ok && sharedControls.ok
+        productContract.ok && tableSurfaceAudit.ok && sharedControls.ok
     });
   }
 
-  function renderV6565(){ return renderer.rebuild('tat'); }
+  function renderV6586(){ return renderer.rebuild('tat'); }
 
-  function startV6565(){
-    let attempts = 0;
-    const timer = window.setInterval(function(){
-      attempts += 1;
-      if (document.getElementById(definition.pageId) && window.cdaTable) {
-        window.clearInterval(timer);
-        renderV6565();
-        productTable.afterReplace();
-        widths.afterReplace();
-        layout.afterReplace();
-      } else if (attempts >= 160) window.clearInterval(timer);
-    },25);
+  function finishRenderV6586(page){
+    const target = page || document.getElementById(definition.pageId);
+    if (target) target.setAttribute('data-cda-tat-render-initialized-v6627','true');
+    return target;
+  }
+
+  function startV6586(){
+    let completed = false;
+    let observer = null;
+    function runWhenReadyV6624(){
+      if (completed) return true;
+      if (!document.getElementById(definition.pageId) || !window.cdaTable) return false;
+      completed = true;
+      if (observer) observer.disconnect();
+      const page = renderV6586();
+      finishRenderV6586(page);
+      document.documentElement.setAttribute('data-cda-tat-single-construction-v6624','true');
+      return true;
+    }
+    if (runWhenReadyV6624()) return;
+    if (!window.MutationObserver || !document.body) return;
+    observer = new MutationObserver(function(){ runWhenReadyV6624(); });
+    observer.observe(document.body,{childList:true,subtree:true});
   }
 
   window.cdaTatDashboardV6547 = Object.freeze({
-    version:'v6.565',
+    version:'v6.608',
     definition:definition,
-    render:renderV6565,
-    audit:auditV6565,
-    dependencyAudit:dependencyAuditV6565
+    render:renderV6586,
+    audit:auditV6586,
+    dependencyAudit:dependencyAuditV6586
   });
-  window.auditSharedRemakeTableShellV6544 = auditV6565;
+  window.auditSharedRemakeTableShellV6544 = auditV6586;
 
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded',startV6565,{once:true});
-  else startV6565();
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded',startV6586,{once:true});
+  else startV6586();
 })();
 </script>

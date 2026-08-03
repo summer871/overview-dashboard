@@ -21678,7 +21678,8 @@
   function thV6230(tableKey, field, label, numeric, extraClass, titleLabel) {
     const className = 'sortableV6230' + (numeric ? ' num' : '') + (extraClass ? ' ' + extraClass : '');
     const fullLabel = titleLabel || label;
-    return '<th class="' + className + '" title="Sort by ' + escV6230(fullLabel) + '" aria-label="Sort by ' + escV6230(fullLabel) + '" onclick="setRemakeSortV6230(\'' + escJsV6230(tableKey) + '\',\'' + escJsV6230(field) + '\')">' + escV6230(label) + '<span class="sortGlyphV6230">' + glyphV6230(tableKey, field) + '</span></th>';
+    const role = /(?:^|\s)(?:priorYearHeaderV6301|deltaHeaderV6301)(?:\s|$)/.test(String(extraClass || '')) ? 'extended' : 'standard';
+    return '<th class="' + className + '" data-cda-field="' + escV6230(field) + '" data-cda-column-role="' + role + '" title="Sort by ' + escV6230(fullLabel) + '" aria-label="Sort by ' + escV6230(fullLabel) + '" onclick="setRemakeSortV6230(\'' + escJsV6230(tableKey) + '\',\'' + escJsV6230(field) + '\')">' + escV6230(label) + '<span class="sortGlyphV6230">' + glyphV6230(tableKey, field) + '</span></th>';
   }
   window.setRemakeSortV6230 = function setRemakeSortV6230(tableKey, field) {
     const current = uiV6230.sorts[tableKey] || { field, dir: 'desc' };
@@ -26410,10 +26411,14 @@
     }
   }
 
-  startupV6230();
-  window.clearTimeout(startupTimerV6230);
-  startupTimerV6230 = window.setTimeout(startupV6230, 350);
-  window.setTimeout(startupV6230, 1200);
+  let startupCompletedV6624 = false;
+  function startupOnceV6624() {
+    if (startupCompletedV6624) return;
+    startupCompletedV6624 = true;
+    startupV6230();
+  }
+
+  startupOnceV6624();
 })();
 
 </script>

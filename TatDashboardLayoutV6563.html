@@ -179,15 +179,10 @@ Purpose: Mirror the clean Remake two-column composition with TAT Performance and
   }
 
   function resizeDistributionV6565(doc){
-    window.setTimeout(function(){
-      const chart = chartForDocumentV6565(doc);
-      try { if (chart && typeof chart.resize === 'function') chart.resize(); } catch (error) {}
-      try { if (chart && typeof chart.update === 'function') chart.update('none'); } catch (error) {}
-      try {
-        const view = doc && doc.defaultView;
-        if (view) view.dispatchEvent(new view.Event('resize'));
-      } catch (error) {}
-    },0);
+    const controller = window.cdaDashboardVisualFitV6617;
+    const card = doc && doc.getElementById('tatDistributionChartV6509');
+    if (controller && typeof controller.scan === 'function' && card) controller.scan(card);
+    return true;
   }
 
   function syncDocumentV6565(doc){
@@ -249,11 +244,9 @@ Purpose: Mirror the clean Remake two-column composition with TAT Performance and
   }
 
   function afterReplaceV6565(){
-    window.requestAnimationFrame(function(){
-      activeDocumentsV6565().forEach(function(doc){
-        syncDocumentV6565(doc);
-        improveCellTitlesV6565(doc);
-      });
+    activeDocumentsV6565().forEach(function(doc){
+      syncDocumentV6565(doc);
+      improveCellTitlesV6565(doc);
     });
   }
 
@@ -269,10 +262,7 @@ Purpose: Mirror the clean Remake two-column composition with TAT Performance and
     improveCellTitles:improveCellTitlesV6565
   });
 
-  window.addEventListener('cdaDashboardTabRenderedV6547',function(event){
-    if (event && event.detail && event.detail.tabKey === 'tat') afterReplaceV6565();
-  });
-  window.addEventListener('cdaTableRendered',function(){ afterReplaceV6565(); });
+  document.addEventListener('cdaTableRendered',function(){ improveCellTitlesV6565(document); });
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded',afterReplaceV6565,{once:true});

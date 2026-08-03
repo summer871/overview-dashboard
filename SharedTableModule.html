@@ -1,4 +1,4 @@
-<!-- SharedTableModule.html v6.543
+<!-- SharedTableModule.html v6.628
 
 THE TAB TEMPLATE. Read this before building any new dashboard tab.
 
@@ -18,7 +18,7 @@ SharedTableStyles.html remains the visual owner.
 (function installCdaSharedTableModuleV6540(){
   'use strict';
 
-  var MODULE_VERSION_V6540 = '6.543';
+  var MODULE_VERSION_V6540 = '6.628';
   var SORT_STORE_V6540 = 'cdaTableSortsV6539';
   var COLS_STORE_V6540 = 'cdaTableHiddenColumnsV6539';
 
@@ -350,6 +350,7 @@ SharedTableStyles.html remains the visual owner.
       var title = column.sortable ? 'Sort by ' + column.title : column.title;
       return '<th class="' + escV6540(classes.join(' ')) + '"'
         + ' data-cda-field="' + escV6540(column.field) + '"'
+        + ' data-cda-column-role="' + escV6540(column.role === 'extended' ? 'extended' : 'standard') + '"'
         + ' title="' + escV6540(title) + '"'
         + ' aria-label="' + escV6540(title) + '"'
         + style + click + '>'
@@ -469,6 +470,79 @@ SharedTableStyles.html remains the visual owner.
     return '<tfoot data-cda-totals="1"><tr>' + cells.join('') + '</tr></tfoot>';
   }
 
+  function columnSignatureV6628(columns){
+    return (columns || []).map(function(column){
+      return [
+        String(column && column.field || ''),
+        column && column.role === 'extended' ? 'extended' : 'standard',
+        column && column.numeric ? 'numeric' : 'text',
+        String(column && column.width || '')
+      ].join(':');
+    }).join('|');
+  }
+
+  function parseTableSectionsV6628(html){
+    var temporary = document.createElement('table');
+    temporary.innerHTML = html || '';
+    return {
+      head: temporary.tHead || null,
+      body: temporary.tBodies && temporary.tBodies[0] || null,
+      foot: temporary.tFoot || null
+    };
+  }
+
+  function removeExtraBodiesV6628(table, keep){
+    Array.prototype.slice.call(table.tBodies || []).forEach(function(body){
+      if (body !== keep && body.parentNode === table) body.remove();
+    });
+  }
+
+  function replaceAllSectionsV6628(table, sections){
+    if (table.tHead) table.tHead.remove();
+    Array.prototype.slice.call(table.tBodies || []).forEach(function(body){ body.remove(); });
+    if (table.tFoot) table.tFoot.remove();
+    if (sections.head) table.appendChild(sections.head);
+    if (sections.body) table.appendChild(sections.body);
+    if (sections.foot) table.appendChild(sections.foot);
+  }
+
+  function replaceRowsAndTotalsV6628(table, sections){
+    var body = table.tBodies && table.tBodies[0] || null;
+    if (body && sections.body) {
+      body.innerHTML = sections.body.innerHTML;
+      removeExtraBodiesV6628(table, body);
+    } else if (sections.body) {
+      table.insertBefore(sections.body, table.tFoot || null);
+      removeExtraBodiesV6628(table, sections.body);
+    } else {
+      Array.prototype.slice.call(table.tBodies || []).forEach(function(item){ item.remove(); });
+    }
+
+    var foot = table.tFoot || null;
+    if (foot && sections.foot) {
+      foot.innerHTML = sections.foot.innerHTML;
+    } else if (foot && !sections.foot) {
+      foot.remove();
+    } else if (!foot && sections.foot) {
+      table.appendChild(sections.foot);
+    }
+  }
+
+  function updateSortHeaderV6628(cfg, table){
+    var sort = activeSortV6540(cfg) || {};
+    Array.prototype.slice.call(table.querySelectorAll('thead th[data-cda-field]')).forEach(function(header){
+      var field = String(header.getAttribute('data-cda-field') || '');
+      var active = field && field === String(sort.field || '');
+      var glyph = header.querySelector('.sortGlyphV6230');
+      if (glyph) glyph.innerHTML = active ? (sort.dir === 'asc' ? '&#9650;' : '&#9660;') : '';
+      if (header.classList.contains('sortableV6230')) {
+        header.setAttribute('aria-sort', active ? (sort.dir === 'asc' ? 'ascending' : 'descending') : 'none');
+      } else {
+        header.removeAttribute('aria-sort');
+      }
+    });
+  }
+
   function bindV6540(cfg, table){
     if (cfg.bound || !table) return;
     cfg.bound = true;
@@ -552,9 +626,23 @@ SharedTableStyles.html remains the visual owner.
     }
     cfg.viewRows = rows;
 
-    table.innerHTML = headerHtmlV6540(cfg, columns)
-      + bodyHtmlV6540(cfg, columns, rows)
-      + footHtmlV6540(cfg, columns, rows);
+    table.setAttribute('data-cda-table-key-v6628', cfg.key);
+    var columnSignature = columnSignatureV6628(columns);
+    var headerChanged = !table.tHead || cfg.renderedColumnSignatureV6628 !== columnSignature;
+    var sections = parseTableSectionsV6628(
+      (headerChanged ? headerHtmlV6540(cfg, columns) : '')
+        + bodyHtmlV6540(cfg, columns, rows)
+        + footHtmlV6540(cfg, columns, rows)
+    );
+
+    if (headerChanged) {
+      replaceAllSectionsV6628(table, sections);
+      cfg.renderedColumnSignatureV6628 = columnSignature;
+    } else {
+      replaceRowsAndTotalsV6628(table, sections);
+      updateSortHeaderV6628(cfg, table);
+    }
+
     if (cfg.bodyIdV6540) {
       var newBody = table.tBodies && table.tBodies[0];
       if (newBody) newBody.id = cfg.bodyIdV6540;
@@ -567,7 +655,10 @@ SharedTableStyles.html remains the visual owner.
     emitV6540('cdaTableRendered', {
       key: cfg.key,
       tableId: cfg.tableId,
-      rows: rows.length
+      rows: rows.length,
+      headerChanged: headerChanged,
+      columnSignature: columnSignature,
+      stableHeaderV6628: true
     });
   }
 

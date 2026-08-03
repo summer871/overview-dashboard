@@ -1,14 +1,14 @@
 <!-- SharedDashboardFeatureRuntimeV6579.html
-Version: v6.582
+Version: v6.595
 Date: 2026-08-01
-Purpose: One configuration-driven runtime for shared dashboard features across TAT, Remake, future tabs, and detached live components, including opt-in shared column-width behavior.
+Purpose: One configuration-driven runtime for shared dashboard features across TAT, Remake, future tabs, and detached live components, with mode-aware routing between chart controls and the dashboard-wide table platform.
 -->
 <script id="cdaSharedDashboardFeatureRuntimeControllerV6579">
 (function installSharedDashboardFeatureRuntimeV6579(){
   'use strict';
 
   if (window.cdaDashboardFeatureRuntimeV6579 &&
-      window.cdaDashboardFeatureRuntimeV6579.version === 'v6.582') return;
+      window.cdaDashboardFeatureRuntimeV6579.version === 'v6.595') return;
 
   const platform = window.cdaDashboardPlatformV6547;
   if (!platform) throw new Error('Dashboard registry must load before the feature runtime.');
@@ -91,12 +91,12 @@ Purpose: One configuration-driven runtime for shared dashboard features across T
     const columns = window.cdaDashboardColumnsV6548;
     const sources = columns && typeof columns.describe === 'function' ? columns.describe(context) : [];
     const rows = [];
-    sources.filter(function(source){ return source.type === 'dom' && source.table; }).forEach(function(source,index){
+    sources.filter(function(source){ return (source.type === 'dom' || source.type === 'surface') && source.table; }).forEach(function(source,index){
       if (index) rows.push([]);
       if (sources.length > 1) rows.push([source.title]);
       Array.from(source.table.rows || []).forEach(function(row){
         const values = Array.from(row.cells || []).filter(function(cell){
-          return !cell.classList.contains('cdaDashboardColumnHiddenV6548');
+          return !cell.classList.contains('cdaDashboardColumnHiddenV6548') && !cell.classList.contains('cdaTableColumnHiddenV6586');
         }).map(function(cell){ return String(cell.textContent || '').replace(/\s+/g,' ').trim(); });
         if (values.length) rows.push(values);
       });
@@ -138,16 +138,29 @@ Purpose: One configuration-driven runtime for shared dashboard features across T
     return true;
   }
 
+  function tableSurfaceServiceV6586(){
+    return window.cdaDashboardTableSurfacesV6586 || window.cdaDashboardTableSurfacesV6585 || null;
+  }
+
+  function hasVisibleTableSurfacesV6586(context){
+    const service = tableSurfaceServiceV6586();
+    return !!(service && typeof service.hasVisibleSurfaces === 'function' && service.hasVisibleSurfaces(context));
+  }
+
   function openColumnsV6579(context){
+    const columns = window.cdaDashboardColumnsV6548;
+    if (hasVisibleTableSurfacesV6586(context) && columns && typeof columns.open === 'function') {
+      return !!columns.open(context);
+    }
     const options = optionsForV6579(context,'columns');
     if (options.adapterMethod) return invokeAdapterV6579(context,options.adapterMethod);
-    return !!(window.cdaDashboardColumnsV6548 && window.cdaDashboardColumnsV6548.open(context));
+    return !!(columns && typeof columns.open === 'function' && columns.open(context));
   }
 
   function applyColumnsV6581(context){
     const columns = window.cdaDashboardColumnsV6548;
     if (!columns || typeof columns.apply !== 'function' || !context ||
-        !context.component || context.component.kind !== 'table') return false;
+        !context.component) return false;
     return !!columns.apply(context);
   }
 
@@ -203,18 +216,25 @@ Purpose: One configuration-driven runtime for shared dashboard features across T
 
   function resetV6579(context){
     const options = optionsForV6579(context,'reset');
-    if (options.adapterMethod) return invokeAdapterV6579(context,options.adapterMethod);
     let changed = false;
     if (window.cdaDashboardPopoverV6547) window.cdaDashboardPopoverV6547.close();
-    if (context.component.kind === 'table' && window.cdaDashboardColumnsV6548) {
-      changed = window.cdaDashboardColumnsV6548.reset(context) || changed;
+
+    if (hasVisibleTableSurfacesV6586(context) && window.cdaDashboardColumnsV6548) {
+      if (typeof window.cdaDashboardColumnsV6548.reset === 'function') {
+        changed = window.cdaDashboardColumnsV6548.reset(context) || changed;
+      }
       changed = resetColumnWidthsV6581(context) || changed;
       if (context.component.tableKey && window.cdaTable && typeof window.cdaTable.clearSelection === 'function') {
         window.cdaTable.clearSelection(context.component.tableKey);
         changed = true;
       }
     }
-    if (context.component.kind === 'chart') changed = resetChartV6579(context) || changed;
+
+    if (options.adapterMethod) {
+      changed = invokeAdapterV6579(context,options.adapterMethod) || changed;
+    } else if (context.component.kind === 'chart') {
+      changed = resetChartV6579(context) || changed;
+    }
     if (options.afterAdapterMethod) changed = invokeAdapterV6579(context,options.afterAdapterMethod) || changed;
     return changed;
   }
@@ -330,7 +350,7 @@ Purpose: One configuration-driven runtime for shared dashboard features across T
   }
 
   window.cdaDashboardFeatureRuntimeV6579 = Object.freeze({
-    version:'v6.582',
+    version:'v6.595',
     mode:'configuration-driven-shared-feature-runtime',
     supports:supportsV6579,
     options:optionsForV6579,
@@ -338,6 +358,8 @@ Purpose: One configuration-driven runtime for shared dashboard features across T
     label:labelV6579,
     title:titleV6579,
     isActive:activeV6579,
+    tableControlMode:function(context){ return hasVisibleTableSurfacesV6586(context) ? 'table' : 'adapter'; },
+    hasVisibleTableSurfaces:hasVisibleTableSurfacesV6586,
     syncToolbar:syncToolbarV6579,
     exportCurrent:exportCurrentV6579,
     exportAll:exportAllV6579,

@@ -1,5 +1,5 @@
 <!-- SharedDashboardRendererV6547.html
-Version: v6.562
+Version: v6.627
 Date: 2026-07-30
 Purpose: Replace-mode tab renderer with explicit component identity, optional shared header controls, and title-side controls.
 -->
@@ -98,11 +98,13 @@ Purpose: Replace-mode tab renderer with explicit component identity, optional sh
     page.style.setProperty('display',wasActive ? 'block' : 'none','important');
     if (wasActive) {
       page.classList.add('active');
-      page.style.setProperty('visibility','visible','important');
+      page.setAttribute('data-cda-tab-preparing-v6627','true');
+      page.style.setProperty('visibility','hidden','important');
+      page.style.setProperty('pointer-events','none','important');
     }
     bindComponents(tab,page);
     if (typeof tab.afterReplace === 'function') tab.afterReplace({page:page,tab:tab,wasActive:wasActive});
-    platform.util.emit('cdaDashboardTabRenderedV6547',{tabKey:tab.key});
+    platform.util.emit('cdaDashboardTabRenderedV6547',{tabKey:tab.key,page:page,wasActive:wasActive});
     return page;
   }
 

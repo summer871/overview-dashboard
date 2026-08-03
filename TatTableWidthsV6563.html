@@ -1,86 +1,36 @@
 <!-- TatTableWidthsV6563.html
-Version: v6.563
-Date: 2026-07-30
-Purpose: Give TAT Department, Products, and Customers readable Remake-style column proportions.
+Version: v6.595
+Date: 2026-08-03
+Purpose: Compatibility facade for legacy TAT callers. Width and height ownership are delegated completely to SharedDashboardTablePlatformV6586 so TAT uses stable base-column fitting, optional-column overflow, live paired resizing, and fixed professional card sizing like every other dashboard table.
 -->
-<style id="cdaTatTableWidthsStylesV6563">
-  #tatDashboardPageV6509 .tatDepartmentTableWrapV6563 :is(th,td):nth-child(1){width:30%!important}
-  #tatDashboardPageV6509 .tatDepartmentTableWrapV6563 :is(th,td):nth-child(2){width:13%!important}
-  #tatDashboardPageV6509 .tatDepartmentTableWrapV6563 :is(th,td):nth-child(3){width:13%!important}
-  #tatDashboardPageV6509 .tatDepartmentTableWrapV6563 :is(th,td):nth-child(4){width:11%!important}
-  #tatDashboardPageV6509 .tatDepartmentTableWrapV6563 :is(th,td):nth-child(5){width:11%!important}
-  #tatDashboardPageV6509 .tatDepartmentTableWrapV6563 :is(th,td):nth-child(6){width:10%!important}
-  #tatDashboardPageV6509 .tatDepartmentTableWrapV6563 :is(th,td):nth-child(7){width:12%!important}
-
-  #tatDashboardPageV6509 .tatProductTableWrapV6562 :is(th,td):nth-child(1){width:34%!important}
-  #tatDashboardPageV6509 .tatProductTableWrapV6562 :is(th,td):nth-child(2){width:12%!important}
-  #tatDashboardPageV6509 .tatProductTableWrapV6562 :is(th,td):nth-child(3){width:12%!important}
-  #tatDashboardPageV6509 .tatProductTableWrapV6562 :is(th,td):nth-child(4){width:10%!important}
-  #tatDashboardPageV6509 .tatProductTableWrapV6562 :is(th,td):nth-child(5){width:10%!important}
-  #tatDashboardPageV6509 .tatProductTableWrapV6562 :is(th,td):nth-child(6){width:10%!important}
-  #tatDashboardPageV6509 .tatProductTableWrapV6562 :is(th,td):nth-child(7){width:12%!important}
-
-  #tatDashboardPageV6509 .tatCustomerTableWrapV6563 :is(th,td):nth-child(1){width:30%!important}
-  #tatDashboardPageV6509 .tatCustomerTableWrapV6563 :is(th,td):nth-child(2){width:9%!important}
-  #tatDashboardPageV6509 .tatCustomerTableWrapV6563 :is(th,td):nth-child(3){width:12%!important}
-  #tatDashboardPageV6509 .tatCustomerTableWrapV6563 :is(th,td):nth-child(4){width:12%!important}
-  #tatDashboardPageV6509 .tatCustomerTableWrapV6563 :is(th,td):nth-child(5){width:10%!important}
-  #tatDashboardPageV6509 .tatCustomerTableWrapV6563 :is(th,td):nth-child(6){width:9%!important}
-  #tatDashboardPageV6509 .tatCustomerTableWrapV6563 :is(th,td):nth-child(7){width:9%!important}
-  #tatDashboardPageV6509 .tatCustomerTableWrapV6563 :is(th,td):nth-child(8){width:9%!important}
-
-  #tatDashboardPageV6509 :is(.tatDepartmentTableWrapV6563,.tatProductTableWrapV6562,.tatCustomerTableWrapV6563) th.num,
-  #tatDashboardPageV6509 :is(.tatDepartmentTableWrapV6563,.tatProductTableWrapV6562,.tatCustomerTableWrapV6563) td.num{
-    white-space:nowrap!important;
-    font-variant-numeric:tabular-nums!important;
-  }
-</style>
 <script id="cdaTatTableWidthsControllerV6563">
 (function installTatTableWidthsV6563(){
   'use strict';
 
   if (window.cdaTatTableWidthsV6563 &&
-      window.cdaTatTableWidthsV6563.version === 'v6.563') return;
+      window.cdaTatTableWidthsV6563.version === 'v6.595') return;
 
-  const WIDTHS = Object.freeze({
-    tatDepartment:['30%','13%','13%','11%','11%','10%','12%'],
-    tatProduct:['34%','12%','12%','10%','10%','10%','12%'],
-    tatCustomer:['30%','9%','12%','12%','10%','9%','9%','9%']
-  });
-
-  function applyToConfig(key,widths){
-    const api = window.cdaTable;
-    const config = api && typeof api.config === 'function' ? api.config(key) : null;
-    if (!config || !Array.isArray(config.columns)) return false;
-    config.columns.forEach(function(column,index){
-      if (widths[index]) column.width = widths[index];
-    });
+  function applyV6586(){
+    const platform = window.cdaDashboardTableSurfacesV6586;
+    if (!platform || typeof platform.scan !== 'function') return false;
+    platform.scan(document);
     return true;
   }
 
-  function apply(){
-    let applied = false;
-    Object.keys(WIDTHS).forEach(function(key){
-      applied = applyToConfig(key,WIDTHS[key]) || applied;
-    });
-    return applied;
-  }
-
-  function afterReplace(){
-    apply();
-    window.requestAnimationFrame(apply);
+  function afterReplaceV6586(page){
+    const platform = window.cdaDashboardTableSurfacesV6586;
+    if (!platform) return false;
+    if (page && typeof platform.preparePage === 'function') return platform.preparePage(page) >= 0;
+    return applyV6586();
   }
 
   window.cdaTatTableWidthsV6563 = Object.freeze({
-    version:'v6.563',
-    widths:WIDTHS,
-    apply:apply,
-    afterReplace:afterReplace
+    version:'v6.595',
+    mode:'delegated-to-dashboard-wide-table-surfaces',
+    widths:Object.freeze({}),
+    apply:applyV6586,
+    afterReplace:afterReplaceV6586
   });
 
-  window.addEventListener('cdaDashboardTabRenderedV6547',function(event){
-    if (event && event.detail && event.detail.tabKey === 'tat') afterReplace();
-  });
-  window.addEventListener('cdaTableRendered',apply);
 })();
 </script>

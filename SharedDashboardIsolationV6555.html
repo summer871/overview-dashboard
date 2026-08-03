@@ -1,7 +1,7 @@
 <!-- SharedDashboardIsolationV6555.html
-Version: v6.561
-Date: 2026-07-30
-Purpose: Move the actual live dashboard card into a full-width same-origin popup, make the popup window the only vertical scroll owner, and restore the same node and state on close.
+Version: v6.595
+Date: 2026-08-01
+Purpose: Move the live dashboard card into a same-origin popup while preserving the dashboard-wide bounded table-surface platform, then restore the same node and state safely.
 -->
 <style id="cdaSharedDashboardIsolationStylesV6555">
   .cdaDashboardPopoutPlaceholderV6558 {
@@ -31,13 +31,14 @@ Purpose: Move the actual live dashboard card into a full-width same-origin popup
 (function installSharedDashboardIsolationV6555(){
   'use strict';
 
+  const versionV6587 = 'v6.595';
   if (window.cdaDashboardIsolationV6555 &&
-      window.cdaDashboardIsolationV6555.version === 'v6.561') return;
+      window.cdaDashboardIsolationV6555.version === versionV6587) return;
 
-  const sessionsV6561 = new Map();
-  let lastAttemptV6561 = null;
+  const sessionsV6587 = new Map();
+  let lastAttemptV6587 = null;
 
-  const TABLE_CONTAINER_SELECTOR_V6561 = [
+  const tableContainerSelectorV6587 = [
     '.remakeTableWrap','.remakeDepartmentTableWrapV6230','.remakeProductTableWrapV6230',
     '.remakeCustomerTableWrapV6230','.ceramistPreviewTableWrapV6342',
     '.tatSummaryTableV6509','.tatCustomersWrapV6509','.tatQualityTableWrapV6509',
@@ -47,24 +48,35 @@ Purpose: Move the actual live dashboard card into a full-width same-origin popup
     '[class*="TableScroll"]','[class*="tableScroll"]'
   ].join(',');
 
-  function componentIdV6561(context){
+  function componentIdV6587(context){
     const tabKey = context && context.tab && context.tab.key;
     const componentKey = context && context.component && context.component.key;
     return tabKey && componentKey ? String(tabKey) + '.' + String(componentKey) : '';
   }
 
-  function sessionV6561(id){ return sessionsV6561.get(String(id || '')) || null; }
-  function cardV6561(id){ const session = sessionV6561(id); return session && session.card || null; }
+  function sessionV6587(id){ return sessionsV6587.get(String(id || '')) || null; }
+  function cardV6587(id){ const session = sessionV6587(id); return session && session.card || null; }
 
-  function resolveCardV6561(context){
-    const id = componentIdV6561(context);
-    const active = cardV6561(id);
+  function tablePlatformV6587(){
+    return window.cdaDashboardTableSurfacesV6586 || window.cdaDashboardTableSurfacesV6585 || null;
+  }
+
+  function scanTablesV6587(doc){
+    const platform = tablePlatformV6587();
+    if (!platform || typeof platform.scan !== 'function') return false;
+    try { platform.scan(doc || document); return true; }
+    catch (error) { return false; }
+  }
+
+  function resolveCardV6587(context){
+    const id = componentIdV6587(context);
+    const active = cardV6587(id);
     if (active) return active;
     const parts = id.split('.');
     const catalog = window.cdaDashboardCatalogV6555;
     if (catalog && parts.length === 2) {
-      const card = catalog.resolveCard(parts[0],parts[1]);
-      if (card) return card;
+      const resolved = catalog.resolveCard(parts[0],parts[1]);
+      if (resolved) return resolved;
     }
     const component = context && context.component;
     if (component && component.cardId) {
@@ -75,12 +87,12 @@ Purpose: Move the actual live dashboard card into a full-width same-origin popup
     return target && target.closest ? target.closest('.remakeCard,article') : null;
   }
 
-  function copyStylesV6561(sourceDocument,targetDocument){
+  function copyStylesV6587(sourceDocument,targetDocument){
     Array.from(sourceDocument.querySelectorAll('style,link[rel="stylesheet"]')).forEach(function(node){
       try { targetDocument.head.appendChild(node.cloneNode(true)); } catch (error) {}
     });
     const style = targetDocument.createElement('style');
-    style.id = 'cdaDashboardDetachedWindowStylesV6561';
+    style.id = 'cdaDashboardDetachedWindowStylesV6587';
     style.textContent = [
       'html,body{width:100%;min-width:0;min-height:100%;margin:0;background:var(--cda-color-page,#f7f8fa);}',
       'html{overflow-x:hidden!important;overflow-y:auto!important;}',
@@ -90,7 +102,7 @@ Purpose: Move the actual live dashboard card into a full-width same-origin popup
       '[data-cda-popout-ancestor="true"].remakeGridV6230,[data-cda-popout-ancestor="true"].remakeGrid,[data-cda-popout-ancestor="true"].tatGridV6509{display:block!important;grid-template-columns:minmax(0,1fr)!important;}',
       '[data-cda-detached-component="true"]{display:block!important;visibility:visible!important;box-sizing:border-box!important;float:none!important;grid-column:1 / -1!important;flex:1 1 auto!important;width:100%!important;max-width:none!important;min-width:0!important;height:auto!important;max-height:none!important;min-height:0!important;margin:0!important;overflow:visible!important;}',
       '[data-cda-detached-component="true"] :is(.remakeCardBody,.tatCardBodyV6509,[class*="CardBody"],[class*="cardBody"]){height:auto!important;max-height:none!important;min-height:0!important;overflow:visible!important;}',
-      '[data-cda-detached-component="true"] table{width:100%!important;max-width:none!important;height:auto!important;max-height:none!important;}',
+      '[data-cda-detached-component="true"] table:not([data-cda-table-surface-v6586="true"]){width:100%!important;max-width:none!important;height:auto!important;max-height:none!important;}',
       '[data-cda-detached-component="true"] :is(thead,tbody,tfoot,tr){height:auto!important;max-height:none!important;overflow:visible!important;}',
       '[data-cda-detached-component="true"] canvas{max-width:100%!important;}',
       '[data-cda-detached-component="true"] [data-cda-dashboard-feature-key="popout"]{display:none!important;}',
@@ -99,7 +111,7 @@ Purpose: Move the actual live dashboard card into a full-width same-origin popup
     targetDocument.head.appendChild(style);
   }
 
-  function buildAncestorShellV6561(card,context,targetDocument,mount){
+  function buildAncestorShellV6587(card,context,targetDocument,mount){
     const tab = context && context.tab;
     const page = tab && tab.pageId ? card.ownerDocument.getElementById(tab.pageId) : null;
     const path = [];
@@ -126,14 +138,13 @@ Purpose: Move the actual live dashboard card into a full-width same-origin popup
     return parent;
   }
 
-  function exposeInlineGlobalsV6561(popup,card){
+  function exposeInlineGlobalsV6587(popup,card){
     const names = new Set([
       'cdaTableSortV6540','cdaTableSortV6539','cdaTableSortV6542',
       'cdaTable','CdaSharedTableModule','Chart','google'
     ]);
     const attributes = ['onclick','onchange','oninput','onkeydown','onkeyup','ondblclick'];
-    const nodes = [card].concat(Array.from(card.querySelectorAll('*')));
-    nodes.forEach(function(node){
+    [card].concat(Array.from(card.querySelectorAll('*'))).forEach(function(node){
       attributes.forEach(function(attribute){
         const source = node.getAttribute && node.getAttribute(attribute);
         if (!source) return;
@@ -143,14 +154,12 @@ Purpose: Move the actual live dashboard card into a full-width same-origin popup
       });
     });
     names.forEach(function(name){
-      try {
-        if (name in window && !(name in popup)) popup[name] = window[name];
-        else if (typeof window[name] === 'function') popup[name] = window[name];
-      } catch (error) {}
+      try { if (name in window && !(name in popup)) popup[name] = window[name]; }
+      catch (error) {}
     });
   }
 
-  function bridgeSharedEventsV6561(popup){
+  function bridgeSharedEventsV6587(popup){
     popup.document.addEventListener('click',function(event){
       const button = event.target && event.target.closest
         ? event.target.closest('[data-cda-dashboard-feature-key]')
@@ -164,44 +173,46 @@ Purpose: Move the actual live dashboard card into a full-width same-origin popup
     });
   }
 
-  function contextWithCardV6561(context,card){
+  function contextWithCardV6587(context,card){
     const doc = card && card.ownerDocument || document;
-    return Object.assign({},context,{
-      card:card,
-      document:doc,
-      window:doc.defaultView || window
-    });
+    return Object.assign({},context,{card:card,document:doc,window:doc.defaultView || window});
   }
 
-  function collapsedV6561(context,card){
+  function collapsedV6587(context,card){
     const adapter = context && context.adapter;
     if (!adapter || typeof adapter.isCollapsed !== 'function') return false;
-    try { return !!adapter.isCollapsed(contextWithCardV6561(context,card)); }
+    try { return !!adapter.isCollapsed(contextWithCardV6587(context,card)); }
     catch (error) { return false; }
   }
 
-  function toggleCollapseV6561(context,card){
+  function toggleCollapseV6587(context,card){
     const adapter = context && context.adapter;
     if (!adapter || typeof adapter.collapse !== 'function') return false;
-    try { return adapter.collapse(contextWithCardV6561(context,card)) !== false; }
+    try { return adapter.collapse(contextWithCardV6587(context,card)) !== false; }
     catch (error) { return false; }
   }
 
-  function rememberStyleV6561(session,node){
+  function rememberStyleV6587(session,node){
     if (!session || !node || !node.style || session.styleSnapshots.has(node)) return;
     session.styleSnapshots.set(node,node.hasAttribute('style') ? node.getAttribute('style') : null);
   }
 
-  function setImportantV6561(session,node,name,value){
+  function setImportantV6587(session,node,name,value){
     if (!node || !node.style) return;
-    rememberStyleV6561(session,node);
+    rememberStyleV6587(session,node);
     node.style.setProperty(name,value,'important');
   }
 
-  function tableContainersV6561(card){
+  function isTableSurfaceHostV6587(node){
+    return !!(node && node.getAttribute &&
+      (node.getAttribute('data-cda-table-surface-host-v6586') === 'true' ||
+       node.getAttribute('data-cda-table-surface-host-v6587') === 'true'));
+  }
+
+  function tableContainersV6587(card){
     const nodes = new Set([card]);
     if (!card || !card.querySelectorAll) return Array.from(nodes);
-    card.querySelectorAll(TABLE_CONTAINER_SELECTOR_V6561).forEach(function(node){ nodes.add(node); });
+    card.querySelectorAll(tableContainerSelectorV6587).forEach(function(node){ nodes.add(node); });
     card.querySelectorAll('table').forEach(function(table){
       nodes.add(table);
       if (table.tHead) nodes.add(table.tHead);
@@ -215,7 +226,7 @@ Purpose: Move the actual live dashboard card into a full-width same-origin popup
     return Array.from(nodes);
   }
 
-  function normalizeFullTableV6561(session){
+  function normalizeDetachedCardV6587(session){
     if (!session || !session.card || !session.popup || session.popup.closed) return false;
     const card = session.card;
     const doc = card.ownerDocument;
@@ -223,43 +234,40 @@ Purpose: Move the actual live dashboard card into a full-width same-origin popup
     if (!doc || !view || typeof view.getComputedStyle !== 'function') return false;
 
     card.setAttribute('data-cda-popout-full-table','true');
-    setImportantV6561(session,card,'height','auto');
-    setImportantV6561(session,card,'max-height','none');
-    setImportantV6561(session,card,'min-height','0');
-    setImportantV6561(session,card,'overflow','visible');
+    setImportantV6587(session,card,'height','auto');
+    setImportantV6587(session,card,'max-height','none');
+    setImportantV6587(session,card,'min-height','0');
+    setImportantV6587(session,card,'overflow','visible');
 
-    tableContainersV6561(card).forEach(function(node){
+    tableContainersV6587(card).forEach(function(node){
+      if (isTableSurfaceHostV6587(node)) return;
       const style = view.getComputedStyle(node);
       const overflowY = String(style.overflowY || '').toLowerCase();
       const isVerticalScrollOwner = /auto|scroll|overlay/.test(overflowY) ||
         (node.scrollHeight > node.clientHeight + 1 && style.overflowY !== 'visible');
       const isKnownContainer = node === card ||
-        (node.matches && node.matches(TABLE_CONTAINER_SELECTOR_V6561)) ||
+        (node.matches && node.matches(tableContainerSelectorV6587)) ||
         node.tagName === 'TABLE' || node.tagName === 'THEAD' ||
         node.tagName === 'TBODY' || node.tagName === 'TFOOT';
       if (!isKnownContainer && !isVerticalScrollOwner) return;
-      setImportantV6561(session,node,'height','auto');
-      setImportantV6561(session,node,'max-height','none');
-      setImportantV6561(session,node,'min-height','0');
-      setImportantV6561(session,node,'overflow-y','visible');
-      if (node !== card && node.tagName !== 'TABLE' &&
-          node.tagName !== 'THEAD' && node.tagName !== 'TBODY' && node.tagName !== 'TFOOT') {
-        setImportantV6561(session,node,'width','100%');
-        setImportantV6561(session,node,'max-width','none');
-        setImportantV6561(session,node,'min-width','0');
+      setImportantV6587(session,node,'height','auto');
+      setImportantV6587(session,node,'max-height','none');
+      setImportantV6587(session,node,'min-height','0');
+      if (node.tagName !== 'TABLE' && node.tagName !== 'THEAD' &&
+          node.tagName !== 'TBODY' && node.tagName !== 'TFOOT') {
+        setImportantV6587(session,node,'overflow-y','visible');
+        setImportantV6587(session,node,'width','100%');
+        setImportantV6587(session,node,'max-width','none');
+        setImportantV6587(session,node,'min-width','0');
       }
     });
 
-    if (doc.documentElement) {
-      doc.documentElement.style.setProperty('overflow-x','hidden','important');
-      doc.documentElement.style.setProperty('overflow-y','auto','important');
-    }
-    if (doc.body) doc.body.style.setProperty('overflow','visible','important');
+    scanTablesV6587(doc);
     session.fullTableNormalized = true;
     return true;
   }
 
-  function restoreInlineStylesV6561(session){
+  function restoreInlineStylesV6587(session){
     if (!session || !session.styleSnapshots) return;
     session.styleSnapshots.forEach(function(value,node){
       if (!node || !node.setAttribute) return;
@@ -269,40 +277,69 @@ Purpose: Move the actual live dashboard card into a full-width same-origin popup
     session.styleSnapshots.clear();
   }
 
-  function refreshMovedComponentV6561(session){
-    window.setTimeout(function(){
+  function refreshMovedComponentV6587(session){
+    if (!session || !session.card || !session.popup || session.popup.closed) return;
+    if (session.refreshTimer) window.clearTimeout(session.refreshTimer);
+    session.refreshTimer = window.setTimeout(function(){
+      session.refreshTimer = 0;
       if (!session || !session.card || !session.popup || session.popup.closed) return;
-      normalizeFullTableV6561(session);
+      normalizeDetachedCardV6587(session);
       try {
         const adapter = session.context && session.context.adapter;
-        const movedContext = contextWithCardV6561(session.context,session.card);
-        const chart = adapter && typeof adapter.getChart === 'function'
-          ? adapter.getChart(movedContext)
-          : null;
+        const movedContext = contextWithCardV6587(session.context,session.card);
+        const chart = adapter && typeof adapter.getChart === 'function' ? adapter.getChart(movedContext) : null;
         if (chart && typeof chart.resize === 'function') chart.resize();
         if (chart && typeof chart.update === 'function') chart.update('none');
       } catch (error) {}
       try { session.popup.dispatchEvent(new session.popup.Event('resize')); } catch (error) {}
       try { window.dispatchEvent(new Event('resize')); } catch (error) {}
-      try { session.popup.scrollTo(0,0); } catch (error) {}
     },0);
   }
 
-  function restoreOriginalCollapseV6561(session){
-    if (!session || !session.wasCollapsed) return;
-    if (!collapsedV6561(session.context,session.card)) {
-      toggleCollapseV6561(session.context,session.card);
-    }
+  function platformOwnedMutationNodeV6587(node){
+    const element = node && node.nodeType === 1 ? node : node && node.parentElement;
+    if (!element || !element.matches) return false;
+    return element.matches(
+      '.cdaTableColumnResizeHandleV6586,.cdaTableColumnGuideV6586,.cdaTableColumnDragShieldV6586,' +
+      'colgroup[data-cda-table-colgroup-v6586="true"],col'
+    ) || !!(element.closest && element.closest(
+      '.cdaTableColumnResizeHandleV6586,.cdaTableColumnGuideV6586,.cdaTableColumnDragShieldV6586,' +
+      'colgroup[data-cda-table-colgroup-v6586="true"]'
+    ));
   }
 
-  function restoreV6561(id,reason){
-    const session = sessionsV6561.get(id);
+  function relevantPopupMutationV6587(record){
+    if (!record) return false;
+    const target = record.target && record.target.nodeType === 1
+      ? record.target
+      : record.target && record.target.parentElement;
+    if (record.type === 'attributes') {
+      if (record.attributeName === 'hidden') return true;
+      if (record.attributeName === 'class') {
+        return !(target && target.closest &&
+          target.closest('[data-cda-table-surface-host-v6586="true"]'));
+      }
+      return false;
+    }
+    if (record.type !== 'childList') return false;
+    const changed = Array.from(record.addedNodes || []).concat(Array.from(record.removedNodes || []));
+    return changed.some(function(node){ return !platformOwnedMutationNodeV6587(node); });
+  }
+
+  function restoreOriginalCollapseV6587(session){
+    if (!session || !session.wasCollapsed) return;
+    if (!collapsedV6587(session.context,session.card)) toggleCollapseV6587(session.context,session.card);
+  }
+
+  function restoreV6587(id,reason){
+    const session = sessionsV6587.get(id);
     if (!session || session.restoring) return false;
     session.restoring = true;
     if (session.poller) window.clearInterval(session.poller);
+    if (session.refreshTimer) window.clearTimeout(session.refreshTimer);
     if (session.observer) session.observer.disconnect();
     try {
-      restoreInlineStylesV6561(session);
+      restoreInlineStylesV6587(session);
       if (session.card && session.card.ownerDocument !== session.sourceDocument) {
         session.sourceDocument.adoptNode(session.card);
       }
@@ -314,11 +351,13 @@ Purpose: Move the actual live dashboard card into a full-width same-origin popup
         session.parent.insertBefore(session.card,session.nextSibling && session.nextSibling.isConnected
           ? session.nextSibling : null);
       }
-      restoreOriginalCollapseV6561(session);
+      restoreOriginalCollapseV6587(session);
+      scanTablesV6587(session.sourceDocument);
+      window.setTimeout(function(){ scanTablesV6587(session.sourceDocument); },0);
     } catch (error) {
       console.error('Dashboard component restoration failed.',error);
     }
-    sessionsV6561.delete(id);
+    sessionsV6587.delete(id);
     if (reason !== 'popup-closed' && session.popup && !session.popup.closed) {
       try { session.popup.close(); } catch (error) {}
     }
@@ -326,7 +365,7 @@ Purpose: Move the actual live dashboard card into a full-width same-origin popup
     return true;
   }
 
-  function placeholderV6561(sourceDocument,id,title,popup){
+  function placeholderV6587(sourceDocument,id,title,popup){
     const placeholder = sourceDocument.createElement('div');
     placeholder.className = 'cdaDashboardPopoutPlaceholderV6558';
     placeholder.setAttribute('data-cda-popout-placeholder',id);
@@ -339,24 +378,24 @@ Purpose: Move the actual live dashboard card into a full-width same-origin popup
     const restore = sourceDocument.createElement('button');
     restore.type = 'button';
     restore.textContent = 'Restore';
-    restore.addEventListener('click',function(){ restoreV6561(id,'manual-restore'); });
+    restore.addEventListener('click',function(){ restoreV6587(id,'manual-restore'); });
     placeholder.append(text,focus,restore);
     return placeholder;
   }
 
-  function openV6561(context){
-    const id = componentIdV6561(context);
+  function openV6587(context){
+    const id = componentIdV6587(context);
     if (!id) return false;
-    const existing = sessionsV6561.get(id);
+    const existing = sessionsV6587.get(id);
     if (existing && existing.popup && !existing.popup.closed) {
       try { existing.popup.focus(); } catch (error) {}
       return true;
     }
 
-    const card = resolveCardV6561(context);
+    const card = resolveCardV6587(context);
     if (!card || !card.parentNode) return false;
-    const wasCollapsed = collapsedV6561(context,card);
-    if (wasCollapsed) toggleCollapseV6561(context,card);
+    const wasCollapsed = collapsedV6587(context,card);
+    if (wasCollapsed) toggleCollapseV6587(context,card);
 
     const sourceDocument = card.ownerDocument;
     const parent = card.parentNode;
@@ -366,24 +405,24 @@ Purpose: Move the actual live dashboard card into a full-width same-origin popup
     try { popup = window.open('',popupName,'width=1200,height=780,resizable=yes,scrollbars=yes'); }
     catch (error) {}
 
-    lastAttemptV6561 = {
+    lastAttemptV6587 = {
       componentId:id,
       popupCreated:!!popup,
       success:false,
       reason:'',
       wasCollapsed:wasCollapsed,
       fullTable:true,
-      verticalScrollOwner:'popup-window',
+      verticalScrollOwner:'shared-table-surface',
       timestamp:new Date().toISOString()
     };
 
     if (!popup) {
-      if (wasCollapsed && !collapsedV6561(context,card)) toggleCollapseV6561(context,card);
-      lastAttemptV6561.reason = 'popup-blocked';
+      if (wasCollapsed && !collapsedV6587(context,card)) toggleCollapseV6587(context,card);
+      lastAttemptV6587.reason = 'popup-blocked';
       return false;
     }
 
-    const placeholder = placeholderV6561(sourceDocument,id,context.component.title,popup);
+    const placeholder = placeholderV6587(sourceDocument,id,context.component.title,popup);
     const height = Math.max(84,Math.round(card.getBoundingClientRect().height || 0));
     placeholder.style.minHeight = height + 'px';
     parent.insertBefore(placeholder,card);
@@ -394,64 +433,65 @@ Purpose: Move the actual live dashboard card into a full-width same-origin popup
       popup.document.write('<!doctype html><html><head><meta charset="utf-8"><title></title></head><body><main id="cdaDashboardPopoutMountV6558"></main></body></html>');
       popup.document.close();
       popup.document.title = String(context.component.title || id) + ' — Dashboard';
-      copyStylesV6561(sourceDocument,popup.document);
+      copyStylesV6587(sourceDocument,popup.document);
       const mount = popup.document.getElementById('cdaDashboardPopoutMountV6558');
-      const shell = buildAncestorShellV6561(card,context,popup.document,mount);
+      const shell = buildAncestorShellV6587(card,context,popup.document,mount);
       popup.document.adoptNode(card);
       card.setAttribute('data-cda-detached-component','true');
       card.setAttribute('data-cda-popout-full-table','true');
       shell.appendChild(card);
-      exposeInlineGlobalsV6561(popup,card);
-      bridgeSharedEventsV6561(popup);
+      exposeInlineGlobalsV6587(popup,card);
+      bridgeSharedEventsV6587(popup);
 
       const session = {
         id:id,context:context,card:card,popup:popup,sourceDocument:sourceDocument,
-        parent:parent,nextSibling:nextSibling,placeholder:placeholder,poller:0,observer:null,
+        parent:parent,nextSibling:nextSibling,placeholder:placeholder,poller:0,observer:null,refreshTimer:0,
         restoring:false,wasCollapsed:wasCollapsed,fullTable:true,fullTableNormalized:false,
         styleSnapshots:new Map()
       };
-      sessionsV6561.set(id,session);
-      normalizeFullTableV6561(session);
+      sessionsV6587.set(id,session);
+      normalizeDetachedCardV6587(session);
       if (popup.MutationObserver) {
-        session.observer = new popup.MutationObserver(function(){ normalizeFullTableV6561(session); });
-        session.observer.observe(card,{childList:true,subtree:true,attributes:true,
-          attributeFilter:['class','style','hidden']});
+        session.observer = new popup.MutationObserver(function(records){
+          if (records.some(relevantPopupMutationV6587)) refreshMovedComponentV6587(session);
+        });
+        session.observer.observe(card,{childList:true,subtree:true,attributes:true,attributeFilter:['class','hidden']});
       }
-      popup.addEventListener('beforeunload',function(){ restoreV6561(id,'popup-closed'); },{once:true});
+      popup.addEventListener('beforeunload',function(){ restoreV6587(id,'popup-closed'); },{once:true});
       session.poller = window.setInterval(function(){
-        if (!session.popup || session.popup.closed) restoreV6561(id,'popup-closed');
-        else normalizeFullTableV6561(session);
-      },250);
+        if (!session.popup || session.popup.closed) restoreV6587(id,'popup-closed');
+        else scanTablesV6587(session.popup.document);
+      },500);
       popup.focus();
-      refreshMovedComponentV6561(session);
-      lastAttemptV6561.success = true;
+      refreshMovedComponentV6587(session);
+      lastAttemptV6587.success = true;
       return true;
     } catch (error) {
-      lastAttemptV6561.reason = error && error.message ? error.message : String(error);
+      lastAttemptV6587.reason = error && error.message ? error.message : String(error);
       console.error('Dashboard live component pop-out failed.',error);
       const temporary = {
         id:id,context:context,card:card,popup:popup,sourceDocument:sourceDocument,
-        parent:parent,nextSibling:nextSibling,placeholder:placeholder,poller:0,observer:null,
+        parent:parent,nextSibling:nextSibling,placeholder:placeholder,poller:0,observer:null,refreshTimer:0,
         restoring:false,wasCollapsed:wasCollapsed,fullTable:true,fullTableNormalized:false,
         styleSnapshots:new Map()
       };
-      sessionsV6561.set(id,temporary);
-      restoreV6561(id,'setup-failed');
+      sessionsV6587.set(id,temporary);
+      restoreV6587(id,'setup-failed');
       return false;
     }
   }
 
   window.cdaDashboardIsolationV6555 = Object.freeze({
-    version:'v6.561',
+    version:versionV6587,
     mode:'detached-live-component',
-    tableMode:'window-scroll-full-table',
-    open:openV6561,
-    restore:restoreV6561,
-    active:function(){ return Array.from(sessionsV6561.keys()); },
-    session:sessionV6561,
-    card:cardV6561,
-    normalizeFullTable:function(id){ return normalizeFullTableV6561(sessionV6561(id)); },
-    lastAttempt:function(){ return lastAttemptV6561 ? Object.assign({},lastAttemptV6561) : null; }
+    tableMode:'bounded-shared-table-surface',
+    open:openV6587,
+    restore:restoreV6587,
+    active:function(){ return Array.from(sessionsV6587.keys()); },
+    session:sessionV6587,
+    card:cardV6587,
+    normalizeFullTable:function(id){ return normalizeDetachedCardV6587(sessionV6587(id)); },
+    lastAttempt:function(){ return lastAttemptV6587 ? Object.assign({},lastAttemptV6587) : null; }
   });
 })();
 </script>
