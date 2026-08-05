@@ -1,5 +1,6 @@
 <script>
 
+    // v6.629 (2026-08-05): Remove the customer responsibility drilldown panel so the customer table owns the full card body.
     window.dashboardBaseUrl = '<?!= dashboardBaseUrl ?>';
     window.CDA_SERVER_PRESENTATION = {
       version: <?!= JSON.stringify(dashboardPresentationVersion || 'v6.251') ?>,
@@ -20153,13 +20154,7 @@
         <div class="remakeGridV6230">
           <div class="remakeCard remakeCardWideV6230" id="remakeCustomerCardV6230">
             <div class="remakeCardHeader"><div id="remakeCustomerTitleV6251" class="remakeCardTitle">Customers</div><div class="remakeCustomerHeaderControlsV6251"><button id="remakeCustomerCompareBtnV6297" class="tableCompareToggleV6297" type="button" onclick="toggleRemakeTableCompareV6297('customer')">2025</button>${cardActionsV6230('customer')}</div></div>
-            <div class="remakeCustomerSplitV6230">
-              <div class="remakeCustomerDetailPanelV6503">
-                <div id="remakeCustomerResponsibilitySummaryV6502" class="remakeCustomerResponsibilitySummaryV6502"></div>
-                <div class="remakeCustomerChartBoxV6230"><canvas id="remakeCustomerChartV6230"></canvas><div id="remakeCustomerDetailEmptyV6503" class="remakeCustomerDetailEmptyChartV6503">Select a customer, department, product, group, reason, or technician to view its responsibility share.</div></div>
-              </div>
-              <div class="remakeTableWrap remakeCustomerTableWrapV6230"><table id="remakeCustomerTable" class="remakeTable"></table></div>
-            </div>
+            <div class="remakeTableWrap remakeCustomerTableWrapV6230"><table id="remakeCustomerTable" class="remakeTable"></table></div>
           </div>
         </div>
         <div class="remakeGridV6230">
