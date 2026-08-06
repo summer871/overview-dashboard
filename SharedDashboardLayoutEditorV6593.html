@@ -1706,19 +1706,7 @@ Purpose: Universal Power BI-style canvas with single-authority saved geometry, i
 
   function layoutEditorAllowedV6639(){
     try {
-      if (window.CDA_IS_DEVELOPMENT_ROUTE_V6641 === true) return true;
-      const candidates = [
-        window.location && window.location.href,
-        document.referrer,
-        window.CDA_SERVER_PRESENTATION && window.CDA_SERVER_PRESENTATION.baseUrl,
-        window.CDA_SERVER_REQUESTED_PRESENTATION && window.CDA_SERVER_REQUESTED_PRESENTATION.baseUrl
-      ];
-      try {
-        if (window.top && window.top !== window) candidates.push(window.top.location.href);
-      } catch (error) {}
-      return candidates.some(function(value){
-        return /\/dev(?:[/?#]|$)/i.test(String(value || ''));
-      });
+      return !!(window.CDA_SERVER_PRESENTATION && window.CDA_SERVER_PRESENTATION.mode === 'all');
     } catch (error) {
       return false;
     }
