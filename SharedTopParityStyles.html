@@ -332,6 +332,15 @@ Purpose: Own the shared Remake/TAT top-filter presentation and Remake cascading 
 </style>
 
 <style id="cdaSharedDropdownFacetPolishV6631">
+  #remakeTabFilterHostV6337 .remakeDropdownPanelV6245,
+  #tatTabFilterHostV6509 .remakeDropdownPanelV6245,
+  #remakeFactorPage.cleanRemakeV6230 .remakeDropdownPanelV6245{
+    width:334px!important;
+    min-width:300px!important;
+    max-width:min(380px,calc(100vw - 16px))!important;
+    max-height:min(360px,calc(100vh - 16px))!important;
+    border-radius:8px!important;
+  }
   #remakeTabFilterHostV6337 .remakeDropdownHeaderV6245,
   #tatTabFilterHostV6509 .remakeDropdownHeaderV6245,
   #remakeFactorPage.cleanRemakeV6230 .remakeDropdownHeaderV6245{
@@ -339,8 +348,8 @@ Purpose: Own the shared Remake/TAT top-filter presentation and Remake cascading 
     grid-template-columns:minmax(0,1fr) auto auto!important;
     grid-template-areas:"visible all none" "count count count"!important;
     align-items:center!important;
-    gap:7px 6px!important;
-    padding:8px 9px!important;
+    gap:4px 5px!important;
+    padding:6px 7px!important;
     overflow:visible!important;
   }
   #remakeTabFilterHostV6337 .remakeVisibleToggleV6502,
@@ -350,12 +359,17 @@ Purpose: Own the shared Remake/TAT top-filter presentation and Remake cascading 
     justify-self:start!important;
     min-width:0!important;
     max-width:100%!important;
-    min-height:30px!important;
-    padding:5px 9px!important;
-    border-radius:7px!important;
+    min-height:26px!important;
+    padding:3px 7px!important;
+    gap:5px!important;
+    border-radius:6px!important;
+    font:700 10.5px/1 Roboto,Arial,sans-serif!important;
     text-transform:none!important;
     letter-spacing:0!important;
   }
+  #remakeTabFilterHostV6337 .remakeVisibleToggleV6502 input,
+  #tatTabFilterHostV6509 .remakeVisibleToggleV6502 input,
+  #remakeFactorPage.cleanRemakeV6230 .remakeVisibleToggleV6502 input{width:14px!important;height:14px!important;}
   #remakeTabFilterHostV6337 .remakeVisibleToggleV6502 span,
   #tatTabFilterHostV6509 .remakeVisibleToggleV6502 span,
   #remakeFactorPage.cleanRemakeV6230 .remakeVisibleToggleV6502 span{text-transform:none!important;letter-spacing:0!important;}
@@ -368,10 +382,11 @@ Purpose: Own the shared Remake/TAT top-filter presentation and Remake cascading 
   #remakeTabFilterHostV6337 .remakeDropdownHeaderV6245 button,
   #tatTabFilterHostV6509 .remakeDropdownHeaderV6245 button,
   #remakeFactorPage.cleanRemakeV6230 .remakeDropdownHeaderV6245 button{
-    min-height:30px!important;
-    padding:0 10px!important;
-    border-radius:7px!important;
+    min-height:26px!important;
+    padding:0 8px!important;
+    border-radius:6px!important;
     justify-self:end!important;
+    font:700 10.5px/1 Roboto,Arial,sans-serif!important;
   }
   #remakeTabFilterHostV6337 .remakeDropdownCountV6245,
   #tatTabFilterHostV6509 .remakeDropdownCountV6245,
@@ -380,10 +395,10 @@ Purpose: Own the shared Remake/TAT top-filter presentation and Remake cascading 
     width:100%!important;
     min-width:0!important;
     margin:0!important;
-    padding:7px 2px 0!important;
+    padding:5px 1px 0!important;
     border-top:1px solid #e5e7eb!important;
     color:#667085!important;
-    font:800 11px/1.25 Roboto,Arial,sans-serif!important;
+    font:700 10px/1.2 Roboto,Arial,sans-serif!important;
     white-space:normal!important;
     overflow:visible!important;
     text-overflow:clip!important;
@@ -391,10 +406,34 @@ Purpose: Own the shared Remake/TAT top-filter presentation and Remake cascading 
   }
   #remakeTabFilterHostV6337 .remakeDropdownSearchV6245,
   #tatTabFilterHostV6509 .remakeDropdownSearchV6245,
-  #remakeFactorPage.cleanRemakeV6230 .remakeDropdownSearchV6245{margin:8px!important;width:calc(100% - 16px)!important;height:36px!important;font-size:13px!important;}
+  #remakeFactorPage.cleanRemakeV6230 .remakeDropdownSearchV6245{
+    margin:6px!important;
+    width:calc(100% - 12px)!important;
+    height:29px!important;
+    padding:0 8px!important;
+    border-radius:6px!important;
+    font:600 11px/1 Roboto,Arial,sans-serif!important;
+  }
+  #remakeTabFilterHostV6337 .remakeDropdownListV6245,
+  #tatTabFilterHostV6509 .remakeDropdownListV6245,
+  #remakeFactorPage.cleanRemakeV6230 .remakeDropdownListV6245{min-height:96px!important;max-height:244px!important;}
   #remakeTabFilterHostV6337 .remakeDropdownRowV6245,
   #tatTabFilterHostV6509 .remakeDropdownRowV6245,
-  #remakeFactorPage.cleanRemakeV6230 .remakeDropdownRowV6245{min-height:50px!important;padding:8px 10px!important;}
+  #remakeFactorPage.cleanRemakeV6230 .remakeDropdownRowV6245{
+    min-height:34px!important;
+    grid-template-columns:20px minmax(0,1fr) auto!important;
+    gap:6px!important;
+    padding:4px 7px!important;
+  }
+  #remakeTabFilterHostV6337 .remakeDropdownRowV6245 input,
+  #tatTabFilterHostV6509 .remakeDropdownRowV6245 input,
+  #remakeFactorPage.cleanRemakeV6230 .remakeDropdownRowV6245 input{width:14px!important;height:14px!important;margin:0!important;}
+  #remakeTabFilterHostV6337 .remakeDropdownLabelV6245,
+  #tatTabFilterHostV6509 .remakeDropdownLabelV6245,
+  #remakeFactorPage.cleanRemakeV6230 .remakeDropdownLabelV6245{font:700 10.75px/1.15 Roboto,Arial,sans-serif!important;}
+  #remakeTabFilterHostV6337 .remakeDropdownOnlyV6245,
+  #tatTabFilterHostV6509 .remakeDropdownOnlyV6245,
+  #remakeFactorPage.cleanRemakeV6230 .remakeDropdownOnlyV6245{padding:3px 6px!important;font:800 9px/1 Roboto,Arial,sans-serif!important;}
   @media(max-width:430px){
     #remakeTabFilterHostV6337 .remakeDropdownHeaderV6245,
     #tatTabFilterHostV6509 .remakeDropdownHeaderV6245,
