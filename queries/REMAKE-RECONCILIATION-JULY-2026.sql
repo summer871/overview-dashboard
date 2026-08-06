@@ -255,6 +255,16 @@ overlap_metrics AS (
   UNION ALL SELECT 6, 'Multi-department remake cases', COUNTIF(is_remake_case AND department_count > 1) FROM case_dimension_profile
   UNION ALL SELECT 7, 'Multi-product remake cases', COUNTIF(is_remake_case AND product_count > 1) FROM case_dimension_profile
 ),
+remake_classification AS (
+  SELECT
+    COALESCE(NULLIF(TRIM(remake_value), ''), '(blank)') AS source_remake_value,
+    is_remake,
+    COUNT(*) AS product_lines,
+    ROUND(SUM(quantity), 4) AS units,
+    ROUND(SUM(IF(is_remake, remake_discount, 0)), 2) AS remake_discount
+  FROM included_lines
+  GROUP BY source_remake_value, is_remake
+),
 collisions AS (
   SELECT
     case_number,
@@ -340,19 +350,15 @@ UNION ALL
 SELECT
   4,
   '04 Remake classification values',
-  ROW_NUMBER() OVER (ORDER BY is_remake DESC, COUNT(*) DESC, COALESCE(NULLIF(TRIM(remake_value), ''), '(blank)')),
-  COALESCE(NULLIF(TRIM(remake_value), ''), '(blank)'),
+  ROW_NUMBER() OVER (ORDER BY is_remake DESC, product_lines DESC, source_remake_value),
+  source_remake_value,
   NULL,
-  CAST(COUNT(*) AS FLOAT64),
+  CAST(product_lines AS FLOAT64),
   NULL,
   'product lines',
   IF(is_remake, 'CLASSIFIED AS REMAKE', 'CLASSIFIED AS NON-REMAKE'),
-  TO_JSON_STRING(STRUCT(
-    ROUND(SUM(quantity), 4) AS units,
-    ROUND(SUM(IF(is_remake, remake_discount, 0)), 2) AS remake_discount
-  ))
-FROM included_lines
-GROUP BY COALESCE(NULLIF(TRIM(remake_value), ''), '(blank)'), is_remake
+  TO_JSON_STRING(STRUCT(units, remake_discount))
+FROM remake_classification
 
 UNION ALL
 SELECT
