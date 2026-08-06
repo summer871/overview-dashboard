@@ -1,0 +1,169 @@
+<!-- SharedRemakeFilterSemanticsV6632.html
+Version: v6.632
+Date: 2026-08-05
+Purpose: Distinguish hard top-dropdown filters from table/chart cross-filter selections.
+-->
+<script id="cdaRemakeFilterSemanticsControllerV6632">
+(function installCdaRemakeFilterSemanticsV6632(){
+  'use strict';
+  if(window.__cdaRemakeFilterSemanticsV6632)return;
+
+  const VERSION='v6.632';
+  const FILTER_KINDS=['department','product','productGroup','customer','reason'];
+  const sourceByKind=Object.create(null);
+  let installTimer=0;
+
+  function normalizeKind(kind){
+    const value=String(kind||'');
+    if(value==='group')return 'productGroup';
+    return value;
+  }
+
+  function active(kind){
+    const normalized=normalizeKind(kind);
+    try{
+      return (typeof filterIsNoneV6308==='function'&&filterIsNoneV6308(normalized))||
+        (typeof filterValuesV6245==='function'&&filterValuesV6245(normalized).length>0)||
+        (typeof excludedFilterValuesV6389==='function'&&excludedFilterValuesV6389(normalized).length>0);
+    }catch(error){return false;}
+  }
+
+  function mark(kind,source){
+    const normalized=normalizeKind(kind);
+    if(FILTER_KINDS.indexOf(normalized)<0)return;
+    sourceByKind[normalized]=source;
+  }
+
+  function markSnapshot(filters,exclusions){
+    FILTER_KINDS.forEach(function(kind){
+      const selected=filters&&Array.isArray(filters[kind])?filters[kind]:[];
+      const excluded=exclusions&&Array.isArray(exclusions[kind])?exclusions[kind]:[];
+      if(selected.length||excluded.length)sourceByKind[kind]='dropdown';
+      else delete sourceByKind[kind];
+    });
+  }
+
+  function hardFilterOptions(options){
+    const next=Object.assign({},options||{});
+    FILTER_KINDS.forEach(function(kind){
+      if(next[kind]===false&&sourceByKind[kind]==='dropdown'&&active(kind))next[kind]=true;
+    });
+    return next;
+  }
+
+  function wrapDropdownAction(name,kindIndex){
+    const previous=window[name];
+    if(typeof previous!=='function'||previous.__cdaFilterSourceV6632)return;
+    const wrapped=function(){
+      mark(arguments[kindIndex||0],'dropdown');
+      return previous.apply(this,arguments);
+    };
+    wrapped.__cdaFilterSourceV6632=true;
+    wrapped.__cdaPreviousV6632=previous;
+    window[name]=wrapped;
+    try{eval(name+'=wrapped');}catch(error){}
+  }
+
+  function wrapSnapshotAction(){
+    const previous=window.applyRemakeFilterSnapshotV6389;
+    if(typeof previous!=='function'||previous.__cdaFilterSourceV6632)return;
+    const wrapped=function(filters,exclusions){
+      markSnapshot(filters||{},exclusions||{});
+      return previous.apply(this,arguments);
+    };
+    wrapped.__cdaFilterSourceV6632=true;
+    wrapped.__cdaPreviousV6632=previous;
+    window.applyRemakeFilterSnapshotV6389=wrapped;
+    try{applyRemakeFilterSnapshotV6389=wrapped;}catch(error){}
+  }
+
+  function wrapTableCrossFilter(){
+    const previous=window.applyRemakeTableFilterV6230;
+    if(typeof previous!=='function'||previous.__cdaFilterSourceV6632)return;
+    const wrapped=function(kind){
+      mark(kind,'crossfilter');
+      return previous.apply(this,arguments);
+    };
+    wrapped.__cdaFilterSourceV6632=true;
+    wrapped.__cdaPreviousV6632=previous;
+    window.applyRemakeTableFilterV6230=wrapped;
+    try{applyRemakeTableFilterV6230=wrapped;}catch(error){}
+  }
+
+  function installRows(){
+    if(typeof rowsForBaseFiltersV6252!=='function'||typeof rowsForRemakeFiltersV6252!=='function')return false;
+    if(!rowsForBaseFiltersV6252.__cdaHardDropdownV6632){
+      const previousBase=rowsForBaseFiltersV6252;
+      const wrappedBase=function(rows,options){return previousBase(rows,hardFilterOptions(options));};
+      wrappedBase.__cdaHardDropdownV6632=true;
+      wrappedBase.__cdaPreviousV6632=previousBase;
+      rowsForBaseFiltersV6252=wrappedBase;
+      try{window.rowsForBaseFiltersV6252=wrappedBase;}catch(error){}
+    }
+    if(!rowsForRemakeFiltersV6252.__cdaHardDropdownV6632){
+      const previousRemake=rowsForRemakeFiltersV6252;
+      const wrappedRemake=function(rows,options){return previousRemake(rows,hardFilterOptions(options));};
+      wrappedRemake.__cdaHardDropdownV6632=true;
+      wrappedRemake.__cdaPreviousV6632=previousRemake;
+      rowsForRemakeFiltersV6252=wrappedRemake;
+      try{window.rowsForRemakeFiltersV6252=wrappedRemake;}catch(error){}
+    }
+    return true;
+  }
+
+  function install(){
+    if(typeof filterValuesV6245!=='function'||typeof rowsForFiltersV6230!=='function')return false;
+
+    FILTER_KINDS.forEach(function(kind){
+      if(active(kind)&&!sourceByKind[kind])sourceByKind[kind]='dropdown';
+    });
+
+    if(!installRows())return false;
+
+    [
+      'toggleRemakeMultiValueV6245',
+      'onlyRemakeMultiValueV6245',
+      'selectVisibleRemakeOptionsV6245',
+      'toggleVisibleRemakeOptionsV6502',
+      'selectNoneRemakeOptionsV6308',
+      'clearRemakeMultiFilterV6245'
+    ].forEach(function(name){wrapDropdownAction(name,0);});
+    wrapSnapshotAction();
+    wrapTableCrossFilter();
+
+    window.__cdaRemakeFilterSemanticsV6632=true;
+    window.CDA_REMAKE_FILTER_SEMANTICS_VERSION=VERSION;
+    window.cdaRemakeFilterSemanticsV6632=Object.freeze({
+      version:VERSION,
+      source:function(kind){return sourceByKind[normalizeKind(kind)]||'';},
+      audit:function(){
+        const filters={};
+        FILTER_KINDS.forEach(function(kind){
+          filters[kind]={active:active(kind),source:sourceByKind[kind]||''};
+        });
+        return {
+          version:VERSION,
+          baseWrapped:!!(rowsForBaseFiltersV6252&&rowsForBaseFiltersV6252.__cdaHardDropdownV6632),
+          remakeWrapped:!!(rowsForRemakeFiltersV6252&&rowsForRemakeFiltersV6252.__cdaHardDropdownV6632),
+          tableClickWrapped:!!(window.applyRemakeTableFilterV6230&&window.applyRemakeTableFilterV6230.__cdaFilterSourceV6632),
+          filters:filters,
+          ok:true
+        };
+      }
+    });
+    return true;
+  }
+
+  if(!install()){
+    installTimer=window.setInterval(function(){
+      if(install()){
+        window.clearInterval(installTimer);
+        installTimer=0;
+      }
+    },250);
+    window.setTimeout(function(){
+      if(installTimer){window.clearInterval(installTimer);installTimer=0;}
+    },12000);
+  }
+})();
+</script>
