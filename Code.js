@@ -1,8 +1,8 @@
 /**
  * Executive Overview Dashboard Router
- * Version: Code.gs v6.569 safe filter-semantics insertion
- * Date: 2026-08-05
- * Purpose: Serve the dashboard shell, inject presentation metadata, and safely load shared filter semantics at the final document body boundary.
+ * Version: Code.gs v6.567 independent cache timestamps
+ * Date: 2026-07-31
+ * Purpose: Serve the dashboard shell and inject presentation metadata.
  */
 function doGet(e) {
   const params = e && e.parameter ? e.parameter : {};
@@ -13,13 +13,13 @@ function doGet(e) {
   const template = HtmlService.createTemplateFromFile('Index');
   template.dashboardBaseUrl = getDashboardBaseUrl();
   template.dashboardPresentationMode = presentationMode;
-  template.dashboardPresentationVersion = 'v6.569';
-  template.dashboardPresentationSource = 'Code.gs v6.569 safe filter-semantics insertion';
+  template.dashboardPresentationVersion = 'v6.567';
+  template.dashboardPresentationSource = 'Code.gs v6.567 independent cache timestamps';
 
   const presentation = {
     mode: presentationMode,
-    version: 'v6.569',
-    source: 'Code.gs v6.569 safe filter-semantics insertion',
+    version: 'v6.567',
+    source: 'Code.gs v6.567 independent cache timestamps',
     baseUrl: getDashboardBaseUrl()
   };
 
@@ -29,12 +29,6 @@ function doGet(e) {
   html = html.indexOf('</head>') >= 0
     ? html.replace('</head>', configScript + '</head>')
     : configScript + html;
-
-  const filterSemanticsScript = includeDashboardFile('SharedRemakeFilterSemanticsV6632');
-  const bodyCloseIndex = html.toLowerCase().lastIndexOf('</body>');
-  html = bodyCloseIndex >= 0
-    ? html.slice(0, bodyCloseIndex) + filterSemanticsScript + html.slice(bodyCloseIndex)
-    : html + filterSemanticsScript;
 
   return HtmlService.createHtmlOutput(html)
     .setTitle('Overview Dashboard')
@@ -75,7 +69,7 @@ function renderDashboardDebugPage() {
 function debugDashboardServerHealth() {
   const health = {
     ok: true,
-    routerVersion: 'Code.gs v6.569 safe filter-semantics insertion',
+    routerVersion: 'Code.gs v6.567 independent cache timestamps',
     timestamp: new Date().toISOString(),
     scriptTimeZone: Session.getScriptTimeZone(),
     dashboardBaseUrl: getDashboardBaseUrl(),
