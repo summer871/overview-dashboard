@@ -15,10 +15,14 @@ jobs:
   repair:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: agent/v6.544-shared-table-platform-5118
-          fetch-depth: 0
+      - name: Checkout branch without external actions
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git init .
+          git remote add origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git fetch --depth=1 origin "${GITHUB_REF_NAME}"
+          git checkout -B "${GITHUB_REF_NAME}" FETCH_HEAD
 
       - name: Apply guarded owner-level repair
         run: node .github/scripts/apply-cascading-filter-sync.cjs
@@ -32,5 +36,3 @@ jobs:
           git diff --cached --quiet && exit 0
           git commit -m "Synchronize cascading dropdown inventories [skip ci]"
           git push origin HEAD:agent/v6.544-shared-table-platform-5118
-
-# Triggered once for v6.635; workflow deletes itself after success.
