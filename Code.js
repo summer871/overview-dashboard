@@ -1,8 +1,8 @@
 /**
  * Executive Overview Dashboard Router
- * Version: Code.gs v6.568 dropdown filter semantics
- * Date: 2026-08-05
- * Purpose: Serve the dashboard shell, inject presentation metadata, and load shared filter semantics after the dashboard client.
+ * Version: Code.gs v6.567 independent cache timestamps
+ * Date: 2026-07-31
+ * Purpose: Serve the dashboard shell and inject presentation metadata.
  */
 function doGet(e) {
   const params = e && e.parameter ? e.parameter : {};
@@ -13,22 +13,17 @@ function doGet(e) {
   const template = HtmlService.createTemplateFromFile('Index');
   template.dashboardBaseUrl = getDashboardBaseUrl();
   template.dashboardPresentationMode = presentationMode;
-  template.dashboardPresentationVersion = 'v6.568';
-  template.dashboardPresentationSource = 'Code.gs v6.568 dropdown filter semantics';
+  template.dashboardPresentationVersion = 'v6.567';
+  template.dashboardPresentationSource = 'Code.gs v6.567 independent cache timestamps';
 
   const presentation = {
     mode: presentationMode,
-    version: 'v6.568',
-    source: 'Code.gs v6.568 dropdown filter semantics',
+    version: 'v6.567',
+    source: 'Code.gs v6.567 independent cache timestamps',
     baseUrl: getDashboardBaseUrl()
   };
 
   let html = template.evaluate().getContent();
-  const filterSemanticsScript = includeDashboardFile('SharedRemakeFilterSemanticsV6632');
-  html = html.indexOf('</body>') >= 0
-    ? html.replace('</body>', filterSemanticsScript + '</body>')
-    : html + filterSemanticsScript;
-
   const configScript = '<script id="cdaServerPresentationV6567">window.CDA_SERVER_PRESENTATION=' +
     JSON.stringify(presentation).replace(/</g, '\\u003c') + ';</script>';
   html = html.indexOf('</head>') >= 0
@@ -74,7 +69,7 @@ function renderDashboardDebugPage() {
 function debugDashboardServerHealth() {
   const health = {
     ok: true,
-    routerVersion: 'Code.gs v6.568 dropdown filter semantics',
+    routerVersion: 'Code.gs v6.567 independent cache timestamps',
     timestamp: new Date().toISOString(),
     scriptTimeZone: Session.getScriptTimeZone(),
     dashboardBaseUrl: getDashboardBaseUrl(),
