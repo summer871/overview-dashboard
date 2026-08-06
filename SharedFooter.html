@@ -1,7 +1,7 @@
 <!-- SharedFooter.html
-Version: v6.629
+Version: v6.630
 Date: 2026-08-05
-Purpose: Render the shared bottom-of-page cache and build footer, then load the shared dashboard component foundation.
+Purpose: Render the shared bottom-of-page cache and build footer, load the shared dashboard component foundation, and expose filter-independent Remake refresh progress.
 -->
 <style id="cdaSharedFooterStylesV6567">
   #remakeLastRefresh,#tatStampV6509,.remakePageFooterV6338{display:none!important;visibility:hidden!important}
@@ -15,8 +15,8 @@ Purpose: Render the shared bottom-of-page cache and build footer, then load the 
 (function installCdaSharedFooterV6567(){
   'use strict';
 
-  const UI_VERSION = 'v6.629';
-  const BUILD_LABEL = 'CUSTOMER-TECH-TABLE-UX-70';
+  const UI_VERSION = 'v6.630';
+  const BUILD_LABEL = 'REMAKE-REFRESH-STATUS-71';
   const FOOTER_ID = 'cdaSharedAppFooterV6531';
   const TECH_RE = /technician|ceramist|worker/i;
   const REMAKE_RE = /remake/i;
@@ -246,6 +246,257 @@ Purpose: Render the shared bottom-of-page cache and build footer, then load the 
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded',start,{once:true});
   else start();
+})();
+</script>
+
+<style id="cdaRemakeRefreshStatusStylesV6630">
+  #cdaRemakeRefreshStatusV6630{position:sticky;top:4px;z-index:12000;display:none;align-items:flex-start;gap:10px;width:calc(100% - 4px);margin:2px 2px 9px;padding:10px 12px;border:1px solid #f2c94c;border-radius:9px;background:#fff9dc;color:#5f4600;box-shadow:0 4px 14px rgba(60,45,0,.14);box-sizing:border-box;font-family:Roboto,Arial,sans-serif}
+  #cdaRemakeRefreshStatusV6630[data-visible="true"]{display:flex}
+  #cdaRemakeRefreshStatusV6630[data-state="success"]{border-color:#86c79a;background:#edf9f0;color:#14532d}
+  #cdaRemakeRefreshStatusV6630[data-state="warning"]{border-color:#f0b45a;background:#fff6e8;color:#7c3f00}
+  #cdaRemakeRefreshStatusV6630[data-state="error"]{border-color:#e59696;background:#fff0f0;color:#8f1d1d}
+  #cdaRemakeRefreshStatusV6630 .cdaRemakeRefreshSpinnerV6630{flex:0 0 18px;width:18px;height:18px;margin-top:1px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:cdaRemakeRefreshSpinV6630 .8s linear infinite;box-sizing:border-box}
+  #cdaRemakeRefreshStatusV6630[data-state="success"] .cdaRemakeRefreshSpinnerV6630,#cdaRemakeRefreshStatusV6630[data-state="warning"] .cdaRemakeRefreshSpinnerV6630,#cdaRemakeRefreshStatusV6630[data-state="error"] .cdaRemakeRefreshSpinnerV6630{border:0;animation:none;font-size:17px;font-weight:900;line-height:18px;text-align:center}
+  #cdaRemakeRefreshStatusV6630[data-state="success"] .cdaRemakeRefreshSpinnerV6630::before{content:'✓'}
+  #cdaRemakeRefreshStatusV6630[data-state="warning"] .cdaRemakeRefreshSpinnerV6630::before{content:'!'}
+  #cdaRemakeRefreshStatusV6630[data-state="error"] .cdaRemakeRefreshSpinnerV6630::before{content:'×'}
+  #cdaRemakeRefreshStatusV6630 .cdaRemakeRefreshCopyV6630{min-width:0;flex:1 1 auto}
+  #cdaRemakeRefreshStatusV6630 .cdaRemakeRefreshTitleV6630{font-size:12px;line-height:1.25;font-weight:900;letter-spacing:.01em}
+  #cdaRemakeRefreshStatusV6630 .cdaRemakeRefreshDetailV6630{margin-top:2px;font-size:10.5px;line-height:1.35;font-weight:700;color:inherit;opacity:.9;white-space:normal}
+  #cdaRemakeRefreshStatusV6630 .cdaRemakeRefreshTrackV6630{height:3px;margin-top:7px;border-radius:999px;background:rgba(111,86,0,.14);overflow:hidden}
+  #cdaRemakeRefreshStatusV6630 .cdaRemakeRefreshBarV6630{height:100%;width:25%;border-radius:inherit;background:currentColor;transition:width 220ms ease}
+  #cdaRemakeRefreshStatusV6630[data-state="success"] .cdaRemakeRefreshBarV6630,#cdaRemakeRefreshStatusV6630[data-state="warning"] .cdaRemakeRefreshBarV6630,#cdaRemakeRefreshStatusV6630[data-state="error"] .cdaRemakeRefreshBarV6630{width:100%!important}
+  #remakeRefreshBtn[data-cda-refreshing-v6630="true"] .remakeCacheActionIconV6338{animation:cdaRemakeRefreshSpinV6630 .8s linear infinite}
+  @keyframes cdaRemakeRefreshSpinV6630{to{transform:rotate(360deg)}}
+  @media(max-width:760px){#cdaRemakeRefreshStatusV6630{top:3px;margin:2px 0 8px;width:100%;padding:9px 10px}.cdaRemakeRefreshDetailV6630{font-size:10px!important}}
+  @media(prefers-reduced-motion:reduce){#cdaRemakeRefreshStatusV6630 .cdaRemakeRefreshSpinnerV6630,#remakeRefreshBtn[data-cda-refreshing-v6630="true"] .remakeCacheActionIconV6338{animation-duration:2.2s}}
+</style>
+<script id="cdaRemakeRefreshStatusControllerV6630">
+(function installCdaRemakeRefreshStatusV6630(){
+  'use strict';
+  if(window.__cdaRemakeRefreshStatusV6630)return;
+  window.__cdaRemakeRefreshStatusV6630=true;
+  window.CDA_REMAKE_REFRESH_STATUS_VERSION='v6.630';
+
+  const STATUS_ID='cdaRemakeRefreshStatusV6630';
+  const SUCCESS_VISIBLE_MS=8000;
+  let active=false;
+  let seenBusy=false;
+  let startedAt=0;
+  let pollTimer=0;
+  let hideTimer=0;
+  let installTimer=0;
+  let originalRefresh=null;
+  let lastStage=0;
+
+  function clean(value){return String(value==null?'':value).replace(/\s+/g,' ').trim();}
+  function byId(id){return document.getElementById(id);}
+  function page(){return byId('remakeFactorPage');}
+  function shell(){const target=page();return target&&target.querySelector('.remakeShellV6230');}
+  function formatTime(){try{return new Intl.DateTimeFormat(undefined,{hour:'numeric',minute:'2-digit'}).format(new Date());}catch(error){return new Date().toLocaleTimeString();}}
+
+  function ensureStatus(){
+    const host=shell();
+    if(!host)return null;
+    let node=byId(STATUS_ID);
+    if(!node){
+      node=document.createElement('div');
+      node.id=STATUS_ID;
+      node.setAttribute('role','status');
+      node.setAttribute('aria-live','polite');
+      node.setAttribute('aria-atomic','true');
+      node.setAttribute('data-visible','false');
+      node.setAttribute('data-state','progress');
+      node.innerHTML='<span class="cdaRemakeRefreshSpinnerV6630" aria-hidden="true"></span><div class="cdaRemakeRefreshCopyV6630"><div class="cdaRemakeRefreshTitleV6630"></div><div class="cdaRemakeRefreshDetailV6630"></div><div class="cdaRemakeRefreshTrackV6630" aria-hidden="true"><div class="cdaRemakeRefreshBarV6630"></div></div></div>';
+    }
+    if(node.parentNode!==host||host.firstElementChild!==node)host.insertBefore(node,host.firstChild);
+    return node;
+  }
+
+  function setPageBusy(value){
+    const target=page();
+    if(!target)return;
+    if(value)target.setAttribute('aria-busy','true');
+    else target.removeAttribute('aria-busy');
+  }
+
+  function setButtonBusy(value){
+    const button=byId('remakeRefreshBtn');
+    if(!button)return;
+    const label=button.querySelector('.remakeCacheActionLabelV6338');
+    if(value){
+      button.setAttribute('data-cda-refreshing-v6630','true');
+      button.setAttribute('aria-label','Refreshing Remake data');
+      button.title='Remake refresh is running. Previous filtered results remain visible until completion.';
+      if(label)label.textContent='Refreshing…';else button.textContent='Refreshing…';
+    }else{
+      button.removeAttribute('data-cda-refreshing-v6630');
+      button.setAttribute('aria-label','Refresh Remake data');
+      button.title='Build missing or unvalidated months, then replace the current month from the API';
+      if(label)label.textContent='Refresh';else button.textContent='Refresh';
+    }
+  }
+
+  function show(state,stage,title,detail){
+    const node=ensureStatus();
+    if(!node)return;
+    window.clearTimeout(hideTimer);
+    node.setAttribute('data-visible','true');
+    node.setAttribute('data-state',state||'progress');
+    const titleNode=node.querySelector('.cdaRemakeRefreshTitleV6630');
+    const detailNode=node.querySelector('.cdaRemakeRefreshDetailV6630');
+    const bar=node.querySelector('.cdaRemakeRefreshBarV6630');
+    if(titleNode)titleNode.textContent=title||'';
+    if(detailNode)detailNode.textContent=detail||'';
+    if(bar)bar.style.width=Math.max(0,Math.min(100,Number(stage||0)*25))+'%';
+    lastStage=Math.max(lastStage,Number(stage||0));
+  }
+
+  function hide(){const node=byId(STATUS_ID);if(node)node.setAttribute('data-visible','false');}
+
+  function validationText(){
+    const state=window.remakeFactorState||{};
+    const stats=state.data&&state.data.stats||{};
+    const processed=Array.isArray(stats.smartRefreshProcessedThisRun)?stats.smartRefreshProcessedThisRun:[];
+    const validated=processed.map(function(item){
+      const validation=item&&item.validation||{};
+      const count=Number(item&&item.apiExpectedTotalCount||validation.expectedTotalCount||0);
+      const month=clean(item&&item.month||validation.month||'');
+      return count>0?{count:count,month:month}:null;
+    }).filter(Boolean);
+    if(!validated.length){
+      const expected=Number(stats.apiExpectedTotalCount||0);
+      return expected>0?'Validated '+expected.toLocaleString()+' cases.':'';
+    }
+    return validated.map(function(item){
+      const label=/^\d{4}-\d{2}$/.test(item.month)?new Date(item.month+'-01T12:00:00').toLocaleDateString(undefined,{month:'short',year:'numeric'}):item.month;
+      return (label?label+': ':'')+item.count.toLocaleString()+' cases';
+    }).join(' · ');
+  }
+
+  function finishSuccess(){
+    if(!active)return;
+    active=false;
+    stopPolling();
+    setPageBusy(false);
+    setButtonBusy(false);
+    const validation=validationText();
+    show('success',4,'Refresh complete',((validation?validation+'. ':'')+'Updated data applied at '+formatTime()+'. Active filters and layout were preserved.'));
+    hideTimer=window.setTimeout(hide,SUCCESS_VISIBLE_MS);
+    if(typeof window.refreshCdaSharedCacheFooterV6567==='function')window.refreshCdaSharedCacheFooterV6567();
+  }
+
+  function finishWarning(message){
+    if(!active)return;
+    active=false;
+    stopPolling();
+    setPageBusy(false);
+    setButtonBusy(false);
+    show('warning',4,'Refresh completed with a warning',clean(message||'The Remake cache refreshed, but a dependent cache used its previous saved copy.')+' Completed at '+formatTime()+'.');
+    if(typeof window.refreshCdaSharedCacheFooterV6567==='function')window.refreshCdaSharedCacheFooterV6567();
+  }
+
+  function finishError(message){
+    if(!active)return;
+    active=false;
+    stopPolling();
+    setPageBusy(false);
+    setButtonBusy(false);
+    show('error',4,'Refresh stopped',clean(message||'The API population could not be validated.')+' No incomplete cache was published. The previous on-screen results remain available; use Reload to restore the saved browser copy if needed.');
+  }
+
+  function currentSignals(){
+    const state=window.remakeFactorState||{};
+    const button=byId('remakeRefreshBtn');
+    const notice=byId('remakeNotice');
+    const worker=byId('remakeCeramistStatusV6342');
+    const noticeText=clean(notice&&notice.textContent);
+    const workerText=clean(worker&&worker.textContent);
+    const busy=state.loading===true||!!(button&&button.disabled);
+    return {state:state,busy:busy,noticeText:noticeText,noticeClass:clean(notice&&notice.className),workerText:workerText};
+  }
+
+  function poll(){
+    if(!active)return;
+    ensureStatus();
+    setButtonBusy(true);
+    const signal=currentSignals();
+    if(signal.busy)seenBusy=true;
+
+    if(/failed|error|stopped|could not refresh|could not load|validation failed/i.test(signal.noticeText)&&/error|warn/i.test(signal.noticeClass)){
+      if(!signal.busy&&seenBusy){finishError(signal.noticeText);return;}
+    }
+
+    if(/previous saved technician|restore|warning/i.test(signal.noticeText)&&!signal.busy&&seenBusy){
+      finishWarning(signal.noticeText);return;
+    }
+
+    if(/rebuild|responsibility|technician|worker cache/i.test(signal.workerText)&&!/not loaded/i.test(signal.workerText)){
+      show('progress',3,'Refreshing Remake data','Step 3 of 4 — Rebuilding technician responsibility. Previous filtered results remain visible.');
+    }else if(signal.state.loaded===true&&lastStage<3){
+      show('progress',2,'Refreshing Remake data','Step 2 of 4 — Saving the validated Remake cache. Previous filtered results remain visible.');
+    }
+
+    if(seenBusy&&!signal.busy&&Date.now()-startedAt>600){
+      show('progress',4,'Refreshing Remake data','Step 4 of 4 — Applying refreshed data and browser caches…');
+      window.setTimeout(finishSuccess,180);
+      return;
+    }
+    pollTimer=window.setTimeout(poll,250);
+  }
+
+  function stopPolling(){if(pollTimer)window.clearTimeout(pollTimer);pollTimer=0;}
+
+  function begin(){
+    if(active)return false;
+    active=true;
+    seenBusy=false;
+    startedAt=Date.now();
+    lastStage=1;
+    setPageBusy(true);
+    setButtonBusy(true);
+    show('progress',1,'Refreshing Remake data','Step 1 of 4 — Validating the MagicTouch case population. Previous filtered results remain visible until completion.');
+    stopPolling();
+    pollTimer=window.setTimeout(poll,80);
+    return true;
+  }
+
+  function wrapRefresh(){
+    const candidate=window.refreshRemakeFactorData;
+    if(typeof candidate!=='function')return false;
+    if(candidate.__cdaRefreshStatusV6630)return true;
+    originalRefresh=candidate;
+    const wrapped=function refreshRemakeFactorDataWithStatusV6630(){
+      if(!begin())return;
+      try{return originalRefresh.apply(this,arguments);}
+      catch(error){finishError(error&&error.message||String(error));throw error;}
+    };
+    wrapped.__cdaRefreshStatusV6630=true;
+    wrapped.__cdaRefreshStatusOriginalV6630=originalRefresh;
+    window.refreshRemakeFactorData=wrapped;
+    try{refreshRemakeFactorData=wrapped;}catch(error){}
+    return true;
+  }
+
+  function install(){
+    ensureStatus();
+    if(wrapRefresh()){
+      if(installTimer)window.clearInterval(installTimer);
+      installTimer=0;
+    }
+  }
+
+  window.cdaRemakeRefreshStatusV6630=Object.freeze({version:'v6.630',begin:begin,success:finishSuccess,warning:finishWarning,error:finishError,audit:function(){const node=ensureStatus();return{version:'v6.630',wrapped:!!(window.refreshRemakeFactorData&&window.refreshRemakeFactorData.__cdaRefreshStatusV6630),statusMounted:!!node,active:active,visible:!!(node&&node.getAttribute('data-visible')==='true'),pageBusy:!!(page()&&page().getAttribute('aria-busy')==='true'),ok:!!node&&!!(window.refreshRemakeFactorData&&window.refreshRemakeFactorData.__cdaRefreshStatusV6630)};}});
+
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else install();
+  installTimer=window.setInterval(install,400);
+  window.setTimeout(function(){if(installTimer){window.clearInterval(installTimer);installTimer=0;}},12000);
+
+  if(window.MutationObserver){
+    const observer=new MutationObserver(function(){if(active){ensureStatus();setButtonBusy(true);}});
+    const startObserver=function(){if(document.body)observer.observe(document.body,{childList:true,subtree:true});};
+    if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',startObserver,{once:true});else startObserver();
+  }
 })();
 </script>
 <?!= includeDashboardFile('SharedComponentFoundation') ?>
