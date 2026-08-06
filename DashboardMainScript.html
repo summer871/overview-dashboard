@@ -8,8 +8,11 @@
       source: <?!= JSON.stringify(dashboardPresentationSource || 'Code.gs backendPresentationMode') ?>,
       fastCacheRetained: true
     };
-    // v6.639: Respect the server router. Normal /exec stays Remake-only;
-    // /dev?presentation=all remains available for editing and validation.
+    // v6.640: Plain /dev is the full administrative dashboard.
+    // Normal deployed /exec continues to respect the server-owned Remake-only mode.
+    if (/\/dev\/?$/i.test(String(window.location && window.location.pathname || ''))) {
+      window.CDA_SERVER_PRESENTATION.mode = 'all';
+    }
     window.CDA_SERVER_PRESENTATION.startTab = 'remakeFactor';
     window.addEventListener('error', function(event) {
       var box = document.getElementById('singleShellClientError');
