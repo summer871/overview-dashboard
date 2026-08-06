@@ -1,5 +1,5 @@
 <!-- SharedFooter.html
-Version: v6.635
+Version: v6.639
 Date: 2026-08-05
 Purpose: Render the shared bottom-of-page cache and build footer, load the shared dashboard component foundation, and expose filter-independent Remake refresh progress.
 -->
@@ -15,8 +15,8 @@ Purpose: Render the shared bottom-of-page cache and build footer, load the share
 (function installCdaSharedFooterV6567(){
   'use strict';
 
-  const UI_VERSION = 'v6.635';
-  const BUILD_LABEL = 'REMAKE-CASCADING-SYNC-74';
+  const UI_VERSION = 'v6.639';
+  const BUILD_LABEL = 'REMAKE-EXEC-VIEWER-78';
   const FOOTER_ID = 'cdaSharedAppFooterV6531';
   const TECH_RE = /technician|ceramist|worker/i;
   const REMAKE_RE = /remake/i;
@@ -276,7 +276,7 @@ Purpose: Render the shared bottom-of-page cache and build footer, load the share
   'use strict';
   if(window.__cdaRemakeRefreshStatusV6630)return;
   window.__cdaRemakeRefreshStatusV6630=true;
-  window.CDA_REMAKE_REFRESH_STATUS_VERSION='v6.635';
+  window.CDA_REMAKE_REFRESH_STATUS_VERSION='v6.639';
 
   const STATUS_ID='cdaRemakeRefreshStatusV6630';
   const SUCCESS_VISIBLE_MS=8000;
@@ -486,7 +486,7 @@ Purpose: Render the shared bottom-of-page cache and build footer, load the share
     }
   }
 
-  window.cdaRemakeRefreshStatusV6630=Object.freeze({version:'v6.635',begin:begin,success:finishSuccess,warning:finishWarning,error:finishError,audit:function(){const node=ensureStatus();return{version:'v6.635',wrapped:!!(window.refreshRemakeFactorData&&window.refreshRemakeFactorData.__cdaRefreshStatusV6630),statusMounted:!!node,active:active,visible:!!(node&&node.getAttribute('data-visible')==='true'),pageBusy:!!(page()&&page().getAttribute('aria-busy')==='true'),ok:!!node&&!!(window.refreshRemakeFactorData&&window.refreshRemakeFactorData.__cdaRefreshStatusV6630)};}});
+  window.cdaRemakeRefreshStatusV6630=Object.freeze({version:'v6.639',begin:begin,success:finishSuccess,warning:finishWarning,error:finishError,audit:function(){const node=ensureStatus();return{version:'v6.639',wrapped:!!(window.refreshRemakeFactorData&&window.refreshRemakeFactorData.__cdaRefreshStatusV6630),statusMounted:!!node,active:active,visible:!!(node&&node.getAttribute('data-visible')==='true'),pageBusy:!!(page()&&page().getAttribute('aria-busy')==='true'),ok:!!node&&!!(window.refreshRemakeFactorData&&window.refreshRemakeFactorData.__cdaRefreshStatusV6630)};}});
 
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else install();
   installTimer=window.setInterval(install,400);

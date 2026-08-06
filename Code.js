@@ -1,6 +1,6 @@
 /**
  * Executive Overview Dashboard Router
- * Version: Code.gs v6.638 deployment Remake viewer
+ * Version: Code.gs v6.639 deployment Remake viewer
  * Date: 2026-08-06
  * Purpose: Serve the dashboard shell, inject presentation metadata, and lock normal deployments to a read-only Remake Factor view while preserving saved browser layout hydration.
  */
@@ -13,13 +13,13 @@ function doGet(e) {
   const template = HtmlService.createTemplateFromFile('Index');
   template.dashboardBaseUrl = getDashboardBaseUrl();
   template.dashboardPresentationMode = presentationMode;
-  template.dashboardPresentationVersion = 'v6.638';
-  template.dashboardPresentationSource = 'Code.gs v6.638 deployment Remake viewer';
+  template.dashboardPresentationVersion = 'v6.639';
+  template.dashboardPresentationSource = 'Code.gs v6.639 deployment Remake viewer';
 
   const presentation = {
     mode: presentationMode,
-    version: 'v6.638',
-    source: 'Code.gs v6.638 deployment Remake viewer',
+    version: 'v6.639',
+    source: 'Code.gs v6.639 deployment Remake viewer',
     baseUrl: getDashboardBaseUrl()
   };
 
@@ -27,8 +27,8 @@ function doGet(e) {
   const releaseBootstrap = `<script id="cdaReleaseStampControllerV6638">
 (function installCdaReleaseStampV6638(){
   'use strict';
-  const VERSION = 'v6.638';
-  const BUILD = 'REMAKE-DEPLOYMENT-VIEWER-77';
+  const VERSION = 'v6.639';
+  const BUILD = 'REMAKE-DEPLOYMENT-VIEWER-78';
   let frame = 0;
 
   function stamp() {
@@ -101,7 +101,7 @@ html.cdaDeploymentRemakeViewerV6638 #remakeFactorPage {
 <script id="cdaDeploymentRemakeViewerControllerV6638">
 (function installCdaDeploymentRemakeViewerV6638(){
   'use strict';
-  const VERSION = 'v6.638';
+  const VERSION = 'v6.639';
   const isDevelopmentUrl = /\/dev\/?$/i.test(String(window.location && window.location.pathname || ''));
   if (isDevelopmentUrl) {
     window.CDA_DEPLOYMENT_REMAKE_VIEWER_VERSION = VERSION + '-dev-bypass';
@@ -250,7 +250,7 @@ function renderDashboardDebugPage() {
 function debugDashboardServerHealth() {
   const health = {
     ok: true,
-    routerVersion: 'Code.gs v6.638 deployment Remake viewer',
+    routerVersion: 'Code.gs v6.639 deployment Remake viewer',
     timestamp: new Date().toISOString(),
     scriptTimeZone: Session.getScriptTimeZone(),
     dashboardBaseUrl: getDashboardBaseUrl(),

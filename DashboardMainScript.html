@@ -8,8 +8,8 @@
       source: <?!= JSON.stringify(dashboardPresentationSource || 'Code.gs backendPresentationMode') ?>,
       fastCacheRetained: true
     };
-    // v6.501: Code.gs stays unchanged. This client-only mode prevents Sales boot while allowing Remake + TAT tabs.
-    window.CDA_SERVER_PRESENTATION.mode = 'remaketat';
+    // v6.639: Respect the server router. Normal /exec stays Remake-only;
+    // /dev?presentation=all remains available for editing and validation.
     window.CDA_SERVER_PRESENTATION.startTab = 'remakeFactor';
     window.addEventListener('error', function(event) {
       var box = document.getElementById('singleShellClientError');
