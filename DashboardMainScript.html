@@ -8,9 +8,24 @@
       source: <?!= JSON.stringify(dashboardPresentationSource || 'Code.gs backendPresentationMode') ?>,
       fastCacheRetained: true
     };
-    // v6.640: Plain /dev is the full administrative dashboard.
-    // Normal deployed /exec continues to respect the server-owned Remake-only mode.
-    if (/\/dev\/?$/i.test(String(window.location && window.location.pathname || ''))) {
+    // v6.641: Apps Script renders inside an iframe, so pathname alone cannot identify /dev.
+    // Use the iframe URL, referrer, server base URL, and accessible top URL as route signals.
+    function cdaIsDevelopmentRouteV6641(){
+      var candidates = [
+        window.location && window.location.href,
+        document.referrer,
+        window.CDA_SERVER_PRESENTATION && window.CDA_SERVER_PRESENTATION.baseUrl,
+        window.CDA_SERVER_REQUESTED_PRESENTATION && window.CDA_SERVER_REQUESTED_PRESENTATION.baseUrl
+      ];
+      try {
+        if (window.top && window.top !== window) candidates.push(window.top.location.href);
+      } catch (error) {}
+      return candidates.some(function(value){
+        return /\/dev(?:[/?#]|$)/i.test(String(value || ''));
+      });
+    }
+    window.CDA_IS_DEVELOPMENT_ROUTE_V6641 = cdaIsDevelopmentRouteV6641();
+    if (window.CDA_IS_DEVELOPMENT_ROUTE_V6641) {
       window.CDA_SERVER_PRESENTATION.mode = 'all';
     }
     window.CDA_SERVER_PRESENTATION.startTab = 'remakeFactor';
