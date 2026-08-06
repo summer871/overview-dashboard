@@ -19207,6 +19207,7 @@
     selectedMonths: new Set(readLocalJsonV6230(MONTHS_KEY_V6230, [])),
     filters: Object.assign({ year: '', department: '', product: '', productGroup: '', customer: '', reason: '' }, readLocalJsonV6230(FILTERS_KEY_V6230, {})),
     filterExclusionsV6389: Object.assign({ year: [], department: [], product: [], productGroup: [], customer: [], reason: [] }, readLocalJsonV6230(FILTER_EXCLUSIONS_KEY_V6389, {})),
+    crossFiltersV6634: { department: [], product: [], productGroup: [], customer: [], reason: [] },
     sorts: Object.assign({}, defaultSortsV6230, readLocalJsonV6230(SORT_KEY_V6230, {})),
     filterOptionsV6245: {},
     selectedOnlyV6245: {},
@@ -19287,6 +19288,7 @@
   function remakeSnapshotV6266() {
     return JSON.stringify({
       filters: uiV6230.filters || {},
+      crossFiltersV6634: uiV6230.crossFiltersV6634 || {},
       selectedMonths: Array.from(uiV6230.selectedMonths || []),
       mode: uiV6230.mode === 'bar' ? 'bar' : 'line',
       filterExclusionsV6389: uiV6230.filterExclusionsV6389 || {},
@@ -19319,6 +19321,11 @@
       ['year','department','product','productGroup','customer','reason'].forEach(kind => {
         const raw = uiV6230.filters[kind];
         uiV6230.filters[kind] = Array.isArray(raw) ? raw.map(String) : (raw ? [String(raw)] : []);
+      });
+      uiV6230.crossFiltersV6634 = Object.assign({ department: [], product: [], productGroup: [], customer: [], reason: [] }, snapshot.crossFiltersV6634 || {});
+      ['department','product','productGroup','customer','reason'].forEach(function(kind){
+        const raw = uiV6230.crossFiltersV6634[kind];
+        uiV6230.crossFiltersV6634[kind] = Array.isArray(raw) ? raw.map(String).filter(Boolean) : (raw ? [String(raw)] : []);
       });
       uiV6230.selectedMonths = new Set((snapshot.selectedMonths || []).map(String));
       uiV6230.mode = snapshot.mode === 'bar' ? 'bar' : 'line';
@@ -20041,6 +20048,11 @@
   function filterValuesV6245(kind) { const raw = uiV6230.filters ? uiV6230.filters[kind] : ''; if (Array.isArray(raw)) return raw.map(String).filter(Boolean); if (!raw) return []; try { const parsed = JSON.parse(String(raw)); if (Array.isArray(parsed)) return parsed.map(String).filter(Boolean); } catch(e) {} return [String(raw)]; }
   function excludedFilterValuesV6389(kind) { const raw = uiV6230.filterExclusionsV6389 ? uiV6230.filterExclusionsV6389[kind] : []; if (Array.isArray(raw)) return raw.map(String).filter(Boolean); if (!raw) return []; return [String(raw)]; }
   function filterIsNoneV6308(kind) { const values = filterValuesV6245(kind); return values.length === 1 && values[0] === REMAKE_NONE_FILTER_VALUE_V6308; }
+  function crossFilterValuesV6634(kind) { const raw = uiV6230.crossFiltersV6634 ? uiV6230.crossFiltersV6634[kind] : []; if (Array.isArray(raw)) return raw.map(String).filter(Boolean); if (!raw) return []; return [String(raw)]; }
+  function setCrossFilterValuesV6634(kind, values) { if (!uiV6230.crossFiltersV6634) uiV6230.crossFiltersV6634 = { department: [], product: [], productGroup: [], customer: [], reason: [] }; const seen = new Set(); const clean = []; (Array.isArray(values) ? values : [values]).forEach(function(value){ const text = String(value == null ? '' : value).trim(); if (text && !seen.has(text)) { seen.add(text); clean.push(text); } }); uiV6230.crossFiltersV6634[kind] = clean; return clean; }
+  function clearAllCrossFiltersV6634() { uiV6230.crossFiltersV6634 = { department: [], product: [], productGroup: [], customer: [], reason: [] }; }
+  window.CDA_REMAKE_HARD_FOCUS_VERSION = 'v6.634';
+  window.cdaRemakeHardFocusV6634 = Object.freeze({ version:'v6.634', audit:function(){ return { version:'v6.634', hardDepartment:filterValuesV6245('department'), softDepartment:crossFilterValuesV6634('department'), hardProduct:filterValuesV6245('product'), softProduct:crossFilterValuesV6634('product'), ok:true }; } });
   function setFilterValuesV6245(kind, values) { const seen = new Set(); const clean = []; (Array.isArray(values) ? values : [values]).forEach(value => { const text = String(value === null || value === undefined ? '' : value).trim(); if (text && !seen.has(text)) { seen.add(text); clean.push(text); } }); uiV6230.filters[kind] = clean; if (!uiV6230.filterExclusionsV6389) uiV6230.filterExclusionsV6389 = {}; uiV6230.filterExclusionsV6389[kind] = []; const meta = filterMetaV6245[kind]; const input = meta ? idV6230(meta.inputId) : null; if (input) input.value = JSON.stringify(clean); return clean; }
   function setFilterExclusionsV6389(kind, values) { const seen = new Set(); const clean = []; (Array.isArray(values) ? values : [values]).forEach(value => { const text = String(value === null || value === undefined ? '' : value).trim(); if (text && !seen.has(text)) { seen.add(text); clean.push(text); } }); if (!uiV6230.filterExclusionsV6389) uiV6230.filterExclusionsV6389 = {}; uiV6230.filterExclusionsV6389[kind] = clean; uiV6230.filters[kind] = []; const meta = filterMetaV6245[kind]; const input = meta ? idV6230(meta.inputId) : null; if (input) input.value = '[]'; return clean; }
   function matchesFilterV6245(kind, value) { const selected = filterValuesV6245(kind); if (filterIsNoneV6308(kind)) return false; if (selected.length) return selected.some(item => String(item) === String(value)); const excluded = new Set(excludedFilterValuesV6389(kind)); return !excluded.has(String(value)); }
@@ -20562,41 +20574,59 @@
   function rowsForFiltersV6230(rows, options) {
     const includeMonths = !options || options.months !== false;
     const includeYear = !(options && options.year === false);
-    const includeDepartment = !(options && options.department === false);
-    const includeProduct = !(options && options.product === false);
-    const includeProductGroup = !(options && options.productGroup === false);
-    const includeCustomer = !(options && options.customer === false);
-    const includeReason = !(options && options.reason === false);
+    const includeHardDepartment = !(options && options.hardDepartment === false);
+    const includeHardProduct = !(options && options.hardProduct === false);
+    const includeHardProductGroup = !(options && options.hardProductGroup === false);
+    const includeHardCustomer = !(options && options.hardCustomer === false);
+    const includeHardReason = !(options && options.hardReason === false);
+    const includeCrossFilters = !(options && options.crossFilters === false);
+    const includeCrossDepartment = includeCrossFilters && !(options && options.department === false);
+    const includeCrossProduct = includeCrossFilters && !(options && options.product === false);
+    const includeCrossProductGroup = includeCrossFilters && !(options && options.productGroup === false);
+    const includeCrossCustomer = includeCrossFilters && !(options && options.customer === false);
+    const includeCrossReason = includeCrossFilters && !(options && options.reason === false);
     const selectedMonths = uiV6230.selectedMonths || new Set();
 
-    /* v6.333: compile filter membership once per pass. The prior predicate
-       rebuilt the selected arrays for every field on every row, which caused
-       a visible main-thread pause before cross-filter transitions. */
-    const compiledFiltersV6333 = {};
+    const compiledHardV6634 = {};
     ['year','department','product','productGroup','customer','reason'].forEach(function(kind) {
       const values = filterValuesV6245(kind).map(String);
       const excluded = excludedFilterValuesV6389(kind).map(String);
-      compiledFiltersV6333[kind] = {
+      compiledHardV6634[kind] = {
         none: values.length === 1 && values[0] === REMAKE_NONE_FILTER_VALUE_V6308,
         values: values.length ? new Set(values) : null,
         excluded: excluded.length ? new Set(excluded) : null
       };
     });
-    function matchesCompiledFilterV6333(kind, value) {
-      const filter = compiledFiltersV6333[kind];
+    function matchesHardV6634(kind, value) {
+      const filter = compiledHardV6634[kind];
       if (!filter || filter.none) return false;
       const text = String(value);
       if (filter.values) return filter.values.has(text);
       return !filter.excluded || !filter.excluded.has(text);
     }
 
+    const compiledCrossV6634 = {};
+    ['department','product','productGroup','customer','reason'].forEach(function(kind) {
+      const values = crossFilterValuesV6634(kind);
+      compiledCrossV6634[kind] = values.length ? new Set(values.map(String)) : null;
+    });
+    function matchesCrossV6634(kind, value) {
+      const selected = compiledCrossV6634[kind];
+      return !selected || selected.has(String(value));
+    }
+
     return (rows || []).filter(row =>
-      (!includeYear || matchesCompiledFilterV6333('year', row.year)) &&
-      (!includeDepartment || matchesCompiledFilterV6333('department', row.department)) &&
-      (!includeProduct || matchesCompiledFilterV6333('product', row.productKey)) &&
-      (!includeProductGroup || matchesCompiledFilterV6333('productGroup', row.productGroup || row.department || 'Unassigned')) &&
-      (!includeCustomer || matchesCompiledFilterV6333('customer', row.customerKey)) &&
-      (!includeReason || matchesCompiledFilterV6333('reason', row.remakeReason)) &&
+      (!includeYear || matchesHardV6634('year', row.year)) &&
+      (!includeHardDepartment || matchesHardV6634('department', row.department)) &&
+      (!includeHardProduct || matchesHardV6634('product', row.productKey)) &&
+      (!includeHardProductGroup || matchesHardV6634('productGroup', row.productGroup || 'Unassigned')) &&
+      (!includeHardCustomer || matchesHardV6634('customer', row.customerKey)) &&
+      (!includeHardReason || matchesHardV6634('reason', row.remakeReason)) &&
+      (!includeCrossDepartment || matchesCrossV6634('department', row.department)) &&
+      (!includeCrossProduct || matchesCrossV6634('product', row.productKey)) &&
+      (!includeCrossProductGroup || matchesCrossV6634('productGroup', row.productGroup || 'Unassigned')) &&
+      (!includeCrossCustomer || matchesCrossV6634('customer', row.customerKey)) &&
+      (!includeCrossReason || matchesCrossV6634('reason', row.remakeReason)) &&
       (!includeMonths || !selectedMonths.size || selectedMonths.has(row.month))
     );
   }
@@ -20605,7 +20635,7 @@
      Year/month, department, product, and customer filters define the full case base.
      Reason filters are remake-only, so they narrow the numerator but never shrink Total Cases. */
   function rowsForBaseFiltersV6252(rows, options) {
-    return rowsForFiltersV6230(rows, Object.assign({}, options || {}, { reason: false }));
+    return rowsForFiltersV6230(rows, Object.assign({}, options || {}, { reason: false, hardReason: false }));
   }
   function rowsForRemakeFiltersV6252(rows, options) {
     return rowsForFiltersV6230(rows, options || {});
@@ -21823,7 +21853,7 @@
   function renderStandardTableV6230(id, tableKey, rows, firstHeader, filterKind, limit) {
     const table = idV6230(id);
     if (!table) return;
-    const activeValues = filterKind ? new Set(filterValuesV6245(filterKind).map(String)) : new Set();
+    const activeValues = filterKind ? new Set(crossFilterValuesV6634(filterKind).map(String)) : new Set();
     const sorted = selectedRowsFirstV6311(sortedRowsV6230(rows, tableKey), activeValues, row => row.key, limit || 200);
     uiV6230.lastTables[tableKey] = sorted;
     const compare = tableCompareOnV6297(tableKey);
@@ -21871,7 +21901,7 @@
   function renderRemakeReasonTableV6241(id, tableKey, rows, firstHeader, filterKind, limit, totals) {
     const table = idV6230(id);
     if (!table) return;
-    const activeValues = filterKind ? new Set(filterValuesV6245(filterKind).map(String)) : new Set();
+    const activeValues = filterKind ? new Set(crossFilterValuesV6634(filterKind).map(String)) : new Set();
     const sorted = selectedRowsFirstV6311(sortedRowsV6230(rows, tableKey), activeValues, row => row.key, limit || 200);
     uiV6230.lastTables[tableKey] = sorted;
     const compare = tableCompareOnV6297('reason');
@@ -22073,7 +22103,7 @@
     const priorYear = scope.priorYear || 'Prior';
     const priorYearLabelV6312 = shortYearLabelV6312(priorYear);
     const compare = tableCompareOnV6297('customer');
-    const selectedCustomers = new Set(filterValuesV6245('customer').map(String));
+    const selectedCustomers = new Set(crossFilterValuesV6634('customer').map(String));
     const remakeCustomers = (customerGroups || []).filter(row => row && numV6230(row.remakeCases) > 0);
     const allCustomerRows = sortedRowsV6230(remakeCustomers, 'customer');
     const sorted = selectedRowsFirstV6311(allCustomerRows, selectedCustomers, row => row.key, 300);
@@ -24205,23 +24235,19 @@
     if (!kind) return;
     showRemakeClickFeedbackV6301(event);
     pushRemakeUndoV6266();
-    syncFiltersFromControlsV6230();
 
     const val = String(value);
-    const explicitValues = filterValuesV6245(kind).map(String);
-    const current = new Set(explicitValues);
+    const current = new Set(crossFilterValuesV6634(kind));
 
     if (additiveV6230(event)) {
       if (current.has(val)) current.delete(val);
       else current.add(val);
-      setFilterValuesV6245(kind, Array.from(current));
+      setCrossFilterValuesV6634(kind, Array.from(current));
     } else {
-      if (current.size === 1 && current.has(val)) setFilterValuesV6245(kind, []);
-      else setFilterValuesV6245(kind, [val]);
+      if (current.size === 1 && current.has(val)) setCrossFilterValuesV6634(kind, []);
+      else setCrossFilterValuesV6634(kind, [val]);
     }
 
-    persistUiV6230();
-    syncFilterControlsV6230();
     renderDashboardV6230();
   };
 
@@ -24253,6 +24279,7 @@
     if (kind === 'all') {
       uiV6230.filters = { year: [], department: [], product: [], productGroup: [], customer: [], reason: [] };
       uiV6230.filterExclusionsV6389 = { year: [], department: [], product: [], productGroup: [], customer: [], reason: [] };
+      clearAllCrossFiltersV6634();
       uiV6230.selectedMonths = new Set();
       resetTechnicianAnalysisV6386(false);
     }

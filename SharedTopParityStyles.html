@@ -1,5 +1,5 @@
 <!-- SharedTopParityStyles.html
-Version: v6.631
+Version: v6.634
 Date: 2026-08-05
 Purpose: Own the shared Remake/TAT top-filter presentation and Remake cascading dashboard-filter inventories.
 -->
@@ -460,7 +460,7 @@ Purpose: Own the shared Remake/TAT top-filter presentation and Remake cascading 
   function install(){
     if(window.__cdaRemakeCascadingFiltersV6631||!ready())return false;
     window.__cdaRemakeCascadingFiltersV6631=true;
-    window.CDA_REMAKE_CASCADING_FILTERS_VERSION='v6.631';
+    window.CDA_REMAKE_CASCADING_FILTERS_VERSION='v6.634';
 
     const originalRenderDropdownButtonV6631=renderDropdownButtonV6245;
     let lastRowsV6631=null;
@@ -473,8 +473,9 @@ Purpose: Own the shared Remake/TAT top-filter presentation and Remake cascading 
     }
 
     function rowsForFacetV6631(rows,kind){
-      const options={months:false};
-      options[kind]=false;
+      const hardKey='hard'+kind.charAt(0).toUpperCase()+kind.slice(1);
+      const options={months:false,crossFilters:false};
+      options[hardKey]=false;
       return rowsForFiltersV6230(rows,options);
     }
 
@@ -514,7 +515,7 @@ Purpose: Own the shared Remake/TAT top-filter presentation and Remake cascading 
       fillSelectV6230('remakeYearFilter','All years',Array.from(new Set(yearRows.map(function(row){return row.year;}).filter(Boolean))).sort(function(left,right){return Number(right)-Number(left);}).map(function(year){return{value:String(year),label:String(year)};}),uiV6230.filters.year);
       fillSelectV6230('remakeDepartmentFilter','All departments',Array.from(new Set(departmentRows.map(function(row){return row.department;}).filter(Boolean))).map(function(department){return{value:department,label:department};}),uiV6230.filters.department);
       fillSelectV6230('remakeProductFilter','All products',groupV6230(productRows,function(row){return row.productKey;},function(row){return row.productName;}).map(function(row){return{value:row.key,label:row.label};}),uiV6230.filters.product);
-      uiV6230.filterOptionsV6245.productGroup=normalizeOptionsV6245(groupV6230(groupRows,function(row){return row.productGroup||row.department||'Unassigned';},function(row){return row.productGroup||row.department||'Unassigned';}).map(function(row){return{value:row.key,label:row.label};}));
+      uiV6230.filterOptionsV6245.productGroup=normalizeOptionsV6245(groupV6230(groupRows,function(row){return row.productGroup||'Unassigned';},function(row){return row.productGroup||'Unassigned';}).map(function(row){return{value:row.key,label:row.label};}));
       fillSelectV6230('remakeCustomerFilter','All customers',groupV6230(customerRows,function(row){return row.customerKey;},function(row){return customerLabelV6246(row);},function(group,row){
         group.customerId=row.customerId||row.customerKey;
         group.customerName=row.customerName||row.customerKey;
