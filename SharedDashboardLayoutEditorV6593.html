@@ -1704,31 +1704,8 @@ Purpose: Universal Power BI-style canvas with single-authority saved geometry, i
     if (page && pageVisibleV6593(page)) scheduleVisiblePageActivationV6613(page,delay);
   }
 
-  function layoutEditorAllowedV6639(){
-    try {
-      return !!(window.CDA_SERVER_PRESENTATION && window.CDA_SERVER_PRESENTATION.mode === 'all');
-    } catch (error) {
-      return false;
-    }
-  }
-
-  function removeEditorControlsV6639(){
-    [
-      'cdaLayoutEditButtonV6593',
-      'cdaLayoutEditorBarV6593',
-      'cdaLayoutToastV6593'
-    ].forEach(function(id){
-      const node = document.getElementById(id);
-      if (node) node.remove();
-    });
-  }
-
   function mountControlsV6593(){
     if (!document.body) return;
-    if (!layoutEditorAllowedV6639()) {
-      removeEditorControlsV6639();
-      return;
-    }
     if (!document.getElementById('cdaLayoutEditButtonV6593')) {
       const button = document.createElement('button');
       button.id = 'cdaLayoutEditButtonV6593';

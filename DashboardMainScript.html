@@ -8,9 +8,8 @@
       source: <?!= JSON.stringify(dashboardPresentationSource || 'Code.gs backendPresentationMode') ?>,
       fastCacheRetained: true
     };
-    // v6.642: Code.js owns presentation mode using the Apps Script service URL.
-    // The client consumes the server result and does not guess /dev from iframe URLs.
-    window.CDA_IS_DEVELOPMENT_ROUTE_V6642 = window.CDA_SERVER_PRESENTATION.mode === 'all';
+    // v6.501: Code.gs stays unchanged. This client-only mode prevents Sales boot while allowing Remake + TAT tabs.
+    window.CDA_SERVER_PRESENTATION.mode = 'remaketat';
     window.CDA_SERVER_PRESENTATION.startTab = 'remakeFactor';
     window.addEventListener('error', function(event) {
       var box = document.getElementById('singleShellClientError');
