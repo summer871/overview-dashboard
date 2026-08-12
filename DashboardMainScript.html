@@ -19192,6 +19192,7 @@
     department: { field: 'remakeCases', dir: 'desc' },
     product: { field: 'remakeCases', dir: 'desc' },
     customer: { field: 'remakeCaseRate', dir: 'desc' },
+    attributionAudit: { field: 'caseNumber', dir: 'desc' },
     ceramist: { field: 'remakeUnits', dir: 'desc' },
     ceramistDetail: { field: 'remakeUnits', dir: 'desc' }
   };
@@ -20033,6 +20034,14 @@
       + '</div>';
   }
 
+  function attributionAuditActionsV6230() {
+    const component = 'attributionAudit';
+    return '<div class="remakeCardActionsV6230">'
+      + '<button class="remakeMiniButtonV6230" type="button" title="Export the attribution rows currently shown in this panel" onclick="exportRemakeComponentV6230(\'' + component + '\')">Export current</button>'
+      + '<button class="remakeMiniButtonV6230" type="button" title="Export all filtered attribution rows" onclick="exportRemakeAllDataV6399(\'' + component + '\')">All data</button>'
+      + '<button class="remakeMiniButtonV6230" type="button" title="Open a live interactive pop-out" onclick="popoutRemakeComponentV6230(\'' + component + '\')">Pop out</button>'
+      + '</div>';
+  }
 
   const filterMetaV6245 = {
     year: { inputId: 'remakeYearFilter', buttonId: 'remakeYearButtonV6245', panelId: 'remakeYearPanelV6245', searchId: 'remakeYearSearchV6245', listId: 'remakeYearListV6245', countId: 'remakeYearCountV6245', allLabel: 'All years', label: 'Year' },
@@ -20167,6 +20176,17 @@
           <div class="remakeCard remakeCardWideV6230" id="remakeCustomerCardV6230">
             <div class="remakeCardHeader"><div id="remakeCustomerTitleV6251" class="remakeCardTitle">Customers</div><div class="remakeCustomerHeaderControlsV6251"><button id="remakeCustomerCompareBtnV6297" class="tableCompareToggleV6297" type="button" onclick="toggleRemakeTableCompareV6297('customer')">2025</button>${cardActionsV6230('customer')}</div></div>
             <div class="remakeTableWrap remakeCustomerTableWrapV6230"><table id="remakeCustomerTable" class="remakeTable"></table></div>
+          </div>
+        </div>
+        <div class="remakeGridV6230">
+          <div class="remakeCard remakeCardWideV6230" id="remakeAttributionAuditCardV6230">
+            <div class="remakeCardHeader">
+              <div class="remakeCardTitle">Attribution Audit</div>
+              ${attributionAuditActionsV6230()}
+            </div>
+            <div class="remakeTableWrap">
+              <table id="remakeAttributionAuditTableV6230" class="remakeTable"></table>
+            </div>
           </div>
         </div>
         <div class="remakeGridV6230">
@@ -21638,6 +21658,11 @@
     if (field === 'currentWorker') return String(row.currentWorker || '').toLowerCase();
     if (field === 'customerId') return String(row.customerId || row.key || '').toLowerCase();
     if (field === 'status') return row.customerActive === false ? 0 : 1;
+    if (field === 'currentProduct' || field === 'rootProduct' ||
+        field === 'mappingStatus' || field === 'mappingMethod' ||
+        field === 'dashboardBucket') {
+      return String(row && row[field] || '').toLowerCase();
+    }
     if (String(field || '').indexOf(comparisonDeltaPrefixV6303) === 0) {
       return comparisonDeltaSortValueV6303(row, String(field).slice(comparisonDeltaPrefixV6303.length));
     }
@@ -21714,7 +21739,7 @@
     // other tables do not blink or rebuild.
     if (tableKey === 'ceramist' || tableKey === 'ceramistDetail') {
       renderCeramistAnalysisV6342();
-    } else if (['reason','department','product','customer'].indexOf(tableKey) >= 0 && typeof runGentleTableMorphV6297 === 'function') {
+    } else if (['reason','department','product','customer','attributionAudit'].indexOf(tableKey) >= 0 && typeof runGentleTableMorphV6297 === 'function') {
       runGentleTableMorphV6297(tableKey, function(){ renderTableSectionOnlyV6297(tableKey); }, tableKey === 'customer' ? { preserveChart: true } : null);
     } else renderDashboardV6230();
   };
@@ -21725,6 +21750,10 @@
     const parts = ['year','department','product','productGroup','customer','reason'].map(function(kind){
       return kind + '=' + filterValuesV6245(kind).map(String).sort().join('|') + ';excluded=' + excludedFilterValuesV6389(kind).map(String).sort().join('|');
     });
+    const crossKinds = ['department','product','productGroup','customer','reason'];
+    parts.push('cross=' + crossKinds.map(function(kind){
+      return kind + '=' + crossFilterValuesV6634(kind).map(String).sort().join('|');
+    }).join(';'));
     parts.push('months=' + Array.from(uiV6230.selectedMonths || []).map(String).sort().join('|'));
     return parts.join('::');
   }
@@ -24002,7 +24031,7 @@
 
     function phaseCustomerV6413() {
       if (supersededV6413()) { completeV6413(true); return; }
-      const tableSnapshotsV6413 = captureTableSetV6413(['remakeCustomerTable']);
+      const tableSnapshotsV6413 = captureTableSetV6413(['remakeCustomerTable','remakeAttributionAuditTableV6230']);
       const customerTotalRows = rowsForBaseFiltersV6252(context.currentYearRows, { year: false, months: false, customer: false });
       const priorCustomerTotalRows = rowsForBaseFiltersV6252(context.priorYearRows, { year: false, months: false, customer: false });
       const customerRemakeRows = rowsForRemakeFiltersV6252(context.currentYearRows, { year: false, months: false, customer: false });
@@ -24028,8 +24057,10 @@
       syncTableCompareButtonsV6297();
       renderCustomerChartV6230(context.customerGroups);
       renderCustomerTableV6230(context.customerGroups);
+      renderAttributionAuditV6230(context.remakeRows);
       animateTableSetV6413(tableSnapshotsV6413);
       animateCardV6413('remakeCustomerCardV6230');
+      animateCardV6413('remakeAttributionAuditCardV6230');
       scheduleCeramistRenderV6413(generation);
 
       setNoticeV6230(context.totalRows.length ? '' : 'No matching rows.', context.totalRows.length ? '' : 'warn');
@@ -24118,8 +24149,111 @@
   }
 
 
+  function attributionAuditProductLabelV6230(name, id) {
+    const cleanName = textV6230(name, '');
+    const cleanId = textV6230(id, '');
+    if (cleanName && cleanId && cleanName !== cleanId) return cleanName + ' (' + cleanId + ')';
+    return cleanName || cleanId || '\u2014';
+  }
+
+  function attributionAuditRowsV6230(rows) {
+    const integration = window.cdaRemakeRootAttributionBrowserV1351;
+    const active = !!(integration && typeof integration.active === 'function' && integration.active());
+    if (!active) return { active:false, rows:[] };
+
+    const source = Array.isArray(rows) ? rows : [];
+    const prepared = source.filter(isRemakeV6230).map(function(row, index) {
+      const caseNumber = textV6230(row && (row.caseNumber || row.caseId), '');
+      const status = textV6230(row && row.remadeProductMappingStatus, '');
+      const exact = status === 'ATTRIBUTED_EXACT_ROOT';
+      const rootCaseNumber = Number(row && row.remadeRootCaseNumber || 0);
+      const currentProduct = attributionAuditProductLabelV6230(
+        row && row.currentProductNameV1351,
+        row && row.currentProductIdV1351
+      );
+      const rootProduct = exact
+        ? attributionAuditProductLabelV6230(
+            row && (row.remadeProductDisplay || row.remadeProductName),
+            row && row.remadeProductId
+          )
+        : '\u2014';
+      const dashboardBucket = textV6230(
+        row && row.productName,
+        textV6230(row && row.remadeAttributionDisplayLabel, '\u2014')
+      );
+      const lineId = textV6230(row && row.caseProductLineId, '');
+      return {
+        key:[caseNumber, lineId, String(index)].join('::'),
+        caseNumber:caseNumber || '\u2014',
+        currentProduct:currentProduct,
+        rootCaseNumber:rootCaseNumber || '',
+        rootProduct:rootProduct,
+        mappingStatus:status || '\u2014',
+        mappingMethod:textV6230(row && row.remadeProductMappingMethod, '\u2014'),
+        dashboardBucket:dashboardBucket || '\u2014'
+      };
+    });
+
+    return { active:true, rows:prepared };
+  }
+
+  function renderAttributionAuditTableV6230(auditRows, attributionActive) {
+    const table = idV6230('remakeAttributionAuditTableV6230');
+    if (!table) return;
+    const source = Array.isArray(auditRows) ? auditRows : [];
+    const sorted = sortedRowsV6230(source, 'attributionAudit');
+    const visible = sorted.slice(0, 500);
+    uiV6230.lastTables.attributionAudit = visible;
+
+    const header = '<thead><tr>'
+      + thV6230('attributionAudit','caseNumber','Remake Case',false,'','Remake Case')
+      + thV6230('attributionAudit','currentProduct','Current Product',false,'','Current remake product')
+      + thV6230('attributionAudit','rootCaseNumber','Root Case',false,'','Confirmed historical root case')
+      + thV6230('attributionAudit','rootProduct','Root Product',false,'','Exact confirmed root product')
+      + thV6230('attributionAudit','mappingStatus','Mapping Status',false)
+      + thV6230('attributionAudit','mappingMethod','Mapping Method',false)
+      + thV6230('attributionAudit','dashboardBucket','Dashboard Bucket',false,'','Product bucket used by the remake numerator')
+      + '</tr></thead>';
+
+    let body;
+    if (!attributionActive) {
+      body = '<tbody><tr><td colspan="7">Root attribution metadata is not active in this payload.</td></tr></tbody>';
+    } else if (!visible.length) {
+      body = '<tbody><tr><td colspan="7">No matching remake attribution rows.</td></tr></tbody>';
+    } else {
+      body = '<tbody>' + visible.map(function(row) {
+        const rootCase = row.rootCaseNumber ? String(row.rootCaseNumber) : '\u2014';
+        return '<tr>'
+          + '<td title="' + escV6230(row.caseNumber) + '">' + escV6230(row.caseNumber) + '</td>'
+          + '<td title="' + escV6230(row.currentProduct) + '">' + escV6230(row.currentProduct) + '</td>'
+          + '<td title="' + escV6230(rootCase) + '">' + escV6230(rootCase) + '</td>'
+          + '<td title="' + escV6230(row.rootProduct) + '">' + escV6230(row.rootProduct) + '</td>'
+          + '<td title="' + escV6230(row.mappingStatus) + '">' + escV6230(row.mappingStatus) + '</td>'
+          + '<td title="' + escV6230(row.mappingMethod) + '">' + escV6230(row.mappingMethod) + '</td>'
+          + '<td title="' + escV6230(row.dashboardBucket) + '">' + escV6230(row.dashboardBucket) + '</td>'
+          + '</tr>';
+      }).join('') + '</tbody>';
+    }
+
+    table.innerHTML = header + body;
+  }
+
+  function renderAttributionAuditV6230(rows) {
+    const prepared = attributionAuditRowsV6230(rows);
+    uiV6230.lastAttributionAuditRowsV6230 = prepared.rows;
+    uiV6230.lastAttributionAuditActiveV6230 = prepared.active;
+    renderAttributionAuditTableV6230(prepared.rows, prepared.active);
+  }
+
   function renderTableSectionOnlyV6297(kind) {
     syncTableCompareButtonsV6297();
+    if (kind === 'attributionAudit') {
+      renderAttributionAuditTableV6230(
+        uiV6230.lastAttributionAuditRowsV6230 || [],
+        uiV6230.lastAttributionAuditActiveV6230 === true
+      );
+      return;
+    }
     if (kind === 'reason') {
       renderRemakeReasonTableV6241('remakeReasonTable','reason',uiV6230.lastReasonGroupsV6297 || [],'Reason','reason',150,uiV6230.lastReasonTotalsV6297 || {});
       return;
@@ -24367,6 +24501,7 @@
       department: 'Departments',
       product: uiV6230.productTableMode === 'group' ? 'Product Groups' : 'Products',
       customer: 'Customers',
+      attributionAudit: 'Attribution Audit',
       ceramist: 'Technicians'
     };
     return titles[component] || 'Remake Factor';
@@ -24545,8 +24680,34 @@
     }));
   }
 
+  function exportAttributionAuditRowsV6230(rows) {
+    const source = Array.isArray(rows) ? rows : [];
+    return [[
+      'Remake Case',
+      'Current Product',
+      'Root Case',
+      'Root Product',
+      'Mapping Status',
+      'Mapping Method',
+      'Dashboard Bucket'
+    ]].concat(source.map(function(row) {
+      return [
+        row.caseNumber || '',
+        row.currentProduct || '',
+        row.rootCaseNumber || '',
+        row.rootProduct === '\u2014' ? '' : (row.rootProduct || ''),
+        row.mappingStatus === '\u2014' ? '' : (row.mappingStatus || ''),
+        row.mappingMethod === '\u2014' ? '' : (row.mappingMethod || ''),
+        row.dashboardBucket === '\u2014' ? '' : (row.dashboardBucket || '')
+      ];
+    }));
+  }
+
   window.exportRowsForV6230 = function exportRowsForV6230(component) {
     if (component === 'trend') return exportTrendSummaryRowsV6399();
+    if (component === 'attributionAudit') {
+      return exportAttributionAuditRowsV6230(uiV6230.lastTables.attributionAudit || []);
+    }
     if (component === 'ceramist') {
       const ceramistRows = uiV6230.lastTables.ceramistDetail || [];
       const selectedSummary = (uiV6230.lastTables.ceramist || []).find(function(row){ return String(row.key) === String(ceramistStateV6342.selectedCeramist || ''); });
@@ -24577,7 +24738,13 @@
 
   window.exportRemakeAllDataV6399 = function exportRemakeAllDataV6399(component) {
     try {
-      const rows = component === 'ceramist' ? window.exportRowsForV6230(component) : exportVisibleRowsV6397(component);
+      const rows = component === 'attributionAudit'
+        ? exportAttributionAuditRowsV6230(
+            sortedRowsV6230((uiV6230.lastAttributionAuditRowsV6230 || []).slice(), 'attributionAudit')
+          )
+        : component === 'ceramist'
+          ? window.exportRowsForV6230(component)
+          : exportVisibleRowsV6397(component);
       const dataRowCount = Array.isArray(rows) ? Math.max(0, rows.length - 1) : 0;
       if (!dataRowCount) { setNoticeV6230('No detailed rows are available for this panel.', 'warn'); return; }
       const fileName = 'remake-' + slugV6230(exportPanelTitleV6394(component)) + '-all-data.csv';
@@ -24658,6 +24825,7 @@
       department: { type: 'table', title: 'Departments', tableId: 'remakeDepartmentTable' },
       product: { type: 'table', title: uiV6230.productTableMode === 'group' ? 'Product Groups' : 'Products', tableId: 'remakeProductTable' },
       customer: { type: 'customer', title: 'Customers', canvasId: 'remakeCustomerChartV6230', tableId: 'remakeCustomerTable' },
+      attributionAudit: { type: 'table', title: 'Attribution Audit', tableId: 'remakeAttributionAuditTableV6230' },
       ceramist: { type: 'ceramist', title: 'Technicians', containerId: 'remakeCeramistCardV6342' }
     }[component] || null;
   }
