@@ -1,5 +1,5 @@
 <!-- SharedDashboardLayoutEditorV6593.html
-Version: v6.637
+Version: v6.638
 Compatibility API: v6.608
 Date: 2026-08-11
 Purpose: Universal Power BI-style canvas with single-authority saved geometry, incremental pre-paint card hydration, immutable runtime outer boxes, settled user viewport resizing, idempotent inner visual fitting, collision-safe pass-through drag placement, TAT table-surface recovery, persistent hidden-tab geometry, prepaint collapse/expand reflow, page-anchored geometry, independent collapsible cards, dynamic page extent, and exact alignment.
@@ -657,7 +657,7 @@ Purpose: Universal Power BI-style canvas with single-authority saved geometry, i
   'use strict';
 
   const versionV6593 = 'v6.608';
-  const releaseV6612 = 'v6.637';
+  const releaseV6612 = 'v6.638';
   if (window.cdaDashboardLayoutEditorV6593 &&
       window.cdaDashboardLayoutEditorV6593.version === versionV6593) return;
 
@@ -721,6 +721,10 @@ Purpose: Universal Power BI-style canvas with single-authority saved geometry, i
   let authoritativeHydrationCountV6622 = 0;
   let incrementalCardHydrationCountV6623 = 0;
   let ignoredRuntimeMutationCountV6623 = 0;
+  const firstPaintRetryDelaysV6638 = [0,32,80,160,320,640,1200,2000,3200,5000];
+  const firstPaintRetryTimersV6638 = new WeakMap();
+  let firstPaintHydrationRetryCountV6638 = 0;
+  let firstPaintHydrationSuccessCountV6638 = 0;
 
   function signalFirstPaintGeometryReadyV6619(page,reason){
     if (!page) return;
@@ -1691,7 +1695,12 @@ Purpose: Universal Power BI-style canvas with single-authority saved geometry, i
   function hydrateVisibleSavedLayoutsV6622(reason){
     let applied = 0;
     document.querySelectorAll(pageSelectorV6593).forEach(function(page){
-      if (pageVisibleV6593(page) && hydrateSavedLayoutAuthoritativelyV6622(page,reason || 'startup')) applied += 1;
+      if (!pageVisibleV6593(page)) return;
+      if (hydrateSavedLayoutAuthoritativelyV6622(page,reason || 'startup')) {
+        applied += 1;
+        return;
+      }
+      if (!pageMeasurableV6613(page)) scheduleFirstPaintHydrationV6638(page,(reason || 'startup') + '-await-measurable',0);
     });
     return applied;
   }
@@ -1783,7 +1792,10 @@ Purpose: Universal Power BI-style canvas with single-authority saved geometry, i
     const timer = window.setTimeout(function(){
       visibleTabActivationTimersV6613.delete(page);
       if (!pageVisibleV6593(page)) { clearManagedLayoutForHiddenPageV6613(page); return; }
-      if (!pageMeasurableV6613(page)) return;
+      if (!pageMeasurableV6613(page)) {
+        scheduleFirstPaintHydrationV6638(page,'scheduled-visible-page-await-measurable',0);
+        return;
+      }
       activateVisiblePageLayoutV6613(page);
     },Math.max(0,Number(delay) || 0));
     visibleTabActivationTimersV6613.set(page,timer);
@@ -1792,6 +1804,55 @@ Purpose: Universal Power BI-style canvas with single-authority saved geometry, i
   function scheduleActivePageActivationV6613(delay){
     const page = activePageV6593();
     if (page && pageVisibleV6593(page)) scheduleVisiblePageActivationV6613(page,delay);
+  }
+
+  function scheduleFirstPaintHydrationV6638(page,reason,attempt){
+    if (!page || !page.isConnected || Number(window.innerWidth || 0) < 981) return false;
+    const retryIndex = Math.max(0,Math.trunc(Number(attempt) || 0));
+    const oldTimer = firstPaintRetryTimersV6638.get(page);
+    if (oldTimer) window.clearTimeout(oldTimer);
+    const delay = firstPaintRetryDelaysV6638[Math.min(retryIndex,firstPaintRetryDelaysV6638.length - 1)];
+    const timer = window.setTimeout(function(){
+      firstPaintRetryTimersV6638.delete(page);
+      if (!page.isConnected || !pageVisibleV6593(page) || Number(window.innerWidth || 0) < 981) return;
+      if (!pageMeasurableV6613(page)) {
+        firstPaintHydrationRetryCountV6638 += 1;
+        if (retryIndex + 1 < firstPaintRetryDelaysV6638.length) scheduleFirstPaintHydrationV6638(page,reason,retryIndex + 1);
+        return;
+      }
+      const stored = layoutForTabV6593(tabKeyV6593(page));
+      let applied = true;
+      if (stored) {
+        applied = authoritativeHydratedPagesV6622.has(page)
+          ? (hydrateNewSavedCardsV6623(page,(reason || 'first-paint') + '-new-cards') >= 0)
+          : hydrateSavedLayoutAuthoritativelyV6622(page,(reason || 'first-paint') + '-saved-layout');
+      } else {
+        page.setAttribute('data-cda-layout-source-v6622','default');
+        page.setAttribute('data-cda-layout-authority-v6623','default');
+      }
+      if (!applied) {
+        firstPaintHydrationRetryCountV6638 += 1;
+        if (retryIndex + 1 < firstPaintRetryDelaysV6638.length) scheduleFirstPaintHydrationV6638(page,reason,retryIndex + 1);
+        return;
+      }
+      firstPaintHydrationSuccessCountV6638 += 1;
+      lastStructureSignatureV6608 = structureSignatureV6608();
+      updatePageExtentV6606(page,null,null);
+      updateButtonV6593();
+      scheduleVisualFitV6617(page,'first-paint-ready-v6638',20);
+      window.requestAnimationFrame(function(){
+        scheduleVisualFitV6617(page,'first-paint-next-frame-v6638',0);
+      });
+      document.dispatchEvent(new CustomEvent('cdaLayoutFirstPaintReadyV6638',{detail:{page:page,tabKey:tabKeyV6593(page),reason:reason || 'first-paint-ready',release:'v6.638'}}));
+    },Math.max(0,Number(delay) || 0));
+    firstPaintRetryTimersV6638.set(page,timer);
+    return true;
+  }
+
+  function scheduleActiveFirstPaintHydrationV6638(reason){
+    const page = activePageV6593();
+    if (!page || !pageVisibleV6593(page)) return false;
+    return scheduleFirstPaintHydrationV6638(page,reason || 'active-first-paint',0);
   }
 
   function mountControlsV6593(){
@@ -3518,7 +3579,11 @@ Purpose: Universal Power BI-style canvas with single-authority saved geometry, i
         return;
       }
       document.querySelectorAll(pageSelectorV6593).forEach(function(page){
-        if (!pageVisibleV6593(page) || !pageMeasurableV6613(page)) return;
+        if (!pageVisibleV6593(page)) return;
+        if (!pageMeasurableV6613(page)) {
+          scheduleFirstPaintHydrationV6638(page,'mutation-await-measurable',0);
+          return;
+        }
         if (authoritativeHydratedPagesV6622.has(page)) hydrateNewSavedCardsV6623(page,'mutation-new-cards');
         else hydrateSavedLayoutAuthoritativelyV6622(page,'mutation-first-hydration');
       });
@@ -3540,7 +3605,15 @@ Purpose: Universal Power BI-style canvas with single-authority saved geometry, i
     });
     reconcileV6593(false);
     const activeAtStartV6622 = activePageV6593();
-    if (activeAtStartV6622 && pageMeasurableV6613(activeAtStartV6622)) preparePageForActivationV6627(activeAtStartV6622,'script-start-active');
+    if (activeAtStartV6622) {
+      if (pageMeasurableV6613(activeAtStartV6622)) {
+        preparePageForActivationV6627(activeAtStartV6622,'script-start-active');
+        commitPageActivationV6627(activeAtStartV6622);
+      }
+      scheduleFirstPaintHydrationV6638(activeAtStartV6622,'script-start-first-paint',0);
+    }
+    window.addEventListener('load',function(){ scheduleActiveFirstPaintHydrationV6638('window-load'); },{once:true});
+    window.addEventListener('pageshow',function(){ scheduleActiveFirstPaintHydrationV6638('pageshow'); });
     window.addEventListener('resize',function(){
       if (internalResizeV6593) return;
       const nextViewportWidthV6622 = Math.round(Number(document.documentElement.clientWidth || window.innerWidth || 0));
@@ -3643,6 +3716,10 @@ Purpose: Universal Power BI-style canvas with single-authority saved geometry, i
         nativeCardContentMutationsRemainObservableV6615:true,
         noClearRewrapOnViewportResizeV6617:true,
         previsibleTabHydrationV6627:true,
+        firstPaintMeasurabilityRetryV6638:true,
+        coldLoadIndependentOfViewportResizeV6638:true,
+        firstPaintHydrationRetryCountV6638:firstPaintHydrationRetryCountV6638,
+        firstPaintHydrationSuccessCountV6638:firstPaintHydrationSuccessCountV6638,
         tabControllerSoleActivationOwnerV6628:true,
         savedExpandedHeightClampedToVisualMinimumV6628:true,
         noTabClickTimerHydrationV6627:true,

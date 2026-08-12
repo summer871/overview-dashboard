@@ -1,21 +1,21 @@
 <!-- SharedFooter.html
-Version: v6.637
+Version: v6.638
 Date: 2026-08-11
 Purpose: Render the shared bottom-of-page cache and build footer, load the shared dashboard component foundation, and expose filter-independent Remake refresh progress.
 -->
 <style id="cdaSharedFooterStylesV6567">
   #remakeLastRefresh,#tatStampV6509,.remakePageFooterV6338{display:none!important;visibility:hidden!important}
-  #cdaSharedAppFooterV6531{width:100%;box-sizing:border-box;display:flex;justify-content:flex-end;align-items:center;flex-wrap:wrap;padding:4px 12px 6px;color:#98a2b3;background:transparent;font:500 8.5px/1.25 Roboto,Arial,sans-serif;text-align:right;opacity:.84}
+  #cdaSharedAppFooterV6531{width:100%;min-height:28px;box-sizing:border-box;display:flex;justify-content:flex-end;align-items:center;flex-wrap:wrap;padding:6px 14px 8px;color:#667085;background:transparent;font:600 10.5px/1.35 Roboto,Arial,sans-serif;text-align:right;opacity:.96}
   #cdaSharedAppFooterV6531 [data-footer-item]{display:inline-flex;align-items:center;white-space:nowrap}
-  #cdaSharedAppFooterV6531 [data-footer-item]+[data-footer-item]::before{content:'\2022';display:inline-block;margin:0 5px;color:#d0d5dd}
-  #cdaSharedAppFooterV6531 .cdaSharedFooterIdentityV6531{font-weight:600}
-  #cdaSharedAppFooterV6531 [data-cache-available-v6567="true"]{color:#667085;font-weight:600}
+  #cdaSharedAppFooterV6531 [data-footer-item]+[data-footer-item]::before{content:'\2022';display:inline-block;margin:0 6px;color:#c4cbd4}
+  #cdaSharedAppFooterV6531 .cdaSharedFooterIdentityV6531{font-weight:700;color:#475467}
+  #cdaSharedAppFooterV6531 [data-cache-available-v6567="true"]{color:#475467;font-weight:600}
 </style>
 <script id="cdaSharedFooterControllerV6567">
 (function installCdaSharedFooterV6567(){
   'use strict';
 
-  const UI_VERSION = 'v6.637';
+  const UI_VERSION = 'v6.638';
   const BUILD_LABEL = 'REMAKE-CASCADING-SYNC-74';
   const FOOTER_ID = 'cdaSharedAppFooterV6531';
   const TECH_RE = /technician|ceramist|worker/i;
