@@ -1,7 +1,7 @@
 <!-- SharedDashboardLayoutEditorV6593.html
-Version: v6.637
+Version: v6.628
 Compatibility API: v6.608
-Date: 2026-08-11
+Date: 2026-08-03
 Purpose: Universal Power BI-style canvas with single-authority saved geometry, incremental pre-paint card hydration, immutable runtime outer boxes, settled user viewport resizing, idempotent inner visual fitting, collision-safe pass-through drag placement, TAT table-surface recovery, persistent hidden-tab geometry, prepaint collapse/expand reflow, page-anchored geometry, independent collapsible cards, dynamic page extent, and exact alignment.
 -->
 <style id="cdaSharedDashboardLayoutEditorStylesV6593">
@@ -657,7 +657,7 @@ Purpose: Universal Power BI-style canvas with single-authority saved geometry, i
   'use strict';
 
   const versionV6593 = 'v6.608';
-  const releaseV6612 = 'v6.637';
+  const releaseV6612 = 'v6.628';
   if (window.cdaDashboardLayoutEditorV6593 &&
       window.cdaDashboardLayoutEditorV6593.version === versionV6593) return;
 
@@ -868,8 +868,8 @@ Purpose: Universal Power BI-style canvas with single-authority saved geometry, i
     let matchedCards = 0;
     let validItems = 0;
     gridsForPageV6593(page).forEach(function(grid,gridIndex){
-      const resolvedGrid = findGridLayoutV6593(layout,grid,gridIndex);
-      const gridLayout = resolvedGrid.value;
+      const gridKey = gridKeyV6593(grid,gridIndex);
+      const gridLayout = layout.grids[gridKey];
       directCardsV6593(grid).forEach(function(card,cardIndex){
         actualCards += 1;
         const cardKey = cardKeyV6593(card,cardIndex);
@@ -886,6 +886,7 @@ Purpose: Universal Power BI-style canvas with single-authority saved geometry, i
     const required = Math.max(1,Math.ceil(actualCards * .6));
     return matchedCards >= required && validItems >= required;
   }
+
   function directCardsV6593(grid){
     const cards = [];
     Array.from(grid && grid.children || []).forEach(function(node){
@@ -1476,116 +1477,25 @@ Purpose: Universal Power BI-style canvas with single-authority saved geometry, i
 
   function applySavedLayoutInPlaceV6617(page){
     if (!page || !pageVisibleV6593(page) || !pageMeasurableV6613(page)) return false;
-    let layout = sessionV6593 && sessionV6593.page === page ? sessionV6593.working : null;
-    if (!layout) {
-      const stored = layoutForTabV6593(tabKeyV6593(page));
-      layout = stored ? mergeCurrentCardsIntoLayoutV6637(page,stored) : null;
-    }
+    const layout = sessionV6593 && sessionV6593.page === page ? sessionV6593.working : layoutForTabV6593(tabKeyV6593(page));
     if (!layout || !layoutMatchesVisiblePageV6613(page,layout)) return false;
     applyLayoutV6593(page,layout,true);
     updatePageExtentV6606(page,null,null);
     scheduleVisualFitV6617(page,'saved-layout-in-place',40);
     return true;
   }
+
   function scheduleRefreshV6593(page){
     const elapsed = Date.now() - refreshLastRunV6608;
     refreshLastRunV6608 = Date.now();
     scheduleVisualFitV6617(page || document,'layout-refresh',Math.max(40,120 - Math.min(80,elapsed)));
   }
 
-  function gridCardKeysV6637(grid){
-    return directCardsV6593(grid).map(function(card,cardIndex){ return cardKeyV6593(card,cardIndex); }).filter(Boolean);
-  }
-
-  function gridLayoutMatchScoreV6637(gridLayout,cardKeys){
-    if (!gridLayout || !gridLayout.items || !cardKeys || !cardKeys.length) return 0;
-    return cardKeys.reduce(function(score,key){ return score + (gridLayout.items[key] ? 1 : 0); },0);
-  }
-
-  function stableUnmatchedGridKeyV6637(layout,grid,index){
-    const grids = layout && layout.grids || {};
-    const currentKey = gridKeyV6593(grid,index);
-    if (!grids[currentKey]) return currentKey;
-    const cardKeys = gridCardKeysV6637(grid);
-    const base = 'grid-new-' + safeKeyV6593(cardKeys.join('-') || String(index + 1));
-    let candidate = base;
-    let suffix = 2;
-    while (grids[candidate]) { candidate = base + '-' + String(suffix); suffix += 1; }
-    return candidate;
-  }
-
   function findGridLayoutV6593(layout,grid,index){
-    const grids = layout && layout.grids || {};
     const key = gridKeyV6593(grid,index);
-    const cardKeys = gridCardKeysV6637(grid);
-    const direct = grids[key];
-    if (gridLayoutMatchScoreV6637(direct,cardKeys) > 0) return {key:key,value:direct};
-    let bestKey = null;
-    let bestScore = 0;
-    Object.keys(grids).forEach(function(candidateKey){
-      const score = gridLayoutMatchScoreV6637(grids[candidateKey],cardKeys);
-      if (score > bestScore) { bestScore = score; bestKey = candidateKey; }
-    });
-    if (bestKey) return {key:bestKey,value:grids[bestKey]};
-    return {key:stableUnmatchedGridKeyV6637(layout,grid,index),value:null};
+    return {key:key,value:layout && layout.grids && layout.grids[key]};
   }
 
-  function layoutMaxBottomV6637(layout){
-    let maxBottom = 0;
-    Object.keys(layout && layout.grids || {}).forEach(function(gridKey){
-      const gridLayout = layout.grids[gridKey];
-      Object.keys(gridLayout && gridLayout.items || {}).forEach(function(cardKey){
-        const item = gridLayout.items[cardKey] || {};
-        const top = Number.isFinite(Number(item.pageTop)) ? Number(item.pageTop) : Number(item.top) || 0;
-        const height = Math.max(40,Number(item.height) || minHeightV6593);
-        maxBottom = Math.max(maxBottom,top + height);
-      });
-    });
-    return maxBottom;
-  }
-
-  function appendNewItemV6637(targetItems,key,sourceItem,nextTop){
-    if (!sourceItem || targetItems[key]) return nextTop;
-    const item = cloneV6593(sourceItem);
-    const height = Math.max(40,Number(item.height) || minHeightV6593);
-    item.pageTop = Math.round(nextTop);
-    targetItems[key] = item;
-    return Math.round(nextTop + height + universalCollisionGapV6611);
-  }
-
-  function mergeCurrentCardsIntoLayoutV6637(page,layout){
-    if (!page || !layout || !layout.grids) return layout;
-    const merged = cloneV6593(layout);
-    merged.grids = merged.grids || {};
-    const captured = capturePageV6593(page);
-    let nextTop = Math.round(layoutMaxBottomV6637(merged) + universalCollisionGapV6611);
-    gridsForPageV6593(page).forEach(function(grid,index){
-      const liveKey = gridKeyV6593(grid,index);
-      const sourceGrid = captured.grids && captured.grids[liveKey];
-      const resolved = findGridLayoutV6593(merged,grid,index);
-      if (resolved.value) {
-        grid.setAttribute('data-cda-layout-editor-grid-key-v6593',resolved.key);
-        resolved.value.items = resolved.value.items || {};
-        directCardsV6593(grid).forEach(function(card,cardIndex){
-          const cardKey = cardKeyV6593(card,cardIndex);
-          const sourceItem = sourceGrid && sourceGrid.items && sourceGrid.items[cardKey];
-          nextTop = appendNewItemV6637(resolved.value.items,cardKey,sourceItem,nextTop);
-        });
-        return;
-      }
-      if (!sourceGrid || !sourceGrid.items) return;
-      const targetGrid = cloneV6593(sourceGrid);
-      targetGrid.items = {};
-      directCardsV6593(grid).forEach(function(card,cardIndex){
-        const cardKey = cardKeyV6593(card,cardIndex);
-        const sourceItem = sourceGrid.items[cardKey];
-        nextTop = appendNewItemV6637(targetGrid.items,cardKey,sourceItem,nextTop);
-      });
-      merged.grids[resolved.key] = targetGrid;
-      grid.setAttribute('data-cda-layout-editor-grid-key-v6593',resolved.key);
-    });
-    return merged;
-  }
   function applyLayoutV6593(page,layout,suppressRefreshV6608,skipUniversalReflowV6611){
     if (!page || !layout) return false;
     const targets = [];
@@ -1627,8 +1537,7 @@ Purpose: Universal Power BI-style canvas with single-authority saved geometry, i
 
   function hydrateNewSavedCardsV6623(page,reason){
     if (!page || Number(window.innerWidth || 0) < 981 || !pageMeasurableV6613(page)) return 0;
-    const stored = layoutForTabV6593(tabKeyV6593(page));
-    const saved = stored ? mergeCurrentCardsIntoLayoutV6637(page,stored) : null;
+    const saved = layoutForTabV6593(tabKeyV6593(page));
     if (!saved || !saved.grids) return 0;
     let applied = 0;
     withObserverMutedV6608(function(){
@@ -1663,11 +1572,11 @@ Purpose: Universal Power BI-style canvas with single-authority saved geometry, i
     }
     return applied;
   }
+
   function hydrateSavedLayoutAuthoritativelyV6622(page,reason){
     if (!page || Number(window.innerWidth || 0) < 981 || !pageMeasurableV6613(page)) return false;
     const tab = tabKeyV6593(page);
-    const stored = layoutForTabV6593(tab);
-    const saved = stored ? mergeCurrentCardsIntoLayoutV6637(page,stored) : null;
+    const saved = layoutForTabV6593(tab);
     if (!saved) {
       page.setAttribute('data-cda-layout-source-v6622','default');
       page.setAttribute('data-cda-layout-authority-v6623','default');
@@ -1688,6 +1597,7 @@ Purpose: Universal Power BI-style canvas with single-authority saved geometry, i
     signalFirstPaintGeometryReadyV6619(page,reason || 'single-authority-hydration');
     return true;
   }
+
   function hydrateVisibleSavedLayoutsV6622(reason){
     let applied = 0;
     document.querySelectorAll(pageSelectorV6593).forEach(function(page){
@@ -1919,8 +1829,7 @@ Purpose: Universal Power BI-style canvas with single-authority saved geometry, i
     const page = activePageV6593();
     if (!page) return;
     const tab = tabKeyV6593(page);
-    const stored = layoutForTabV6593(tab);
-    const saved = stored ? mergeCurrentCardsIntoLayoutV6637(page,stored) : null;
+    const saved = layoutForTabV6593(tab);
     const before = geometryMapV6593(page);
     const working = saved ? cloneV6593(saved) : capturePageV6593(page);
     sessionV6593 = {page:page,tab:tab,savedBefore:saved,working:cloneV6593(working),history:[],changed:false,entryGeometry:before,entryDelta:0,collapseShiftsV6607:{}};
@@ -1931,10 +1840,11 @@ Purpose: Universal Power BI-style canvas with single-authority saved geometry, i
     const status = document.getElementById('cdaLayoutEditorStatusV6593');
     const registry = registryAuditV6603(page);
     if (status) status.textContent = registry.skipped
-      ? 'Editor registry warning Â· ' + registry.skipped + ' visual(s) skipped'
-      : 'Editing ' + (tab === 'tat' ? 'TAT' : 'Remake') + ' Â· all ' + registry.registered + ' visuals editable Â· independent cards Â· pass-through drag Â· collision-safe drop Â· cross-row movement Â· orange = near Â· green = exact';
+      ? 'Editor registry warning · ' + registry.skipped + ' visual(s) skipped'
+      : 'Editing ' + (tab === 'tat' ? 'TAT' : 'Remake') + ' · all ' + registry.registered + ' visuals editable · independent cards · pass-through drag · collision-safe drop · cross-row movement · orange = near · green = exact';
     updateOverlapStateV6593();
   }
+
   function exitEditingV6593(){
     const page = sessionV6593 && sessionV6593.page;
     document.documentElement.classList.remove('cdaLayoutEditorActiveV6593');

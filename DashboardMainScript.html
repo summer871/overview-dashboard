@@ -1,6 +1,5 @@
 <script>
 
-    // v6.629 (2026-08-05): Remove the customer responsibility drilldown panel so the customer table owns the full card body.
     window.dashboardBaseUrl = '<?!= dashboardBaseUrl ?>';
     window.CDA_SERVER_PRESENTATION = {
       version: <?!= JSON.stringify(dashboardPresentationVersion || 'v6.251') ?>,
@@ -19134,40 +19133,6 @@
     // v6.254 intentionally does not read old browser cache keys.
     // This forces a fresh read from the Drive/server cache after the customer-name fixes.
   ];
-  const REMAKE_RUNTIME_BRIDGE_VERSION_V6637 = 'v6.637';
-  function remakeRuntimeGetV6637(name) {
-    switch (String(name || "")) {
-      case 'expandRemakeBrowserReadyPayloadV6388': return expandRemakeBrowserReadyPayloadV6388;
-      case 'normalizeRowsV6230': return normalizeRowsV6230;
-      case 'rowsForRemakeFiltersV6252': return rowsForRemakeFiltersV6252;
-      case 'populateFiltersV6230': return populateFiltersV6230;
-      case 'slimDataV6230': return slimDataV6230;
-      case 'handleDataV6230': return handleDataV6230;
-      case 'isRemakeV6230': return isRemakeV6230;
-      default: return null;
-    }
-  }
-  function remakeRuntimeSetV6637(name, fn) {
-    if (typeof fn !== 'function') return false;
-    switch (String(name || "")) {
-      case 'expandRemakeBrowserReadyPayloadV6388': expandRemakeBrowserReadyPayloadV6388 = fn; break;
-      case 'normalizeRowsV6230': normalizeRowsV6230 = fn; break;
-      case 'rowsForRemakeFiltersV6252': rowsForRemakeFiltersV6252 = fn; break;
-      case 'populateFiltersV6230': populateFiltersV6230 = fn; break;
-      case 'slimDataV6230': slimDataV6230 = fn; break;
-      case 'handleDataV6230': handleDataV6230 = fn; break;
-      case 'isRemakeV6230': isRemakeV6230 = fn; break;
-      default: return false;
-    }
-    return true;
-  }
-  window.cdaRemakeRuntimeBridgeV6637 = Object.freeze({
-    version: REMAKE_RUNTIME_BRIDGE_VERSION_V6637,
-    get: remakeRuntimeGetV6637,
-    set: remakeRuntimeSetV6637,
-    has: function(name) { return typeof remakeRuntimeGetV6637(name) === 'function'; }
-  });
-  document.dispatchEvent(new CustomEvent('cdaRemakeRuntimeBridgeReadyV6637', { detail: { version: REMAKE_RUNTIME_BRIDGE_VERSION_V6637 } }));
   const MODE_KEY_V6230 = 'cdaRemakeFactorMode.v6230';
   const TREND_MEASURE_KEY_V6245 = 'cdaRemakeFactorTrendMeasure.v6245';
   const TREND_VALUE_KEY_V6247 = 'cdaRemakeFactorTrendValueMode.v6247';
@@ -19226,7 +19191,6 @@
     department: { field: 'remakeCases', dir: 'desc' },
     product: { field: 'remakeCases', dir: 'desc' },
     customer: { field: 'remakeCaseRate', dir: 'desc' },
-    attributionAudit: { field: 'caseNumber', dir: 'desc' },
     ceramist: { field: 'remakeUnits', dir: 'desc' },
     ceramistDetail: { field: 'remakeUnits', dir: 'desc' }
   };
@@ -19242,7 +19206,6 @@
     selectedMonths: new Set(readLocalJsonV6230(MONTHS_KEY_V6230, [])),
     filters: Object.assign({ year: '', department: '', product: '', productGroup: '', customer: '', reason: '' }, readLocalJsonV6230(FILTERS_KEY_V6230, {})),
     filterExclusionsV6389: Object.assign({ year: [], department: [], product: [], productGroup: [], customer: [], reason: [] }, readLocalJsonV6230(FILTER_EXCLUSIONS_KEY_V6389, {})),
-    crossFiltersV6634: { department: [], product: [], productGroup: [], customer: [], reason: [] },
     sorts: Object.assign({}, defaultSortsV6230, readLocalJsonV6230(SORT_KEY_V6230, {})),
     filterOptionsV6245: {},
     selectedOnlyV6245: {},
@@ -19323,7 +19286,6 @@
   function remakeSnapshotV6266() {
     return JSON.stringify({
       filters: uiV6230.filters || {},
-      crossFiltersV6634: uiV6230.crossFiltersV6634 || {},
       selectedMonths: Array.from(uiV6230.selectedMonths || []),
       mode: uiV6230.mode === 'bar' ? 'bar' : 'line',
       filterExclusionsV6389: uiV6230.filterExclusionsV6389 || {},
@@ -19356,11 +19318,6 @@
       ['year','department','product','productGroup','customer','reason'].forEach(kind => {
         const raw = uiV6230.filters[kind];
         uiV6230.filters[kind] = Array.isArray(raw) ? raw.map(String) : (raw ? [String(raw)] : []);
-      });
-      uiV6230.crossFiltersV6634 = Object.assign({ department: [], product: [], productGroup: [], customer: [], reason: [] }, snapshot.crossFiltersV6634 || {});
-      ['department','product','productGroup','customer','reason'].forEach(function(kind){
-        const raw = uiV6230.crossFiltersV6634[kind];
-        uiV6230.crossFiltersV6634[kind] = Array.isArray(raw) ? raw.map(String).filter(Boolean) : (raw ? [String(raw)] : []);
       });
       uiV6230.selectedMonths = new Set((snapshot.selectedMonths || []).map(String));
       uiV6230.mode = snapshot.mode === 'bar' ? 'bar' : 'line';
@@ -20068,14 +20025,6 @@
       + '</div>';
   }
 
-  function attributionAuditActionsV6230() {
-    const component = 'attributionAudit';
-    return '<div class="remakeCardActionsV6230">'
-      + '<button class="remakeMiniButtonV6230" type="button" title="Export the attribution rows currently shown in this panel" onclick="exportRemakeComponentV6230(\'' + component + '\')">Export current</button>'
-      + '<button class="remakeMiniButtonV6230" type="button" title="Export all filtered attribution rows" onclick="exportRemakeAllDataV6399(\'' + component + '\')">All data</button>'
-      + '<button class="remakeMiniButtonV6230" type="button" title="Open a live interactive pop-out" onclick="popoutRemakeComponentV6230(\'' + component + '\')">Pop out</button>'
-      + '</div>';
-  }
 
   const filterMetaV6245 = {
     year: { inputId: 'remakeYearFilter', buttonId: 'remakeYearButtonV6245', panelId: 'remakeYearPanelV6245', searchId: 'remakeYearSearchV6245', listId: 'remakeYearListV6245', countId: 'remakeYearCountV6245', allLabel: 'All years', label: 'Year' },
@@ -20091,11 +20040,6 @@
   function filterValuesV6245(kind) { const raw = uiV6230.filters ? uiV6230.filters[kind] : ''; if (Array.isArray(raw)) return raw.map(String).filter(Boolean); if (!raw) return []; try { const parsed = JSON.parse(String(raw)); if (Array.isArray(parsed)) return parsed.map(String).filter(Boolean); } catch(e) {} return [String(raw)]; }
   function excludedFilterValuesV6389(kind) { const raw = uiV6230.filterExclusionsV6389 ? uiV6230.filterExclusionsV6389[kind] : []; if (Array.isArray(raw)) return raw.map(String).filter(Boolean); if (!raw) return []; return [String(raw)]; }
   function filterIsNoneV6308(kind) { const values = filterValuesV6245(kind); return values.length === 1 && values[0] === REMAKE_NONE_FILTER_VALUE_V6308; }
-  function crossFilterValuesV6634(kind) { const raw = uiV6230.crossFiltersV6634 ? uiV6230.crossFiltersV6634[kind] : []; if (Array.isArray(raw)) return raw.map(String).filter(Boolean); if (!raw) return []; return [String(raw)]; }
-  function setCrossFilterValuesV6634(kind, values) { if (!uiV6230.crossFiltersV6634) uiV6230.crossFiltersV6634 = { department: [], product: [], productGroup: [], customer: [], reason: [] }; const seen = new Set(); const clean = []; (Array.isArray(values) ? values : [values]).forEach(function(value){ const text = String(value == null ? '' : value).trim(); if (text && !seen.has(text)) { seen.add(text); clean.push(text); } }); uiV6230.crossFiltersV6634[kind] = clean; return clean; }
-  function clearAllCrossFiltersV6634() { uiV6230.crossFiltersV6634 = { department: [], product: [], productGroup: [], customer: [], reason: [] }; }
-  window.CDA_REMAKE_HARD_FOCUS_VERSION = 'v6.634';
-  window.cdaRemakeHardFocusV6634 = Object.freeze({ version:'v6.634', audit:function(){ return { version:'v6.634', hardDepartment:filterValuesV6245('department'), softDepartment:crossFilterValuesV6634('department'), hardProduct:filterValuesV6245('product'), softProduct:crossFilterValuesV6634('product'), ok:true }; } });
   function setFilterValuesV6245(kind, values) { const seen = new Set(); const clean = []; (Array.isArray(values) ? values : [values]).forEach(value => { const text = String(value === null || value === undefined ? '' : value).trim(); if (text && !seen.has(text)) { seen.add(text); clean.push(text); } }); uiV6230.filters[kind] = clean; if (!uiV6230.filterExclusionsV6389) uiV6230.filterExclusionsV6389 = {}; uiV6230.filterExclusionsV6389[kind] = []; const meta = filterMetaV6245[kind]; const input = meta ? idV6230(meta.inputId) : null; if (input) input.value = JSON.stringify(clean); return clean; }
   function setFilterExclusionsV6389(kind, values) { const seen = new Set(); const clean = []; (Array.isArray(values) ? values : [values]).forEach(value => { const text = String(value === null || value === undefined ? '' : value).trim(); if (text && !seen.has(text)) { seen.add(text); clean.push(text); } }); if (!uiV6230.filterExclusionsV6389) uiV6230.filterExclusionsV6389 = {}; uiV6230.filterExclusionsV6389[kind] = clean; uiV6230.filters[kind] = []; const meta = filterMetaV6245[kind]; const input = meta ? idV6230(meta.inputId) : null; if (input) input.value = '[]'; return clean; }
   function matchesFilterV6245(kind, value) { const selected = filterValuesV6245(kind); if (filterIsNoneV6308(kind)) return false; if (selected.length) return selected.some(item => String(item) === String(value)); const excluded = new Set(excludedFilterValuesV6389(kind)); return !excluded.has(String(value)); }
@@ -20209,17 +20153,12 @@
         <div class="remakeGridV6230">
           <div class="remakeCard remakeCardWideV6230" id="remakeCustomerCardV6230">
             <div class="remakeCardHeader"><div id="remakeCustomerTitleV6251" class="remakeCardTitle">Customers</div><div class="remakeCustomerHeaderControlsV6251"><button id="remakeCustomerCompareBtnV6297" class="tableCompareToggleV6297" type="button" onclick="toggleRemakeTableCompareV6297('customer')">2025</button>${cardActionsV6230('customer')}</div></div>
-            <div class="remakeTableWrap remakeCustomerTableWrapV6230"><table id="remakeCustomerTable" class="remakeTable"></table></div>
-          </div>
-        </div>
-        <div class="remakeGridV6230" id="remakeAttributionAuditGridV6637">
-          <div class="remakeCard remakeCardWideV6230" id="remakeAttributionAuditCardV6230">
-            <div class="remakeCardHeader">
-              <div class="remakeCardTitle">Attribution Audit</div>
-              ${attributionAuditActionsV6230()}
-            </div>
-            <div class="remakeTableWrap">
-              <table id="remakeAttributionAuditTableV6230" class="remakeTable"></table>
+            <div class="remakeCustomerSplitV6230">
+              <div class="remakeCustomerDetailPanelV6503">
+                <div id="remakeCustomerResponsibilitySummaryV6502" class="remakeCustomerResponsibilitySummaryV6502"></div>
+                <div class="remakeCustomerChartBoxV6230"><canvas id="remakeCustomerChartV6230"></canvas><div id="remakeCustomerDetailEmptyV6503" class="remakeCustomerDetailEmptyChartV6503">Select a customer, department, product, group, reason, or technician to view its responsibility share.</div></div>
+              </div>
+              <div class="remakeTableWrap remakeCustomerTableWrapV6230"><table id="remakeCustomerTable" class="remakeTable"></table></div>
             </div>
           </div>
         </div>
@@ -20628,59 +20567,41 @@
   function rowsForFiltersV6230(rows, options) {
     const includeMonths = !options || options.months !== false;
     const includeYear = !(options && options.year === false);
-    const includeHardDepartment = !(options && options.hardDepartment === false);
-    const includeHardProduct = !(options && options.hardProduct === false);
-    const includeHardProductGroup = !(options && options.hardProductGroup === false);
-    const includeHardCustomer = !(options && options.hardCustomer === false);
-    const includeHardReason = !(options && options.hardReason === false);
-    const includeCrossFilters = !(options && options.crossFilters === false);
-    const includeCrossDepartment = includeCrossFilters && !(options && options.department === false);
-    const includeCrossProduct = includeCrossFilters && !(options && options.product === false);
-    const includeCrossProductGroup = includeCrossFilters && !(options && options.productGroup === false);
-    const includeCrossCustomer = includeCrossFilters && !(options && options.customer === false);
-    const includeCrossReason = includeCrossFilters && !(options && options.reason === false);
+    const includeDepartment = !(options && options.department === false);
+    const includeProduct = !(options && options.product === false);
+    const includeProductGroup = !(options && options.productGroup === false);
+    const includeCustomer = !(options && options.customer === false);
+    const includeReason = !(options && options.reason === false);
     const selectedMonths = uiV6230.selectedMonths || new Set();
 
-    const compiledHardV6634 = {};
+    /* v6.333: compile filter membership once per pass. The prior predicate
+       rebuilt the selected arrays for every field on every row, which caused
+       a visible main-thread pause before cross-filter transitions. */
+    const compiledFiltersV6333 = {};
     ['year','department','product','productGroup','customer','reason'].forEach(function(kind) {
       const values = filterValuesV6245(kind).map(String);
       const excluded = excludedFilterValuesV6389(kind).map(String);
-      compiledHardV6634[kind] = {
+      compiledFiltersV6333[kind] = {
         none: values.length === 1 && values[0] === REMAKE_NONE_FILTER_VALUE_V6308,
         values: values.length ? new Set(values) : null,
         excluded: excluded.length ? new Set(excluded) : null
       };
     });
-    function matchesHardV6634(kind, value) {
-      const filter = compiledHardV6634[kind];
+    function matchesCompiledFilterV6333(kind, value) {
+      const filter = compiledFiltersV6333[kind];
       if (!filter || filter.none) return false;
       const text = String(value);
       if (filter.values) return filter.values.has(text);
       return !filter.excluded || !filter.excluded.has(text);
     }
 
-    const compiledCrossV6634 = {};
-    ['department','product','productGroup','customer','reason'].forEach(function(kind) {
-      const values = crossFilterValuesV6634(kind);
-      compiledCrossV6634[kind] = values.length ? new Set(values.map(String)) : null;
-    });
-    function matchesCrossV6634(kind, value) {
-      const selected = compiledCrossV6634[kind];
-      return !selected || selected.has(String(value));
-    }
-
     return (rows || []).filter(row =>
-      (!includeYear || matchesHardV6634('year', row.year)) &&
-      (!includeHardDepartment || matchesHardV6634('department', row.department)) &&
-      (!includeHardProduct || matchesHardV6634('product', row.productKey)) &&
-      (!includeHardProductGroup || matchesHardV6634('productGroup', row.productGroup || 'Unassigned')) &&
-      (!includeHardCustomer || matchesHardV6634('customer', row.customerKey)) &&
-      (!includeHardReason || matchesHardV6634('reason', row.remakeReason)) &&
-      (!includeCrossDepartment || matchesCrossV6634('department', row.department)) &&
-      (!includeCrossProduct || matchesCrossV6634('product', row.productKey)) &&
-      (!includeCrossProductGroup || matchesCrossV6634('productGroup', row.productGroup || 'Unassigned')) &&
-      (!includeCrossCustomer || matchesCrossV6634('customer', row.customerKey)) &&
-      (!includeCrossReason || matchesCrossV6634('reason', row.remakeReason)) &&
+      (!includeYear || matchesCompiledFilterV6333('year', row.year)) &&
+      (!includeDepartment || matchesCompiledFilterV6333('department', row.department)) &&
+      (!includeProduct || matchesCompiledFilterV6333('product', row.productKey)) &&
+      (!includeProductGroup || matchesCompiledFilterV6333('productGroup', row.productGroup || row.department || 'Unassigned')) &&
+      (!includeCustomer || matchesCompiledFilterV6333('customer', row.customerKey)) &&
+      (!includeReason || matchesCompiledFilterV6333('reason', row.remakeReason)) &&
       (!includeMonths || !selectedMonths.size || selectedMonths.has(row.month))
     );
   }
@@ -20689,7 +20610,7 @@
      Year/month, department, product, and customer filters define the full case base.
      Reason filters are remake-only, so they narrow the numerator but never shrink Total Cases. */
   function rowsForBaseFiltersV6252(rows, options) {
-    return rowsForFiltersV6230(rows, Object.assign({}, options || {}, { reason: false, hardReason: false }));
+    return rowsForFiltersV6230(rows, Object.assign({}, options || {}, { reason: false }));
   }
   function rowsForRemakeFiltersV6252(rows, options) {
     return rowsForFiltersV6230(rows, options || {});
@@ -21692,11 +21613,6 @@
     if (field === 'currentWorker') return String(row.currentWorker || '').toLowerCase();
     if (field === 'customerId') return String(row.customerId || row.key || '').toLowerCase();
     if (field === 'status') return row.customerActive === false ? 0 : 1;
-    if (field === 'currentProduct' || field === 'rootProduct' ||
-        field === 'mappingStatus' || field === 'mappingMethod' ||
-        field === 'dashboardBucket') {
-      return String(row && row[field] || '').toLowerCase();
-    }
     if (String(field || '').indexOf(comparisonDeltaPrefixV6303) === 0) {
       return comparisonDeltaSortValueV6303(row, String(field).slice(comparisonDeltaPrefixV6303.length));
     }
@@ -21773,7 +21689,7 @@
     // other tables do not blink or rebuild.
     if (tableKey === 'ceramist' || tableKey === 'ceramistDetail') {
       renderCeramistAnalysisV6342();
-    } else if (['reason','department','product','customer','attributionAudit'].indexOf(tableKey) >= 0 && typeof runGentleTableMorphV6297 === 'function') {
+    } else if (['reason','department','product','customer'].indexOf(tableKey) >= 0 && typeof runGentleTableMorphV6297 === 'function') {
       runGentleTableMorphV6297(tableKey, function(){ renderTableSectionOnlyV6297(tableKey); }, tableKey === 'customer' ? { preserveChart: true } : null);
     } else renderDashboardV6230();
   };
@@ -21784,10 +21700,6 @@
     const parts = ['year','department','product','productGroup','customer','reason'].map(function(kind){
       return kind + '=' + filterValuesV6245(kind).map(String).sort().join('|') + ';excluded=' + excludedFilterValuesV6389(kind).map(String).sort().join('|');
     });
-    const crossKinds = ['department','product','productGroup','customer','reason'];
-    parts.push('cross=' + crossKinds.map(function(kind){
-      return kind + '=' + crossFilterValuesV6634(kind).map(String).sort().join('|');
-    }).join(';'));
     parts.push('months=' + Array.from(uiV6230.selectedMonths || []).map(String).sort().join('|'));
     return parts.join('::');
   }
@@ -21916,7 +21828,7 @@
   function renderStandardTableV6230(id, tableKey, rows, firstHeader, filterKind, limit) {
     const table = idV6230(id);
     if (!table) return;
-    const activeValues = filterKind ? new Set(crossFilterValuesV6634(filterKind).map(String)) : new Set();
+    const activeValues = filterKind ? new Set(filterValuesV6245(filterKind).map(String)) : new Set();
     const sorted = selectedRowsFirstV6311(sortedRowsV6230(rows, tableKey), activeValues, row => row.key, limit || 200);
     uiV6230.lastTables[tableKey] = sorted;
     const compare = tableCompareOnV6297(tableKey);
@@ -21964,7 +21876,7 @@
   function renderRemakeReasonTableV6241(id, tableKey, rows, firstHeader, filterKind, limit, totals) {
     const table = idV6230(id);
     if (!table) return;
-    const activeValues = filterKind ? new Set(crossFilterValuesV6634(filterKind).map(String)) : new Set();
+    const activeValues = filterKind ? new Set(filterValuesV6245(filterKind).map(String)) : new Set();
     const sorted = selectedRowsFirstV6311(sortedRowsV6230(rows, tableKey), activeValues, row => row.key, limit || 200);
     uiV6230.lastTables[tableKey] = sorted;
     const compare = tableCompareOnV6297('reason');
@@ -22166,7 +22078,7 @@
     const priorYear = scope.priorYear || 'Prior';
     const priorYearLabelV6312 = shortYearLabelV6312(priorYear);
     const compare = tableCompareOnV6297('customer');
-    const selectedCustomers = new Set(crossFilterValuesV6634('customer').map(String));
+    const selectedCustomers = new Set(filterValuesV6245('customer').map(String));
     const remakeCustomers = (customerGroups || []).filter(row => row && numV6230(row.remakeCases) > 0);
     const allCustomerRows = sortedRowsV6230(remakeCustomers, 'customer');
     const sorted = selectedRowsFirstV6311(allCustomerRows, selectedCustomers, row => row.key, 300);
@@ -24065,7 +23977,7 @@
 
     function phaseCustomerV6413() {
       if (supersededV6413()) { completeV6413(true); return; }
-      const tableSnapshotsV6413 = captureTableSetV6413(['remakeCustomerTable','remakeAttributionAuditTableV6230']);
+      const tableSnapshotsV6413 = captureTableSetV6413(['remakeCustomerTable']);
       const customerTotalRows = rowsForBaseFiltersV6252(context.currentYearRows, { year: false, months: false, customer: false });
       const priorCustomerTotalRows = rowsForBaseFiltersV6252(context.priorYearRows, { year: false, months: false, customer: false });
       const customerRemakeRows = rowsForRemakeFiltersV6252(context.currentYearRows, { year: false, months: false, customer: false });
@@ -24091,10 +24003,8 @@
       syncTableCompareButtonsV6297();
       renderCustomerChartV6230(context.customerGroups);
       renderCustomerTableV6230(context.customerGroups);
-      renderAttributionAuditV6230(context.remakeRows);
       animateTableSetV6413(tableSnapshotsV6413);
       animateCardV6413('remakeCustomerCardV6230');
-      animateCardV6413('remakeAttributionAuditCardV6230');
       scheduleCeramistRenderV6413(generation);
 
       setNoticeV6230(context.totalRows.length ? '' : 'No matching rows.', context.totalRows.length ? '' : 'warn');
@@ -24183,111 +24093,8 @@
   }
 
 
-  function attributionAuditProductLabelV6230(name, id) {
-    const cleanName = textV6230(name, '');
-    const cleanId = textV6230(id, '');
-    if (cleanName && cleanId && cleanName !== cleanId) return cleanName + ' (' + cleanId + ')';
-    return cleanName || cleanId || '\u2014';
-  }
-
-  function attributionAuditRowsV6230(rows) {
-    const integration = window.cdaRemakeRootAttributionBrowserV1351;
-    const active = !!(integration && typeof integration.active === 'function' && integration.active());
-    if (!active) return { active:false, rows:[] };
-
-    const source = Array.isArray(rows) ? rows : [];
-    const prepared = source.filter(isRemakeV6230).map(function(row, index) {
-      const caseNumber = textV6230(row && (row.caseNumber || row.caseId), '');
-      const status = textV6230(row && row.remadeProductMappingStatus, '');
-      const exact = status === 'ATTRIBUTED_EXACT_ROOT';
-      const rootCaseNumber = Number(row && row.remadeRootCaseNumber || 0);
-      const currentProduct = attributionAuditProductLabelV6230(
-        row && row.currentProductNameV1351,
-        row && row.currentProductIdV1351
-      );
-      const rootProduct = exact
-        ? attributionAuditProductLabelV6230(
-            row && (row.remadeProductDisplay || row.remadeProductName),
-            row && row.remadeProductId
-          )
-        : '\u2014';
-      const dashboardBucket = textV6230(
-        row && row.productName,
-        textV6230(row && row.remadeAttributionDisplayLabel, '\u2014')
-      );
-      const lineId = textV6230(row && row.caseProductLineId, '');
-      return {
-        key:[caseNumber, lineId, String(index)].join('::'),
-        caseNumber:caseNumber || '\u2014',
-        currentProduct:currentProduct,
-        rootCaseNumber:rootCaseNumber || '',
-        rootProduct:rootProduct,
-        mappingStatus:status || '\u2014',
-        mappingMethod:textV6230(row && row.remadeProductMappingMethod, '\u2014'),
-        dashboardBucket:dashboardBucket || '\u2014'
-      };
-    });
-
-    return { active:true, rows:prepared };
-  }
-
-  function renderAttributionAuditTableV6230(auditRows, attributionActive) {
-    const table = idV6230('remakeAttributionAuditTableV6230');
-    if (!table) return;
-    const source = Array.isArray(auditRows) ? auditRows : [];
-    const sorted = sortedRowsV6230(source, 'attributionAudit');
-    const visible = sorted.slice(0, 500);
-    uiV6230.lastTables.attributionAudit = visible;
-
-    const header = '<thead><tr>'
-      + thV6230('attributionAudit','caseNumber','Remake Case',false,'','Remake Case')
-      + thV6230('attributionAudit','currentProduct','Current Product',false,'','Current remake product')
-      + thV6230('attributionAudit','rootCaseNumber','Root Case',false,'','Confirmed historical root case')
-      + thV6230('attributionAudit','rootProduct','Root Product',false,'','Exact confirmed root product')
-      + thV6230('attributionAudit','mappingStatus','Mapping Status',false)
-      + thV6230('attributionAudit','mappingMethod','Mapping Method',false)
-      + thV6230('attributionAudit','dashboardBucket','Dashboard Bucket',false,'','Product bucket used by the remake numerator')
-      + '</tr></thead>';
-
-    let body;
-    if (!attributionActive) {
-      body = '<tbody><tr><td colspan="7">Root attribution metadata is not active in this payload.</td></tr></tbody>';
-    } else if (!visible.length) {
-      body = '<tbody><tr><td colspan="7">No matching remake attribution rows.</td></tr></tbody>';
-    } else {
-      body = '<tbody>' + visible.map(function(row) {
-        const rootCase = row.rootCaseNumber ? String(row.rootCaseNumber) : '\u2014';
-        return '<tr>'
-          + '<td title="' + escV6230(row.caseNumber) + '">' + escV6230(row.caseNumber) + '</td>'
-          + '<td title="' + escV6230(row.currentProduct) + '">' + escV6230(row.currentProduct) + '</td>'
-          + '<td title="' + escV6230(rootCase) + '">' + escV6230(rootCase) + '</td>'
-          + '<td title="' + escV6230(row.rootProduct) + '">' + escV6230(row.rootProduct) + '</td>'
-          + '<td title="' + escV6230(row.mappingStatus) + '">' + escV6230(row.mappingStatus) + '</td>'
-          + '<td title="' + escV6230(row.mappingMethod) + '">' + escV6230(row.mappingMethod) + '</td>'
-          + '<td title="' + escV6230(row.dashboardBucket) + '">' + escV6230(row.dashboardBucket) + '</td>'
-          + '</tr>';
-      }).join('') + '</tbody>';
-    }
-
-    table.innerHTML = header + body;
-  }
-
-  function renderAttributionAuditV6230(rows) {
-    const prepared = attributionAuditRowsV6230(rows);
-    uiV6230.lastAttributionAuditRowsV6230 = prepared.rows;
-    uiV6230.lastAttributionAuditActiveV6230 = prepared.active;
-    renderAttributionAuditTableV6230(prepared.rows, prepared.active);
-  }
-
   function renderTableSectionOnlyV6297(kind) {
     syncTableCompareButtonsV6297();
-    if (kind === 'attributionAudit') {
-      renderAttributionAuditTableV6230(
-        uiV6230.lastAttributionAuditRowsV6230 || [],
-        uiV6230.lastAttributionAuditActiveV6230 === true
-      );
-      return;
-    }
     if (kind === 'reason') {
       renderRemakeReasonTableV6241('remakeReasonTable','reason',uiV6230.lastReasonGroupsV6297 || [],'Reason','reason',150,uiV6230.lastReasonTotalsV6297 || {});
       return;
@@ -24403,19 +24210,23 @@
     if (!kind) return;
     showRemakeClickFeedbackV6301(event);
     pushRemakeUndoV6266();
+    syncFiltersFromControlsV6230();
 
     const val = String(value);
-    const current = new Set(crossFilterValuesV6634(kind));
+    const explicitValues = filterValuesV6245(kind).map(String);
+    const current = new Set(explicitValues);
 
     if (additiveV6230(event)) {
       if (current.has(val)) current.delete(val);
       else current.add(val);
-      setCrossFilterValuesV6634(kind, Array.from(current));
+      setFilterValuesV6245(kind, Array.from(current));
     } else {
-      if (current.size === 1 && current.has(val)) setCrossFilterValuesV6634(kind, []);
-      else setCrossFilterValuesV6634(kind, [val]);
+      if (current.size === 1 && current.has(val)) setFilterValuesV6245(kind, []);
+      else setFilterValuesV6245(kind, [val]);
     }
 
+    persistUiV6230();
+    syncFilterControlsV6230();
     renderDashboardV6230();
   };
 
@@ -24447,7 +24258,6 @@
     if (kind === 'all') {
       uiV6230.filters = { year: [], department: [], product: [], productGroup: [], customer: [], reason: [] };
       uiV6230.filterExclusionsV6389 = { year: [], department: [], product: [], productGroup: [], customer: [], reason: [] };
-      clearAllCrossFiltersV6634();
       uiV6230.selectedMonths = new Set();
       resetTechnicianAnalysisV6386(false);
     }
@@ -24535,7 +24345,6 @@
       department: 'Departments',
       product: uiV6230.productTableMode === 'group' ? 'Product Groups' : 'Products',
       customer: 'Customers',
-      attributionAudit: 'Attribution Audit',
       ceramist: 'Technicians'
     };
     return titles[component] || 'Remake Factor';
@@ -24714,34 +24523,8 @@
     }));
   }
 
-  function exportAttributionAuditRowsV6230(rows) {
-    const source = Array.isArray(rows) ? rows : [];
-    return [[
-      'Remake Case',
-      'Current Product',
-      'Root Case',
-      'Root Product',
-      'Mapping Status',
-      'Mapping Method',
-      'Dashboard Bucket'
-    ]].concat(source.map(function(row) {
-      return [
-        row.caseNumber || '',
-        row.currentProduct || '',
-        row.rootCaseNumber || '',
-        row.rootProduct === '\u2014' ? '' : (row.rootProduct || ''),
-        row.mappingStatus === '\u2014' ? '' : (row.mappingStatus || ''),
-        row.mappingMethod === '\u2014' ? '' : (row.mappingMethod || ''),
-        row.dashboardBucket === '\u2014' ? '' : (row.dashboardBucket || '')
-      ];
-    }));
-  }
-
   window.exportRowsForV6230 = function exportRowsForV6230(component) {
     if (component === 'trend') return exportTrendSummaryRowsV6399();
-    if (component === 'attributionAudit') {
-      return exportAttributionAuditRowsV6230(uiV6230.lastTables.attributionAudit || []);
-    }
     if (component === 'ceramist') {
       const ceramistRows = uiV6230.lastTables.ceramistDetail || [];
       const selectedSummary = (uiV6230.lastTables.ceramist || []).find(function(row){ return String(row.key) === String(ceramistStateV6342.selectedCeramist || ''); });
@@ -24772,13 +24555,7 @@
 
   window.exportRemakeAllDataV6399 = function exportRemakeAllDataV6399(component) {
     try {
-      const rows = component === 'attributionAudit'
-        ? exportAttributionAuditRowsV6230(
-            sortedRowsV6230((uiV6230.lastAttributionAuditRowsV6230 || []).slice(), 'attributionAudit')
-          )
-        : component === 'ceramist'
-          ? window.exportRowsForV6230(component)
-          : exportVisibleRowsV6397(component);
+      const rows = component === 'ceramist' ? window.exportRowsForV6230(component) : exportVisibleRowsV6397(component);
       const dataRowCount = Array.isArray(rows) ? Math.max(0, rows.length - 1) : 0;
       if (!dataRowCount) { setNoticeV6230('No detailed rows are available for this panel.', 'warn'); return; }
       const fileName = 'remake-' + slugV6230(exportPanelTitleV6394(component)) + '-all-data.csv';
@@ -24859,7 +24636,6 @@
       department: { type: 'table', title: 'Departments', tableId: 'remakeDepartmentTable' },
       product: { type: 'table', title: uiV6230.productTableMode === 'group' ? 'Product Groups' : 'Products', tableId: 'remakeProductTable' },
       customer: { type: 'customer', title: 'Customers', canvasId: 'remakeCustomerChartV6230', tableId: 'remakeCustomerTable' },
-      attributionAudit: { type: 'table', title: 'Attribution Audit', tableId: 'remakeAttributionAuditTableV6230' },
       ceramist: { type: 'ceramist', title: 'Technicians', containerId: 'remakeCeramistCardV6342' }
     }[component] || null;
   }

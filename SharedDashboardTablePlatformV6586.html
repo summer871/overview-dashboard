@@ -1,8 +1,8 @@
 <!-- SharedDashboardTablePlatformV6586.html
-Version: v6.596
-Release: v6.629
-Date: 2026-08-05
-Purpose: One dashboard-wide column-layout authority for Remake and TAT. Standard columns always partition the visible viewport, explicitly marked comparison columns extend through controlled horizontal overflow, every draggable divider transfers width only to its adjacent peer, saved widths remain authoritative across load and tab activation, and hidden tabs are never recalculated against fallback geometry. The header context menu exposes content/header sizing and reset actions only; standard-column viewport fitting remains automatic rather than user-selectable.
+Version: v6.595
+Release: v6.628
+Date: 2026-08-03
+Purpose: One dashboard-wide column-layout authority for Remake and TAT. Standard columns always partition the visible viewport, explicitly marked comparison columns extend through controlled horizontal overflow, every draggable divider transfers width only to its adjacent peer, saved widths remain authoritative across load and tab activation, and hidden tabs are never recalculated against fallback geometry.
 -->
 <style id="cdaSharedDashboardTablePlatformStylesV6586">
   html body [data-cda-table-surface-host-v6586="true"] {
@@ -324,8 +324,8 @@ Purpose: One dashboard-wide column-layout authority for Remake and TAT. Standard
 (function installSharedDashboardTablePlatformV6586(){
   'use strict';
 
-  const VERSION_V6586 = 'v6.596';
-  const RELEASE_V6627 = 'v6.629';
+  const VERSION_V6586 = 'v6.595';
+  const RELEASE_V6627 = 'v6.628';
   if (window.cdaDashboardTableSurfacesV6586 &&
       window.cdaDashboardTableSurfacesV6586.version === VERSION_V6586) return;
 
@@ -1651,10 +1651,11 @@ Purpose: One dashboard-wide column-layout authority for Remake and TAT. Standard
       button.addEventListener('click',function(clickEvent){ stopEventV6586(clickEvent); closeHeaderMenuV6588(); handler(); });
       menu.appendChild(button);
     }
-    add('Fit this column to visible data',function(){ autoFitFieldV6588(surface,column.field); });
-    add('Compact all columns to headers',function(){ fitSurfaceV6588(surface,'fit-compact'); });
-    add('Fit all columns to visible data',function(){ fitSurfaceV6588(surface,'fit-cell-content'); });
-    add('Restore default widths',function(){ resetSurfaceWidthsV6586(surface); });
+    add('Fit this column to content',function(){ autoFitFieldV6588(surface,column.field); });
+    add('Compact columns (fit headers)',function(){ fitSurfaceV6588(surface,'fit-compact'); });
+    add('Fit standard columns to width',function(){ fitSurfaceV6588(surface,'fit-width'); });
+    add('Fit visible cell contents',function(){ fitSurfaceV6588(surface,'fit-cell-content'); });
+    add('Reset widths',function(){ resetSurfaceWidthsV6586(surface); });
     doc.body.appendChild(menu);
     const width = 210;
     menu.style.left = Math.max(8,Math.min(view.innerWidth - width - 8,event.clientX)) + 'px';

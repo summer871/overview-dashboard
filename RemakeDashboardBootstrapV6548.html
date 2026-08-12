@@ -128,14 +128,14 @@ Purpose: Register, reconcile, and audit all Remake components while requiring th
     const allRequiredDependenciesPresent = Object.keys(dependencies).every(function(key){
       return dependencies[key] === true;
     });
-    const expectedActiveComponents = definition.components.length === 7;
+    const expectedActiveComponents = definition.components.length === 6;
     const sharedControlsValidated = sharedControls.ok && expectedActiveComponents && catalog.ok &&
       base.allComponentsDecorated && base.toolbarCount === base.expectedToolbarCount;
     return Object.assign({},base,{
       version:'v6.608',
       mode:'native-remake-header-with-dashboard-wide-table-surfaces',
       activeComponentCount:definition.components.length,
-      expectedActiveComponents:7,
+      expectedActiveComponents:6,
       activeComponentModelCorrect:expectedActiveComponents,
       dependencies:dependencies,
       allRequiredDependenciesPresent:allRequiredDependenciesPresent,

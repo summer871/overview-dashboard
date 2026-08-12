@@ -1,7 +1,7 @@
 /**
  * Remake Factor Cache
- * Version: v1.35.1 - 2026-08-10
- * Purpose: Build a cached Remake Factor dataset from the MagicTouch CRM API and save it to Drive JSON. Uses MagicTouch /api/Products/QueryProducts `department` as the authoritative product-department source. The Product_List Drive lookup and legacy inference remain fallback-only for products not returned by the API. v1.32 makes each case-product line authoritative for remake status, percentage, reason, discount rate, and discount amount. Case-level remake fields may identify detail-fetch candidates but are never propagated onto product lines. v1.32.1 expands the diagnostic-only product test so remake-discount dollars can be verified before rebuilding the cache. v1.32.2 records the approved canonical calculation below; it does not change the dashboard wording. v1.32.3 adds an opt-in compact browser response so the full product-level cache can load without duplicating unused fields in Chrome memory. v1.32.4 applies that compact response in the final smart-refresh public entry point, which otherwise overrides earlier declarations in this file. v1.33 adds a separate nightly browser-ready consolidated gzip file. First-time browsers can download that one pre-normalized packed file instead of making Apps Script open and parse every monthly Drive shard during the page request. Repeat visits continue to use the monthly IndexedDB cache. v1.33.2 permits the last optimized snapshot to be served while a newer source cache is being consolidated and adds a deduplicated rebuild assurance endpoint for stale-while-revalidate browser loading. v1.34.1 preserves the numeric case number in both compact and packed browser rows so the Remake population can join to the Ceramist attribution sidecar on the authoritative current case key. v1.34.2 also preserves the authoritative CRM remakeCaseID on durable monthly shard rows so the nightly Ceramist population refresh can resolve missing remake chains without a separate SQL Server link feed. v1.35.0 adds an opt-in durable root-product attribution layer: current remake event fields stay unchanged, historical Product / Product Group / Department are populated only for a confirmed root with one unique exact Product ID match, and every other linked/unlinked condition is retained as an explicit Review/Unresolved state with no current-product or immediate-previous fallback. v1.35.1 carries that already-durable remade* contract through the compact/browser-ready payload as a backward-compatible packed extension while preserving the existing current-product dimensions for denominator calculations. The browser extension remains inactive until MT_REMAKE_ROOT_ATTRIBUTION_ENABLED=true.
+ * Version: v1.34.2 - 2026-07-31
+ * Purpose: Build a cached Remake Factor dataset from the MagicTouch CRM API and save it to Drive JSON. Uses MagicTouch /api/Products/QueryProducts `department` as the authoritative product-department source. The Product_List Drive lookup and legacy inference remain fallback-only for products not returned by the API. v1.32 makes each case-product line authoritative for remake status, percentage, reason, discount rate, and discount amount. Case-level remake fields may identify detail-fetch candidates but are never propagated onto product lines. v1.32.1 expands the diagnostic-only product test so remake-discount dollars can be verified before rebuilding the cache. v1.32.2 records the approved canonical calculation below; it does not change the dashboard wording. v1.32.3 adds an opt-in compact browser response so the full product-level cache can load without duplicating unused fields in Chrome memory. v1.32.4 applies that compact response in the final smart-refresh public entry point, which otherwise overrides earlier declarations in this file. v1.33 adds a separate nightly browser-ready consolidated gzip file. First-time browsers can download that one pre-normalized packed file instead of making Apps Script open and parse every monthly Drive shard during the page request. Repeat visits continue to use the monthly IndexedDB cache. v1.33.2 permits the last optimized snapshot to be served while a newer source cache is being consolidated and adds a deduplicated rebuild assurance endpoint for stale-while-revalidate browser loading. v1.34.1 preserves the numeric case number in both compact and packed browser rows so the Remake population can join to the Ceramist attribution sidecar on the authoritative current case key. v1.34.2 also preserves the authoritative CRM remakeCaseID on durable monthly shard rows so the nightly Ceramist population refresh can resolve missing remake chains without a separate SQL Server link feed.
  *
  * APPROVED REMAKE CALCULATION - 2026-07-13
  * - Product line is the authoritative grain for remake status and all remake fields.
@@ -17,7 +17,7 @@
  *   counts as a remake and contributes its quantity, but contributes $0 to Remake Discount.
  * - remakeCaseID is not used to decide remake status, case rate, unit rate, or
  *   Remake Discount. It may be used separately to trace the original/root case
- *   for ceramist responsibility and historical product-dimension attribution only.
+ *   for ceramist attribution only.
  *
  * Important:
  * - Do not put MagicTouch credentials in this file.
@@ -37,9 +37,6 @@
  *   MT_REMAKE_ADDITIONAL_FIELDS = caseProducts
  *   MT_REMAKE_CASE_QUERY_TEMPLATE = invoiceDate >= "{queryStartDate}" && invoiceDate < "{queryEndExclusiveDate}"
  *   MT_REMAKE_PULL_OVERLAP_DAYS = 1
- *   MT_REMAKE_ROOT_ATTRIBUTION_ENABLED = false
- *   MT_REMAKE_ROOT_ATTRIBUTION_MAX_API_CALLS = 160
- *   MT_REMAKE_ROOT_ATTRIBUTION_MAX_RUNTIME_MS = 120000
  */
 
 const remakeFactorApiBaseUrlProperty = 'MT_CRM_API_BASE_URL';
@@ -72,19 +69,6 @@ const remakeFactorProductLookupCacheFileName = 'remake_product_lookup_cache.json
 const remakeFactorDebugFileIdProperty = 'MT_REMAKE_DEBUG_FILE_ID';
 const remakeFactorDebugFileName = 'remake_factor_debug.json';
 const remakeFactorDefaultBaseUrl = 'https://crm.caldentalarts.com';
-
-
-// v1.35.0 root-product attribution is intentionally opt-in until QA authorizes
-// a cache rebuild. The current remake line remains the event source of truth.
-const remakeFactorRootAttributionEnabledPropertyV1350 = 'MT_REMAKE_ROOT_ATTRIBUTION_ENABLED';
-const remakeFactorRootAttributionMaxApiCallsPropertyV1350 = 'MT_REMAKE_ROOT_ATTRIBUTION_MAX_API_CALLS';
-const remakeFactorRootAttributionMaxRuntimeMsPropertyV1350 = 'MT_REMAKE_ROOT_ATTRIBUTION_MAX_RUNTIME_MS';
-const remakeFactorRootAttributionVersionV1350 = 'root-product-attribution-v1.35.0';
-const remakeFactorRootAttributionPolicyV1350 = 'EXACT_ROOT_ONLY_REVIEW_UNRESOLVED_NO_FALLBACK';
-const remakeFactorRootAttributionTerminalPolicyV1350 = 'linked-terminal-query-fallback-v1.1.3';
-const remakeFactorRootAttributionDefaultMaxApiCallsV1350 = 160;
-const remakeFactorRootAttributionDefaultMaxRuntimeMsV1350 = 120000;
-const remakeFactorRootAttributionMaxChainDepthV1350 = 25;
 
 function getRemakeFactorData(options) {
   const requestedOptions = options || {};
@@ -150,18 +134,7 @@ function refreshRemakeFactorCache(options) {
   const caseRows = caseFetchResult.rows;
   const customerMap = config.fetchCustomerMap ? fetchRemakeFactorCustomerMap(config, token, caseRows) : buildRemakeFactorCustomerMapFromCaseRows(caseRows || []);
   const customerMapStats = getRemakeFactorCustomerMapStats(customerMap);
-  const baseDetailRows = buildRemakeFactorDetailRows(caseRows, productMap, customerMap);
-  const rootAttributionEnabled = isRemakeFactorRootProductAttributionEnabledV1350(requestedOptions, props);
-  let rootAttributionResult = null;
-  let detailRows = baseDetailRows;
-
-  if (rootAttributionEnabled) {
-    rootAttributionResult = applyRemakeFactorRootProductAttributionV1350(baseDetailRows, productMap, config, token, requestedOptions);
-    detailRows = rootAttributionResult.rows;
-    if (!rootAttributionResult.reconciliation || rootAttributionResult.reconciliation.overallPass !== true) {
-      throw new Error('Remake root-product attribution reconciliation failed. Cache write was blocked.');
-    }
-  }
+  const detailRows = buildRemakeFactorDetailRows(caseRows, productMap, customerMap);
 
   const payload = {
     ok: true,
@@ -208,12 +181,6 @@ function refreshRemakeFactorCache(options) {
     },
     detailRows: detailRows
   };
-
-  if (rootAttributionEnabled && rootAttributionResult) {
-    payload.stats.rootProductAttribution = Object.assign({}, rootAttributionResult.stats || {}, {
-      reconciliation: rootAttributionResult.reconciliation || {}
-    });
-  }
 
   writeRemakeFactorCache(payload);
   return payload;
@@ -3343,12 +3310,11 @@ function compactRemakeFactorShardStatsV118(stats) {
 
 function writeRemakeFactorCache(payload) {
   const sourcePayload = payload || {};
-  const storageVersion = getRemakeFactorStorageVersionForPayloadV1350(sourcePayload);
   const rows = Array.isArray(sourcePayload.detailRows) ? sourcePayload.detailRows : (Array.isArray(sourcePayload.rows) ? sourcePayload.rows : []);
   const groups = groupRemakeFactorRowsByMonthV118(rows);
   const existingIndex = readRemakeFactorCacheIndexV118() || {
     ok: false,
-    version: storageVersion,
+    version: remakeFactorStorageVersionV118,
     storageMode: remakeFactorCacheStorageModeV118,
     months: [],
     shards: {},
@@ -3366,7 +3332,7 @@ function writeRemakeFactorCache(payload) {
     const shardRows = groups[monthKey] || [];
     const shardPayload = {
       ok: true,
-      version: storageVersion,
+      version: remakeFactorStorageVersionV118,
       storageMode: remakeFactorCacheStorageModeV118,
       month: monthKey,
       generatedAt: generatedAt,
@@ -3391,7 +3357,7 @@ function writeRemakeFactorCache(payload) {
   const allMonths = Object.keys(newShards).sort();
   const totalRows = allMonths.reduce((sum, monthKey) => sum + Number((newShards[monthKey] && newShards[monthKey].rowCount) || 0), 0);
   const compactStats = compactRemakeFactorStatsForStorage(sourcePayload.stats || {});
-  compactStats.version = storageVersion;
+  compactStats.version = remakeFactorStorageVersionV118;
   compactStats.storageMode = remakeFactorCacheStorageModeV118;
   compactStats.lastWriteRows = rows.length;
   compactStats.totalCachedRows = totalRows;
@@ -3400,7 +3366,7 @@ function writeRemakeFactorCache(payload) {
 
   const index = {
     ok: !!sourcePayload.ok,
-    version: storageVersion,
+    version: remakeFactorStorageVersionV118,
     storageMode: remakeFactorCacheStorageModeV118,
     generatedAt: generatedAt,
     source: sourcePayload.source || 'MagicTouch CRM API',
@@ -3500,31 +3466,7 @@ function buildRemakeFactorBrowserRowV1323(row) {
     remakeDiscount: remakeDiscount,
     isRealInvoicedCharge: row.isRealInvoicedCharge !== false,
     chargeAmount: toRemakeFactorNumber(row.chargeAmount !== undefined ? row.chargeAmount : row.totalCharge),
-    remakeDiscountSource: cleanRemakeFactorText(row.remakeDiscountSource || ''),
-    remadeSourceCaseNumber: Number(row.remadeSourceCaseNumber || 0),
-    remadeSourceCaseRole: cleanRemakeFactorText(row.remadeSourceCaseRole || ''),
-    remadeProductId: cleanRemakeFactorText(row.remadeProductId || ''),
-    remadeProductName: cleanRemakeFactorText(row.remadeProductName || ''),
-    remadeProductGroup: cleanRemakeFactorText(row.remadeProductGroup || ''),
-    remadeDepartment: cleanRemakeFactorText(row.remadeDepartment || ''),
-    remadeProductMappingStatus: cleanRemakeFactorText(row.remadeProductMappingStatus || ''),
-    remadeProductMappingMethod: cleanRemakeFactorText(row.remadeProductMappingMethod || ''),
-    remadeAttributionDisplayLabel: cleanRemakeFactorText(row.remadeAttributionDisplayLabel || ''),
-    remadeProductDisplay: cleanRemakeFactorText(row.remadeProductDisplay || ''),
-    remadeProductGroupDisplay: cleanRemakeFactorText(row.remadeProductGroupDisplay || ''),
-    remadeDepartmentDisplay: cleanRemakeFactorText(row.remadeDepartmentDisplay || ''),
-    remadeAttributionState: cleanRemakeFactorText(row.remadeAttributionState || ''),
-    remadeAttributionReason: cleanRemakeFactorText(row.remadeAttributionReason || ''),
-    remadeChainStatus: cleanRemakeFactorText(row.remadeChainStatus || ''),
-    remadeChainDepth: Number(row.remadeChainDepth || 0),
-    remadeImmediatePreviousCaseNumber: Number(row.remadeImmediatePreviousCaseNumber || 0),
-    remadeRootCaseNumber: Number(row.remadeRootCaseNumber || 0),
-    remadeRootConfirmationMethod: cleanRemakeFactorText(row.remadeRootConfirmationMethod || ''),
-    remadeProductMetadataSource: cleanRemakeFactorText(row.remadeProductMetadataSource || ''),
-    remadeProductMetadataComplete: row.remadeProductMetadataComplete === true,
-    historicalFallbackUsed: row.historicalFallbackUsed === true,
-    currentProductFallbackUsed: row.currentProductFallbackUsed === true,
-    immediatePreviousProductFallbackUsed: row.immediatePreviousProductFallbackUsed === true
+    remakeDiscountSource: cleanRemakeFactorText(row.remakeDiscountSource || '')
   };
 }
 
@@ -3536,7 +3478,6 @@ function compactRemakeFactorPayloadForBrowserV1323(payload) {
   for (let index = 0; index < rows.length; index++) {
     rows[index] = buildRemakeFactorBrowserRowV1323(rows[index]);
   }
-  const rootProductAttributionEnabled = isRemakeFactorRootProductAttributionEnabledV1350({}, PropertiesService.getScriptProperties());
   return {
     ok: !!payload.ok,
     version: payload.version || remakeFactorStorageVersionV118,
@@ -3545,8 +3486,6 @@ function compactRemakeFactorPayloadForBrowserV1323(payload) {
     source: payload.source || 'MagicTouch CRM API cached in Drive monthly shards',
     message: payload.message || '',
     dateRange: payload.dateRange || {},
-    rootProductAttributionEnabled: rootProductAttributionEnabled,
-    rootProductAttributionBrowser: buildRemakeFactorRootAttributionBrowserMetadataV1351(payload.stats || {}, rootProductAttributionEnabled, payload.rootProductAttributionBackfill || null),
     stats: Object.assign({}, payload.stats || {}, {
       browserCompact: true,
       browserRowSchema: 'remakeBrowserRowV1323',
@@ -3569,35 +3508,14 @@ function compactRemakeFactorPayloadForBrowserV1323(payload) {
  * expands them locally. Repeat visits continue to use the existing monthly
  * IndexedDB cache in Index.html.
  */
-const remakeFactorBrowserReadyVersionV1330 = 'RemakeFactorBrowserReady v1.35.1';
+const remakeFactorBrowserReadyVersionV1330 = 'RemakeFactorBrowserReady v1.33.0';
 const remakeFactorBrowserReadySchemaV1330 = 'remakeBrowserPackedV1330';
-const remakeFactorRootAttributionBrowserVersionV1351 = 'remakeRootAttributionBrowserV1351';
-const remakeFactorRootAttributionPackedIndexV1351 = 16;
 const remakeFactorBrowserReadyFileIdPropertyV1330 = 'MT_REMAKE_BROWSER_CACHE_FILE_ID';
 const remakeFactorBrowserReadySourceGeneratedAtPropertyV1330 = 'MT_REMAKE_BROWSER_CACHE_SOURCE_GENERATED_AT';
 const remakeFactorBrowserReadyBuiltAtPropertyV1330 = 'MT_REMAKE_BROWSER_CACHE_BUILT_AT';
 const remakeFactorBrowserReadyRowCountPropertyV1330 = 'MT_REMAKE_BROWSER_CACHE_ROW_COUNT';
 const remakeFactorBrowserReadyFileSizePropertyV1330 = 'MT_REMAKE_BROWSER_CACHE_FILE_SIZE';
 const remakeFactorBrowserReadyFileNameV1330 = 'remake_factor_browser_cache.json.gz';
-
-function buildRemakeFactorRootAttributionBrowserMetadataV1351(stats, enabled, backfill) {
-  const sourceStats = stats && stats.rootProductAttribution ? stats.rootProductAttribution : {};
-  const sourceBackfill = backfill && typeof backfill === 'object' ? backfill : null;
-  return {
-    version: remakeFactorRootAttributionBrowserVersionV1351,
-    enabled: enabled === true,
-    packedIndex: remakeFactorRootAttributionPackedIndexV1351,
-    attributionVersion: cleanRemakeFactorText(sourceStats.version || remakeFactorRootAttributionVersionV1350),
-    policy: cleanRemakeFactorText(sourceStats.policy || remakeFactorRootAttributionPolicyV1350),
-    linkedTerminalPolicy: cleanRemakeFactorText(sourceStats.linkedTerminalPolicy || remakeFactorRootAttributionTerminalPolicyV1350),
-    backfillVersion: cleanRemakeFactorText(sourceBackfill && sourceBackfill.version || ''),
-    allMonthGatesPass: sourceBackfill ? sourceBackfill.allMonthGatesPass === true : null,
-    remakeRows: Number(sourceStats.remakeRows || 0),
-    exactRootRows: Number(sourceStats.reconciliation && sourceStats.reconciliation.exactRootRows || 0),
-    reviewOrUnresolvedRows: Number(sourceStats.reconciliation && sourceStats.reconciliation.reviewOrUnresolvedRows || 0),
-    unsafeFallbackRows: Number(sourceStats.reconciliation && sourceStats.reconciliation.unsafeFallbackRows || 0)
-  };
-}
 
 function buildRemakeFactorBrowserPackedPayloadV1330_() {
   const index = readRemakeFactorCacheIndexV118();
@@ -3615,8 +3533,7 @@ function buildRemakeFactorBrowserPackedPayloadV1330_() {
     products: [],
     groups: [],
     reasons: [],
-    discountSources: [],
-    rootAttributions: []
+    discountSources: []
   };
   const maps = {
     months: new Map(),
@@ -3628,8 +3545,7 @@ function buildRemakeFactorBrowserPackedPayloadV1330_() {
     products: new Map(),
     groups: new Map(),
     reasons: new Map(),
-    discountSources: new Map(),
-    rootAttributions: new Map()
+    discountSources: new Map()
   };
 
   function scalarIndex(name, value) {
@@ -3670,42 +3586,6 @@ function buildRemakeFactorBrowserPackedPayloadV1330_() {
     return indexValue;
   }
 
-  function rootAttributionIndexV1351(row) {
-    if (!row || row.isRemake !== true || !cleanRemakeFactorText(row.remadeProductMappingStatus || '')) return -1;
-    const record = [
-      Number(row.remadeSourceCaseNumber || 0),
-      cleanRemakeFactorText(row.remadeSourceCaseRole || ''),
-      cleanRemakeFactorText(row.remadeProductId || ''),
-      cleanRemakeFactorText(row.remadeProductName || ''),
-      cleanRemakeFactorText(row.remadeProductGroup || ''),
-      cleanRemakeFactorText(row.remadeDepartment || ''),
-      cleanRemakeFactorText(row.remadeProductMappingStatus || ''),
-      cleanRemakeFactorText(row.remadeProductMappingMethod || ''),
-      cleanRemakeFactorText(row.remadeAttributionDisplayLabel || ''),
-      cleanRemakeFactorText(row.remadeProductDisplay || ''),
-      cleanRemakeFactorText(row.remadeProductGroupDisplay || ''),
-      cleanRemakeFactorText(row.remadeDepartmentDisplay || ''),
-      cleanRemakeFactorText(row.remadeAttributionState || ''),
-      cleanRemakeFactorText(row.remadeAttributionReason || ''),
-      cleanRemakeFactorText(row.remadeChainStatus || ''),
-      Number(row.remadeRootCaseNumber || 0),
-      Number(row.remadeImmediatePreviousCaseNumber || 0),
-      cleanRemakeFactorText(row.remadeRootConfirmationMethod || ''),
-      cleanRemakeFactorText(row.remadeProductMetadataSource || ''),
-      row.remadeProductMetadataComplete === true ? 1 : 0,
-      row.historicalFallbackUsed === true ? 1 : 0,
-      row.currentProductFallbackUsed === true ? 1 : 0,
-      row.immediatePreviousProductFallbackUsed === true ? 1 : 0,
-      Number(row.remadeChainDepth || 0)
-    ];
-    const key = JSON.stringify(record);
-    if (maps.rootAttributions.has(key)) return maps.rootAttributions.get(key);
-    const indexValue = dictionaries.rootAttributions.length;
-    dictionaries.rootAttributions.push(record);
-    maps.rootAttributions.set(key, indexValue);
-    return indexValue;
-  }
-
   const packedRows = [];
   const months = (index.months || Object.keys(index.shards || {})).slice().sort();
   const shardErrors = [];
@@ -3736,8 +3616,7 @@ function buildRemakeFactorBrowserPackedPayloadV1330_() {
           row.isRealInvoicedCharge === false ? 0 : 1,
           Number(row.chargeAmount || 0),
           scalarIndex('discountSources', row.remakeDiscountSource || ''),
-          scalarIndex('caseNumbers', row.caseNumber || ''),
-          rootAttributionIndexV1351(row)
+          scalarIndex('caseNumbers', row.caseNumber || '')
         ]);
       });
     } catch (error) {
@@ -3760,12 +3639,6 @@ function buildRemakeFactorBrowserPackedPayloadV1330_() {
     source: index.source || 'MagicTouch CRM API cached in Drive monthly shards',
     message: 'Nightly browser-ready Remake Factor cache.',
     dateRange: index.dateRange || {},
-    rootProductAttributionEnabled: isRemakeFactorRootProductAttributionEnabledV1350({}, PropertiesService.getScriptProperties()),
-    rootProductAttributionBrowser: buildRemakeFactorRootAttributionBrowserMetadataV1351(
-      index.stats || {},
-      isRemakeFactorRootProductAttributionEnabledV1350({}, PropertiesService.getScriptProperties()),
-      index.rootProductAttributionBackfill || null
-    ),
     stats: Object.assign({}, index.stats || {}, {
       browserReadyConsolidated: true,
       browserReadySchema: remakeFactorBrowserReadySchemaV1330,
@@ -3781,8 +3654,7 @@ function buildRemakeFactorBrowserPackedPayloadV1330_() {
         products: dictionaries.products.length,
         groups: dictionaries.groups.length,
         reasons: dictionaries.reasons.length,
-        discountSources: dictionaries.discountSources.length,
-        rootAttributions: dictionaries.rootAttributions.length
+        discountSources: dictionaries.discountSources.length
       }
     }),
     dictionaries: dictionaries,
@@ -4762,1051 +4634,4 @@ function migrateRemakeFactorDepartmentsFromProductsApi() {
     browserReadyRebuildScheduled: !!(scheduled && scheduled.ok),
     message: 'Remake monthly shards now use Products.department. The browser-ready cache rebuild was scheduled.'
   };
-}
-
-/**
- * v1.35.1 read-only browser integration QA.
- * Builds the packed payload in memory from the existing monthly shards and verifies
- * that the root-attribution extension is complete without creating/replacing files.
- */
-function profileRemakeFactorBrowserRootAttributionIntegrationV1351() {
-  const packed = buildRemakeFactorBrowserPackedPayloadV1330_();
-  const rows = Array.isArray(packed.rows) ? packed.rows : [];
-  const dictionaries = packed.dictionaries || {};
-  const rootAttributions = Array.isArray(dictionaries.rootAttributions) ? dictionaries.rootAttributions : [];
-  const caseNumbers = Array.isArray(dictionaries.caseNumbers) ? dictionaries.caseNumbers : [];
-  const products = Array.isArray(dictionaries.products) ? dictionaries.products : [];
-  const departments = Array.isArray(dictionaries.departments) ? dictionaries.departments : [];
-  const groups = Array.isArray(dictionaries.groups) ? dictionaries.groups : [];
-  const rootStats = packed.stats && packed.stats.rootProductAttribution ? packed.stats.rootProductAttribution : {};
-  const expectedStatusCounts = rootStats.statusCounts || {};
-  const actualStatusCounts = {};
-  let remakeRows = 0;
-  let rowsWithAttribution = 0;
-  let exactRows = 0;
-  let reviewOrUnresolvedRows = 0;
-  let exactMetadataIncompleteRows = 0;
-  let reviewRowsMissingDisplay = 0;
-  let unsafeFallbackRows = 0;
-  let knownCase = null;
-
-  rows.forEach(function(packedRow) {
-    if (!packedRow || Number(packedRow[9]) !== 1) return;
-    remakeRows++;
-    const attributionIndex = Number(packedRow[remakeFactorRootAttributionPackedIndexV1351]);
-    if (!Number.isFinite(attributionIndex) || attributionIndex < 0 || attributionIndex >= rootAttributions.length) return;
-    rowsWithAttribution++;
-    const attr = rootAttributions[attributionIndex] || [];
-    const status = cleanRemakeFactorText(attr[6] || '');
-    actualStatusCounts[status] = Number(actualStatusCounts[status] || 0) + 1;
-    if (status === 'ATTRIBUTED_EXACT_ROOT') {
-      exactRows++;
-      if (!cleanRemakeFactorText(attr[2] || '') || !cleanRemakeFactorText(attr[3] || '') || !cleanRemakeFactorText(attr[4] || '') || !cleanRemakeFactorText(attr[5] || '')) {
-        exactMetadataIncompleteRows++;
-      }
-    } else {
-      reviewOrUnresolvedRows++;
-      if (!cleanRemakeFactorText(attr[8] || '') || !cleanRemakeFactorText(attr[9] || '') || !cleanRemakeFactorText(attr[10] || '') || !cleanRemakeFactorText(attr[11] || '')) {
-        reviewRowsMissingDisplay++;
-      }
-    }
-    if (Number(attr[20] || 0) || Number(attr[21] || 0) || Number(attr[22] || 0)) unsafeFallbackRows++;
-
-    const caseNumber = cleanRemakeFactorText(caseNumbers[Number(packedRow[15])] || '');
-    if (!knownCase && caseNumber === '375669') {
-      const currentProduct = products[Number(packedRow[5])] || [];
-      knownCase = {
-        caseNumber: caseNumber,
-        currentProductId: cleanRemakeFactorText(currentProduct[0] || ''),
-        currentProductName: cleanRemakeFactorText(currentProduct[1] || ''),
-        currentDepartment: cleanRemakeFactorText(departments[Number(packedRow[4])] || ''),
-        currentProductGroup: cleanRemakeFactorText(groups[Number(packedRow[6])] || ''),
-        mappingStatus: status,
-        mappingMethod: cleanRemakeFactorText(attr[7] || ''),
-        remadeProductId: cleanRemakeFactorText(attr[2] || ''),
-        remadeProductName: cleanRemakeFactorText(attr[3] || ''),
-        remadeProductGroup: cleanRemakeFactorText(attr[4] || ''),
-        remadeDepartment: cleanRemakeFactorText(attr[5] || ''),
-        displayLabel: cleanRemakeFactorText(attr[8] || ''),
-        rootCaseNumber: Number(attr[15] || 0),
-        currentProductFallbackUsed: Number(attr[21] || 0) === 1,
-        immediatePreviousProductFallbackUsed: Number(attr[22] || 0) === 1
-      };
-    }
-  });
-
-  const statusKeys = Array.from(new Set(Object.keys(expectedStatusCounts).concat(Object.keys(actualStatusCounts)))).sort();
-  const statusMismatches = {};
-  statusKeys.forEach(function(status) {
-    const expected = Number(expectedStatusCounts[status] || 0);
-    const actual = Number(actualStatusCounts[status] || 0);
-    if (expected !== actual) statusMismatches[status] = { expected: expected, actual: actual };
-  });
-
-  const expectedRemakeRows = Number(rootStats.remakeRows || 0);
-  const expectedExactRows = Number(rootStats.reconciliation && rootStats.reconciliation.exactRootRows || 0);
-  const expectedReviewRows = Number(rootStats.reconciliation && rootStats.reconciliation.reviewOrUnresolvedRows || 0);
-  const knownCasePass = !!knownCase &&
-    knownCase.mappingStatus === 'REVIEW_AMBIGUOUS_ROOT_PRODUCT' &&
-    knownCase.rootCaseNumber === 361499 &&
-    !knownCase.remadeProductId &&
-    !knownCase.remadeProductName &&
-    !knownCase.remadeProductGroup &&
-    !knownCase.remadeDepartment &&
-    knownCase.displayLabel === 'Review - Ambiguous Root Product' &&
-    knownCase.currentProductFallbackUsed === false &&
-    knownCase.immediatePreviousProductFallbackUsed === false;
-
-  const result = {
-    ok: true,
-    version: 'remake-browser-root-attribution-integration-v1.35.1',
-    diagnosticOnly: true,
-    readOnly: true,
-    writesPerformed: false,
-    rootProductAttributionEnabled: packed.rootProductAttributionEnabled === true,
-    browserExtension: packed.rootProductAttributionBrowser || {},
-    rowCount: rows.length,
-    remakeRows: remakeRows,
-    rowsWithAttribution: rowsWithAttribution,
-    exactRows: exactRows,
-    reviewOrUnresolvedRows: reviewOrUnresolvedRows,
-    exactMetadataIncompleteRows: exactMetadataIncompleteRows,
-    reviewRowsMissingDisplay: reviewRowsMissingDisplay,
-    unsafeFallbackRows: unsafeFallbackRows,
-    statusCounts: actualStatusCounts,
-    statusMismatches: statusMismatches,
-    knownCase375669: knownCase,
-    gates: {
-      allRemakeRowsHaveAttribution: remakeRows === rowsWithAttribution && (!expectedRemakeRows || remakeRows === expectedRemakeRows),
-      exactCountMatches: !expectedExactRows || exactRows === expectedExactRows,
-      reviewCountMatches: !expectedReviewRows || reviewOrUnresolvedRows === expectedReviewRows,
-      statusCountsMatch: Object.keys(statusMismatches).length === 0,
-      exactMetadataComplete: exactMetadataIncompleteRows === 0,
-      reviewDisplayComplete: reviewRowsMissingDisplay === 0,
-      noUnsafeFallback: unsafeFallbackRows === 0,
-      currentDimensionsStillPacked: rows.every(function(row) { return Array.isArray(row) && row.length >= 17; }),
-      knownCasePass: knownCasePass
-    }
-  };
-  result.overallPass = Object.keys(result.gates).every(function(key) { return result.gates[key] === true; });
-  const logText = JSON.stringify(result, null, 2);
-  console.log(logText);
-  Logger.log(logText);
-  return result;
-}
-
-/**
- * v1.35.0 ROOT PRODUCT ATTRIBUTION INTEGRATION
- *
- * This block is deliberately separate from current remake-event classification.
- * It never rewrites productId/productName/productGroup/department, isRemake,
- * remakeUnits, remakeDiscount, customer, reason, or date. It only appends the
- * remade* historical-attribution contract.
- *
- * Production/cache application remains opt-in through
- * MT_REMAKE_ROOT_ATTRIBUTION_ENABLED or rootProductAttributionEnabled:true.
- * The profile functions below are read-only and do not call any cache writer.
- */
-function isRemakeFactorRootProductAttributionEnabledV1350(options, props) {
-  const opts = options || {};
-  if (opts.rootProductAttributionEnabled !== undefined) {
-    return parseRemakeFactorBoolean(opts.rootProductAttributionEnabled, false);
-  }
-  const store = props || PropertiesService.getScriptProperties();
-  const raw = store.getProperty(remakeFactorRootAttributionEnabledPropertyV1350);
-  return raw ? parseRemakeFactorBoolean(raw, false) : false;
-}
-
-function getRemakeFactorStorageVersionForPayloadV1350(payload) {
-  const sourcePayload = payload || {};
-  const rootStats = sourcePayload.stats && sourcePayload.stats.rootProductAttribution;
-  return rootStats && rootStats.enabled === true
-    ? 'RemakeFactorCache v1.35.0'
-    : remakeFactorStorageVersionV118;
-}
-
-function buildRemakeFactorRootProductAttributionDisabledResultV1350(rows) {
-  const sourceRows = Array.isArray(rows) ? rows : [];
-  return {
-    rows: sourceRows,
-    stats: {
-      version: remakeFactorRootAttributionVersionV1350,
-      policy: remakeFactorRootAttributionPolicyV1350,
-      enabled: false,
-      rows: sourceRows.length,
-      remakeRows: sourceRows.filter(function(row) { return row && row.isRemake === true; }).length,
-      apiCalls: 0,
-      writesPerformed: false,
-      message: 'Root-product attribution is disabled; existing cache row behavior is unchanged.'
-    },
-    reconciliation: {
-      overallPass: true,
-      skippedBecauseDisabled: true
-    }
-  };
-}
-
-function applyRemakeFactorRootProductAttributionV1350(rows, productMap, config, token, options) {
-  const sourceRows = Array.isArray(rows) ? rows : [];
-  const outputRows = sourceRows.map(function(row) {
-    return Object.assign({}, row || {}, buildRemakeFactorRootProductAttributionEmptyFieldsV1350(row));
-  });
-  const context = buildRemakeFactorRootProductAttributionContextV1350(options);
-  const grouped = groupRemakeFactorRootProductAttributionRowsV1350(outputRows);
-  const caseKeys = Object.keys(grouped).sort(function(leftKey, rightKey) {
-    const left = grouped[leftKey] && grouped[leftKey][0];
-    const right = grouped[rightKey] && grouped[rightKey][0];
-    return Number(left && left.caseNumber || 0) - Number(right && right.caseNumber || 0);
-  });
-
-  caseKeys.forEach(function(caseKey) {
-    const currentRows = grouped[caseKey] || [];
-    if (!currentRows.length) return;
-    const firstRow = currentRows[0];
-    let currentCase = null;
-    let chain;
-
-    try {
-      currentCase = getRemakeFactorRootAttributionCurrentCaseV1350(firstRow, config, token, context);
-      chain = resolveRemakeFactorRootAttributionChainV1350(currentCase, config, token, context);
-    } catch (error) {
-      chain = buildRemakeFactorRootAttributionUnconfirmedChainV1350(firstRow, error);
-    }
-
-    const rootProducts = getRemakeFactorRootAttributionProductsV1350(chain, config, token, context);
-    currentRows.forEach(function(row) {
-      const candidate = mapRemakeFactorRootAttributionCandidateV1350(row, rootProducts);
-      const fields = buildRemakeFactorRootProductAttributionFieldsV1350(row, chain, candidate, productMap || {});
-      Object.keys(fields).forEach(function(key) { row[key] = fields[key]; });
-    });
-  });
-
-  const reconciliation = reconcileRemakeFactorRootProductAttributionV1350(sourceRows, outputRows);
-  return {
-    rows: outputRows,
-    stats: {
-      version: remakeFactorRootAttributionVersionV1350,
-      policy: remakeFactorRootAttributionPolicyV1350,
-      linkedTerminalPolicy: remakeFactorRootAttributionTerminalPolicyV1350,
-      enabled: true,
-      inputRows: sourceRows.length,
-      remakeRows: outputRows.filter(function(row) { return row && row.isRemake === true; }).length,
-      processedRemakeCases: caseKeys.length,
-      apiCalls: context.calls,
-      apiCallLimit: context.maxApiCalls,
-      runtimeMs: Date.now() - context.startedAtMs,
-      runtimeLimitMs: context.maxRuntimeMs,
-      budgetExhausted: context.budgetExhausted === true,
-      apiErrors: context.errors.slice(0, 25),
-      statusCounts: buildRemakeFactorRootProductAttributionStatusCountsV1350(outputRows),
-      writesPerformed: false
-    },
-    reconciliation: reconciliation
-  };
-}
-
-function buildRemakeFactorRootProductAttributionContextV1350(options) {
-  const opts = options || {};
-  const props = PropertiesService.getScriptProperties();
-  const maxApiCalls = Math.max(0, Number(
-    opts.rootProductAttributionMaxApiCalls !== undefined
-      ? opts.rootProductAttributionMaxApiCalls
-      : (props.getProperty(remakeFactorRootAttributionMaxApiCallsPropertyV1350) || remakeFactorRootAttributionDefaultMaxApiCallsV1350)
-  ));
-  const maxRuntimeMs = Math.max(1000, Number(
-    opts.rootProductAttributionMaxRuntimeMs !== undefined
-      ? opts.rootProductAttributionMaxRuntimeMs
-      : (props.getProperty(remakeFactorRootAttributionMaxRuntimeMsPropertyV1350) || remakeFactorRootAttributionDefaultMaxRuntimeMsV1350)
-  ));
-  return {
-    startedAtMs: Date.now(),
-    maxApiCalls: maxApiCalls,
-    maxRuntimeMs: maxRuntimeMs,
-    calls: 0,
-    budgetExhausted: false,
-    detailById: {},
-    queryByNumber: {},
-    errors: []
-  };
-}
-
-function canRemakeFactorRootAttributionFetchV1350(context) {
-  if (!context) return false;
-  const callBudgetOk = context.calls < context.maxApiCalls;
-  const timeBudgetOk = (Date.now() - context.startedAtMs) < context.maxRuntimeMs;
-  if (!callBudgetOk || !timeBudgetOk) context.budgetExhausted = true;
-  return callBudgetOk && timeBudgetOk;
-}
-
-function getRemakeFactorRootAttributionCurrentCaseV1350(row, config, token, context) {
-  const current = row || {};
-  const cachedLink = cleanRemakeFactorRootAttributionTextV1350(current.remakeCaseID || current.remakeCaseId || '');
-
-  // A nonblank durable link can safely start an existing chain. A blank link is
-  // different: current-case No Remake Root still requires direct CRM case-detail
-  // confirmation and never uses QueryCases blank as the final no-root proof.
-  if (current.remakeCaseIdFieldPresent === true && cachedLink) {
-    return {
-      caseID: cleanRemakeFactorRootAttributionTextV1350(current.caseId || current.caseID || ''),
-      caseNumber: Number(current.caseNumber || 0),
-      remakeCaseID: cachedLink,
-      remakeCaseIdFieldPresent: true,
-      caseProducts: []
-    };
-  }
-
-  const caseId = cleanRemakeFactorRootAttributionTextV1350(current.caseId || current.caseID || '');
-  if (caseId) return fetchRemakeFactorRootAttributionCaseByIdV1350(caseId, config, token, context);
-
-  const caseNumber = Math.trunc(Number(current.caseNumber || 0));
-  if (caseNumber > 0) {
-    const queryResult = fetchRemakeFactorRootAttributionQueryCaseByNumberV1350(caseNumber, config, token, context);
-    if (queryResult.status !== 'ok' || !queryResult.row) {
-      throw new Error(queryResult.message || 'Current case could not be read from CRM QueryCases.');
-    }
-    const queryCaseId = getRemakeFactorRootAttributionCaseIdV1350(queryResult.row);
-    return queryCaseId
-      ? fetchRemakeFactorRootAttributionCaseByIdV1350(queryCaseId, config, token, context)
-      : queryResult.row;
-  }
-
-  throw new Error('Current remake row is missing both caseId and caseNumber.');
-}
-
-function fetchRemakeFactorRootAttributionCaseByIdV1350(caseId, config, token, context) {
-  const cleanId = cleanRemakeFactorRootAttributionTextV1350(caseId);
-  if (!cleanId) throw new Error('Missing linked case ID.');
-  const key = cleanId.toLowerCase();
-  if (Object.prototype.hasOwnProperty.call(context.detailById, key)) return context.detailById[key];
-  if (!canRemakeFactorRootAttributionFetchV1350(context)) throw new Error('Root-attribution API/time budget exhausted before linked case detail could be read.');
-  context.calls++;
-  try {
-    const detail = fetchRemakeFactorCaseDetail(config, token, cleanId);
-    if (!detail || typeof detail !== 'object') throw new Error('Linked case detail was empty for case ID ' + cleanId + '.');
-    context.detailById[key] = detail;
-    return detail;
-  } catch (error) {
-    context.errors.push(cleanId + ': ' + (error && error.message ? error.message : String(error)));
-    throw error;
-  }
-}
-
-function fetchRemakeFactorRootAttributionQueryCaseByNumberV1350(caseNumber, config, token, context) {
-  const numberValue = Math.trunc(Number(caseNumber || 0));
-  if (!numberValue) return { status: 'error', row: null, message: 'Missing numeric case number.' };
-  const memoKey = String(numberValue);
-  if (Object.prototype.hasOwnProperty.call(context.queryByNumber, memoKey)) return context.queryByNumber[memoKey];
-  if (!canRemakeFactorRootAttributionFetchV1350(context)) {
-    const deferred = { status: 'deferred', row: null, message: 'Root-attribution API/time budget exhausted before exact QueryCases fallback.' };
-    context.queryByNumber[memoKey] = deferred;
-    return deferred;
-  }
-
-  context.calls++;
-  try {
-    const url = config.baseUrl + '/api/Cases/QueryCases?' + toRemakeFactorQueryString({
-      page: 1,
-      pageSize: 25,
-      orderBy: 'caseNumber',
-      additionalFields: 'caseProducts',
-      query: 'caseNumber == ' + numberValue
-    });
-    const response = remakeFactorFetchJson(url, {
-      method: 'get',
-      headers: { Authorization: 'Bearer ' + token },
-      muteHttpExceptions: true
-    });
-    const rows = extractRemakeFactorRows(response.body);
-    const row = rows.find(function(candidate) {
-      return Number(candidate && (candidate.caseNumber || candidate.caseNo) || 0) === numberValue;
-    }) || null;
-    const result = row
-      ? { status: 'ok', row: row, message: '' }
-      : { status: 'error', row: null, message: 'Case ' + numberValue + ' was not found in CRM QueryCases.' };
-    context.queryByNumber[memoKey] = result;
-    return result;
-  } catch (error) {
-    const message = error && error.message ? error.message : String(error);
-    context.errors.push('caseNumber ' + numberValue + ': ' + message);
-    const result = { status: 'error', row: null, message: message };
-    context.queryByNumber[memoKey] = result;
-    return result;
-  }
-}
-
-function resolveRemakeFactorRootAttributionChainV1350(currentCase, config, token, context) {
-  const currentCaseId = getRemakeFactorRootAttributionCaseIdV1350(currentCase);
-  const currentCaseNumber = getRemakeFactorRootAttributionCaseNumberV1350(currentCase);
-  const currentFieldPresent = hasRemakeFactorRootAttributionLinkFieldV1350(currentCase);
-  const firstLink = getRemakeFactorRootAttributionLinkV1350(currentCase);
-  const chain = {
-    status: '',
-    reason: '',
-    noRemakeRootFlag: false,
-    unconfirmedRootFlag: false,
-    brokenChainFlag: false,
-    cycleFlag: false,
-    chainDepth: 0,
-    currentCase: currentCase,
-    previousCase: null,
-    rootCase: null,
-    rootConfirmationMethod: '',
-    rootCaseNumber: 0,
-    previousCaseNumber: 0,
-    error: ''
-  };
-
-  if (!currentFieldPresent) {
-    chain.status = 'unconfirmed_root';
-    chain.reason = 'Current CRM case detail did not expose remakeCaseID, so No Remake Root cannot be confirmed.';
-    chain.unconfirmedRootFlag = true;
-    return chain;
-  }
-  if (!firstLink) {
-    chain.status = 'no_remake_root';
-    chain.reason = 'Current CRM case detail explicitly confirmed a blank remakeCaseID.';
-    chain.noRemakeRootFlag = true;
-    chain.rootConfirmationMethod = 'current_detail_blank_no_root';
-    return chain;
-  }
-
-  const visited = {};
-  if (currentCaseId) visited[currentCaseId.toLowerCase()] = true;
-  let nextId = firstLink;
-  let depth = 0;
-
-  while (nextId && depth < remakeFactorRootAttributionMaxChainDepthV1350) {
-    const cleanId = cleanRemakeFactorRootAttributionTextV1350(nextId);
-    const visitKey = cleanId.toLowerCase();
-    if (!cleanId || visited[visitKey]) {
-      chain.status = 'cycle_detected';
-      chain.reason = 'A remakeCaseID cycle was detected.';
-      chain.cycleFlag = true;
-      return chain;
-    }
-    visited[visitKey] = true;
-
-    let linkedCase;
-    try {
-      linkedCase = fetchRemakeFactorRootAttributionCaseByIdV1350(cleanId, config, token, context);
-    } catch (error) {
-      const budgetExhausted = context.budgetExhausted === true;
-      chain.status = budgetExhausted ? 'deferred' : 'broken_chain';
-      chain.reason = budgetExhausted
-        ? 'Root-attribution API/time budget was exhausted before the linked chain finished.'
-        : 'A linked remakeCaseID case could not be read.';
-      chain.brokenChainFlag = !budgetExhausted;
-      chain.unconfirmedRootFlag = budgetExhausted;
-      chain.error = error && error.message ? error.message : String(error);
-      return chain;
-    }
-
-    const linkedCaseId = getRemakeFactorRootAttributionCaseIdV1350(linkedCase) || cleanId;
-    const linkedCaseNumber = getRemakeFactorRootAttributionCaseNumberV1350(linkedCase);
-    if (!linkedCaseNumber) {
-      chain.status = 'broken_chain';
-      chain.reason = 'A linked CRM case did not contain a numeric case number.';
-      chain.brokenChainFlag = true;
-      return chain;
-    }
-
-    depth++;
-    if (!chain.previousCase) {
-      chain.previousCase = linkedCase;
-      chain.previousCaseNumber = linkedCaseNumber;
-    }
-    chain.rootCase = linkedCase;
-    chain.rootCaseNumber = linkedCaseNumber;
-    chain.chainDepth = depth;
-
-    if (hasRemakeFactorRootAttributionLinkFieldV1350(linkedCase)) {
-      const linkedNext = getRemakeFactorRootAttributionLinkV1350(linkedCase);
-      if (!linkedNext) {
-        chain.status = 'resolved';
-        chain.reason = 'Linked terminal root explicitly confirmed a blank remakeCaseID in case detail.';
-        chain.rootConfirmationMethod = 'detail_blank';
-        return chain;
-      }
-      nextId = linkedNext;
-      continue;
-    }
-
-    const queryResult = fetchRemakeFactorRootAttributionQueryCaseByNumberV1350(linkedCaseNumber, config, token, context);
-    if (queryResult.status === 'deferred') {
-      chain.status = 'deferred';
-      chain.reason = queryResult.message;
-      chain.unconfirmedRootFlag = true;
-      return chain;
-    }
-    if (queryResult.status !== 'ok' || !queryResult.row) {
-      chain.status = 'unconfirmed_root';
-      chain.reason = 'Linked detail omitted remakeCaseID and exact QueryCases fallback failed.';
-      chain.unconfirmedRootFlag = true;
-      chain.error = queryResult.message || '';
-      return chain;
-    }
-
-    const queryCase = queryResult.row;
-    const queryId = getRemakeFactorRootAttributionCaseIdV1350(queryCase);
-    const queryNumber = getRemakeFactorRootAttributionCaseNumberV1350(queryCase);
-    const sameId = !!queryId && queryId.toLowerCase() === linkedCaseId.toLowerCase();
-    if (!sameId || queryNumber !== linkedCaseNumber) {
-      chain.status = 'unconfirmed_root';
-      chain.reason = 'Linked detail omitted remakeCaseID and exact QueryCases identity did not match the linked case.';
-      chain.unconfirmedRootFlag = true;
-      return chain;
-    }
-    if (!hasRemakeFactorRootAttributionLinkFieldV1350(queryCase)) {
-      chain.status = 'unconfirmed_root';
-      chain.reason = 'Linked detail omitted remakeCaseID and exact QueryCases also omitted remakeCaseID.';
-      chain.unconfirmedRootFlag = true;
-      return chain;
-    }
-
-    const queryNext = getRemakeFactorRootAttributionLinkV1350(queryCase);
-    if (!queryNext) {
-      chain.status = 'resolved';
-      chain.reason = 'Linked terminal detail omitted remakeCaseID; exact QueryCases for the same case exposed a blank remakeCaseID.';
-      chain.rootConfirmationMethod = 'query_blank_detail_omitted';
-      return chain;
-    }
-    nextId = queryNext;
-  }
-
-  chain.status = nextId ? 'max_depth_exceeded' : 'unconfirmed_root';
-  chain.reason = nextId
-    ? 'Chain exceeded safety depth ' + remakeFactorRootAttributionMaxChainDepthV1350 + '.'
-    : 'Chain could not be conclusively classified.';
-  chain.unconfirmedRootFlag = true;
-  return chain;
-}
-
-function buildRemakeFactorRootAttributionUnconfirmedChainV1350(row, error) {
-  return {
-    status: 'unconfirmed_root',
-    reason: 'Current CRM case detail could not be confirmed, so remakeCaseID cannot be classified.',
-    noRemakeRootFlag: false,
-    unconfirmedRootFlag: true,
-    brokenChainFlag: false,
-    cycleFlag: false,
-    chainDepth: 0,
-    currentCase: null,
-    previousCase: null,
-    rootCase: null,
-    rootConfirmationMethod: '',
-    rootCaseNumber: 0,
-    previousCaseNumber: 0,
-    error: error && error.message ? error.message : String(error || ''),
-    currentCaseNumber: Number(row && row.caseNumber || 0)
-  };
-}
-
-function hasRemakeFactorRootAttributionLinkFieldV1350(caseObject) {
-  const value = caseObject && typeof caseObject === 'object' ? caseObject : {};
-  if (value.remakeCaseIdFieldPresent === true) return true;
-  return Object.keys(value).some(function(key) { return /^remakeCaseID$/i.test(key); });
-}
-
-function getRemakeFactorRootAttributionLinkV1350(caseObject) {
-  const value = caseObject && typeof caseObject === 'object' ? caseObject : {};
-  const direct = cleanRemakeFactorRootAttributionTextV1350(value.remakeCaseID || value.remakeCaseId || value.RemakeCaseID || '');
-  if (direct) return direct;
-  const key = Object.keys(value).find(function(candidate) { return /^remakeCaseID$/i.test(candidate); });
-  return key ? cleanRemakeFactorRootAttributionTextV1350(value[key]) : '';
-}
-
-function getRemakeFactorRootAttributionCaseIdV1350(caseObject) {
-  const value = caseObject && typeof caseObject === 'object' ? caseObject : {};
-  return cleanRemakeFactorRootAttributionTextV1350(value.caseID || value.caseId || value.id || '');
-}
-
-function getRemakeFactorRootAttributionCaseNumberV1350(caseObject) {
-  const value = caseObject && typeof caseObject === 'object' ? caseObject : {};
-  const numberValue = Number(value.caseNumber || value.caseNo || 0);
-  return Number.isFinite(numberValue) && numberValue > 0 ? Math.trunc(numberValue) : 0;
-}
-
-function getRemakeFactorRootAttributionProductsV1350(chain, config, token, context) {
-  if (!chain || chain.status !== 'resolved' || !chain.rootCase) return [];
-  let products = extractRemakeFactorRootAttributionProductsV1350(chain.rootCase);
-  if (products.length) return products;
-  const rootCaseNumber = Number(chain.rootCaseNumber || getRemakeFactorRootAttributionCaseNumberV1350(chain.rootCase) || 0);
-  if (!rootCaseNumber) return [];
-  const queryResult = fetchRemakeFactorRootAttributionQueryCaseByNumberV1350(rootCaseNumber, config, token, context);
-  if (queryResult.status === 'ok' && queryResult.row) products = extractRemakeFactorRootAttributionProductsV1350(queryResult.row);
-  return products;
-}
-
-function extractRemakeFactorRootAttributionProductsV1350(caseObject) {
-  const products = caseObject && Array.isArray(caseObject.caseProducts) ? caseObject.caseProducts : [];
-  return products.map(function(line, index) {
-    return {
-      index: index,
-      lineId: cleanRemakeFactorRootAttributionTextV1350(line && (line.id || line.caseProductID || line.caseProductId) || ''),
-      productId: cleanRemakeFactorRootAttributionTextV1350(line && (line.productID || line.productId) || ''),
-      productName: cleanRemakeFactorRootAttributionTextV1350(line && (line.invoiceDescription || line.description || line.productDescription || line.productName) || ''),
-      productGroupRaw: cleanRemakeFactorRootAttributionTextV1350(line && (line.taxGroup || line.group || line.productsGroup || line.productGroup) || ''),
-      departmentRaw: cleanRemakeFactorRootAttributionTextV1350(line && (line.taxDepartment || line.department || line.productsDepartment || line.productDepartment) || ''),
-      quantity: toRemakeFactorNumber(line && (line.quantity || line.qty) || 0)
-    };
-  });
-}
-
-function mapRemakeFactorRootAttributionCandidateV1350(currentRow, rootProducts) {
-  const products = Array.isArray(rootProducts) ? rootProducts : [];
-  if (!products.length) return { status: 'no_historical_products', method: 'none', product: null, candidates: [] };
-  const currentProductId = cleanRemakeFactorRootAttributionTextV1350(currentRow && currentRow.productId || '');
-  if (currentProductId) {
-    const exactMatches = products.filter(function(product) {
-      return cleanRemakeFactorRootAttributionTextV1350(product.productId) === currentProductId;
-    });
-    if (exactMatches.length === 1) return { status: 'candidate_exact_product_id', method: 'exact_product_id', product: exactMatches[0], candidates: exactMatches };
-    if (exactMatches.length > 1) return { status: 'ambiguous_duplicate_product_id', method: 'exact_product_id_multiple_lines', product: null, candidates: exactMatches };
-  }
-  if (products.length === 1) return { status: 'candidate_single_historical_product', method: 'single_historical_product', product: products[0], candidates: products };
-  return { status: 'ambiguous_multiple_historical_products', method: 'review_required', product: null, candidates: products };
-}
-
-function buildRemakeFactorRootProductAttributionFieldsV1350(row, chain, candidate, productMap) {
-  const current = row || {};
-  const rootCandidate = candidate || {};
-  const chainStatus = cleanRemakeFactorRootAttributionTextV1350(chain && chain.status || '');
-  const rootCaseNumber = Number(chain && chain.rootCaseNumber || 0);
-  let status = '';
-  let method = '';
-  let displayLabel = '';
-  let state = 'review_bucket';
-  let reason = '';
-  let sourceRole = '';
-  let sourceCaseNumber = 0;
-  let productId = '';
-  let productName = '';
-  let productGroup = '';
-  let department = '';
-  let metadataSource = '';
-  let metadataComplete = false;
-
-  if (chain && chain.noRemakeRootFlag === true) {
-    status = 'UNRESOLVED_NO_REMAKE_ROOT';
-    method = 'no_remake_root_no_historical_fallback';
-    displayLabel = 'Unresolved - No Remake Root';
-    reason = chain.reason || 'No linked remake root was confirmed.';
-    sourceRole = 'no_remake_root';
-  } else if (chain && chain.brokenChainFlag === true) {
-    status = 'UNRESOLVED_BROKEN_CHAIN';
-    method = 'broken_chain_no_historical_fallback';
-    displayLabel = 'Unresolved - Broken Chain';
-    reason = chain.reason || 'A linked historical case could not be read.';
-    sourceRole = 'broken_chain';
-  } else if (chain && chain.cycleFlag === true) {
-    status = 'UNRESOLVED_CYCLE';
-    method = 'cycle_no_historical_fallback';
-    displayLabel = 'Unresolved - Chain Cycle';
-    reason = chain.reason || 'The linked historical chain contains a cycle.';
-    sourceRole = 'chain_review';
-  } else if (chain && chain.unconfirmedRootFlag === true && chainStatus === 'unconfirmed_root') {
-    status = 'UNRESOLVED_UNCONFIRMED_ROOT';
-    method = 'unconfirmed_root_no_historical_fallback';
-    displayLabel = 'Unresolved - Unconfirmed Root';
-    reason = chain.reason || 'The historical root cannot be confirmed.';
-    sourceRole = 'unconfirmed_root';
-  } else if (chainStatus !== 'resolved') {
-    status = 'UNRESOLVED_OTHER_CHAIN';
-    method = 'unresolved_chain_no_historical_fallback';
-    displayLabel = 'Unresolved - Chain Review';
-    reason = chain && chain.reason || 'The historical chain is not resolved.';
-    sourceRole = 'chain_review';
-  } else if (rootCandidate.status === 'candidate_exact_product_id' && rootCandidate.method === 'exact_product_id' && rootCandidate.product) {
-    const resolved = resolveRemakeFactorRootProductMetadataV1350(rootCandidate.product, productMap || {});
-    if (resolved.metadataComplete) {
-      status = 'ATTRIBUTED_EXACT_ROOT';
-      method = 'root_exact_product_id';
-      state = 'mapped_root_product';
-      reason = 'Confirmed root contains one unique exact Product ID match.';
-      sourceRole = 'root';
-      sourceCaseNumber = rootCaseNumber;
-      productId = resolved.productId;
-      productName = resolved.productName;
-      productGroup = resolved.productGroup;
-      department = resolved.department;
-      metadataSource = resolved.metadataSource;
-      metadataComplete = true;
-    } else {
-      status = 'REVIEW_ROOT_UNRESOLVED';
-      method = 'review_required_root_metadata_incomplete';
-      displayLabel = 'Review - Root Product Unresolved';
-      reason = 'Exact root Product ID matched, but Product / Product Group / Department metadata is incomplete.';
-      sourceRole = 'root';
-      sourceCaseNumber = rootCaseNumber;
-    }
-  } else if (rootCandidate.status === 'candidate_single_historical_product' && rootCandidate.method === 'single_historical_product') {
-    status = 'REVIEW_NON_EXACT_SINGLE_ROOT';
-    method = 'review_required_non_exact_root_product';
-    displayLabel = 'Review - Product Changed / No Exact Match';
-    reason = 'One root product exists, but its Product ID does not uniquely match the current remake Product ID. No fallback is applied.';
-    sourceRole = 'root';
-    sourceCaseNumber = rootCaseNumber;
-  } else if (String(rootCandidate.status || '').indexOf('ambiguous_') === 0) {
-    status = 'REVIEW_AMBIGUOUS_ROOT_PRODUCT';
-    method = 'review_required_ambiguous_root_product';
-    displayLabel = 'Review - Ambiguous Root Product';
-    reason = 'The confirmed root does not identify one unique historical product line for this remake row.';
-    sourceRole = 'root';
-    sourceCaseNumber = rootCaseNumber;
-  } else if (rootCandidate.status === 'no_historical_products') {
-    status = 'REVIEW_NO_ROOT_PRODUCTS';
-    method = 'review_required_no_root_products';
-    displayLabel = 'Review - No Root Products';
-    reason = 'The confirmed root has no usable historical product rows.';
-    sourceRole = 'root';
-    sourceCaseNumber = rootCaseNumber;
-  } else {
-    status = 'REVIEW_ROOT_UNRESOLVED';
-    method = 'review_required_root_product_unresolved';
-    displayLabel = 'Review - Root Product Unresolved';
-    reason = 'The root product candidate does not meet the approved exact-root attribution condition.';
-    sourceRole = chainStatus === 'resolved' ? 'root' : 'chain_review';
-    sourceCaseNumber = chainStatus === 'resolved' ? rootCaseNumber : 0;
-  }
-
-  return {
-    remadeSourceCaseNumber: sourceCaseNumber,
-    remadeSourceCaseRole: sourceRole,
-    remadeProductId: productId,
-    remadeProductName: productName,
-    remadeProductGroup: productGroup,
-    remadeDepartment: department,
-    remadeProductMappingStatus: status,
-    remadeProductMappingMethod: method,
-    remadeAttributionDisplayLabel: displayLabel,
-    remadeProductDisplay: status === 'ATTRIBUTED_EXACT_ROOT' ? productName : displayLabel,
-    remadeProductGroupDisplay: status === 'ATTRIBUTED_EXACT_ROOT' ? productGroup : displayLabel,
-    remadeDepartmentDisplay: status === 'ATTRIBUTED_EXACT_ROOT' ? department : displayLabel,
-    remadeAttributionState: state,
-    remadeAttributionReason: reason,
-    remadeChainStatus: chainStatus,
-    remadeChainDepth: Number(chain && chain.chainDepth || 0),
-    remadeImmediatePreviousCaseNumber: Number(chain && chain.previousCaseNumber || 0),
-    remadeRootCaseNumber: rootCaseNumber,
-    remadeRootConfirmationMethod: cleanRemakeFactorRootAttributionTextV1350(chain && chain.rootConfirmationMethod || ''),
-    remadeProductMetadataSource: metadataSource,
-    remadeProductMetadataComplete: metadataComplete,
-    includeInRemakeEventTotals: current.isRemake === true,
-    historicalFallbackUsed: false,
-    currentProductFallbackUsed: false,
-    immediatePreviousProductFallbackUsed: false
-  };
-}
-
-function buildRemakeFactorRootProductAttributionEmptyFieldsV1350(row) {
-  return {
-    remadeSourceCaseNumber: 0,
-    remadeSourceCaseRole: '',
-    remadeProductId: '',
-    remadeProductName: '',
-    remadeProductGroup: '',
-    remadeDepartment: '',
-    remadeProductMappingStatus: '',
-    remadeProductMappingMethod: '',
-    remadeAttributionDisplayLabel: '',
-    remadeProductDisplay: '',
-    remadeProductGroupDisplay: '',
-    remadeDepartmentDisplay: '',
-    remadeAttributionState: '',
-    remadeAttributionReason: '',
-    remadeChainStatus: '',
-    remadeChainDepth: 0,
-    remadeImmediatePreviousCaseNumber: 0,
-    remadeRootCaseNumber: 0,
-    remadeRootConfirmationMethod: '',
-    remadeProductMetadataSource: '',
-    remadeProductMetadataComplete: false,
-    includeInRemakeEventTotals: !!(row && row.isRemake === true),
-    historicalFallbackUsed: false,
-    currentProductFallbackUsed: false,
-    immediatePreviousProductFallbackUsed: false
-  };
-}
-
-function resolveRemakeFactorRootProductMetadataV1350(rootProduct, productMap) {
-  const source = rootProduct || {};
-  const productId = cleanRemakeFactorRootAttributionTextV1350(source.productId || '');
-  const meta = productId && productMap ? (productMap[productId] || {}) : {};
-  const productName = cleanRemakeFactorRootAttributionTextV1350(meta.productName || meta.description || source.productName || productId) || productId;
-  const fallbackClass = inferRemakeFactorLegacyProductClass(productId, productName, '');
-  const rawDepartment = cleanRemakeFactorRootAttributionTextV1350(meta.department || source.departmentRaw || fallbackClass.department || '');
-  const rawGroup = cleanRemakeFactorRootAttributionTextV1350(meta.group || source.productGroupRaw || fallbackClass.group || '');
-  const department = normalizeRemakeFactorDepartment(rawDepartment) || inferRemakeFactorDepartmentFromGroupOrCode(rawGroup) || inferRemakeFactorDepartmentFromProductName(productName) || '';
-  const productGroup = normalizeRemakeFactorProductGroup(rawGroup, department);
-  const metadataSource = cleanRemakeFactorRootAttributionTextV1350(meta.source || (source.departmentRaw || source.productGroupRaw ? 'root_case_product_fields' : (fallbackClass.department || fallbackClass.group ? 'legacyProductIdOrNameFallback' : '')));
-  const metadataComplete = !!productId && !!productName && !!department && department !== 'Unassigned' && !!productGroup && productGroup !== 'Unassigned';
-  return {
-    productId: productId,
-    productName: productName,
-    productGroup: productGroup,
-    department: department,
-    metadataSource: metadataSource,
-    metadataComplete: metadataComplete
-  };
-}
-
-function groupRemakeFactorRootProductAttributionRowsV1350(rows) {
-  const grouped = {};
-  (rows || []).forEach(function(row, index) {
-    if (!row || row.isRemake !== true) return;
-    const caseId = cleanRemakeFactorRootAttributionTextV1350(row.caseId || row.caseID || '');
-    const caseNumber = Number(row.caseNumber || 0);
-    const key = caseId || (caseNumber > 0 ? 'case-number:' + Math.trunc(caseNumber) : 'row:' + index);
-    if (!grouped[key]) grouped[key] = [];
-    grouped[key].push(row);
-  });
-  return grouped;
-}
-
-function reconcileRemakeFactorRootProductAttributionV1350(inputRows, outputRows) {
-  const input = (inputRows || []).filter(function(row) { return row && row.isRemake === true; });
-  const output = (outputRows || []).filter(function(row) { return row && row.isRemake === true; });
-  const inputCaseCount = countRemakeFactorRootAttributionCasesV1350(input);
-  const outputCaseCount = countRemakeFactorRootAttributionCasesV1350(output);
-  const inputUnits = roundRemakeFactorRootAttributionMetricV1350(sumRemakeFactorRootAttributionMetricV1350(input, 'remakeUnits'));
-  const outputUnits = roundRemakeFactorRootAttributionMetricV1350(sumRemakeFactorRootAttributionMetricV1350(output, 'remakeUnits'));
-  const inputDiscount = roundRemakeFactorRootAttributionMetricV1350(sumRemakeFactorRootAttributionMetricV1350(input, 'remakeDiscount'));
-  const outputDiscount = roundRemakeFactorRootAttributionMetricV1350(sumRemakeFactorRootAttributionMetricV1350(output, 'remakeDiscount'));
-  const exactRows = output.filter(function(row) { return row.remadeProductMappingStatus === 'ATTRIBUTED_EXACT_ROOT'; });
-  const reviewRows = output.filter(function(row) { return /^REVIEW_|^UNRESOLVED_/.test(String(row.remadeProductMappingStatus || '')); });
-  const unsafeFallbackRows = output.filter(function(row) {
-    if (row.remadeProductMappingStatus === 'ATTRIBUTED_EXACT_ROOT') return false;
-    return !!cleanRemakeFactorRootAttributionTextV1350(row.remadeProductId || '') || row.historicalFallbackUsed === true || row.currentProductFallbackUsed === true || row.immediatePreviousProductFallbackUsed === true;
-  }).length;
-  const exactRowsNotUsingRoot = exactRows.filter(function(row) {
-    return row.remadeSourceCaseRole !== 'root' || Number(row.remadeSourceCaseNumber || 0) !== Number(row.remadeRootCaseNumber || 0);
-  }).length;
-  const exactRowsWithDifferentProductId = exactRows.filter(function(row) {
-    return cleanRemakeFactorRootAttributionTextV1350(row.remadeProductId || '') !== cleanRemakeFactorRootAttributionTextV1350(row.productId || '');
-  }).length;
-  const exactMetadataIncompleteRows = exactRows.filter(function(row) { return row.remadeProductMetadataComplete !== true; }).length;
-  const reviewRowsMissingDisplayLabel = reviewRows.filter(function(row) { return !cleanRemakeFactorRootAttributionTextV1350(row.remadeAttributionDisplayLabel || ''); }).length;
-  const allRowsAssigned = output.every(function(row) { return !!cleanRemakeFactorRootAttributionTextV1350(row.remadeProductMappingStatus || ''); });
-
-  const rowDelta = output.length - input.length;
-  const caseDelta = outputCaseCount - inputCaseCount;
-  const unitDelta = roundRemakeFactorRootAttributionMetricV1350(outputUnits - inputUnits);
-  const discountDelta = roundRemakeFactorRootAttributionMetricV1350(outputDiscount - inputDiscount);
-  return {
-    inputRemakeRows: input.length,
-    projectedRemakeRows: output.length,
-    rowCountDelta: rowDelta,
-    inputUniqueRemakeCases: inputCaseCount,
-    projectedUniqueRemakeCases: outputCaseCount,
-    uniqueCaseCountDelta: caseDelta,
-    inputRemakeUnits: inputUnits,
-    projectedRemakeUnits: outputUnits,
-    remakeUnitsDelta: unitDelta,
-    inputRemakeDiscount: inputDiscount,
-    projectedRemakeDiscount: outputDiscount,
-    remakeDiscountDelta: discountDelta,
-    allRowsAssignedToAttributionState: allRowsAssigned,
-    exactRootRows: exactRows.length,
-    exactRootMetadataIncompleteRows: exactMetadataIncompleteRows,
-    reviewOrUnresolvedRows: reviewRows.length,
-    reviewRowsMissingDisplayLabel: reviewRowsMissingDisplayLabel,
-    unsafeFallbackRows: unsafeFallbackRows,
-    exactRowsNotUsingRoot: exactRowsNotUsingRoot,
-    exactRowsWithDifferentProductId: exactRowsWithDifferentProductId,
-    statusCounts: buildRemakeFactorRootProductAttributionStatusCountsV1350(output),
-    eventRetentionPass: rowDelta === 0 && caseDelta === 0 && unitDelta === 0 && discountDelta === 0,
-    noFallbackPass: unsafeFallbackRows === 0,
-    exactRootIntegrityPass: exactRowsNotUsingRoot === 0 && exactRowsWithDifferentProductId === 0,
-    displayCoveragePass: allRowsAssigned && reviewRowsMissingDisplayLabel === 0,
-    metadataCoveragePass: exactMetadataIncompleteRows === 0,
-    overallPass: rowDelta === 0 && caseDelta === 0 && unitDelta === 0 && discountDelta === 0 && unsafeFallbackRows === 0 && exactRowsNotUsingRoot === 0 && exactRowsWithDifferentProductId === 0 && allRowsAssigned && reviewRowsMissingDisplayLabel === 0 && exactMetadataIncompleteRows === 0
-  };
-}
-
-function buildRemakeFactorRootProductAttributionStatusCountsV1350(rows) {
-  const counts = {
-    ATTRIBUTED_EXACT_ROOT: 0,
-    REVIEW_NON_EXACT_SINGLE_ROOT: 0,
-    REVIEW_AMBIGUOUS_ROOT_PRODUCT: 0,
-    REVIEW_NO_ROOT_PRODUCTS: 0,
-    REVIEW_ROOT_UNRESOLVED: 0,
-    UNRESOLVED_NO_REMAKE_ROOT: 0,
-    UNRESOLVED_UNCONFIRMED_ROOT: 0,
-    UNRESOLVED_BROKEN_CHAIN: 0,
-    UNRESOLVED_CYCLE: 0,
-    UNRESOLVED_OTHER_CHAIN: 0
-  };
-  (rows || []).forEach(function(row) {
-    if (!row || row.isRemake !== true) return;
-    const key = cleanRemakeFactorRootAttributionTextV1350(row.remadeProductMappingStatus || '');
-    if (!key) return;
-    if (!Object.prototype.hasOwnProperty.call(counts, key)) counts[key] = 0;
-    counts[key]++;
-  });
-  return counts;
-}
-
-function countRemakeFactorRootAttributionCasesV1350(rows) {
-  const seen = {};
-  (rows || []).forEach(function(row) {
-    const numberValue = Number(row && row.caseNumber || 0);
-    const caseId = cleanRemakeFactorRootAttributionTextV1350(row && row.caseId || '');
-    const key = numberValue > 0 ? String(Math.trunc(numberValue)) : caseId;
-    if (key) seen[key] = true;
-  });
-  return Object.keys(seen).length;
-}
-
-function sumRemakeFactorRootAttributionMetricV1350(rows, fieldName) {
-  return (rows || []).reduce(function(sum, row) { return sum + toRemakeFactorNumber(row && row[fieldName] || 0); }, 0);
-}
-
-function roundRemakeFactorRootAttributionMetricV1350(value) {
-  return Math.round((Number(value || 0) + Number.EPSILON) * 1000000) / 1000000;
-}
-
-function cleanRemakeFactorRootAttributionTextV1350(value) {
-  return String(value === null || value === undefined ? '' : value).trim();
-}
-
-/**
- * Read-only integrated QA profile. It uses the existing durable cache as input,
- * resolves live CRM chains for at most maxCases, and never writes the cache.
- */
-function profileRemakeFactorRootProductAttributionIntegrationV1350(options) {
-  const opts = Object.assign({}, options || {});
-  const maxCases = Math.max(1, Number(opts.maxCases || 50));
-  const samplesPerBucket = Math.max(1, Number(opts.samplesPerBucket || 2));
-  const cached = readRemakeFactorCache({ compactForBrowser: false });
-  if (!cached || cached.ok !== true || !Array.isArray(cached.detailRows)) {
-    return { ok: false, version: remakeFactorRootAttributionVersionV1350, readOnly: true, message: cached && cached.message ? cached.message : 'Remake Factor cache is not available.' };
-  }
-
-  const grouped = groupRemakeFactorRootProductAttributionRowsV1350(cached.detailRows);
-  let caseKeys = Object.keys(grouped).sort(function(leftKey, rightKey) {
-    const left = grouped[leftKey] && grouped[leftKey][0];
-    const right = grouped[rightKey] && grouped[rightKey][0];
-    return Number(left && left.caseNumber || 0) - Number(right && right.caseNumber || 0);
-  });
-  const requestedCases = normalizeRemakeFactorRootAttributionCaseNumbersV1350(opts.caseNumbers || []);
-  if (requestedCases.length) {
-    const wanted = {};
-    requestedCases.forEach(function(value) { wanted[String(value)] = true; });
-    caseKeys = caseKeys.filter(function(key) {
-      const row = grouped[key] && grouped[key][0];
-      return !!(row && wanted[String(Number(row.caseNumber || 0))]);
-    });
-  }
-  const totalEligibleCases = caseKeys.length;
-  caseKeys = caseKeys.slice(0, maxCases);
-  const selectedRows = [];
-  caseKeys.forEach(function(key) { (grouped[key] || []).forEach(function(row) { selectedRows.push(row); }); });
-
-  const props = PropertiesService.getScriptProperties();
-  const config = getRemakeFactorConfig(props, {
-    quickRefresh: true,
-    pageSize: 25,
-    maxPages: 1,
-    maxDetailFetches: 0,
-    detailStrategy: 'none',
-    chunkByMonth: false,
-    fetchProductMap: true,
-    fetchCustomerMap: false,
-    useProductLookup: false
-  });
-  const token = authenticateRemakeFactorApi(config);
-  const apiProductMap = fetchRemakeFactorProductMap(config, token) || {};
-  let cachedLookupMap = {};
-  let cachedLookupAvailable = false;
-  try {
-    const lookup = readRemakeFactorProductLookupCache();
-    if (lookup && lookup.ok && lookup.lookup && typeof lookup.lookup === 'object') {
-      cachedLookupMap = lookup.lookup;
-      cachedLookupAvailable = true;
-    }
-  } catch (ignore) {}
-  const productMap = mergeRemakeFactorProductMaps(apiProductMap, cachedLookupMap);
-  const applyOptions = Object.assign({}, opts, {
-    rootProductAttributionMaxApiCalls: opts.rootProductAttributionMaxApiCalls !== undefined ? opts.rootProductAttributionMaxApiCalls : 250,
-    rootProductAttributionMaxRuntimeMs: opts.rootProductAttributionMaxRuntimeMs !== undefined ? opts.rootProductAttributionMaxRuntimeMs : 180000
-  });
-  const result = applyRemakeFactorRootProductAttributionV1350(selectedRows, productMap, config, token, applyOptions);
-  return {
-    ok: true,
-    version: remakeFactorRootAttributionVersionV1350,
-    cacheVersion: 'RemakeFactorCache v1.35.0',
-    diagnosticOnly: true,
-    readOnly: true,
-    generatedAt: new Date().toISOString(),
-    sourceCacheGeneratedAt: cached.generatedAt || '',
-    policy: remakeFactorRootAttributionPolicyV1350,
-    scope: {
-      totalEligibleCases: totalEligibleCases,
-      auditedCases: caseKeys.length,
-      remakeRows: selectedRows.length
-    },
-    productMetadata: {
-      apiProductCount: Object.keys(apiProductMap).length,
-      cachedLookupAvailable: cachedLookupAvailable,
-      cachedLookupCount: Object.keys(cachedLookupMap).length,
-      mergedProductCount: Object.keys(productMap).length,
-      writesPerformed: false
-    },
-    attributionStats: result.stats,
-    reconciliation: result.reconciliation,
-    sampleRows: buildRemakeFactorRootAttributionSamplesV1350(result.rows, samplesPerBucket)
-  };
-}
-
-function profileRemakeFactorRootProductAttributionCaseV1350(caseNumber) {
-  const target = Math.trunc(Number(caseNumber || 375669));
-  if (!target) throw new Error('Provide a positive numeric case number.');
-  return profileRemakeFactorRootProductAttributionIntegrationV1350({ caseNumbers: [target], maxCases: 1, samplesPerBucket: 10 });
-}
-
-function buildRemakeFactorRootAttributionSamplesV1350(rows, samplesPerBucket) {
-  const used = {};
-  const samples = [];
-  (rows || []).forEach(function(row) {
-    if (!row || row.isRemake !== true) return;
-    const key = cleanRemakeFactorRootAttributionTextV1350(row.remadeProductMappingStatus || '');
-    const count = Number(used[key] || 0);
-    if (count >= samplesPerBucket) return;
-    used[key] = count + 1;
-    samples.push({
-      currentCaseNumber: Number(row.caseNumber || 0),
-      currentProductId: cleanRemakeFactorRootAttributionTextV1350(row.productId || ''),
-      currentProductName: cleanRemakeFactorRootAttributionTextV1350(row.productName || ''),
-      currentProductGroup: cleanRemakeFactorRootAttributionTextV1350(row.productGroup || ''),
-      currentDepartment: cleanRemakeFactorRootAttributionTextV1350(row.department || ''),
-      currentRemakeReason: cleanRemakeFactorRootAttributionTextV1350(row.remakeReason || ''),
-      remadeSourceCaseNumber: Number(row.remadeSourceCaseNumber || 0),
-      remadeSourceCaseRole: cleanRemakeFactorRootAttributionTextV1350(row.remadeSourceCaseRole || ''),
-      remadeProductId: cleanRemakeFactorRootAttributionTextV1350(row.remadeProductId || ''),
-      remadeProductName: cleanRemakeFactorRootAttributionTextV1350(row.remadeProductName || ''),
-      remadeProductGroup: cleanRemakeFactorRootAttributionTextV1350(row.remadeProductGroup || ''),
-      remadeDepartment: cleanRemakeFactorRootAttributionTextV1350(row.remadeDepartment || ''),
-      remadeProductMappingStatus: key,
-      remadeProductMappingMethod: cleanRemakeFactorRootAttributionTextV1350(row.remadeProductMappingMethod || ''),
-      remadeAttributionDisplayLabel: cleanRemakeFactorRootAttributionTextV1350(row.remadeAttributionDisplayLabel || ''),
-      remadeChainStatus: cleanRemakeFactorRootAttributionTextV1350(row.remadeChainStatus || ''),
-      remadeChainDepth: Number(row.remadeChainDepth || 0),
-      remadeRootCaseNumber: Number(row.remadeRootCaseNumber || 0),
-      remadeRootConfirmationMethod: cleanRemakeFactorRootAttributionTextV1350(row.remadeRootConfirmationMethod || ''),
-      includeInRemakeEventTotals: row.includeInRemakeEventTotals === true
-    });
-  });
-  return samples;
-}
-
-function normalizeRemakeFactorRootAttributionCaseNumbersV1350(values) {
-  const seen = {};
-  const result = [];
-  (Array.isArray(values) ? values : [values]).forEach(function(value) {
-    const numberValue = Math.trunc(Number(value || 0));
-    if (!numberValue || seen[numberValue]) return;
-    seen[numberValue] = true;
-    result.push(numberValue);
-  });
-  return result;
 }

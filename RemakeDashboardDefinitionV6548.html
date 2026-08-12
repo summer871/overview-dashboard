@@ -16,7 +16,6 @@ Purpose: Declarative Remake feature configuration for the shared runtime while p
 
   const TABLE_FEATURES = ['comparePriorYear','columns','columnWidths','popout','reset','more','exportCurrent','exportAll'];
   const STANDARD_TABLE_FEATURES = ['columns','columnWidths','popout','reset','more','exportCurrent','exportAll'];
-  const AUDIT_TABLE_FEATURES = ['columns','columnWidths','popout','more','exportCurrent','exportAll'];
   const BASE_OPTIONS = {
     popout:{adapterMethod:'popout'},
     reset:{adapterMethod:'reset'},
@@ -83,13 +82,6 @@ Purpose: Declarative Remake feature configuration for the shared runtime while p
         targetId:'remakeCustomerTable',tableIds:['remakeCustomerTable'],collapseKey:'customer',
         features:TABLE_FEATURES.concat(['collapse']),
         featureOptions:optionsV6579({comparePriorYear:COMPARE_OPTIONS,columnWidths:widthOptionsV6581({firstColumnMin:180}),collapse:COLLAPSE_OPTIONS})
-      },
-      {
-        key:'attributionAudit',legacyKey:'attributionAudit',title:'Attribution Audit',kind:'table',
-        cardId:'remakeAttributionAuditCardV6230',
-        targetId:'remakeAttributionAuditTableV6230',tableIds:['remakeAttributionAuditTableV6230'],
-        features:AUDIT_TABLE_FEATURES.slice(),
-        featureOptions:optionsV6579({columnWidths:widthOptionsV6581({firstColumnMin:120})})
       },
       {
         key:'ceramist',legacyKey:'ceramist',title:'Technicians',kind:'table',cardId:'remakeCeramistCardV6342',
