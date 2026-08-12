@@ -1,7 +1,7 @@
 <!--
 RemakeRootAttributionBrowserIntegrationV1351.html
-Version: v1.35.1 - 2026-08-10
-State: Prepared only
+Version: v1.35.2 - 2026-08-11
+State: v6.637 runtime-bridge integration
 Purpose:
 - Decode the backward-compatible root-attribution extension carried by the Remake browser-ready payload.
 - Keep current Product / Product Group / Department dimensions untouched for denominator/production rows.
@@ -14,7 +14,7 @@ Purpose:
 (function installRemakeRootAttributionBrowserIntegrationV1351(){
   'use strict';
 
-  const VERSION_V1351 = 'remake-root-attribution-browser-v1.35.1';
+  const VERSION_V1351 = 'remake-root-attribution-browser-v1.35.2';
   const EXTENSION_VERSION_V1351 = 'remakeRootAttributionBrowserV1351';
   const PACKED_ATTRIBUTION_INDEX_V1351 = 16;
   const EXACT_STATUS_V1351 = 'ATTRIBUTED_EXACT_ROOT';
@@ -60,6 +60,22 @@ Purpose:
   let originalSlimDataV1351 = null;
   let originalHandleDataV1351 = null;
 
+  function runtimeBridgeV1351(){
+    const bridge = window.cdaRemakeRuntimeBridgeV6637;
+    if (!bridge || typeof bridge.get !== 'function' || typeof bridge.set !== 'function') return null;
+    return bridge;
+  }
+
+  function runtimeGetV1351(name){
+    const bridge = runtimeBridgeV1351();
+    return bridge ? bridge.get(name) : null;
+  }
+
+  function runtimeSetV1351(name, fn){
+    const bridge = runtimeBridgeV1351();
+    return !!(bridge && bridge.set(name, fn));
+  }
+
   function cleanV1351(value){
     return String(value == null ? '' : value).replace(/\s+/g, ' ').trim();
   }
@@ -72,7 +88,8 @@ Purpose:
     if (!row) return false;
     if (row.isRemake === true) return true;
     if (row.isRemake === false) return false;
-    if (typeof isRemakeV6230 === 'function') return isRemakeV6230(row);
+    const checker = runtimeGetV1351('isRemakeV6230');
+    if (typeof checker === 'function') return checker(row);
     return false;
   }
 
@@ -225,9 +242,10 @@ Purpose:
   }
 
   function installExpandWrapperV1351(){
-    if (typeof expandRemakeBrowserReadyPayloadV6388 !== 'function') return false;
-    originalExpandV1351 = expandRemakeBrowserReadyPayloadV6388;
-    expandRemakeBrowserReadyPayloadV6388 = async function expandRemakeBrowserReadyPayloadRootAttributionV1351(packed){
+    const current = runtimeGetV1351('expandRemakeBrowserReadyPayloadV6388');
+    if (typeof current !== 'function') return false;
+    originalExpandV1351 = current;
+    const wrapped = async function expandRemakeBrowserReadyPayloadRootAttributionV1351(packed){
       const sourceRows = packed && Array.isArray(packed.rows) ? packed.rows : [];
       const dictionaries = packed && packed.dictionaries || {};
       const rootAttributions = Array.isArray(dictionaries.rootAttributions) ? dictionaries.rootAttributions : [];
@@ -248,13 +266,13 @@ Purpose:
       };
       return expanded;
     };
-    return true;
+    return runtimeSetV1351('expandRemakeBrowserReadyPayloadV6388', wrapped);
   }
-
   function installNormalizeWrapperV1351(){
-    if (typeof normalizeRowsV6230 !== 'function') return false;
-    originalNormalizeV1351 = normalizeRowsV6230;
-    normalizeRowsV6230 = function normalizeRowsRootAttributionV1351(rows, lookups){
+    const current = runtimeGetV1351('normalizeRowsV6230');
+    if (typeof current !== 'function') return false;
+    originalNormalizeV1351 = current;
+    const wrapped = function normalizeRowsRootAttributionV1351(rows, lookups){
       const source = Array.isArray(rows) ? rows : [];
       const normalized = originalNormalizeV1351(rows, lookups);
       for (let index = 0; index < normalized.length && index < source.length; index += 1) {
@@ -262,43 +280,43 @@ Purpose:
       }
       return normalized;
     };
-    return true;
+    return runtimeSetV1351('normalizeRowsV6230', wrapped);
   }
-
   function installRemakeFilterWrapperV1351(){
-    if (typeof rowsForRemakeFiltersV6252 !== 'function') return false;
-    originalRowsForRemakeV1351 = rowsForRemakeFiltersV6252;
-    rowsForRemakeFiltersV6252 = function rowsForRemakeRootAttributionFiltersV1351(rows, options){
+    const current = runtimeGetV1351('rowsForRemakeFiltersV6252');
+    if (typeof current !== 'function') return false;
+    originalRowsForRemakeV1351 = current;
+    const wrapped = function rowsForRemakeRootAttributionFiltersV1351(rows, options){
       return originalRowsForRemakeV1351(projectedRowsV1351(rows), options || {});
     };
-    return true;
+    return runtimeSetV1351('rowsForRemakeFiltersV6252', wrapped);
   }
-
   function installFilterInventoryWrapperV1351(){
-    if (typeof populateFiltersV6230 !== 'function') return false;
-    originalPopulateFiltersV1351 = populateFiltersV6230;
-    populateFiltersV6230 = function populateRootAttributionFiltersV1351(rows){
+    const current = runtimeGetV1351('populateFiltersV6230');
+    if (typeof current !== 'function') return false;
+    originalPopulateFiltersV1351 = current;
+    const wrapped = function populateRootAttributionFiltersV1351(rows){
       return originalPopulateFiltersV1351(filterInventoryRowsV1351(rows));
     };
-    return true;
+    return runtimeSetV1351('populateFiltersV6230', wrapped);
   }
-
   function installSlimDataWrapperV1351(){
-    if (typeof slimDataV6230 !== 'function') return false;
-    originalSlimDataV1351 = slimDataV6230;
-    slimDataV6230 = function slimRemakeRootAttributionDataV1351(data){
-      const slim = originalSlimDataV1351(data);
-      slim.rootProductAttributionEnabled = activationFromDataV1351(data);
-      slim.rootProductAttributionBrowser = data && data.rootProductAttributionBrowser || metadataV1351 || null;
-      return slim;
+    const current = runtimeGetV1351('slimDataV6230');
+    if (typeof current !== 'function') return false;
+    originalSlimDataV1351 = current;
+    const wrapped = function slimRemakeRootAttributionDataV1351(data){
+      const slimmed = originalSlimDataV1351(data);
+      slimmed.rootProductAttributionEnabled = activationFromDataV1351(data);
+      slimmed.rootProductAttributionBrowser = data && data.rootProductAttributionBrowser || metadataV1351 || null;
+      return slimmed;
     };
-    return true;
+    return runtimeSetV1351('slimDataV6230', wrapped);
   }
-
   function installHandleDataWrapperV1351(){
-    if (typeof handleDataV6230 !== 'function') return false;
-    originalHandleDataV1351 = handleDataV6230;
-    handleDataV6230 = function handleRemakeRootAttributionDataV1351(data, fromBrowser){
+    const current = runtimeGetV1351('handleDataV6230');
+    if (typeof current !== 'function') return false;
+    originalHandleDataV1351 = current;
+    const wrapped = function handleRemakeRootAttributionDataV1351(data, fromBrowser){
       setActivationFromDataV1351(data || {});
       const result = originalHandleDataV1351(data, fromBrowser);
       const state = window.remakeFactorState || {};
@@ -308,9 +326,8 @@ Purpose:
       }
       return result;
     };
-    return true;
+    return runtimeSetV1351('handleDataV6230', wrapped);
   }
-
   function profileCaseV1351(caseNumber){
     const target = String(Math.trunc(Number(caseNumber || 375669)) || '');
     const state = window.remakeFactorState || {};
@@ -408,15 +425,16 @@ Purpose:
 
   function installV1351(){
     if (installedV1351) return true;
-    const required = [
-      typeof expandRemakeBrowserReadyPayloadV6388 === 'function',
-      typeof normalizeRowsV6230 === 'function',
-      typeof rowsForRemakeFiltersV6252 === 'function',
-      typeof populateFiltersV6230 === 'function',
-      typeof slimDataV6230 === 'function',
-      typeof handleDataV6230 === 'function'
+    const requiredNames = [
+      'expandRemakeBrowserReadyPayloadV6388',
+      'normalizeRowsV6230',
+      'rowsForRemakeFiltersV6252',
+      'populateFiltersV6230',
+      'slimDataV6230',
+      'handleDataV6230',
+      'isRemakeV6230'
     ];
-    if (required.some(function(value){ return value !== true; })) return false;
+    if (!runtimeBridgeV1351() || requiredNames.some(function(name){ return typeof runtimeGetV1351(name) !== 'function'; })) return false;
     if (!installExpandWrapperV1351()) return false;
     if (!installNormalizeWrapperV1351()) return false;
     if (!installRemakeFilterWrapperV1351()) return false;
@@ -426,7 +444,6 @@ Purpose:
     installedV1351 = true;
     return true;
   }
-
   window.cdaRemakeRootAttributionBrowserV1351 = Object.freeze({
     version: VERSION_V1351,
     extensionVersion: EXTENSION_VERSION_V1351,
@@ -442,11 +459,12 @@ Purpose:
   window.testRemakeRootAttributionBrowserV1351 = selfTestV1351;
 
   if (!installV1351()) {
+    document.addEventListener('cdaRemakeRuntimeBridgeReadyV6637', function(){ installV1351(); }, { once:true });
     window.setTimeout(function retryRemakeRootAttributionBrowserV1351(){
       if (!installV1351()) {
-        console.error('Remake root-attribution browser integration v1.35.1 could not find the required Remake runtime functions.');
+        console.error('Remake root-attribution browser integration v1.35.2 could not attach to the v6.637 Remake runtime bridge.');
       }
-    }, 0);
+    }, 50);
   }
 })();
 </script>
