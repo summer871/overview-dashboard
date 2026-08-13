@@ -1,0 +1,470 @@
+<!--
+RemakeRootAttributionBrowserIntegrationV1351.html
+Version: v1.35.2 - 2026-08-11
+State: v6.637 runtime-bridge integration
+Purpose:
+- Decode the backward-compatible root-attribution extension carried by the Remake browser-ready payload.
+- Keep current Product / Product Group / Department dimensions untouched for denominator/production rows.
+- Project remake numerator rows onto approved historical root attribution dimensions only when
+  MT_REMAKE_ROOT_ATTRIBUTION_ENABLED was true when the browser payload was built.
+- Preserve explicit Review / Unresolved buckets with no current-product or immediate-previous fallback.
+- Preserve existing Remake event totals, customer/reason/month behavior, and Ceramist ownership.
+-->
+<script id="cdaRemakeRootAttributionBrowserIntegrationV1351">
+(function installRemakeRootAttributionBrowserIntegrationV1351(){
+  'use strict';
+
+  const VERSION_V1351 = 'remake-root-attribution-browser-v1.35.2';
+  const EXTENSION_VERSION_V1351 = 'remakeRootAttributionBrowserV1351';
+  const PACKED_ATTRIBUTION_INDEX_V1351 = 16;
+  const EXACT_STATUS_V1351 = 'ATTRIBUTED_EXACT_ROOT';
+  const ATTRIBUTION_FIELDS_V1351 = [
+    'remadeSourceCaseNumber',
+    'remadeSourceCaseRole',
+    'remadeProductId',
+    'remadeProductName',
+    'remadeProductGroup',
+    'remadeDepartment',
+    'remadeProductMappingStatus',
+    'remadeProductMappingMethod',
+    'remadeAttributionDisplayLabel',
+    'remadeProductDisplay',
+    'remadeProductGroupDisplay',
+    'remadeDepartmentDisplay',
+    'remadeAttributionState',
+    'remadeAttributionReason',
+    'remadeChainStatus',
+    'remadeChainDepth',
+    'remadeImmediatePreviousCaseNumber',
+    'remadeRootCaseNumber',
+    'remadeRootConfirmationMethod',
+    'remadeProductMetadataSource',
+    'remadeProductMetadataComplete',
+    'historicalFallbackUsed',
+    'currentProductFallbackUsed',
+    'immediatePreviousProductFallbackUsed'
+  ];
+
+  if (window.cdaRemakeRootAttributionBrowserV1351 &&
+      window.cdaRemakeRootAttributionBrowserV1351.version === VERSION_V1351) return;
+
+  let installedV1351 = false;
+  let activeV1351 = false;
+  let metadataV1351 = null;
+  let projectionCacheV1351 = new WeakMap();
+  let filterUnionCacheV1351 = new WeakMap();
+  let originalExpandV1351 = null;
+  let originalNormalizeV1351 = null;
+  let originalRowsForRemakeV1351 = null;
+  let originalPopulateFiltersV1351 = null;
+  let originalSlimDataV1351 = null;
+  let originalHandleDataV1351 = null;
+
+  function runtimeBridgeV1351(){
+    const bridge = window.cdaRemakeRuntimeBridgeV6637;
+    if (!bridge || typeof bridge.get !== 'function' || typeof bridge.set !== 'function') return null;
+    return bridge;
+  }
+
+  function runtimeGetV1351(name){
+    const bridge = runtimeBridgeV1351();
+    return bridge ? bridge.get(name) : null;
+  }
+
+  function runtimeSetV1351(name, fn){
+    const bridge = runtimeBridgeV1351();
+    return !!(bridge && bridge.set(name, fn));
+  }
+
+  function cleanV1351(value){
+    return String(value == null ? '' : value).replace(/\s+/g, ' ').trim();
+  }
+
+  function boolV1351(value){
+    return value === true || value === 1 || value === '1' || String(value || '').toLowerCase() === 'true';
+  }
+
+  function isRemakeRowV1351(row){
+    if (!row) return false;
+    if (row.isRemake === true) return true;
+    if (row.isRemake === false) return false;
+    const checker = runtimeGetV1351('isRemakeV6230');
+    if (typeof checker === 'function') return checker(row);
+    return false;
+  }
+
+  function copyAttributionFieldsV1351(source, target){
+    const from = source || {};
+    const to = target || {};
+    ATTRIBUTION_FIELDS_V1351.forEach(function(key){
+      if (Object.prototype.hasOwnProperty.call(from, key)) to[key] = from[key];
+    });
+    return to;
+  }
+
+  function decodeAttributionRecordV1351(record){
+    const attr = Array.isArray(record) ? record : [];
+    return {
+      remadeSourceCaseNumber: Number(attr[0] || 0),
+      remadeSourceCaseRole: cleanV1351(attr[1]),
+      remadeProductId: cleanV1351(attr[2]),
+      remadeProductName: cleanV1351(attr[3]),
+      remadeProductGroup: cleanV1351(attr[4]),
+      remadeDepartment: cleanV1351(attr[5]),
+      remadeProductMappingStatus: cleanV1351(attr[6]),
+      remadeProductMappingMethod: cleanV1351(attr[7]),
+      remadeAttributionDisplayLabel: cleanV1351(attr[8]),
+      remadeProductDisplay: cleanV1351(attr[9]),
+      remadeProductGroupDisplay: cleanV1351(attr[10]),
+      remadeDepartmentDisplay: cleanV1351(attr[11]),
+      remadeAttributionState: cleanV1351(attr[12]),
+      remadeAttributionReason: cleanV1351(attr[13]),
+      remadeChainStatus: cleanV1351(attr[14]),
+      remadeRootCaseNumber: Number(attr[15] || 0),
+      remadeImmediatePreviousCaseNumber: Number(attr[16] || 0),
+      remadeRootConfirmationMethod: cleanV1351(attr[17]),
+      remadeProductMetadataSource: cleanV1351(attr[18]),
+      remadeProductMetadataComplete: Number(attr[19]) === 1,
+      historicalFallbackUsed: Number(attr[20]) === 1,
+      currentProductFallbackUsed: Number(attr[21]) === 1,
+      immediatePreviousProductFallbackUsed: Number(attr[22]) === 1,
+      remadeChainDepth: Number(attr[23] || 0)
+    };
+  }
+
+  function activationFromDataV1351(data){
+    const source = data || {};
+    const extension = source.rootProductAttributionBrowser || null;
+    if (extension && cleanV1351(extension.version) === EXTENSION_VERSION_V1351) {
+      return extension.enabled === true;
+    }
+    return source.rootProductAttributionEnabled === true;
+  }
+
+  function setActivationFromDataV1351(data){
+    activeV1351 = activationFromDataV1351(data);
+    metadataV1351 = data && data.rootProductAttributionBrowser || null;
+    projectionCacheV1351 = new WeakMap();
+    filterUnionCacheV1351 = new WeakMap();
+    window.CDA_REMAKE_ROOT_ATTRIBUTION_ACTIVE_V1351 = activeV1351;
+    window.CDA_REMAKE_ROOT_ATTRIBUTION_METADATA_V1351 = metadataV1351;
+  }
+
+  function unresolvedProjectionLabelV1351(row){
+    return cleanV1351(
+      row && (
+        row.remadeAttributionDisplayLabel ||
+        row.remadeProductDisplay ||
+        row.remadeProductGroupDisplay ||
+        row.remadeDepartmentDisplay
+      )
+    ) || 'Unresolved - Root Attribution Label Missing';
+  }
+
+  function projectRemakeRowV1351(row, forceActive){
+    if (!row || !isRemakeRowV1351(row) || !(forceActive === true || activeV1351)) return row;
+    const status = cleanV1351(row.remadeProductMappingStatus);
+    if (!status) {
+      const missing = Object.assign({}, row);
+      const label = 'Unresolved - Root Attribution Missing';
+      missing.department = label;
+      missing.productId = '';
+      missing.productKey = label;
+      missing.productName = label;
+      missing.productGroup = label;
+      missing.rootAttributionProjectionAppliedV1351 = true;
+      missing.rootAttributionProjectionIssueV1351 = 'missing_mapping_status';
+      return missing;
+    }
+
+    const projected = Object.assign({}, row);
+    if (status === EXACT_STATUS_V1351) {
+      const productId = cleanV1351(row.remadeProductId);
+      const productName = cleanV1351(row.remadeProductDisplay || row.remadeProductName);
+      const productGroup = cleanV1351(row.remadeProductGroupDisplay || row.remadeProductGroup);
+      const department = cleanV1351(row.remadeDepartmentDisplay || row.remadeDepartment);
+      if (!productId || !productName || !productGroup || !department) {
+        const label = 'Unresolved - Root Attribution Metadata Missing';
+        projected.department = label;
+        projected.productId = '';
+        projected.productKey = label;
+        projected.productName = label;
+        projected.productGroup = label;
+        projected.rootAttributionProjectionIssueV1351 = 'exact_root_metadata_incomplete';
+      } else {
+        projected.department = department;
+        projected.productId = productId;
+        projected.productKey = productId || productName;
+        projected.productName = productName;
+        projected.productGroup = productGroup;
+      }
+    } else {
+      const label = unresolvedProjectionLabelV1351(row);
+      projected.department = cleanV1351(row.remadeDepartmentDisplay) || label;
+      projected.productId = '';
+      projected.productKey = cleanV1351(row.remadeProductDisplay) || label;
+      projected.productName = cleanV1351(row.remadeProductDisplay) || label;
+      projected.productGroup = cleanV1351(row.remadeProductGroupDisplay) || label;
+    }
+    projected.rootAttributionProjectionAppliedV1351 = true;
+    projected.currentProductIdV1351 = cleanV1351(row.productId);
+    projected.currentProductNameV1351 = cleanV1351(row.productName);
+    projected.currentProductGroupV1351 = cleanV1351(row.productGroup);
+    projected.currentDepartmentV1351 = cleanV1351(row.department);
+    return projected;
+  }
+
+  function projectedRowsV1351(rows){
+    const source = Array.isArray(rows) ? rows : [];
+    if (!activeV1351 || !source.length) return source;
+    if (projectionCacheV1351.has(source)) return projectionCacheV1351.get(source);
+    const projected = source.map(function(row){
+      return isRemakeRowV1351(row) ? projectRemakeRowV1351(row, true) : row;
+    });
+    projectionCacheV1351.set(source, projected);
+    return projected;
+  }
+
+  function filterInventoryRowsV1351(rows){
+    const source = Array.isArray(rows) ? rows : [];
+    if (!activeV1351 || !source.length) return source;
+    if (filterUnionCacheV1351.has(source)) return filterUnionCacheV1351.get(source);
+    const projected = projectedRowsV1351(source);
+    const historicalRemakeRows = [];
+    for (let index = 0; index < source.length; index += 1) {
+      if (!isRemakeRowV1351(source[index])) continue;
+      const candidate = projected[index];
+      if (candidate !== source[index]) historicalRemakeRows.push(candidate);
+    }
+    const union = source.concat(historicalRemakeRows);
+    filterUnionCacheV1351.set(source, union);
+    return union;
+  }
+
+  function installExpandWrapperV1351(){
+    const current = runtimeGetV1351('expandRemakeBrowserReadyPayloadV6388');
+    if (typeof current !== 'function') return false;
+    originalExpandV1351 = current;
+    const wrapped = async function expandRemakeBrowserReadyPayloadRootAttributionV1351(packed){
+      const sourceRows = packed && Array.isArray(packed.rows) ? packed.rows : [];
+      const dictionaries = packed && packed.dictionaries || {};
+      const rootAttributions = Array.isArray(dictionaries.rootAttributions) ? dictionaries.rootAttributions : [];
+      const extension = packed && packed.rootProductAttributionBrowser || null;
+      const enabled = packed && packed.rootProductAttributionEnabled === true || !!(extension && extension.enabled === true);
+      const expanded = await originalExpandV1351(packed);
+      for (let index = 0; index < expanded.rows.length && index < sourceRows.length; index += 1) {
+        const packedRow = sourceRows[index] || [];
+        const attrIndex = Number(packedRow[PACKED_ATTRIBUTION_INDEX_V1351]);
+        if (!Number.isFinite(attrIndex) || attrIndex < 0 || attrIndex >= rootAttributions.length) continue;
+        copyAttributionFieldsV1351(decodeAttributionRecordV1351(rootAttributions[attrIndex]), expanded.rows[index]);
+      }
+      expanded.rootProductAttributionEnabled = enabled;
+      expanded.rootProductAttributionBrowser = extension || {
+        version: EXTENSION_VERSION_V1351,
+        enabled: enabled,
+        packedIndex: PACKED_ATTRIBUTION_INDEX_V1351
+      };
+      return expanded;
+    };
+    return runtimeSetV1351('expandRemakeBrowserReadyPayloadV6388', wrapped);
+  }
+  function installNormalizeWrapperV1351(){
+    const current = runtimeGetV1351('normalizeRowsV6230');
+    if (typeof current !== 'function') return false;
+    originalNormalizeV1351 = current;
+    const wrapped = function normalizeRowsRootAttributionV1351(rows, lookups){
+      const source = Array.isArray(rows) ? rows : [];
+      const normalized = originalNormalizeV1351(rows, lookups);
+      for (let index = 0; index < normalized.length && index < source.length; index += 1) {
+        copyAttributionFieldsV1351(source[index], normalized[index]);
+      }
+      return normalized;
+    };
+    return runtimeSetV1351('normalizeRowsV6230', wrapped);
+  }
+  function installRemakeFilterWrapperV1351(){
+    const current = runtimeGetV1351('rowsForRemakeFiltersV6252');
+    if (typeof current !== 'function') return false;
+    originalRowsForRemakeV1351 = current;
+    const wrapped = function rowsForRemakeRootAttributionFiltersV1351(rows, options){
+      return originalRowsForRemakeV1351(projectedRowsV1351(rows), options || {});
+    };
+    return runtimeSetV1351('rowsForRemakeFiltersV6252', wrapped);
+  }
+  function installFilterInventoryWrapperV1351(){
+    const current = runtimeGetV1351('populateFiltersV6230');
+    if (typeof current !== 'function') return false;
+    originalPopulateFiltersV1351 = current;
+    const wrapped = function populateRootAttributionFiltersV1351(rows){
+      return originalPopulateFiltersV1351(filterInventoryRowsV1351(rows));
+    };
+    return runtimeSetV1351('populateFiltersV6230', wrapped);
+  }
+  function installSlimDataWrapperV1351(){
+    const current = runtimeGetV1351('slimDataV6230');
+    if (typeof current !== 'function') return false;
+    originalSlimDataV1351 = current;
+    const wrapped = function slimRemakeRootAttributionDataV1351(data){
+      const slimmed = originalSlimDataV1351(data);
+      slimmed.rootProductAttributionEnabled = activationFromDataV1351(data);
+      slimmed.rootProductAttributionBrowser = data && data.rootProductAttributionBrowser || metadataV1351 || null;
+      return slimmed;
+    };
+    return runtimeSetV1351('slimDataV6230', wrapped);
+  }
+  function installHandleDataWrapperV1351(){
+    const current = runtimeGetV1351('handleDataV6230');
+    if (typeof current !== 'function') return false;
+    originalHandleDataV1351 = current;
+    const wrapped = function handleRemakeRootAttributionDataV1351(data, fromBrowser){
+      setActivationFromDataV1351(data || {});
+      const result = originalHandleDataV1351(data, fromBrowser);
+      const state = window.remakeFactorState || {};
+      if (state.data) {
+        state.data.rootProductAttributionEnabled = activeV1351;
+        state.data.rootProductAttributionBrowser = metadataV1351;
+      }
+      return result;
+    };
+    return runtimeSetV1351('handleDataV6230', wrapped);
+  }
+  function profileCaseV1351(caseNumber){
+    const target = String(Math.trunc(Number(caseNumber || 375669)) || '');
+    const state = window.remakeFactorState || {};
+    const rows = Array.isArray(state.rows) ? state.rows : [];
+    const matches = rows.filter(function(row){
+      const value = String(row && (row.caseNumber || row.caseId) || '');
+      return value === target;
+    }).map(function(row){
+      const projected = projectRemakeRowV1351(row, true);
+      return {
+        caseNumber: target,
+        isRemake: isRemakeRowV1351(row),
+        current: {
+          productId: cleanV1351(row.productId),
+          productName: cleanV1351(row.productName),
+          productGroup: cleanV1351(row.productGroup),
+          department: cleanV1351(row.department)
+        },
+        historical: {
+          sourceCaseNumber: Number(row.remadeSourceCaseNumber || 0),
+          rootCaseNumber: Number(row.remadeRootCaseNumber || 0),
+          productId: cleanV1351(row.remadeProductId),
+          productName: cleanV1351(row.remadeProductName),
+          productGroup: cleanV1351(row.remadeProductGroup),
+          department: cleanV1351(row.remadeDepartment),
+          status: cleanV1351(row.remadeProductMappingStatus),
+          method: cleanV1351(row.remadeProductMappingMethod),
+          displayLabel: cleanV1351(row.remadeAttributionDisplayLabel)
+        },
+        projected: {
+          productId: cleanV1351(projected.productId),
+          productName: cleanV1351(projected.productName),
+          productGroup: cleanV1351(projected.productGroup),
+          department: cleanV1351(projected.department)
+        },
+        event: {
+          remakeUnits: Number(row.remakeUnits || 0),
+          remakeDiscount: Number(row.remakeDiscount || 0)
+        },
+        unsafeFallback: boolV1351(row.historicalFallbackUsed) || boolV1351(row.currentProductFallbackUsed) || boolV1351(row.immediatePreviousProductFallbackUsed)
+      };
+    });
+    const result = {
+      ok: matches.length > 0,
+      version: VERSION_V1351,
+      active: activeV1351,
+      caseNumber: target,
+      rows: matches
+    };
+    console.log(JSON.stringify(result, null, 2));
+    return result;
+  }
+
+  function selfTestV1351(){
+    const exact = {
+      isRemake:true,
+      productId:'CURRENT', productName:'Current Product', productGroup:'Current Group', department:'Current Department',
+      remakeUnits:2, remakeDiscount:123.45,
+      remadeProductMappingStatus:EXACT_STATUS_V1351,
+      remadeProductId:'ROOT', remadeProductName:'Root Product', remadeProductGroup:'Root Group', remadeDepartment:'Root Department',
+      remadeProductDisplay:'Root Product', remadeProductGroupDisplay:'Root Group', remadeDepartmentDisplay:'Root Department'
+    };
+    const review = {
+      isRemake:true,
+      productId:'CURRENT2', productName:'Current Product 2', productGroup:'Current Group 2', department:'Current Department 2',
+      remakeUnits:1, remakeDiscount:0,
+      remadeProductMappingStatus:'REVIEW_AMBIGUOUS_ROOT_PRODUCT',
+      remadeAttributionDisplayLabel:'Review - Ambiguous Root Product',
+      remadeProductDisplay:'Review - Ambiguous Root Product',
+      remadeProductGroupDisplay:'Review - Ambiguous Root Product',
+      remadeDepartmentDisplay:'Review - Ambiguous Root Product'
+    };
+    const nonRemake = { isRemake:false, productId:'N', productName:'Not Remake', productGroup:'NG', department:'ND', quantity:1 };
+    const exactProjected = projectRemakeRowV1351(exact, true);
+    const reviewProjected = projectRemakeRowV1351(review, true);
+    const nonRemakeProjected = projectRemakeRowV1351(nonRemake, true);
+    const tests = {
+      exactUsesRootProduct: exactProjected.productId === 'ROOT' && exactProjected.productName === 'Root Product',
+      exactUsesRootGroupDepartment: exactProjected.productGroup === 'Root Group' && exactProjected.department === 'Root Department',
+      currentExactRowUntouched: exact.productId === 'CURRENT' && exact.department === 'Current Department',
+      reviewUsesExplicitBucket: reviewProjected.productName === 'Review - Ambiguous Root Product' && reviewProjected.productGroup === 'Review - Ambiguous Root Product' && reviewProjected.department === 'Review - Ambiguous Root Product',
+      currentReviewRowUntouched: review.productId === 'CURRENT2' && review.department === 'Current Department 2',
+      eventMetricsPreserved: exactProjected.remakeUnits === 2 && exactProjected.remakeDiscount === 123.45 && reviewProjected.remakeUnits === 1,
+      nonRemakeUnchanged: nonRemakeProjected === nonRemake,
+      noHistoricalFallbackIntroduced: exactProjected.currentProductIdV1351 === 'CURRENT' && reviewProjected.currentProductIdV1351 === 'CURRENT2'
+    };
+    const result = {
+      ok: Object.keys(tests).every(function(key){ return tests[key] === true; }),
+      version: VERSION_V1351,
+      tests: tests
+    };
+    console.log(JSON.stringify(result, null, 2));
+    return result;
+  }
+
+  function installV1351(){
+    if (installedV1351) return true;
+    const requiredNames = [
+      'expandRemakeBrowserReadyPayloadV6388',
+      'normalizeRowsV6230',
+      'rowsForRemakeFiltersV6252',
+      'populateFiltersV6230',
+      'slimDataV6230',
+      'handleDataV6230',
+      'isRemakeV6230'
+    ];
+    if (!runtimeBridgeV1351() || requiredNames.some(function(name){ return typeof runtimeGetV1351(name) !== 'function'; })) return false;
+    if (!installExpandWrapperV1351()) return false;
+    if (!installNormalizeWrapperV1351()) return false;
+    if (!installRemakeFilterWrapperV1351()) return false;
+    if (!installFilterInventoryWrapperV1351()) return false;
+    if (!installSlimDataWrapperV1351()) return false;
+    if (!installHandleDataWrapperV1351()) return false;
+    installedV1351 = true;
+    return true;
+  }
+  window.cdaRemakeRootAttributionBrowserV1351 = Object.freeze({
+    version: VERSION_V1351,
+    extensionVersion: EXTENSION_VERSION_V1351,
+    packedIndex: PACKED_ATTRIBUTION_INDEX_V1351,
+    active: function(){ return activeV1351; },
+    metadata: function(){ return metadataV1351; },
+    projectRow: function(row){ return projectRemakeRowV1351(row, true); },
+    profileCase: profileCaseV1351,
+    selfTest: selfTestV1351,
+    install: installV1351
+  });
+  window.profileRemakeRootAttributionBrowserV1351 = profileCaseV1351;
+  window.testRemakeRootAttributionBrowserV1351 = selfTestV1351;
+
+  if (!installV1351()) {
+    document.addEventListener('cdaRemakeRuntimeBridgeReadyV6637', function(){ installV1351(); }, { once:true });
+    window.setTimeout(function retryRemakeRootAttributionBrowserV1351(){
+      if (!installV1351()) {
+        console.error('Remake root-attribution browser integration v1.35.2 could not attach to the v6.637 Remake runtime bridge.');
+      }
+    }, 50);
+  }
+})();
+</script>
