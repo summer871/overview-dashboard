@@ -1,0 +1,103 @@
+JULY 2026 CASE-NUMBER COMPARISON
+
+Goal
+Compare the exact July case population from:
+1. Dashboard MagicTouch API cache
+2. Live MagicTouch production SQL through SSMS
+3. BigQuery products_all
+
+Comparison key
+CustomerID | CaseNumber
+
+FILES
+- DASHBOARD-CACHE-JULY-2026-CASE-EXPORT-CONSOLE.txt
+- SSMS-JULY-2026-CASE-EXPORT.txt
+- BIGQUERY-JULY-2026-CASE-EXPORT.txt
+
+STEP 1 - COPY THE DOWNLOADED FILES INTO THE REPO
+
+Run in PowerShell:
+
+$repo = 'C:\AppsScript\Overview Dashboard'
+$queryFolder = Join-Path $repo 'queries'
+New-Item -ItemType Directory -Path $queryFolder -Force | Out-Null
+
+$files = @(
+  'DASHBOARD-CACHE-JULY-2026-CASE-EXPORT-CONSOLE.txt',
+  'SSMS-JULY-2026-CASE-EXPORT.txt',
+  'BIGQUERY-JULY-2026-CASE-EXPORT.txt'
+)
+
+foreach ($name in $files) {
+  $source = Get-ChildItem `
+    -Path "$env:USERPROFILE\Downloads" `
+    -File `
+    -Filter $name |
+    Sort-Object LastWriteTime -Descending |
+    Select-Object -First 1
+
+  if (-not $source) {
+    throw "File not found in Downloads: $name"
+  }
+
+  Copy-Item `
+    -LiteralPath $source.FullName `
+    -Destination (Join-Path $queryFolder $name) `
+    -Force
+}
+
+Get-ChildItem -LiteralPath $queryFolder |
+  Where-Object Name -in $files |
+  Select-Object Name, Length, LastWriteTime
+
+STEP 2 - EXPORT THE DASHBOARD CACHE CASES
+
+1. Open the refreshed Remake Factor /dev page.
+2. Press F12.
+3. Open the Console tab.
+4. Open this repo file:
+   C:\AppsScript\Overview Dashboard\queries\DASHBOARD-CACHE-JULY-2026-CASE-EXPORT-CONSOLE.txt
+5. Copy the complete script and paste it into the Console.
+6. Press Enter.
+7. The browser downloads:
+   DASHBOARD-CACHE-JULY-2026-CASE-EXPORT.csv
+
+This reads only window.remakeFactorState.rows. It does not refresh or modify data.
+
+STEP 3 - EXPORT LIVE SSMS CASES
+
+1. Connect SSMS to:
+   Server: CDA-WUS3-SQL01.DLCPM
+   Database: DLCPM
+2. Open:
+   C:\AppsScript\Overview Dashboard\queries\SSMS-JULY-2026-CASE-EXPORT.txt
+3. Execute it.
+4. Save the result grid as:
+   SSMS-JULY-2026-CASE-EXPORT.csv
+
+STEP 4 - EXPORT BIGQUERY CASES
+
+1. Open BigQuery.
+2. Open:
+   C:\AppsScript\Overview Dashboard\queries\BIGQUERY-JULY-2026-CASE-EXPORT.txt
+3. Run it.
+4. Save the result as:
+   BIGQUERY-JULY-2026-CASE-EXPORT.csv
+
+STEP 5 - COMPARE
+
+Upload all three CSV files into this chat.
+
+The comparison will classify:
+- Dashboard only
+- SSMS only
+- BigQuery only
+- Present in all sources
+- Same case but different remake flag
+- Different product-line count
+- Different total units
+- Different remake units
+- Different remake discount
+
+IMPORTANT
+The dashboard export must be taken after the current refresh and before another refresh.

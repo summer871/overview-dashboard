@@ -1,0 +1,281 @@
+/*
+Executive Overview Dashboard - July 2026 dashboard-cache case export
+Run in Chrome DevTools Console while the refreshed Remake Factor page is open.
+
+Purpose:
+- Reads the actual product-line rows currently loaded in window.remakeFactorState.rows.
+- Filters to July 2026.
+- Aggregates to one row per CustomerID | CaseNumber.
+- Downloads a CSV for comparison with the SSMS and BigQuery exports.
+- Does not modify the dashboard, cache, or MagicTouch data.
+*/
+
+(() => {
+  'use strict';
+
+  const state = window.remakeFactorState || {};
+  const rows = Array.isArray(state.rows) ? state.rows : [];
+
+  if (!rows.length) {
+    throw new Error(
+      'No Remake rows are loaded. Open the Remake Factor page and allow it to finish loading before running this export.'
+    );
+  }
+
+  const numberValue = value => {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : 0;
+  };
+
+  const textValue = value => String(value == null ? '' : value).trim();
+
+  const isJuly2026 = row => {
+    const invoiceDate = textValue(row.invoiceDate || row.Cases_InvoiceDate);
+    if (/^2026-07(?:-|T|$)/.test(invoiceDate)) return true;
+
+    const year = Number(row.year || 0);
+    const month = textValue(row.month);
+    return year === 2026 && (
+      month === '7' ||
+      month === '07' ||
+      /^jul(?:y)?$/i.test(month) ||
+      /^2026-07$/i.test(month) ||
+      /(?:^|[\s-])jul(?:y)?(?:[\s-]|$)/i.test(month)
+    );
+  };
+
+  const isRemake = row => {
+    if (row && row.isRemake === true) return true;
+    if (row && row.isRemake === false) return false;
+
+    if (
+      numberValue(row && row.remakeCases) > 0 ||
+      numberValue(row && row.remakeUnits) > 0
+    ) {
+      return true;
+    }
+
+    const flag = textValue(
+      row && (
+        row.remakeFlag ||
+        row.remake ||
+        row.caseProductsRemake ||
+        row.CaseProducts_Remake
+      )
+    ).toLowerCase();
+
+    if (!flag) return false;
+    return !['n', 'no', 'false', '0', 'none', 'not a remake'].includes(flag);
+  };
+
+  const julyRows = rows.filter(isJuly2026);
+
+  if (!julyRows.length) {
+    throw new Error(
+      'The loaded dashboard cache contains no rows identified as July 2026.'
+    );
+  }
+
+  const cases = new Map();
+
+  julyRows.forEach((row, index) => {
+    const customerId = textValue(
+      row.customerId ||
+      row.customerID ||
+      row.Customers_CustomerID
+    );
+
+    const caseNumber = textValue(
+      row.caseNumber ||
+      row.caseNo ||
+      row.Cases_CaseNumber ||
+      row.case
+    );
+
+    const caseId = textValue(
+      row.caseId ||
+      row.caseID ||
+      caseNumber
+    );
+
+    const auditKey = `${customerId}|${caseNumber}`;
+
+    if (!customerId || !caseNumber) {
+      console.warn('Row missing CustomerID or CaseNumber:', row);
+    }
+
+    if (!cases.has(auditKey)) {
+      cases.set(auditKey, {
+        source_system: 'DASHBOARD_API_CACHE',
+        audit_key: auditKey,
+        customer_id: customerId,
+        case_number: caseNumber,
+        case_id: caseId,
+        invoice_date: textValue(row.invoiceDate || row.Cases_InvoiceDate),
+        case_statuses: new Set(),
+        departments: new Set(),
+        product_line_count: 0,
+        total_units: 0,
+        is_remake_case: false,
+        remake_line_count: 0,
+        remake_units: 0,
+        remake_discount: 0
+      });
+    }
+
+    const result = cases.get(auditKey);
+    const remake = isRemake(row);
+    const quantity = numberValue(
+      row.quantity !== undefined ? row.quantity : row.units
+    );
+
+    const remakeUnits = remake
+      ? numberValue(
+          row.remakeUnits !== undefined ? row.remakeUnits : quantity
+        )
+      : 0;
+
+    const remakeDiscount = remake
+      ? Math.abs(
+          numberValue(
+            row.remakeDiscount !== undefined
+              ? row.remakeDiscount
+              : row.CaseProducts_RemakeDiscount
+          )
+        )
+      : 0;
+
+    result.product_line_count += 1;
+    result.total_units += quantity;
+    result.is_remake_case = result.is_remake_case || remake;
+    result.remake_line_count += remake ? 1 : 0;
+    result.remake_units += remakeUnits;
+    result.remake_discount += remakeDiscount;
+
+    const status = textValue(
+      row.caseStatus ||
+      row.status ||
+      row.Cases_Status
+    );
+    if (status) result.case_statuses.add(status);
+
+    const department = textValue(
+      row.department ||
+      row.productsDepartment ||
+      row.Products_Department
+    );
+    if (department) result.departments.add(department);
+
+    if (!result.invoice_date) {
+      result.invoice_date = textValue(
+        row.invoiceDate || row.Cases_InvoiceDate
+      );
+    }
+
+    if (!result.case_id) result.case_id = caseId;
+
+    // Keep the source row index available in the console during debugging.
+    result.last_source_row_index = index;
+  });
+
+  const output = Array.from(cases.values())
+    .map(result => ({
+      source_system: result.source_system,
+      audit_key: result.audit_key,
+      customer_id: result.customer_id,
+      case_number: result.case_number,
+      case_id: result.case_id,
+      invoice_date: result.invoice_date,
+      case_status: Array.from(result.case_statuses).sort().join(' | '),
+      product_line_count: result.product_line_count,
+      department_count: result.departments.size,
+      departments: Array.from(result.departments).sort().join(' | '),
+      total_units: Number(result.total_units.toFixed(4)),
+      is_remake_case: result.is_remake_case ? 1 : 0,
+      remake_line_count: result.remake_line_count,
+      remake_units: Number(result.remake_units.toFixed(4)),
+      remake_discount: Number(result.remake_discount.toFixed(4))
+    }))
+    .sort((left, right) =>
+      left.customer_id.localeCompare(right.customer_id, undefined, {
+        numeric: true,
+        sensitivity: 'base'
+      }) ||
+      left.case_number.localeCompare(right.case_number, undefined, {
+        numeric: true,
+        sensitivity: 'base'
+      })
+    );
+
+  const headers = [
+    'source_system',
+    'audit_key',
+    'customer_id',
+    'case_number',
+    'case_id',
+    'invoice_date',
+    'case_status',
+    'product_line_count',
+    'department_count',
+    'departments',
+    'total_units',
+    'is_remake_case',
+    'remake_line_count',
+    'remake_units',
+    'remake_discount'
+  ];
+
+  const escapeCsv = value => {
+    const text = String(value == null ? '' : value);
+    return /[",\r\n]/.test(text)
+      ? `"${text.replace(/"/g, '""')}"`
+      : text;
+  };
+
+  const csv = [
+    headers.join(','),
+    ...output.map(row =>
+      headers.map(header => escapeCsv(row[header])).join(',')
+    )
+  ].join('\r\n');
+
+  const blob = new Blob([csv], {
+    type: 'text/csv;charset=utf-8'
+  });
+
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = 'DASHBOARD-CACHE-JULY-2026-CASE-EXPORT.csv';
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(link.href);
+
+  const remakeCases = output.filter(row => row.is_remake_case === 1).length;
+  const totalUnits = output.reduce(
+    (sum, row) => sum + numberValue(row.total_units),
+    0
+  );
+  const remakeUnits = output.reduce(
+    (sum, row) => sum + numberValue(row.remake_units),
+    0
+  );
+  const remakeDiscount = output.reduce(
+    (sum, row) => sum + numberValue(row.remake_discount),
+    0
+  );
+
+  console.table([{
+    source: 'DASHBOARD_API_CACHE',
+    july_product_lines: julyRows.length,
+    total_cases: output.length,
+    remake_cases: remakeCases,
+    total_units: Number(totalUnits.toFixed(4)),
+    remake_units: Number(remakeUnits.toFixed(4)),
+    remake_discount: Number(remakeDiscount.toFixed(4))
+  }]);
+
+  console.log(
+    `Downloaded DASHBOARD-CACHE-JULY-2026-CASE-EXPORT.csv with ${output.length} cases.`
+  );
+})();

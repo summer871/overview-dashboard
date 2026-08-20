@@ -1,0 +1,104 @@
+-- Executive Overview Dashboard - July 2026 BigQuery case export
+-- Table: customerprofiles.retention_data.products_all
+-- READ ONLY: SELECT statement only.
+--
+-- Output grain: one row per Customers_CustomerID | Cases_CaseNumber.
+-- Use this export with the matching dashboard-cache and SSMS exports.
+
+WITH line_population AS
+(
+  SELECT
+    CAST(Cases_CustomerID AS STRING) AS customer_id,
+    CAST(Cases_CaseNumber AS STRING) AS case_number,
+    DATE(Cases_InvoiceDate) AS invoice_date,
+    CAST(Cases_Status AS STRING) AS case_status,
+    COALESCE(
+      NULLIF(TRIM(CAST(Products_Department AS STRING)), ''),
+      'Not specified'
+    ) AS department,
+    COALESCE(CAST(CaseProducts_Quantity AS NUMERIC), 0) AS quantity,
+    (
+      NULLIF(
+        TRIM(COALESCE(CAST(CaseProducts_Remake AS STRING), '')),
+        ''
+      ) IS NOT NULL
+      AND LOWER(
+        TRIM(COALESCE(CAST(CaseProducts_Remake AS STRING), ''))
+      ) NOT IN
+      (
+        'n',
+        'no',
+        'false',
+        '0',
+        'none',
+        'not a remake'
+      )
+    ) AS is_remake,
+    ABS(
+      COALESCE(
+        CAST(CaseProducts_RemakeDiscount AS NUMERIC),
+        0
+      )
+    ) AS remake_discount
+  FROM `customerprofiles.retention_data.products_all`
+  WHERE DATE(Cases_InvoiceDate) >= DATE '2026-07-01'
+    AND DATE(Cases_InvoiceDate) < DATE '2026-08-01'
+    AND LOWER(
+      TRIM(COALESCE(CAST(Cases_Status AS STRING), ''))
+    ) NOT IN
+    (
+      'estimate',
+      'sent for try in',
+      'sent for try-in'
+    )
+    AND COALESCE(Cases_IsAdjustment, FALSE) = FALSE
+    AND COALESCE(Cases_IsDebitMemo, FALSE) = FALSE
+    AND COALESCE(Cases_IsFC, FALSE) = FALSE
+    AND NULLIF(
+      TRIM(
+        COALESCE(
+          CAST(Cases_CreditDebitReason AS STRING),
+          ''
+        )
+      ),
+      ''
+    ) IS NULL
+),
+case_rollup AS
+(
+  SELECT
+    customer_id,
+    case_number,
+    MIN(invoice_date) AS invoice_date,
+    MIN(case_status) AS case_status,
+    COUNT(*) AS product_line_count,
+    COUNT(DISTINCT department) AS department_count,
+    SUM(quantity) AS total_units,
+    LOGICAL_OR(is_remake) AS is_remake_case,
+    COUNTIF(is_remake) AS remake_line_count,
+    SUM(IF(is_remake, quantity, 0)) AS remake_units,
+    SUM(IF(is_remake, remake_discount, 0)) AS remake_discount
+  FROM line_population
+  GROUP BY
+    customer_id,
+    case_number
+)
+SELECT
+  'BIGQUERY_PRODUCTS_ALL' AS source_system,
+  CONCAT(customer_id, '|', case_number) AS audit_key,
+  customer_id,
+  case_number,
+  CAST(NULL AS STRING) AS case_id,
+  invoice_date,
+  case_status,
+  product_line_count,
+  department_count,
+  total_units,
+  CAST(is_remake_case AS INT64) AS is_remake_case,
+  remake_line_count,
+  remake_units,
+  remake_discount
+FROM case_rollup
+ORDER BY
+  customer_id,
+  case_number;

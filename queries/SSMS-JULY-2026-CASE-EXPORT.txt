@@ -1,0 +1,146 @@
+-- Executive Overview Dashboard - July 2026 live SSMS case export
+-- Server: CDA-WUS3-SQL01.DLCPM
+-- Database: DLCPM
+-- READ ONLY: SELECT statement only.
+--
+-- Output grain: one row per CustomerID | CaseNumber.
+-- Use this export with the matching dashboard-cache and BigQuery exports.
+
+USE [DLCPM];
+
+SET NOCOUNT ON;
+
+WITH line_population AS
+(
+    SELECT
+        CONVERT(nvarchar(128), c.CustomerID) AS customer_id,
+        CONVERT(nvarchar(128), c.CaseNumber) AS case_number,
+        CONVERT(nvarchar(128), c.CaseID) AS case_id,
+        CONVERT(date, c.InvoiceDate) AS invoice_date,
+        CONVERT(nvarchar(255), c.Status) AS case_status,
+        COALESCE(
+            NULLIF(
+                LTRIM(RTRIM(CONVERT(nvarchar(255), p.Department))),
+                N''
+            ),
+            N'Not specified'
+        ) AS department,
+        COALESCE(
+            TRY_CONVERT(decimal(19,4), cp.Quantity),
+            CONVERT(decimal(19,4), 0)
+        ) AS quantity,
+        CONVERT(
+            bit,
+            CASE
+                WHEN NULLIF(
+                    LTRIM(RTRIM(CONVERT(nvarchar(255), cp.Remake))),
+                    N''
+                ) IS NULL
+                    THEN 0
+                WHEN LOWER(
+                    LTRIM(RTRIM(CONVERT(nvarchar(255), cp.Remake)))
+                ) IN
+                    (
+                        N'n',
+                        N'no',
+                        N'false',
+                        N'0',
+                        N'none',
+                        N'not a remake'
+                    )
+                    THEN 0
+                ELSE 1
+            END
+        ) AS is_remake,
+        ABS(
+            COALESCE(
+                TRY_CONVERT(decimal(19,4), cp.RemakeDiscount),
+                CONVERT(decimal(19,4), 0)
+            )
+        ) AS remake_discount
+    FROM dbo.Cases AS c
+    INNER JOIN dbo.CaseProducts AS cp
+        ON cp.CaseID = c.CaseID
+    LEFT JOIN dbo.Products AS p
+        ON p.ProductID = cp.ProductID
+    WHERE c.InvoiceDate >= CONVERT(date, '20260701', 112)
+      AND c.InvoiceDate < CONVERT(date, '20260801', 112)
+      AND ISNULL(c.Deleted, 0) = 0
+      AND LOWER(
+            LTRIM(
+                RTRIM(
+                    COALESCE(
+                        CONVERT(nvarchar(255), c.Status),
+                        N''
+                    )
+                )
+            )
+          ) NOT IN
+          (
+              N'estimate',
+              N'sent for try in',
+              N'sent for try-in'
+          )
+      AND ISNULL(c.IsAdjustment, 0) = 0
+      AND ISNULL(c.IsDebitMemo, 0) = 0
+      AND ISNULL(c.IsFC, 0) = 0
+      AND NULLIF(
+            LTRIM(
+                RTRIM(
+                    COALESCE(
+                        CONVERT(nvarchar(255), c.CreditDebitReason),
+                        N''
+                    )
+                )
+            ),
+            N''
+          ) IS NULL
+),
+case_rollup AS
+(
+    SELECT
+        customer_id,
+        case_number,
+        case_id,
+        MIN(invoice_date) AS invoice_date,
+        MIN(case_status) AS case_status,
+        COUNT_BIG(*) AS product_line_count,
+        COUNT(DISTINCT department) AS department_count,
+        SUM(quantity) AS total_units,
+        CONVERT(bit, MAX(CONVERT(int, is_remake))) AS is_remake_case,
+        SUM(CASE WHEN is_remake = 1 THEN 1 ELSE 0 END)
+            AS remake_line_count,
+        SUM(CASE WHEN is_remake = 1 THEN quantity ELSE 0 END)
+            AS remake_units,
+        SUM(
+            CASE
+                WHEN is_remake = 1 THEN remake_discount
+                ELSE CONVERT(decimal(19,4), 0)
+            END
+        ) AS remake_discount
+    FROM line_population
+    GROUP BY
+        customer_id,
+        case_number,
+        case_id
+)
+SELECT
+    N'SSMS_DLCPM' AS source_system,
+    CONCAT(customer_id, N'|', case_number) AS audit_key,
+    customer_id,
+    case_number,
+    case_id,
+    invoice_date,
+    case_status,
+    product_line_count,
+    department_count,
+    total_units,
+    CONVERT(int, is_remake_case) AS is_remake_case,
+    remake_line_count,
+    remake_units,
+    remake_discount
+FROM case_rollup
+ORDER BY
+    customer_id,
+    case_number,
+    case_id;
