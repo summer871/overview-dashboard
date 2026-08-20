@@ -19,27 +19,34 @@
 
 ## Linked inventory behavior (dropdowns only)
 
-When one dropdown filter changes, other dropdowns update their **counts** to reflect the current population:
+When one dropdown filter changes, other dropdowns auto-deselect options that would return zero rows:
 
-- All options remain visible in every dropdown (nothing is hidden)
-- All options remain checkable (user stays in control)
-- Each option row shows its count based on the current filtered population from OTHER active filters
-- Zero-count options appear visually softer but are NOT hidden and NOT auto-deselected
-- The user manually controls what's selected; the system never auto-deselects on their behalf
+- All options remain VISIBLE in every dropdown (nothing disappears)
+- All options remain SELECTABLE (user can manually check anything)
+- Options that have zero rows given the other active filters become UNCHECKED automatically
+- The dashboard population updates based on what's checked
+- This is standard filter behavior: a filter filters
 
 ### Example
 
 Department = "Implant" selected:
 - Open Product dropdown: every product still listed
-- `Fuzion Layered Zirconia PC: 47` (has Implant cases)
-- `Emax Posterior Crown Stained: 0` (no Implant cases, but still visible and checkable)
-- User can still select the Emax product if they want (maybe for comparison)
+- Products that exist in Implant cases remain checked
+- Products that have zero Implant rows become unchecked (but still visible, still selectable)
+- Dashboard shows only Implant + checked products
+
+### What this is NOT
+
+- NOT hiding/removing options from the list
+- NOT showing greyed-out zero-count rows with special styling
+- NOT a complex cascading system
+- Just: when a filter narrows the population, other filters auto-deselect what's no longer in that population
 
 ## What this means for the shared filter module
 
-1. The adapter's `getOptions(filterKey)` must accept context about other active filters and return counts per option
-2. The rendering must show counts and visually dim zero-count options without hiding them
-3. Selection state is never auto-mutated by population changes
+1. When any filter selection changes, recalculate which options in OTHER filters have matching rows
+2. Auto-deselect (uncheck) options in other filters that now have zero rows
+3. Options stay in the list, stay selectable, just lose their checkmark
 4. Table/chart cross-filtering is a completely separate system from dropdown filtering
 
 ## References
