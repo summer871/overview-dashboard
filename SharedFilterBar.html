@@ -277,4 +277,21 @@ Adapter contract addition for v1.1.0:
     }
   });
 })();
+
+// Auto-run test on ?filterTest=1
+(function() {
+  if (window.location.search.indexOf('filterTest=1') >= 0) {
+    function tryMount() {
+      var target = document.getElementById('remakeFactorPage');
+      if (target && window.cdaSharedFilterBar) {
+        window.cdaSharedFilterBar.test('#remakeFactorPage');
+        console.log('[SharedFilterBar] Auto-test mounted via ?filterTest=1');
+      } else {
+        setTimeout(tryMount, 500);
+      }
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', tryMount);
+    else setTimeout(tryMount, 1000);
+  }
+})();
 </script>
