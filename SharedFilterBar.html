@@ -1,0 +1,428 @@
+<!-- SharedFilterBar.html
+Version: v1.0.0
+Date: 2026-08-20
+Purpose: Shared config-driven filter bar module. Each tab instantiates with its own config + adapter.
+         Loads passively; does not replace existing filters until explicitly activated.
+-->
+<script id="cdaSharedFilterBarModule">
+(function installSharedFilterBar() {
+  'use strict';
+
+  if (window.cdaSharedFilterBar && window.cdaSharedFilterBar.version === 'v1.0.0') return;
+
+  function esc(value) {
+    return String(value == null ? '' : value)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  function fuzzyMatch(text, term) {
+    if (window.dashboardFuzzySearchV6412 && typeof window.dashboardFuzzySearchV6412.match === 'function') {
+      return window.dashboardFuzzySearchV6412.match(text, term);
+    }
+    var prepared = String(text || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ');
+    return String(term || '').toLowerCase().trim().split(/\s+/).filter(Boolean)
+      .every(function(token) { return prepared.indexOf(token) >= 0; });
+  }
+
+  var instances = new Map();
+
+  function FilterBarInstance(config) {
+    this.key = config.key;
+    this.config = config;
+    this.filters = config.filters || [];
+    this.adapter = config.adapter;
+    this.features = config.features || {};
+    this.mounted = false;
+    this.active = false;
+    this.elements = {};
+    this.openFilter = null;
+    this._boundDocClick = null;
+    this._boundKeydown = null;
+  }
+
+  FilterBarInstance.prototype.mount = function() {
+    if (this.mounted) return;
+    var target = typeof this.config.mountTarget === 'string'
+      ? document.querySelector(this.config.mountTarget)
+      : this.config.mountTarget;
+    if (!target) return;
+
+    var barId = 'cdaFilterBar_' + this.key;
+    if (document.getElementById(barId)) {
+      this.elements.bar = document.getElementById(barId);
+      this.mounted = true;
+      return;
+    }
+
+    var bar = document.createElement('div');
+    bar.id = barId;
+    bar.className = 'cdaFilterBar';
+    bar.setAttribute('data-filter-bar', this.key);
+    bar.innerHTML = this.filters.map(this.filterMarkup.bind(this)).join('');
+    target.insertBefore(bar, target.firstChild);
+
+    this.elements.bar = bar;
+    this.mounted = true;
+    this.bindEvents();
+  };
+
+  FilterBarInstance.prototype.filterMarkup = function(filter) {
+    var barKey = this.key;
+    var fKey = filter.key;
+    var btnId = 'cdaFBtn_' + barKey + '_' + fKey;
+    var panelId = 'cdaFPanel_' + barKey + '_' + fKey;
+    var searchId = 'cdaFSearch_' + barKey + '_' + fKey;
+    var listId = 'cdaFList_' + barKey + '_' + fKey;
+    var countId = 'cdaFCount_' + barKey + '_' + fKey;
+    var visId = 'cdaFVis_' + barKey + '_' + fKey;
+
+    return '<div class="cdaFilter" data-filter-bar-key="' + esc(barKey) + '" data-filter-key="' + esc(fKey) + '">'
+      + '<button id="' + btnId + '" class="cdaFilterButton" type="button" aria-haspopup="listbox" aria-expanded="false">'
+      + esc(filter.allLabel) + '</button>'
+      + '<div id="' + panelId + '" class="cdaFilterPanel" data-panel-width="' + (filter.panelWidth || 360) + '" data-position="' + (filter.position || 'left') + '">'
+      + '<div class="cdaFilterHeader">'
+      + (this.features.visibleToggle ? '<label class="cdaFilterVisibleToggle"><input id="' + visId + '" type="checkbox"> Visible</label>' : '')
+      + '<button type="button" data-action="selectAll">All</button>'
+      + '<button type="button" data-action="clear">None</button>'
+      + '<button type="button" data-action="reset">Reset</button>'
+      + '<span id="' + countId + '" class="cdaFilterCount"></span>'
+      + '</div>'
+      + '<input id="' + searchId + '" class="cdaFilterSearch" type="search" placeholder="Search ' + esc(filter.label.toLowerCase()) + '...">'
+      + '<div id="' + listId + '" class="cdaFilterList" role="listbox" aria-multiselectable="true"></div>'
+      + '</div></div>';
+  };
+
+  FilterBarInstance.prototype.bindEvents = function() {
+    var self = this;
+    var bar = this.elements.bar;
+    if (!bar) return;
+
+    bar.addEventListener('click', function(event) {
+      var button = event.target.closest('.cdaFilterButton');
+      if (button) {
+        event.preventDefault();
+        event.stopPropagation();
+        var filterEl = button.closest('[data-filter-key]');
+        var fKey = filterEl && filterEl.getAttribute('data-filter-key');
+        if (fKey) self.toggle(fKey);
+        return;
+      }
+      var action = event.target.closest('[data-action]');
+      if (action) {
+        event.preventDefault();
+        event.stopPropagation();
+        var filterEl2 = action.closest('[data-filter-key]');
+        var fKey2 = filterEl2 && filterEl2.getAttribute('data-filter-key');
+        var actionName = action.getAttribute('data-action');
+        if (fKey2 && actionName) self.handleAction(fKey2, actionName);
+        return;
+      }
+      var only = event.target.closest('.cdaFilterOnly');
+      if (only) {
+        event.preventDefault();
+        event.stopPropagation();
+        var filterEl3 = only.closest('[data-filter-key]');
+        var fKey3 = filterEl3 && filterEl3.getAttribute('data-filter-key');
+        var row2 = only.closest('.cdaFilterRow');
+        var key = row2 && row2.getAttribute('data-option-key');
+        if (fKey3 && key) self.exclusiveOption(fKey3, key);
+        return;
+      }
+      var row = event.target.closest('.cdaFilterRow');
+      if (row) {
+        event.preventDefault();
+        event.stopPropagation();
+        var filterEl4 = row.closest('[data-filter-key]');
+        var fKey4 = filterEl4 && filterEl4.getAttribute('data-filter-key');
+        var key2 = row.getAttribute('data-option-key');
+        if (fKey4 && key2) self.toggleOption(fKey4, key2);
+        return;
+      }
+    });
+
+    bar.addEventListener('input', function(event) {
+      var input = event.target.closest('.cdaFilterSearch');
+      if (!input) return;
+      var filterEl = input.closest('[data-filter-key]');
+      var fKey = filterEl && filterEl.getAttribute('data-filter-key');
+      if (fKey) {
+        self.adapter.onSearch(fKey, input.value || '');
+        self.renderFilter(fKey);
+      }
+    });
+
+    bar.addEventListener('change', function(event) {
+      var checkbox = event.target.closest('.cdaFilterVisibleToggle input');
+      if (!checkbox) return;
+      var filterEl = checkbox.closest('[data-filter-key]');
+      var fKey = filterEl && filterEl.getAttribute('data-filter-key');
+      if (fKey) self.handleVisibleToggle(fKey, checkbox.checked);
+    });
+
+    this._boundDocClick = function(event) {
+      if (!event.target.closest('[data-filter-bar="' + self.key + '"]')) {
+        self.closeAll();
+      }
+    };
+    document.addEventListener('click', this._boundDocClick);
+
+    this._boundKeydown = function(event) {
+      if (event.key === 'Escape') self.closeAll();
+    };
+    document.addEventListener('keydown', this._boundKeydown);
+
+    var reposition = function() { if (self.openFilter) self.positionPanel(self.openFilter); };
+    window.addEventListener('resize', reposition, { passive: true });
+    window.addEventListener('scroll', reposition, { passive: true, capture: true });
+  };
+
+  FilterBarInstance.prototype.toggle = function(fKey) {
+    if (this.openFilter === fKey) { this.closeAll(); return; }
+    this.closeAll();
+    this.openFilter = fKey;
+    var panel = this.getPanel(fKey);
+    var button = this.getButton(fKey);
+    if (panel && button) {
+      panel.classList.add('open');
+      button.setAttribute('aria-expanded', 'true');
+      button.classList.add('active');
+      this.renderFilter(fKey);
+      this.positionPanel(fKey);
+      var search = panel.querySelector('.cdaFilterSearch');
+      if (search) setTimeout(function() { search.focus(); }, 50);
+    }
+  };
+
+  FilterBarInstance.prototype.closeAll = function() {
+    this.openFilter = null;
+    var self = this;
+    var panels = this.elements.bar.querySelectorAll('.cdaFilterPanel');
+    panels.forEach(function(panel) { panel.classList.remove('open'); });
+    var buttons = this.elements.bar.querySelectorAll('.cdaFilterButton');
+    buttons.forEach(function(button) {
+      button.setAttribute('aria-expanded', 'false');
+      var filterEl = button.closest('[data-filter-key]');
+      var fKey = filterEl && filterEl.getAttribute('data-filter-key');
+      if (fKey && self.adapter.getMode(fKey) === 'ALL') button.classList.remove('active');
+    });
+  };
+
+  FilterBarInstance.prototype.positionPanel = function(fKey) {
+    var button = this.getButton(fKey);
+    var panel = this.getPanel(fKey);
+    if (!button || !panel) return;
+    var rect = button.getBoundingClientRect();
+    var vw = Math.max(320, document.documentElement.clientWidth || window.innerWidth);
+    var vh = Math.max(320, document.documentElement.clientHeight || window.innerHeight);
+    var width = Math.max(280, Math.min(parseInt(panel.getAttribute('data-panel-width')) || 360, vw - 16));
+    var position = panel.getAttribute('data-position') || 'left';
+    var left = position === 'right'
+      ? Math.max(8, Math.min(rect.right - width, vw - width - 8))
+      : Math.max(8, Math.min(rect.left, vw - width - 8));
+    var below = vh - rect.bottom - 8;
+    var above = rect.top - 8;
+    var openBelow = below >= Math.min(400, panel.scrollHeight || 400) || below >= above;
+    panel.style.setProperty('position', 'fixed', 'important');
+    panel.style.setProperty('width', width + 'px', 'important');
+    panel.style.setProperty('left', left + 'px', 'important');
+    panel.style.setProperty('right', 'auto', 'important');
+    panel.style.setProperty('z-index', '10040', 'important');
+    if (openBelow) {
+      panel.style.setProperty('top', (rect.bottom + 5) + 'px', 'important');
+      panel.style.setProperty('bottom', 'auto', 'important');
+      panel.style.setProperty('max-height', Math.max(210, Math.min(430, below)) + 'px', 'important');
+    } else {
+      panel.style.setProperty('top', 'auto', 'important');
+      panel.style.setProperty('bottom', (vh - rect.top + 5) + 'px', 'important');
+      panel.style.setProperty('max-height', Math.max(210, Math.min(430, above)) + 'px', 'important');
+    }
+  };
+
+  FilterBarInstance.prototype.renderFilter = function(fKey) {
+    var list = this.getList(fKey);
+    var button = this.getButton(fKey);
+    var count = this.getCount(fKey);
+    var visCheckbox = this.getVisible(fKey);
+    if (!list) return;
+    var options = this.adapter.getOptions(fKey);
+    var mode = this.adapter.getMode(fKey);
+    var selected = this.adapter.getSelected(fKey);
+    var searchTerm = this.adapter.getSearch(fKey);
+    var visible = searchTerm
+      ? options.filter(function(opt) { return fuzzyMatch(opt.label + ' ' + opt.key, searchTerm); })
+      : options;
+    var filterDef = this.filters.find(function(f) { return f.key === fKey; });
+    if (button) {
+      if (mode === 'ALL') {
+        button.textContent = filterDef ? filterDef.allLabel : 'All';
+        button.classList.remove('active');
+      } else if (selected.size === 1) {
+        var selectedOpt = options.find(function(opt) { return selected.has(opt.key); });
+        button.textContent = selectedOpt ? selectedOpt.label : selected.size + ' selected';
+        button.classList.add('active');
+      } else {
+        button.textContent = selected.size + ' ' + (filterDef ? filterDef.label.toLowerCase() : 'item') + (selected.size !== 1 ? 's' : '');
+        button.classList.add('active');
+      }
+    }
+    if (visible.length) {
+      list.innerHTML = visible.map(function(opt) {
+        var checked = mode === 'ALL' || selected.has(opt.key);
+        return '<div class="cdaFilterRow' + (checked ? ' active' : '') + '" role="option" aria-selected="' + (checked ? 'true' : 'false') + '" data-option-key="' + esc(opt.key) + '">'
+          + '<input type="checkbox"' + (checked ? ' checked' : '') + ' tabindex="-1">'
+          + '<span class="cdaFilterLabel">' + esc(opt.label) + '</span>'
+          + '<button class="cdaFilterOnly" type="button">Only</button></div>';
+      }).join('');
+    } else {
+      list.innerHTML = '<div class="cdaFilterEmpty">No matching options.</div>';
+    }
+    var checkedCount = visible.filter(function(opt) { return mode === 'ALL' || selected.has(opt.key); }).length;
+    if (count) count.textContent = checkedCount + ' of ' + visible.length + ' selected';
+    if (visCheckbox) {
+      visCheckbox.checked = visible.length > 0 && checkedCount === visible.length;
+      visCheckbox.indeterminate = checkedCount > 0 && checkedCount < visible.length;
+    }
+  };
+
+  FilterBarInstance.prototype.render = function() {
+    var self = this;
+    this.filters.forEach(function(f) { self.renderFilter(f.key); });
+  };
+
+  FilterBarInstance.prototype.toggleOption = function(fKey, key) {
+    var mode = this.adapter.getMode(fKey);
+    var selected = this.adapter.getSelected(fKey);
+    var newSet = new Set(selected);
+    var newMode = mode;
+    if (mode === 'ALL') {
+      var options = this.adapter.getOptions(fKey);
+      newSet = new Set(options.map(function(o) { return o.key; }));
+      newSet.delete(String(key));
+      newMode = 'CUSTOM';
+    } else {
+      if (newSet.has(String(key))) newSet.delete(String(key));
+      else newSet.add(String(key));
+    }
+    var allOptions = this.adapter.getOptions(fKey);
+    if (newSet.size >= allOptions.length) { newSet = new Set(); newMode = 'ALL'; }
+    this.adapter.onSelectionChange(fKey, newSet, newMode);
+    this.renderFilter(fKey);
+  };
+
+  FilterBarInstance.prototype.exclusiveOption = function(fKey, key) {
+    var mode = this.adapter.getMode(fKey);
+    var selected = this.adapter.getSelected(fKey);
+    if (mode === 'CUSTOM' && selected.size === 1 && selected.has(String(key))) {
+      this.adapter.onSelectionChange(fKey, new Set(), 'ALL');
+    } else {
+      this.adapter.onSelectionChange(fKey, new Set([String(key)]), 'CUSTOM');
+    }
+    this.closeAll();
+    this.render();
+  };
+
+  FilterBarInstance.prototype.handleAction = function(fKey, action) {
+    if (action === 'reset') this.adapter.onReset(fKey);
+    else if (action === 'clear') this.adapter.onSelectionChange(fKey, new Set(), 'CUSTOM');
+    else if (action === 'selectAll') this.adapter.onSelectionChange(fKey, new Set(), 'ALL');
+    this.renderFilter(fKey);
+  };
+
+  FilterBarInstance.prototype.handleVisibleToggle = function(fKey, checked) {
+    var options = this.adapter.getOptions(fKey);
+    var searchTerm = this.adapter.getSearch(fKey);
+    var visible = searchTerm
+      ? options.filter(function(opt) { return fuzzyMatch(opt.label + ' ' + opt.key, searchTerm); })
+      : options;
+    var newSet = new Set(this.adapter.getSelected(fKey));
+    if (this.adapter.getMode(fKey) === 'ALL') {
+      newSet = new Set(options.map(function(o) { return o.key; }));
+    }
+    visible.forEach(function(opt) { if (checked) newSet.add(opt.key); else newSet.delete(opt.key); });
+    if (newSet.size >= options.length) this.adapter.onSelectionChange(fKey, new Set(), 'ALL');
+    else this.adapter.onSelectionChange(fKey, newSet, 'CUSTOM');
+    this.renderFilter(fKey);
+  };
+
+  FilterBarInstance.prototype.getPills = function() {
+    var self = this;
+    var pills = [];
+    this.filters.forEach(function(filter) {
+      var mode = self.adapter.getMode(filter.key);
+      if (mode !== 'ALL') {
+        var selected = self.adapter.getSelected(filter.key);
+        var options = self.adapter.getOptions(filter.key);
+        var selectedLabels = options.filter(function(o) { return selected.has(o.key); });
+        var label;
+        if (selectedLabels.length === 0) label = 'No ' + filter.label.toLowerCase();
+        else if (selectedLabels.length === 1) label = filter.label + ': ' + selectedLabels[0].label;
+        else label = filter.label + ': ' + selectedLabels.length + ' selected';
+        pills.push({ label: label, filterKey: filter.key });
+      }
+    });
+    return pills;
+  };
+
+  FilterBarInstance.prototype.destroy = function() {
+    if (this.elements.bar && this.elements.bar.parentNode) {
+      this.elements.bar.parentNode.removeChild(this.elements.bar);
+    }
+    if (this._boundDocClick) document.removeEventListener('click', this._boundDocClick);
+    if (this._boundKeydown) document.removeEventListener('keydown', this._boundKeydown);
+    this.mounted = false;
+    this.active = false;
+    instances.delete(this.key);
+  };
+
+  FilterBarInstance.prototype.getButton = function(fKey) { return document.getElementById('cdaFBtn_' + this.key + '_' + fKey); };
+  FilterBarInstance.prototype.getPanel = function(fKey) { return document.getElementById('cdaFPanel_' + this.key + '_' + fKey); };
+  FilterBarInstance.prototype.getList = function(fKey) { return document.getElementById('cdaFList_' + this.key + '_' + fKey); };
+  FilterBarInstance.prototype.getCount = function(fKey) { return document.getElementById('cdaFCount_' + this.key + '_' + fKey); };
+  FilterBarInstance.prototype.getVisible = function(fKey) { return document.getElementById('cdaFVis_' + this.key + '_' + fKey); };
+
+  window.cdaSharedFilterBar = Object.freeze({
+    version: 'v1.0.0',
+    create: function(config) {
+      if (!config || !config.key) throw new Error('SharedFilterBar: config.key is required');
+      if (instances.has(config.key)) return instances.get(config.key);
+      var instance = new FilterBarInstance(config);
+      instances.set(config.key, instance);
+      instance.mount();
+      return instance;
+    },
+    destroy: function(key) { var instance = instances.get(key); if (instance) instance.destroy(); },
+    get: function(key) { return instances.get(key) || null; },
+    test: function(mountSelector) {
+      var config = {
+        key: 'test',
+        mountTarget: mountSelector || 'body',
+        filters: [
+          { key: 'year', label: 'Year', allLabel: 'All years', panelWidth: 300 },
+          { key: 'department', label: 'Department', allLabel: 'All departments' },
+          { key: 'product', label: 'Product', allLabel: 'All products' },
+          { key: 'customer', label: 'Customer', allLabel: 'All customers', position: 'right' },
+        ],
+        adapter: {
+          getOptions: function(fKey) {
+            if (fKey === 'year') return [{key:'2025',label:'2025'},{key:'2026',label:'2026'}];
+            if (fKey === 'department') return [{key:'Fixed',label:'Fixed'},{key:'Implant',label:'Implant'},{key:'Removable',label:'Removable'},{key:'Alloy',label:'Alloy'},{key:'Nightguard',label:'Nightguard'}];
+            if (fKey === 'product') return [{key:'EMAXF4PCS',label:'Emax Posterior Crown Stained'},{key:'ZIRPRF11PC',label:'Zirfit Prime Posterior Crown'},{key:'LZF5PC',label:'Fuzion Layered Zirconia PC'}];
+            return [{key:'a',label:'Customer A'},{key:'b',label:'Customer B'},{key:'c',label:'Customer C'}];
+          },
+          getMode: function() { return 'ALL'; },
+          getSelected: function() { return new Set(); },
+          onSelectionChange: function(fKey, set, mode) { console.log('[SharedFilterBar] Selection:', fKey, Array.from(set), mode); },
+          onExclusive: function(fKey, key) { console.log('[SharedFilterBar] Exclusive:', fKey, key); },
+          onReset: function(fKey) { console.log('[SharedFilterBar] Reset:', fKey); },
+          onResetAll: function() { console.log('[SharedFilterBar] Reset all'); },
+          getSearch: function() { return ''; },
+          onSearch: function(fKey, term) { console.log('[SharedFilterBar] Search:', fKey, term); },
+        },
+        features: { visibleToggle: true }
+      };
+      return window.cdaSharedFilterBar.create(config);
+    }
+  });
+})();
+</script>
