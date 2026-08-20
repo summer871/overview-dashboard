@@ -1,427 +1,279 @@
 <!-- SharedFilterBar.html
-Version: v1.0.0
+Version: v1.1.0
 Date: 2026-08-20
-Purpose: Shared config-driven filter bar module. Each tab instantiates with its own config + adapter.
+Purpose: Shared config-driven filter bar module with linked inventory auto-deselect.
+         Each tab instantiates with its own config + adapter.
          Loads passively; does not replace existing filters until explicitly activated.
+
+Linked inventory behavior:
+  When any filter selection changes, other filters auto-deselect options
+  that have zero rows in the current population. Options stay visible and
+  selectable, they just lose their checkmark.
+
+Adapter contract addition for v1.1.0:
+  getPopulationKeys(filterKey) => Set of option keys that exist in the
+  population filtered by all OTHER active filters (excluding this filter's own).
+  If this method is not provided, linked inventory is disabled.
 -->
 <script id="cdaSharedFilterBarModule">
 (function installSharedFilterBar() {
   'use strict';
 
-  if (window.cdaSharedFilterBar && window.cdaSharedFilterBar.version === 'v1.0.0') return;
+  if (window.cdaSharedFilterBar && window.cdaSharedFilterBar.version === 'v1.1.0') return;
 
-  function esc(value) {
-    return String(value == null ? '' : value)
-      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  function esc(v) {
+    return String(v == null ? '' : v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
   }
 
   function fuzzyMatch(text, term) {
-    if (window.dashboardFuzzySearchV6412 && typeof window.dashboardFuzzySearchV6412.match === 'function') {
-      return window.dashboardFuzzySearchV6412.match(text, term);
-    }
-    var prepared = String(text || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ');
-    return String(term || '').toLowerCase().trim().split(/\s+/).filter(Boolean)
-      .every(function(token) { return prepared.indexOf(token) >= 0; });
+    if (window.dashboardFuzzySearchV6412 && typeof window.dashboardFuzzySearchV6412.match === 'function') return window.dashboardFuzzySearchV6412.match(text, term);
+    var p = String(text || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ');
+    return String(term || '').toLowerCase().trim().split(/\s+/).filter(Boolean).every(function(t) { return p.indexOf(t) >= 0; });
   }
 
   var instances = new Map();
 
-  function FilterBarInstance(config) {
+  function FB(config) {
     this.key = config.key;
-    this.config = config;
     this.filters = config.filters || [];
     this.adapter = config.adapter;
     this.features = config.features || {};
     this.mounted = false;
-    this.active = false;
-    this.elements = {};
+    this.el = {};
     this.openFilter = null;
-    this._boundDocClick = null;
-    this._boundKeydown = null;
   }
 
-  FilterBarInstance.prototype.mount = function() {
+  FB.prototype.mount = function() {
     if (this.mounted) return;
-    var target = typeof this.config.mountTarget === 'string'
-      ? document.querySelector(this.config.mountTarget)
-      : this.config.mountTarget;
+    var target = typeof this.config_mountTarget === 'string' ? document.querySelector(this.config_mountTarget) : this.config_mountTarget;
     if (!target) return;
-
-    var barId = 'cdaFilterBar_' + this.key;
-    if (document.getElementById(barId)) {
-      this.elements.bar = document.getElementById(barId);
-      this.mounted = true;
-      return;
-    }
-
+    var id = 'cdaFilterBar_' + this.key;
+    if (document.getElementById(id)) { this.el.bar = document.getElementById(id); this.mounted = true; return; }
     var bar = document.createElement('div');
-    bar.id = barId;
-    bar.className = 'cdaFilterBar';
-    bar.setAttribute('data-filter-bar', this.key);
-    bar.innerHTML = this.filters.map(this.filterMarkup.bind(this)).join('');
+    bar.id = id; bar.className = 'cdaFilterBar'; bar.setAttribute('data-filter-bar', this.key);
+    bar.innerHTML = this.filters.map(this.markup.bind(this)).join('');
     target.insertBefore(bar, target.firstChild);
+    this.el.bar = bar; this.mounted = true; this.bind();
+  };
+  FB.prototype.config_mountTarget = null;
 
-    this.elements.bar = bar;
-    this.mounted = true;
-    this.bindEvents();
+  FB.prototype.markup = function(f) {
+    var k = this.key, fk = f.key;
+    return '<div class="cdaFilter" data-filter-bar-key="'+esc(k)+'" data-filter-key="'+esc(fk)+'">'
+      +'<button id="cdaFBtn_'+k+'_'+fk+'" class="cdaFilterButton" type="button" aria-haspopup="listbox" aria-expanded="false">'+esc(f.allLabel)+'</button>'
+      +'<div id="cdaFPanel_'+k+'_'+fk+'" class="cdaFilterPanel" data-panel-width="'+(f.panelWidth||360)+'" data-position="'+(f.position||'left')+'">'
+      +'<div class="cdaFilterHeader">'
+      +(this.features.visibleToggle?'<label class="cdaFilterVisibleToggle"><input id="cdaFVis_'+k+'_'+fk+'" type="checkbox"> Visible</label>':'')
+      +'<button type="button" data-action="selectAll">All</button>'
+      +'<button type="button" data-action="clear">None</button>'
+      +'<button type="button" data-action="reset">Reset</button>'
+      +'<span id="cdaFCount_'+k+'_'+fk+'" class="cdaFilterCount"></span></div>'
+      +'<input id="cdaFSearch_'+k+'_'+fk+'" class="cdaFilterSearch" type="search" placeholder="Search '+esc(f.label.toLowerCase())+'...">'
+      +'<div id="cdaFList_'+k+'_'+fk+'" class="cdaFilterList" role="listbox" aria-multiselectable="true"></div></div></div>';
   };
 
-  FilterBarInstance.prototype.filterMarkup = function(filter) {
-    var barKey = this.key;
-    var fKey = filter.key;
-    var btnId = 'cdaFBtn_' + barKey + '_' + fKey;
-    var panelId = 'cdaFPanel_' + barKey + '_' + fKey;
-    var searchId = 'cdaFSearch_' + barKey + '_' + fKey;
-    var listId = 'cdaFList_' + barKey + '_' + fKey;
-    var countId = 'cdaFCount_' + barKey + '_' + fKey;
-    var visId = 'cdaFVis_' + barKey + '_' + fKey;
-
-    return '<div class="cdaFilter" data-filter-bar-key="' + esc(barKey) + '" data-filter-key="' + esc(fKey) + '">'
-      + '<button id="' + btnId + '" class="cdaFilterButton" type="button" aria-haspopup="listbox" aria-expanded="false">'
-      + esc(filter.allLabel) + '</button>'
-      + '<div id="' + panelId + '" class="cdaFilterPanel" data-panel-width="' + (filter.panelWidth || 360) + '" data-position="' + (filter.position || 'left') + '">'
-      + '<div class="cdaFilterHeader">'
-      + (this.features.visibleToggle ? '<label class="cdaFilterVisibleToggle"><input id="' + visId + '" type="checkbox"> Visible</label>' : '')
-      + '<button type="button" data-action="selectAll">All</button>'
-      + '<button type="button" data-action="clear">None</button>'
-      + '<button type="button" data-action="reset">Reset</button>'
-      + '<span id="' + countId + '" class="cdaFilterCount"></span>'
-      + '</div>'
-      + '<input id="' + searchId + '" class="cdaFilterSearch" type="search" placeholder="Search ' + esc(filter.label.toLowerCase()) + '...">'
-      + '<div id="' + listId + '" class="cdaFilterList" role="listbox" aria-multiselectable="true"></div>'
-      + '</div></div>';
-  };
-
-  FilterBarInstance.prototype.bindEvents = function() {
-    var self = this;
-    var bar = this.elements.bar;
-    if (!bar) return;
-
-    bar.addEventListener('click', function(event) {
-      var button = event.target.closest('.cdaFilterButton');
-      if (button) {
-        event.preventDefault();
-        event.stopPropagation();
-        var filterEl = button.closest('[data-filter-key]');
-        var fKey = filterEl && filterEl.getAttribute('data-filter-key');
-        if (fKey) self.toggle(fKey);
-        return;
-      }
-      var action = event.target.closest('[data-action]');
-      if (action) {
-        event.preventDefault();
-        event.stopPropagation();
-        var filterEl2 = action.closest('[data-filter-key]');
-        var fKey2 = filterEl2 && filterEl2.getAttribute('data-filter-key');
-        var actionName = action.getAttribute('data-action');
-        if (fKey2 && actionName) self.handleAction(fKey2, actionName);
-        return;
-      }
-      var only = event.target.closest('.cdaFilterOnly');
-      if (only) {
-        event.preventDefault();
-        event.stopPropagation();
-        var filterEl3 = only.closest('[data-filter-key]');
-        var fKey3 = filterEl3 && filterEl3.getAttribute('data-filter-key');
-        var row2 = only.closest('.cdaFilterRow');
-        var key = row2 && row2.getAttribute('data-option-key');
-        if (fKey3 && key) self.exclusiveOption(fKey3, key);
-        return;
-      }
-      var row = event.target.closest('.cdaFilterRow');
-      if (row) {
-        event.preventDefault();
-        event.stopPropagation();
-        var filterEl4 = row.closest('[data-filter-key]');
-        var fKey4 = filterEl4 && filterEl4.getAttribute('data-filter-key');
-        var key2 = row.getAttribute('data-option-key');
-        if (fKey4 && key2) self.toggleOption(fKey4, key2);
-        return;
-      }
+  FB.prototype.bind = function() {
+    var self = this, bar = this.el.bar; if (!bar) return;
+    bar.addEventListener('click', function(e) {
+      var btn = e.target.closest('.cdaFilterButton');
+      if (btn) { e.preventDefault(); e.stopPropagation(); var fk = btn.closest('[data-filter-key]').getAttribute('data-filter-key'); if (fk) self.toggle(fk); return; }
+      var act = e.target.closest('[data-action]');
+      if (act) { e.preventDefault(); e.stopPropagation(); var el = act.closest('[data-filter-key]'); if (el) self.handleAction(el.getAttribute('data-filter-key'), act.getAttribute('data-action')); return; }
+      var only = e.target.closest('.cdaFilterOnly');
+      if (only) { e.preventDefault(); e.stopPropagation(); var el2 = only.closest('[data-filter-key]'), row = only.closest('.cdaFilterRow'); if (el2 && row) self.exclusive(el2.getAttribute('data-filter-key'), row.getAttribute('data-option-key')); return; }
+      var row2 = e.target.closest('.cdaFilterRow');
+      if (row2) { e.preventDefault(); e.stopPropagation(); var el3 = row2.closest('[data-filter-key]'); if (el3) self.toggleOpt(el3.getAttribute('data-filter-key'), row2.getAttribute('data-option-key')); return; }
     });
-
-    bar.addEventListener('input', function(event) {
-      var input = event.target.closest('.cdaFilterSearch');
-      if (!input) return;
-      var filterEl = input.closest('[data-filter-key]');
-      var fKey = filterEl && filterEl.getAttribute('data-filter-key');
-      if (fKey) {
-        self.adapter.onSearch(fKey, input.value || '');
-        self.renderFilter(fKey);
-      }
-    });
-
-    bar.addEventListener('change', function(event) {
-      var checkbox = event.target.closest('.cdaFilterVisibleToggle input');
-      if (!checkbox) return;
-      var filterEl = checkbox.closest('[data-filter-key]');
-      var fKey = filterEl && filterEl.getAttribute('data-filter-key');
-      if (fKey) self.handleVisibleToggle(fKey, checkbox.checked);
-    });
-
-    this._boundDocClick = function(event) {
-      if (!event.target.closest('[data-filter-bar="' + self.key + '"]')) {
-        self.closeAll();
-      }
-    };
-    document.addEventListener('click', this._boundDocClick);
-
-    this._boundKeydown = function(event) {
-      if (event.key === 'Escape') self.closeAll();
-    };
-    document.addEventListener('keydown', this._boundKeydown);
-
-    var reposition = function() { if (self.openFilter) self.positionPanel(self.openFilter); };
-    window.addEventListener('resize', reposition, { passive: true });
-    window.addEventListener('scroll', reposition, { passive: true, capture: true });
+    bar.addEventListener('input', function(e) { var inp = e.target.closest('.cdaFilterSearch'); if (!inp) return; var el = inp.closest('[data-filter-key]'), fk = el && el.getAttribute('data-filter-key'); if (fk) { self.adapter.onSearch(fk, inp.value||''); self.renderFilter(fk); } });
+    bar.addEventListener('change', function(e) { var cb = e.target.closest('.cdaFilterVisibleToggle input'); if (!cb) return; var el = cb.closest('[data-filter-key]'), fk = el && el.getAttribute('data-filter-key'); if (fk) self.visTog(fk, cb.checked); });
+    document.addEventListener('click', function(e) { if (!e.target.closest('[data-filter-bar="'+self.key+'"]')) self.closeAll(); });
+    document.addEventListener('keydown', function(e) { if (e.key === 'Escape') self.closeAll(); });
+    window.addEventListener('resize', function() { if (self.openFilter) self.pos(self.openFilter); }, {passive:true});
   };
 
-  FilterBarInstance.prototype.toggle = function(fKey) {
-    if (this.openFilter === fKey) { this.closeAll(); return; }
-    this.closeAll();
-    this.openFilter = fKey;
-    var panel = this.getPanel(fKey);
-    var button = this.getButton(fKey);
-    if (panel && button) {
-      panel.classList.add('open');
-      button.setAttribute('aria-expanded', 'true');
-      button.classList.add('active');
-      this.renderFilter(fKey);
-      this.positionPanel(fKey);
-      var search = panel.querySelector('.cdaFilterSearch');
-      if (search) setTimeout(function() { search.focus(); }, 50);
-    }
+  FB.prototype.toggle = function(fk) {
+    if (this.openFilter === fk) { this.closeAll(); return; }
+    this.closeAll(); this.openFilter = fk;
+    var p = this.gP(fk), b = this.gB(fk);
+    if (p && b) { p.classList.add('open'); b.setAttribute('aria-expanded','true'); b.classList.add('active'); this.renderFilter(fk); this.pos(fk); var s = p.querySelector('.cdaFilterSearch'); if (s) setTimeout(function(){s.focus();},50); }
   };
 
-  FilterBarInstance.prototype.closeAll = function() {
-    this.openFilter = null;
-    var self = this;
-    var panels = this.elements.bar.querySelectorAll('.cdaFilterPanel');
-    panels.forEach(function(panel) { panel.classList.remove('open'); });
-    var buttons = this.elements.bar.querySelectorAll('.cdaFilterButton');
-    buttons.forEach(function(button) {
-      button.setAttribute('aria-expanded', 'false');
-      var filterEl = button.closest('[data-filter-key]');
-      var fKey = filterEl && filterEl.getAttribute('data-filter-key');
-      if (fKey && self.adapter.getMode(fKey) === 'ALL') button.classList.remove('active');
-    });
+  FB.prototype.closeAll = function() {
+    this.openFilter = null; var self = this;
+    this.el.bar.querySelectorAll('.cdaFilterPanel').forEach(function(p){p.classList.remove('open');});
+    this.el.bar.querySelectorAll('.cdaFilterButton').forEach(function(b){ b.setAttribute('aria-expanded','false'); var el = b.closest('[data-filter-key]'), fk = el && el.getAttribute('data-filter-key'); if (fk && self.adapter.getMode(fk)==='ALL') b.classList.remove('active'); });
   };
 
-  FilterBarInstance.prototype.positionPanel = function(fKey) {
-    var button = this.getButton(fKey);
-    var panel = this.getPanel(fKey);
-    if (!button || !panel) return;
-    var rect = button.getBoundingClientRect();
-    var vw = Math.max(320, document.documentElement.clientWidth || window.innerWidth);
-    var vh = Math.max(320, document.documentElement.clientHeight || window.innerHeight);
-    var width = Math.max(280, Math.min(parseInt(panel.getAttribute('data-panel-width')) || 360, vw - 16));
-    var position = panel.getAttribute('data-position') || 'left';
-    var left = position === 'right'
-      ? Math.max(8, Math.min(rect.right - width, vw - width - 8))
-      : Math.max(8, Math.min(rect.left, vw - width - 8));
-    var below = vh - rect.bottom - 8;
-    var above = rect.top - 8;
-    var openBelow = below >= Math.min(400, panel.scrollHeight || 400) || below >= above;
-    panel.style.setProperty('position', 'fixed', 'important');
-    panel.style.setProperty('width', width + 'px', 'important');
-    panel.style.setProperty('left', left + 'px', 'important');
-    panel.style.setProperty('right', 'auto', 'important');
-    panel.style.setProperty('z-index', '10040', 'important');
-    if (openBelow) {
-      panel.style.setProperty('top', (rect.bottom + 5) + 'px', 'important');
-      panel.style.setProperty('bottom', 'auto', 'important');
-      panel.style.setProperty('max-height', Math.max(210, Math.min(430, below)) + 'px', 'important');
-    } else {
-      panel.style.setProperty('top', 'auto', 'important');
-      panel.style.setProperty('bottom', (vh - rect.top + 5) + 'px', 'important');
-      panel.style.setProperty('max-height', Math.max(210, Math.min(430, above)) + 'px', 'important');
-    }
+  FB.prototype.pos = function(fk) {
+    var b = this.gB(fk), p = this.gP(fk); if (!b||!p) return;
+    var r = b.getBoundingClientRect(), vw = window.innerWidth, vh = window.innerHeight;
+    var w = Math.max(280, Math.min(parseInt(p.getAttribute('data-panel-width'))||360, vw-16));
+    var pos = p.getAttribute('data-position')||'left';
+    var left = pos==='right' ? Math.max(8,Math.min(r.right-w,vw-w-8)) : Math.max(8,Math.min(r.left,vw-w-8));
+    var below = vh-r.bottom-8;
+    p.style.cssText = 'position:fixed!important;width:'+w+'px!important;left:'+left+'px!important;z-index:10040!important;top:'+(r.bottom+5)+'px!important;max-height:'+Math.max(210,Math.min(430,below))+'px!important;display:block!important';
   };
 
-  FilterBarInstance.prototype.renderFilter = function(fKey) {
-    var list = this.getList(fKey);
-    var button = this.getButton(fKey);
-    var count = this.getCount(fKey);
-    var visCheckbox = this.getVisible(fKey);
-    if (!list) return;
-    var options = this.adapter.getOptions(fKey);
-    var mode = this.adapter.getMode(fKey);
-    var selected = this.adapter.getSelected(fKey);
-    var searchTerm = this.adapter.getSearch(fKey);
-    var visible = searchTerm
-      ? options.filter(function(opt) { return fuzzyMatch(opt.label + ' ' + opt.key, searchTerm); })
-      : options;
-    var filterDef = this.filters.find(function(f) { return f.key === fKey; });
-    if (button) {
-      if (mode === 'ALL') {
-        button.textContent = filterDef ? filterDef.allLabel : 'All';
-        button.classList.remove('active');
-      } else if (selected.size === 1) {
-        var selectedOpt = options.find(function(opt) { return selected.has(opt.key); });
-        button.textContent = selectedOpt ? selectedOpt.label : selected.size + ' selected';
-        button.classList.add('active');
-      } else {
-        button.textContent = selected.size + ' ' + (filterDef ? filterDef.label.toLowerCase() : 'item') + (selected.size !== 1 ? 's' : '');
-        button.classList.add('active');
-      }
+  FB.prototype.renderFilter = function(fk) {
+    var list = this.gL(fk), btn = this.gB(fk), cnt = this.gC(fk), vis = this.gV(fk); if (!list) return;
+    var opts = this.adapter.getOptions(fk), mode = this.adapter.getMode(fk), sel = this.adapter.getSelected(fk), term = this.adapter.getSearch(fk);
+    var visible = term ? opts.filter(function(o){return fuzzyMatch(o.label+' '+o.key,term);}) : opts;
+    var fd = this.filters.find(function(f){return f.key===fk;});
+    if (btn) {
+      if (mode==='ALL') { btn.textContent = fd?fd.allLabel:'All'; btn.classList.remove('active'); }
+      else if (sel.size===0) { btn.textContent = 'None'; btn.classList.add('active'); }
+      else if (sel.size===1) { var so = opts.find(function(o){return sel.has(o.key);}); btn.textContent = so?so.label:'1 selected'; btn.classList.add('active'); }
+      else { btn.textContent = sel.size+' '+(fd?fd.label.toLowerCase():'items'); btn.classList.add('active'); }
     }
     if (visible.length) {
-      list.innerHTML = visible.map(function(opt) {
-        var checked = mode === 'ALL' || selected.has(opt.key);
-        return '<div class="cdaFilterRow' + (checked ? ' active' : '') + '" role="option" aria-selected="' + (checked ? 'true' : 'false') + '" data-option-key="' + esc(opt.key) + '">'
-          + '<input type="checkbox"' + (checked ? ' checked' : '') + ' tabindex="-1">'
-          + '<span class="cdaFilterLabel">' + esc(opt.label) + '</span>'
-          + '<button class="cdaFilterOnly" type="button">Only</button></div>';
-      }).join('');
-    } else {
-      list.innerHTML = '<div class="cdaFilterEmpty">No matching options.</div>';
-    }
-    var checkedCount = visible.filter(function(opt) { return mode === 'ALL' || selected.has(opt.key); }).length;
-    if (count) count.textContent = checkedCount + ' of ' + visible.length + ' selected';
-    if (visCheckbox) {
-      visCheckbox.checked = visible.length > 0 && checkedCount === visible.length;
-      visCheckbox.indeterminate = checkedCount > 0 && checkedCount < visible.length;
-    }
+      list.innerHTML = visible.map(function(o){ var c = mode==='ALL'||sel.has(o.key); return '<div class="cdaFilterRow'+(c?' active':'')+'" data-option-key="'+esc(o.key)+'"><input type="checkbox"'+(c?' checked':'')+' tabindex="-1"><span class="cdaFilterLabel">'+esc(o.label)+'</span><button class="cdaFilterOnly" type="button">Only</button></div>'; }).join('');
+    } else { list.innerHTML = '<div class="cdaFilterEmpty">No matching options.</div>'; }
+    var cc = visible.filter(function(o){return mode==='ALL'||sel.has(o.key);}).length;
+    if (cnt) cnt.textContent = cc+' of '+visible.length+' selected';
+    if (vis) { vis.checked = visible.length>0&&cc===visible.length; vis.indeterminate = cc>0&&cc<visible.length; }
   };
 
-  FilterBarInstance.prototype.render = function() {
+  FB.prototype.render = function() { var self = this; this.filters.forEach(function(f){self.renderFilter(f.key);}); };
+
+  // --- Linked inventory: auto-deselect options with zero rows in population ---
+  FB.prototype.syncLinked = function(changedKey) {
+    if (!this.adapter.getPopulationKeys) return;
     var self = this;
-    this.filters.forEach(function(f) { self.renderFilter(f.key); });
+    this.filters.forEach(function(f) {
+      if (f.key === changedKey) return;
+      var mode = self.adapter.getMode(f.key);
+      if (mode === 'ALL') return;
+      var popKeys = self.adapter.getPopulationKeys(f.key);
+      if (!popKeys) return;
+      var sel = self.adapter.getSelected(f.key);
+      var newSet = new Set();
+      sel.forEach(function(k) { if (popKeys.has(k)) newSet.add(k); });
+      if (newSet.size !== sel.size) {
+        var allOpts = self.adapter.getOptions(f.key);
+        var newMode = newSet.size >= allOpts.length ? 'ALL' : (newSet.size === 0 ? 'ALL' : 'CUSTOM');
+        if (newMode === 'ALL') newSet = new Set();
+        self.adapter.onSelectionChange(f.key, newSet, newMode);
+      }
+    });
   };
 
-  FilterBarInstance.prototype.toggleOption = function(fKey, key) {
-    var mode = this.adapter.getMode(fKey);
-    var selected = this.adapter.getSelected(fKey);
-    var newSet = new Set(selected);
-    var newMode = mode;
-    if (mode === 'ALL') {
-      var options = this.adapter.getOptions(fKey);
-      newSet = new Set(options.map(function(o) { return o.key; }));
-      newSet.delete(String(key));
-      newMode = 'CUSTOM';
-    } else {
-      if (newSet.has(String(key))) newSet.delete(String(key));
-      else newSet.add(String(key));
-    }
-    var allOptions = this.adapter.getOptions(fKey);
-    if (newSet.size >= allOptions.length) { newSet = new Set(); newMode = 'ALL'; }
-    this.adapter.onSelectionChange(fKey, newSet, newMode);
-    this.renderFilter(fKey);
-  };
-
-  FilterBarInstance.prototype.exclusiveOption = function(fKey, key) {
-    var mode = this.adapter.getMode(fKey);
-    var selected = this.adapter.getSelected(fKey);
-    if (mode === 'CUSTOM' && selected.size === 1 && selected.has(String(key))) {
-      this.adapter.onSelectionChange(fKey, new Set(), 'ALL');
-    } else {
-      this.adapter.onSelectionChange(fKey, new Set([String(key)]), 'CUSTOM');
-    }
-    this.closeAll();
+  FB.prototype.toggleOpt = function(fk, key) {
+    var mode = this.adapter.getMode(fk), sel = this.adapter.getSelected(fk), ns = new Set(sel), nm = mode;
+    if (mode==='ALL') { var opts = this.adapter.getOptions(fk); ns = new Set(opts.map(function(o){return o.key;})); ns.delete(String(key)); nm = 'CUSTOM'; }
+    else { if (ns.has(String(key))) ns.delete(String(key)); else ns.add(String(key)); }
+    var all = this.adapter.getOptions(fk); if (ns.size>=all.length){ns=new Set();nm='ALL';}
+    this.adapter.onSelectionChange(fk, ns, nm);
+    this.syncLinked(fk);
     this.render();
   };
 
-  FilterBarInstance.prototype.handleAction = function(fKey, action) {
-    if (action === 'reset') this.adapter.onReset(fKey);
-    else if (action === 'clear') this.adapter.onSelectionChange(fKey, new Set(), 'CUSTOM');
-    else if (action === 'selectAll') this.adapter.onSelectionChange(fKey, new Set(), 'ALL');
-    this.renderFilter(fKey);
+  FB.prototype.exclusive = function(fk, key) {
+    var mode = this.adapter.getMode(fk), sel = this.adapter.getSelected(fk);
+    if (mode==='CUSTOM'&&sel.size===1&&sel.has(String(key))) this.adapter.onSelectionChange(fk, new Set(), 'ALL');
+    else this.adapter.onSelectionChange(fk, new Set([String(key)]), 'CUSTOM');
+    this.syncLinked(fk);
+    this.closeAll(); this.render();
   };
 
-  FilterBarInstance.prototype.handleVisibleToggle = function(fKey, checked) {
-    var options = this.adapter.getOptions(fKey);
-    var searchTerm = this.adapter.getSearch(fKey);
-    var visible = searchTerm
-      ? options.filter(function(opt) { return fuzzyMatch(opt.label + ' ' + opt.key, searchTerm); })
-      : options;
-    var newSet = new Set(this.adapter.getSelected(fKey));
-    if (this.adapter.getMode(fKey) === 'ALL') {
-      newSet = new Set(options.map(function(o) { return o.key; }));
-    }
-    visible.forEach(function(opt) { if (checked) newSet.add(opt.key); else newSet.delete(opt.key); });
-    if (newSet.size >= options.length) this.adapter.onSelectionChange(fKey, new Set(), 'ALL');
-    else this.adapter.onSelectionChange(fKey, newSet, 'CUSTOM');
-    this.renderFilter(fKey);
+  FB.prototype.handleAction = function(fk, action) {
+    if (action==='reset') this.adapter.onReset(fk);
+    else if (action==='clear') this.adapter.onSelectionChange(fk, new Set(), 'CUSTOM');
+    else if (action==='selectAll') this.adapter.onSelectionChange(fk, new Set(), 'ALL');
+    this.syncLinked(fk);
+    this.render();
   };
 
-  FilterBarInstance.prototype.getPills = function() {
-    var self = this;
-    var pills = [];
-    this.filters.forEach(function(filter) {
-      var mode = self.adapter.getMode(filter.key);
-      if (mode !== 'ALL') {
-        var selected = self.adapter.getSelected(filter.key);
-        var options = self.adapter.getOptions(filter.key);
-        var selectedLabels = options.filter(function(o) { return selected.has(o.key); });
-        var label;
-        if (selectedLabels.length === 0) label = 'No ' + filter.label.toLowerCase();
-        else if (selectedLabels.length === 1) label = filter.label + ': ' + selectedLabels[0].label;
-        else label = filter.label + ': ' + selectedLabels.length + ' selected';
-        pills.push({ label: label, filterKey: filter.key });
-      }
+  FB.prototype.visTog = function(fk, checked) {
+    var opts = this.adapter.getOptions(fk), term = this.adapter.getSearch(fk);
+    var visible = term ? opts.filter(function(o){return fuzzyMatch(o.label+' '+o.key,term);}) : opts;
+    var ns = new Set(this.adapter.getSelected(fk));
+    if (this.adapter.getMode(fk)==='ALL') ns = new Set(opts.map(function(o){return o.key;}));
+    visible.forEach(function(o){if(checked)ns.add(o.key);else ns.delete(o.key);});
+    if (ns.size>=opts.length) this.adapter.onSelectionChange(fk,new Set(),'ALL');
+    else this.adapter.onSelectionChange(fk, ns, 'CUSTOM');
+    this.syncLinked(fk);
+    this.render();
+  };
+
+  FB.prototype.getPills = function() {
+    var self = this, pills = [];
+    this.filters.forEach(function(f) {
+      var mode = self.adapter.getMode(f.key); if (mode==='ALL') return;
+      var sel = self.adapter.getSelected(f.key), opts = self.adapter.getOptions(f.key);
+      var matched = opts.filter(function(o){return sel.has(o.key);});
+      var label = matched.length===0?'No '+f.label.toLowerCase():matched.length===1?f.label+': '+matched[0].label:f.label+': '+matched.length+' selected';
+      pills.push({label:label,filterKey:f.key});
     });
     return pills;
   };
 
-  FilterBarInstance.prototype.destroy = function() {
-    if (this.elements.bar && this.elements.bar.parentNode) {
-      this.elements.bar.parentNode.removeChild(this.elements.bar);
-    }
-    if (this._boundDocClick) document.removeEventListener('click', this._boundDocClick);
-    if (this._boundKeydown) document.removeEventListener('keydown', this._boundKeydown);
-    this.mounted = false;
-    this.active = false;
-    instances.delete(this.key);
-  };
-
-  FilterBarInstance.prototype.getButton = function(fKey) { return document.getElementById('cdaFBtn_' + this.key + '_' + fKey); };
-  FilterBarInstance.prototype.getPanel = function(fKey) { return document.getElementById('cdaFPanel_' + this.key + '_' + fKey); };
-  FilterBarInstance.prototype.getList = function(fKey) { return document.getElementById('cdaFList_' + this.key + '_' + fKey); };
-  FilterBarInstance.prototype.getCount = function(fKey) { return document.getElementById('cdaFCount_' + this.key + '_' + fKey); };
-  FilterBarInstance.prototype.getVisible = function(fKey) { return document.getElementById('cdaFVis_' + this.key + '_' + fKey); };
+  FB.prototype.destroy = function() { if (this.el.bar&&this.el.bar.parentNode) this.el.bar.parentNode.removeChild(this.el.bar); this.mounted=false; instances.delete(this.key); };
+  FB.prototype.gB = function(fk){return document.getElementById('cdaFBtn_'+this.key+'_'+fk);};
+  FB.prototype.gP = function(fk){return document.getElementById('cdaFPanel_'+this.key+'_'+fk);};
+  FB.prototype.gL = function(fk){return document.getElementById('cdaFList_'+this.key+'_'+fk);};
+  FB.prototype.gC = function(fk){return document.getElementById('cdaFCount_'+this.key+'_'+fk);};
+  FB.prototype.gV = function(fk){return document.getElementById('cdaFVis_'+this.key+'_'+fk);};
 
   window.cdaSharedFilterBar = Object.freeze({
-    version: 'v1.0.0',
+    version: 'v1.1.0',
     create: function(config) {
-      if (!config || !config.key) throw new Error('SharedFilterBar: config.key is required');
+      if (!config||!config.key) throw new Error('SharedFilterBar: config.key required');
       if (instances.has(config.key)) return instances.get(config.key);
-      var instance = new FilterBarInstance(config);
-      instances.set(config.key, instance);
-      instance.mount();
-      return instance;
+      var inst = new FB(config); inst.config_mountTarget = config.mountTarget;
+      instances.set(config.key, inst); inst.mount(); return inst;
     },
-    destroy: function(key) { var instance = instances.get(key); if (instance) instance.destroy(); },
-    get: function(key) { return instances.get(key) || null; },
-    test: function(mountSelector) {
-      var config = {
-        key: 'test',
-        mountTarget: mountSelector || 'body',
-        filters: [
-          { key: 'year', label: 'Year', allLabel: 'All years', panelWidth: 300 },
-          { key: 'department', label: 'Department', allLabel: 'All departments' },
-          { key: 'product', label: 'Product', allLabel: 'All products' },
-          { key: 'customer', label: 'Customer', allLabel: 'All customers', position: 'right' },
-        ],
-        adapter: {
-          getOptions: function(fKey) {
-            if (fKey === 'year') return [{key:'2025',label:'2025'},{key:'2026',label:'2026'}];
-            if (fKey === 'department') return [{key:'Fixed',label:'Fixed'},{key:'Implant',label:'Implant'},{key:'Removable',label:'Removable'},{key:'Alloy',label:'Alloy'},{key:'Nightguard',label:'Nightguard'}];
-            if (fKey === 'product') return [{key:'EMAXF4PCS',label:'Emax Posterior Crown Stained'},{key:'ZIRPRF11PC',label:'Zirfit Prime Posterior Crown'},{key:'LZF5PC',label:'Fuzion Layered Zirconia PC'}];
-            return [{key:'a',label:'Customer A'},{key:'b',label:'Customer B'},{key:'c',label:'Customer C'}];
-          },
-          getMode: function() { return 'ALL'; },
-          getSelected: function() { return new Set(); },
-          onSelectionChange: function(fKey, set, mode) { console.log('[SharedFilterBar] Selection:', fKey, Array.from(set), mode); },
-          onExclusive: function(fKey, key) { console.log('[SharedFilterBar] Exclusive:', fKey, key); },
-          onReset: function(fKey) { console.log('[SharedFilterBar] Reset:', fKey); },
-          onResetAll: function() { console.log('[SharedFilterBar] Reset all'); },
-          getSearch: function() { return ''; },
-          onSearch: function(fKey, term) { console.log('[SharedFilterBar] Search:', fKey, term); },
+    destroy: function(key) { var i = instances.get(key); if (i) i.destroy(); },
+    get: function(key) { return instances.get(key)||null; },
+    test: function(sel) {
+      var data = [
+        {dept:'Fixed',product:'EMAXF4PCS',customer:'Bay Area Dental'},
+        {dept:'Fixed',product:'EMAXF4PCS',customer:'Peninsula Smiles'},
+        {dept:'Fixed',product:'ZIRPRF11PC',customer:'Bay Area Dental'},
+        {dept:'Fixed',product:'LZF5PC',customer:'SF Dental Group'},
+        {dept:'Implant',product:'LZI5PC',customer:'Bay Area Dental'},
+        {dept:'Implant',product:'LZI5PC',customer:'Palo Alto Dentistry'},
+        {dept:'Implant',product:'ZIRPRIPC',customer:'Peninsula Smiles'},
+        {dept:'Removable',product:'REM-RPD',customer:'SF Dental Group'},
+        {dept:'Removable',product:'REM-FRAME',customer:'Bay Area Dental'},
+        {dept:'Nightguard',product:'NG-HARD',customer:'Palo Alto Dentistry'}
+      ];
+      var st = {modes:{},selected:{},searches:{}};
+      var fks = ['department','product','customer'];
+      fks.forEach(function(k){st.modes[k]='ALL';st.selected[k]=new Set();st.searches[k]='';});
+
+      function popKeys(fKey) {
+        var filtered = data.filter(function(row) {
+          return fks.every(function(ok) {
+            if (ok===fKey) return true;
+            if (st.modes[ok]==='ALL') return true;
+            var field = ok==='department'?'dept':ok;
+            return st.selected[ok].has(row[field]);
+          });
+        });
+        var keys = new Set(), field = fKey==='department'?'dept':fKey;
+        filtered.forEach(function(r){keys.add(r[field]);});
+        return keys;
+      }
+      function uniq(field) {
+        var s = new Set(); data.forEach(function(r){s.add(r[field]);}); return Array.from(s).sort().map(function(v){return {key:v,label:v};});
+      }
+
+      return window.cdaSharedFilterBar.create({
+        key:'test', mountTarget:sel||'body',
+        filters:[{key:'department',label:'Department',allLabel:'All departments'},{key:'product',label:'Product',allLabel:'All products'},{key:'customer',label:'Customer',allLabel:'All customers',position:'right'}],
+        adapter:{
+          getOptions:function(fk){return uniq(fk==='department'?'dept':fk);},
+          getMode:function(fk){return st.modes[fk]||'ALL';},
+          getSelected:function(fk){return st.selected[fk]||new Set();},
+          onSelectionChange:function(fk,set,mode){st.selected[fk]=set;st.modes[fk]=mode;var pop=data.filter(function(r){return fks.every(function(k){if(st.modes[k]==='ALL')return true;var f=k==='department'?'dept':k;return st.selected[k].has(r[f]);});});console.log('%c[FilterBar] '+fk+' -> '+mode+(set.size?' ('+Array.from(set).join(', ')+')':'')+' | Population: '+pop.length+' rows','color:#2563eb;font-weight:bold');},
+          onReset:function(fk){st.selected[fk]=new Set();st.modes[fk]='ALL';st.searches[fk]='';},
+          onResetAll:function(){fks.forEach(function(k){st.modes[k]='ALL';st.selected[k]=new Set();st.searches[k]='';});},
+          getSearch:function(fk){return st.searches[fk]||'';},
+          onSearch:function(fk,t){st.searches[fk]=t;},
+          getPopulationKeys:function(fk){return popKeys(fk);}
         },
-        features: { visibleToggle: true }
-      };
-      return window.cdaSharedFilterBar.create(config);
+        features:{visibleToggle:true}
+      });
     }
   });
 })();
