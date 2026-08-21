@@ -1,9 +1,6 @@
 name: Overview Index archive checkpoint
 
 on:
-  pull_request:
-    branches:
-      - agent/v6.544-shared-table-platform-5118
   workflow_dispatch:
 
 permissions:
@@ -11,7 +8,6 @@ permissions:
 
 jobs:
   archive-remove:
-    if: github.event.pull_request.head.ref == 'agent/ai-readable-cleanup-2026-08-21'
     runs-on: ubuntu-latest
     steps:
       - name: Check out cleanup branch
