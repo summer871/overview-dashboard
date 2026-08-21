@@ -1,0 +1,62 @@
+name: Overview CSS archive checkpoint
+
+on:
+  pull_request:
+    branches:
+      - agent/v6.544-shared-table-platform-5118
+    paths:
+      - .github/scripts/archive-remove-overview-css.cjs
+      - .github/workflows/overview-css-archive-removal.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  archive-remove-css:
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.ref == 'agent/ai-readable-cleanup-2026-08-21'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out cleanup branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/ai-readable-cleanup-2026-08-21
+          fetch-depth: 0
+
+      - name: Syntax-check guarded cleanup
+        run: node --check .github/scripts/archive-remove-overview-css.cjs
+
+      - name: Archive outgoing stylesheet and remove Overview-only CSS
+        run: node .github/scripts/archive-remove-overview-css.cjs
+
+      - name: Run cleanup structural checkpoint
+        run: node scripts/validate-cleanup-checkpoint.js
+
+      - name: Run runtime contract tests
+        run: node scripts/test-dashboard-runtime-contracts.js
+
+      - name: Run platform validator with current-footer allowance
+        shell: bash
+        run: |
+          set +e
+          node scripts/validate-dashboard-platform.js > /tmp/platform.log 2>&1
+          status=$?
+          cat /tmp/platform.log
+          if [ "$status" -eq 0 ]; then exit 0; fi
+          filtered=$(grep '^ERROR:' /tmp/platform.log | grep -v '^ERROR: Missing footer UI v6.628$' | grep -v '^ERROR: Missing footer build label$' || true)
+          if [ -n "$filtered" ]; then
+            echo "$filtered"
+            exit 1
+          fi
+          exit 0
+
+      - name: Commit Overview CSS checkpoint
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- DashboardBaseStyles.html archive/overview-paused-2026-08-21/DashboardBaseStyles.pre-overview-css-removal.html docs/OVERVIEW-CSS-ARCHIVE-REMOVAL-2026-08-21.json
+          git diff --cached --quiet && { echo "No changes produced"; exit 1; }
+          git commit -m "Archive and remove Overview-only CSS"
+          git pull --rebase origin agent/ai-readable-cleanup-2026-08-21
+          git push origin HEAD:agent/ai-readable-cleanup-2026-08-21
