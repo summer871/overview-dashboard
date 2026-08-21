@@ -19,6 +19,8 @@
 <body>
 <?!= includeDashboardFile('DashboardShellMarkup') ?>  <?!= includeDashboardFile('RemakeRootAttributionBrowserIntegrationV1351') ?>
   <?!= includeDashboardFile('DashboardMainScript', {dashboardBaseUrl: dashboardBaseUrl, dashboardPresentationVersion: dashboardPresentationVersion, dashboardPresentationMode: dashboardPresentationMode, dashboardPresentationSource: dashboardPresentationSource}) ?>
+  <?!= includeDashboardFile('DashboardClientBootRuntime', {dashboardBaseUrl: dashboardBaseUrl, dashboardPresentationVersion: dashboardPresentationVersion, dashboardPresentationMode: dashboardPresentationMode, dashboardPresentationSource: dashboardPresentationSource}) ?>
+  <?!= includeDashboardFile('DashboardShellNavigationRuntime') ?>
 <?!= includeDashboardFile('RemakeSharedFilterAdapterV6646') ?>
 <?!= includeDashboardFile('DashboardSupportScript01') ?>
 <?!= includeDashboardFile('RemakeLegacyPolishRuntime') ?><?!= includeDashboardFile('DashboardSupportScript02') ?>
