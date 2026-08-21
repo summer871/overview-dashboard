@@ -1,60 +1,16 @@
 name: DashboardMain duplicate cleanup
 
 on:
-  pull_request:
-    branches:
-      - agent/v6.544-shared-table-platform-5118
-    paths:
-      - .github/scripts/remove-shadowed-top-level-functions.cjs
-      - .github/workflows/dashboard-main-duplicate-cleanup.yml
+  workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  cleanup:
+  verify:
     runs-on: ubuntu-latest
     steps:
-      - name: Check out cleanup branch
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           ref: agent/ai-readable-cleanup-2026-08-21
-          fetch-depth: 0
-
-      - name: Install parser dependency
-        run: npm install --no-save --package-lock=false acorn@8
-
-      - name: Verify cleanup script syntax
-        run: node --check .github/scripts/remove-shadowed-top-level-functions.cjs
-
-      - name: Remove shadowed top-level declarations
-        run: node .github/scripts/remove-shadowed-top-level-functions.cjs
-
-      - name: Regenerate AI-readable DashboardMain mirror
-        run: node .github/scripts/split-dashboard-main-for-ai.cjs
-
-      - name: Verify change scope and cleanup report
-        run: |
-          changed="$(git status --short --untracked-files=all | sed -E 's/^.. //' | sort)"
-          printf 'Changed files:\n%s\n' "$changed"
-          node - <<'NODE'
-          const fs = require('fs');
-          const report = JSON.parse(fs.readFileSync('docs/DASHBOARD-MAIN-DUPLICATE-CLEANUP-2026-08-21.json', 'utf8'));
-          const manifest = JSON.parse(fs.readFileSync('docs/ai-readable/dashboard-main/manifest.json', 'utf8'));
-          if (report.behaviorChangeIntended) throw new Error('Unexpected behavior-change flag.');
-          if (report.parser !== 'acorn') throw new Error('AST parser verification missing.');
-          if (report.remainingTopLevelDuplicateFunctionNames !== 0) throw new Error('Duplicate top-level functions remain.');
-          if (report.removedDeclarations < 1 || report.removedBytes < 1) throw new Error('No legacy declarations were removed.');
-          if (!manifest.byteForByteReconstructionVerified) throw new Error('Updated DashboardMain mirror is not verified.');
-          if (manifest.authoritativeSourceSha256 !== report.sourceSha256After) throw new Error('Mirror does not match cleaned DashboardMain source.');
-          NODE
-          test -z "$(git status --short --untracked-files=all | sed -E 's/^.. //' | grep -Ev '^(DashboardMainScript\.html|docs/DASHBOARD-MAIN-DUPLICATE-CLEANUP-2026-08-21\.json|docs/ai-readable/dashboard-main/)')"
-
-      - name: Commit duplicate cleanup
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -- DashboardMainScript.html docs/DASHBOARD-MAIN-DUPLICATE-CLEANUP-2026-08-21.json docs/ai-readable/dashboard-main
-          git commit -m "Remove shadowed DashboardMain function declarations"
-          git pull --rebase origin agent/ai-readable-cleanup-2026-08-21
-          git push origin HEAD:agent/ai-readable-cleanup-2026-08-21
+      - run: test -s docs/DASHBOARD-MAIN-DUPLICATE-CLEANUP-2026-08-21.json
