@@ -1,15 +1,20 @@
 <!-- TatSharedFilterAdapterV6646.html
 Version: v6.646
-Purpose: Mount SharedFilterBar for the TAT desktop header using the TAT
-controller's own filter-state bridge. Legacy compact/mobile controls remain as
-fallback during migration.
+Purpose: SharedFilterBar is the authoritative TAT desktop filter/header owner using
+the TAT controller's own filter-state bridge. Legacy controls remain only for
+compact/mobile layouts.
+
+Checkpoint B:
+- Desktop (1280px+) always uses SharedFilterBar.
+- The legacy TAT filter bar is retained only for compact/mobile layouts.
+- No desktop fallback to the legacy bar remains after the verified /dev checkpoint.
 -->
 <style id="cdaTatSharedFilterAdapterV6646Styles">
   @media (min-width:1280px) {
-    #tatTabFilterHostV6509.cdaSharedFilterActiveV6646 > .remakeFilterBarV6230 {
+    #tatTabFilterHostV6509 > .remakeFilterBarV6230 {
       display:none !important;
     }
-    #tatTabFilterHostV6509.cdaSharedFilterActiveV6646 > .cdaFilterBar {
+    #tatTabFilterHostV6509 > .cdaFilterBar {
       display:grid !important;
       grid-template-columns:minmax(82px,.54fr) minmax(108px,.76fr) minmax(132px,.96fr) minmax(116px,.82fr) minmax(132px,.96fr) minmax(108px,.76fr) !important;
       flex:1 1 auto !important;
@@ -20,7 +25,7 @@ fallback during migration.
       align-items:center !important;
       margin:0 0 0 auto !important;
     }
-    #tatTabFilterHostV6509.cdaSharedFilterActiveV6646 .cdaFilterButton {
+    #tatTabFilterHostV6509 .cdaFilterButton {
       height:32px !important;
       min-height:32px !important;
     }
@@ -113,7 +118,7 @@ fallback during migration.
       window.CDA_TAT_SHARED_FILTER_ACTIVE = true;
       return true;
     } catch (error) {
-      console.warn('v6.646 SharedFilterBar mount failed for TAT; legacy filters retained.', error);
+      console.warn('v6.646 SharedFilterBar mount failed for TAT desktop filters; compact/mobile legacy controls remain available below 1280px.', error);
       instanceV6646 = null;
       host.classList.remove('cdaSharedFilterActiveV6646');
       window.CDA_TAT_SHARED_FILTER_ACTIVE = false;
