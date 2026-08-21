@@ -3312,7 +3312,14 @@
 
 
     /* v6.64 embedded Overview 2.0 - no router, no blank second page */
-    
+    .overviewTwoShell {
+      max-width: 1920px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 220px minmax(520px, 1.05fr) minmax(520px, .98fr);
+      gap: 8px;
+      align-items: start;
+    }
     
     
     
@@ -3370,7 +3377,10 @@
     /* v6.68 Overview 1.0 dense executive grid
        Design target: dense/minimal like Overview 2.0, but with compact KPI cards and a clearer executive layout.
        Scoped to Overview 1.0 only so Overview 2.0 remains untouched. */
-    
+    #overviewOne.tabPage {
+      padding: 6px 8px 12px !important;
+      background: #ebe9ed !important;
+    }
 
     
 
@@ -3481,7 +3491,12 @@
        - Keep only month ticks on the X-axis, no X-axis title.
        - Give the top-left legend more room above the grid.
        - Let the plot/grid area feel wider and taller inside the same compact card system. */
-    
+    #overviewOne .areaCustomers .chartBox,
+    #overviewOne .areaUnits .chartBox,
+    #overviewOne .areaRpac .chartBox,
+    #overviewOne .areaAvg .chartBox {
+      min-height: 252px !important;
+    }
 
     
     @media (max-width: 1500px) and (min-width: 901px) {
@@ -3530,7 +3545,19 @@
     /* v6.70 Overview 1.0 mover tables: remove the extra card shell.
        Tables should look like the Overview 2.0 raw table panels: title/buttons sit on the canvas,
        and the table itself begins at the dark header with no padded white area-card around it. */
-    
+    #overviewOne .moverArea {
+      background: transparent !important;
+      border: 0 !important;
+      box-shadow: none !important;
+      border-radius: 0 !important;
+      padding: 0 !important;
+      margin: 0 !important;
+      min-width: 0 !important;
+      min-height: 0 !important;
+      overflow: hidden !important;
+      display: flex !important;
+      flex-direction: column !important;
+    }
 
     
 
@@ -3572,7 +3599,13 @@
     /* v6.71 focused cleanup:
        - Keep mover tables as raw tables (no extra area card), but add a single table outline so they don't feel unfinished.
        - Give bar-chart legends breathing room above the plotting grid without changing the overall layout. */
-    
+    #overviewOne .moverArea .tableScroll {
+      border: 1px solid #cfd6df !important;
+      border-radius: 4px !important;
+      background: #ffffff !important;
+      box-shadow: 0 1px 2px rgba(20, 32, 42, .08) !important;
+      overflow: auto !important;
+    }
 
     
 
@@ -3593,7 +3626,12 @@
        v6.70/v6.71 made the mover tables table-only, but the broad td rule also flattened
        negative/positive colors and allowed the Inactive badge to get clipped. Restore those
        visual states without bringing back the extra area card background. */
-    
+    #overviewOne .moverArea .tableScroll {
+      border: 1px solid #c9d1dc !important;
+      border-radius: 4px !important;
+      background: #ffffff !important;
+      box-shadow: 0 1px 2px rgba(20, 32, 42, .08) !important;
+    }
 
     
 
@@ -3616,7 +3654,9 @@
        - Slightly widen the mover-table rail.
        - Keep raw table layout with only the table outline, no extra area-card background.
        - Preserve inactive badges by making the name column able to show the pill cleanly. */
-    
+    #overviewOne .grid {
+      grid-template-columns: minmax(440px, 1.22fr) minmax(440px, 1.22fr) minmax(540px, 1.08fr) !important;
+    }
 
     
 
@@ -4153,7 +4193,9 @@
     /* v6.130 upgraded Overview replacement:
        Overview 2.0 now replaces Overview, but the working 1.0 dropdowns are
        mounted inside the active Overview so every control shares one state. */
-    
+    #overviewOne.legacyOverviewReference:not(.active) {
+      display: none !important;
+    }
 
     
 
@@ -4574,7 +4616,11 @@
        Goal: keep the filled/wide dashboard, but use horizontal space for additional analytics
        instead of making the revenue line chart and KPI cards overly wide. Also restores the
        v6.152 insight panels to compact card/table styling so they do not render as oversized text. */
-    
+    #overviewTwo .overviewTwoShellV150 {
+      width: min(100%, calc(100vw - 14px)) !important;
+      padding: 10px 12px 14px !important;
+      background: #eeeae6 !important;
+    }
 
     
 
@@ -4648,7 +4694,13 @@
     
 
     /* v6.152 analytics restored: compact cards, not raw giant text. */
-    
+    #overviewTwo .o2InsightGridV152 {
+      display: grid !important;
+      grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+      gap: 10px !important;
+      align-items: stretch !important;
+      margin: 0 0 10px !important;
+    }
 
     
 
@@ -4740,7 +4792,11 @@
     /* v6.155 cleaner deep-dive presentation
        Keep every analytic metric, but stop showing all four lower panels at once.
        Remove presentation/reset buttons and make the insight controls feel like compact story buttons. */
-    
+    #overviewTwo .o2FeatureDockV153 {
+      grid-template-columns: minmax(170px, 220px) minmax(0, 1fr) !important;
+      gap: 10px !important;
+      margin-bottom: 10px !important;
+    }
 
     
 
@@ -4797,7 +4853,9 @@
     
 
     /* The old four-card insight grid is no longer used, but keep a safety style if older markup appears. */
-    
+    #overviewTwo .o2InsightGridV152 {
+      display: none !important;
+    }
 
     
 
@@ -4827,7 +4885,9 @@
     /* v6.156 scalable pace timeline + cleaner hierarchy
        Keep all metrics, but combine Monthly YoY and YTD Gap Path into one scalable Year Pace card.
        This prevents the top from becoming a wall of cards as the year grows from 6 to 12 months. */
-    
+    #overviewTwo .overviewTwoShellV150 {
+      padding: 10px 12px 14px !important;
+    }
 
     
 
@@ -4979,7 +5039,11 @@
 
     /* v6.158 read-first cleaner layout
        Same analytics, less clutter: compact top cards, inline story controls, and a scalable pace ribbon. */
-    
+    #overviewTwo .overviewTwoShellV150 {
+      max-width: 1840px !important;
+      padding: 10px 12px 12px !important;
+      background: #ebe9e5 !important;
+    }
 
     
 
@@ -5139,7 +5203,11 @@
     /* v6.160 command-bar layout cleaner
        Structure fix: use the width for a top metric command bar, then one main story row.
        No analytics removed. Revenue Trend appears once; Year Pace and Management Readout sit in a right-side stack. */
-    
+    #overviewTwo .overviewTwoShellV150 {
+      max-width: 1880px !important;
+      padding: 12px !important;
+      background: #ebe9e5 !important;
+    }
 
     
 
