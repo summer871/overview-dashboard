@@ -4,10 +4,9 @@ const fs = require('fs');
 const crypto = require('crypto');
 
 const sourcePath = 'Index.html';
-const shellPath = 'IndexShell.html';
-const codePath = 'Code.js';
-const manifestPath = 'docs/INDEX-AI-STRUCTURAL-SPLIT-2026-08-21.json';
-const partPrefix = 'IndexRuntimePart';
+const outputDir = 'docs/ai-readable/index';
+const manifestPath = `${outputDir}/manifest.json`;
+const partPrefix = 'IndexPart';
 const maxAiReadableBytes = 75000;
 const targetBytes = 62000;
 
@@ -26,10 +25,6 @@ function sha256(value) {
 
 function bytes(value) {
   return Buffer.byteLength(value, 'utf8');
-}
-
-function count(value, needle) {
-  return value.split(needle).length - 1;
 }
 
 function safeSplitPositions(source) {
@@ -98,12 +93,11 @@ function buildChunks(source) {
   return chunks;
 }
 
-function chunkName(index) {
-  return `${partPrefix}${String(index + 1).padStart(2, '0')}`;
+function chunkPath(index) {
+  return `${outputDir}/${partPrefix}${String(index + 1).padStart(2, '0')}.html.txt`;
 }
 
 const source = read(sourcePath);
-const originalCode = read(codePath);
 const sourceSha = sha256(source);
 const sourceBytes = bytes(source);
 
@@ -112,7 +106,7 @@ if (sourceBytes <= maxAiReadableBytes) {
 }
 
 const chunks = buildChunks(source);
-if (chunks.length < 2) fail('Expected multiple Index runtime chunks.');
+if (chunks.length < 2) fail('Expected multiple Index inspection chunks.');
 
 const reconstructed = chunks.join('');
 if (reconstructed !== source) fail('Chunk reconstruction is not byte-for-byte identical to Index.html.');
@@ -121,53 +115,37 @@ if (sha256(reconstructed) !== sourceSha) fail('Chunk reconstruction hash mismatc
 chunks.forEach((chunk, index) => {
   const size = bytes(chunk);
   if (size > maxAiReadableBytes) {
-    fail(`${chunkName(index)}.html exceeds ${maxAiReadableBytes} bytes: ${size}`);
+    fail(`${chunkPath(index)} exceeds ${maxAiReadableBytes} bytes: ${size}`);
   }
 });
 
-const context = '{dashboardBaseUrl: dashboardBaseUrl, dashboardPresentationVersion: dashboardPresentationVersion, dashboardPresentationMode: dashboardPresentationMode, dashboardPresentationSource: dashboardPresentationSource}';
-const shell = chunks.map((_, index) => `<?!= includeDashboardFile('${chunkName(index)}', ${context}) ?>`).join('');
+fs.rmSync(outputDir, { recursive: true, force: true });
+fs.mkdirSync(outputDir, { recursive: true });
 
-const oldTemplateCall = "HtmlService.createTemplateFromFile('Index')";
-const newTemplateCall = "HtmlService.createTemplateFromFile('IndexShell')";
-if (count(originalCode, oldTemplateCall) !== 1) fail('Expected exactly one Code.js Index template call.');
-if (originalCode.includes(newTemplateCall)) fail('Code.js already points at IndexShell.');
-const nextCode = originalCode.replace(oldTemplateCall, newTemplateCall);
-
-for (let i = 0; i < chunks.length; i += 1) {
-  const path = `${chunkName(i)}.html`;
-  if (fs.existsSync(path)) fail(`Refusing to overwrite existing generated file: ${path}`);
-  fs.writeFileSync(path, chunks[i], 'utf8');
-}
-fs.writeFileSync(shellPath, shell, 'utf8');
-fs.writeFileSync(codePath, nextCode, 'utf8');
-
-const generatedFiles = chunks.map((chunk, index) => ({
-  file: `${chunkName(index)}.html`,
-  bytes: bytes(chunk),
-  sha256: sha256(chunk),
-  aiReadable: true
-}));
-generatedFiles.push({ file: shellPath, bytes: bytes(shell), sha256: sha256(shell), aiReadable: true });
-generatedFiles.push({ file: codePath, bytes: bytes(nextCode), sha256: sha256(nextCode), aiReadable: true });
+const generatedFiles = chunks.map((chunk, index) => {
+  const file = chunkPath(index);
+  fs.writeFileSync(file, chunk, 'utf8');
+  return {
+    file,
+    bytes: bytes(chunk),
+    sha256: sha256(chunk),
+    aiReadable: true
+  };
+});
 
 const manifest = {
   generatedAt: new Date().toISOString(),
-  sourcePath,
-  sourceBytes,
-  sourceSha256: sourceSha,
+  authoritativeSource: sourcePath,
+  authoritativeSourceBytes: sourceBytes,
+  authoritativeSourceSha256: sourceSha,
   maxAiReadableBytes,
   targetBytes,
   chunkCount: chunks.length,
-  generatedFiles,
+  chunks: generatedFiles,
   byteForByteReconstructionVerified: reconstructed === source && sha256(reconstructed) === sourceSha,
-  originalIndexUntouched: true,
-  entryPointChangedFrom: 'Index',
-  entryPointChangedTo: 'IndexShell',
+  runtimeSourceChanged: false,
   behaviorChangeIntended: false,
-  overviewRemoved: false,
-  legacyCodeRemoved: false,
-  note: 'Mechanical composition split only. Original Index.html remains intact as a rollback reference. Cleanup/removal happens only after the generated parts are readable and audited.'
+  note: 'Inspection mirror only. These .txt chunks are not Apps Script runtime files and must never be included by Index.html.'
 };
 
 fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n', 'utf8');
