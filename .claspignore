@@ -3,3 +3,5 @@
 !appsscript.json
 !*.js
 !*.html
+# Archived and paused source must never be pushed to Apps Script.
+archive/**
