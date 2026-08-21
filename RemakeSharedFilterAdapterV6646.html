@@ -4,18 +4,17 @@ Purpose: Compatibility adapter that makes SharedFilterBar the desktop Remake
 filter/header presentation owner while preserving the existing Remake filter
 state, undo, persistence, population, global-search, and dashboard render logic.
 
-Safety:
-- The legacy filter bar is not deleted here.
-- It is hidden on desktop only after SharedFilterBar mounts successfully.
-- Compact/mobile legacy controls remain available during the migration.
+Checkpoint B:
+- Desktop (1280px+) always uses SharedFilterBar.
+- The legacy filter bar is retained only for compact/mobile layouts.
 - No timer polling; mounting is event/DOM-observer driven.
 -->
 <style id="cdaRemakeSharedFilterAdapterV6646Styles">
   @media (min-width:1280px) {
-    #remakeTabFilterHostV6337.cdaSharedFilterActiveV6646 > .remakeFilterBarV6230 {
+    #remakeTabFilterHostV6337 > .remakeFilterBarV6230 {
       display:none !important;
     }
-    #remakeTabFilterHostV6337.cdaSharedFilterActiveV6646 > .cdaFilterBar {
+    #remakeTabFilterHostV6337 > .cdaFilterBar {
       display:grid !important;
       grid-template-columns:minmax(82px,.54fr) minmax(108px,.76fr) minmax(132px,.96fr) minmax(116px,.82fr) minmax(132px,.96fr) minmax(108px,.76fr) !important;
       flex:1 1 auto !important;
@@ -26,10 +25,10 @@ Safety:
       align-items:center !important;
       margin:0 0 0 auto !important;
     }
-    #remakeTabFilterHostV6337.cdaSharedFilterActiveV6646 .cdaFilter {
+    #remakeTabFilterHostV6337 .cdaFilter {
       min-height:32px !important;
     }
-    #remakeTabFilterHostV6337.cdaSharedFilterActiveV6646 .cdaFilterButton {
+    #remakeTabFilterHostV6337 .cdaFilterButton {
       height:32px !important;
       min-height:32px !important;
     }
@@ -205,7 +204,7 @@ Safety:
       window.CDA_REMAKE_SHARED_FILTER_ACTIVE = true;
       return true;
     } catch (error) {
-      console.warn('v6.646 SharedFilterBar mount failed; legacy Remake filters retained.', error);
+      console.warn('v6.646 SharedFilterBar mount failed for Remake desktop filters; compact/mobile legacy controls remain available below 1280px.', error);
       instanceV6646 = null;
       host.classList.remove('cdaSharedFilterActiveV6646');
       window.CDA_REMAKE_SHARED_FILTER_ACTIVE = false;
