@@ -1,11 +1,12 @@
-name: Index AI-readable structural split
+name: Index AI-readable inspection mirror
 
 on:
   workflow_dispatch:
-  push:
+  pull_request:
     branches:
-      - agent/ai-readable-cleanup-2026-08-21
+      - agent/v6.544-shared-table-platform-5118
     paths:
+      - Index.html
       - .github/scripts/split-index-for-ai.cjs
       - .github/workflows/index-ai-structural-split.yml
 
@@ -13,7 +14,7 @@ permissions:
   contents: write
 
 jobs:
-  split-index:
+  mirror-index:
     runs-on: ubuntu-latest
     steps:
       - name: Check out cleanup branch
@@ -25,37 +26,40 @@ jobs:
       - name: Verify transformer syntax
         run: node --check .github/scripts/split-index-for-ai.cjs
 
-      - name: Build AI-readable Index composition
+      - name: Generate AI-readable Index mirror
         run: node .github/scripts/split-index-for-ai.cjs
 
-      - name: Verify original Index remains untouched
-        run: git diff --exit-code -- Index.html
+      - name: Verify runtime source remains untouched
+        run: git diff --exit-code -- Index.html Code.js
 
-      - name: Verify generated source sizes
+      - name: Verify generated chunks reconstruct source
         run: |
           node - <<'NODE'
           const fs = require('fs');
-          const manifest = JSON.parse(fs.readFileSync('docs/INDEX-AI-STRUCTURAL-SPLIT-2026-08-21.json', 'utf8'));
-          for (const item of manifest.generatedFiles) {
-            const bytes = fs.statSync(item.file).size;
-            if (bytes !== item.bytes) throw new Error(`Size mismatch for ${item.file}`);
-            if (item.aiReadable && bytes > manifest.maxAiReadableBytes) {
-              throw new Error(`${item.file} exceeds AI-readable limit: ${bytes}`);
-            }
+          const crypto = require('crypto');
+          const manifest = JSON.parse(fs.readFileSync('docs/ai-readable/index/manifest.json', 'utf8'));
+          const rebuilt = manifest.chunks.map(item => fs.readFileSync(item.file, 'utf8')).join('');
+          const source = fs.readFileSync(manifest.authoritativeSource, 'utf8');
+          const hash = value => crypto.createHash('sha256').update(value, 'utf8').digest('hex');
+          if (rebuilt !== source) throw new Error('Generated chunks do not reconstruct Index.html exactly.');
+          if (hash(source) !== manifest.authoritativeSourceSha256) throw new Error('Index source hash mismatch.');
+          for (const item of manifest.chunks) {
+            const size = fs.statSync(item.file).size;
+            if (size !== item.bytes) throw new Error(`Size mismatch for ${item.file}`);
+            if (size > manifest.maxAiReadableBytes) throw new Error(`${item.file} exceeds AI-readable limit.`);
           }
-          if (!manifest.byteForByteReconstructionVerified) throw new Error('Reconstruction verification missing.');
-          if (!manifest.originalIndexUntouched) throw new Error('Original Index preservation flag missing.');
-          console.log(`Verified ${manifest.generatedFiles.length} generated files.`);
+          if (manifest.runtimeSourceChanged) throw new Error('Inspection generator reports a runtime change.');
+          console.log(`Verified ${manifest.chunkCount} Index inspection chunks.`);
           NODE
 
-      - name: Commit prepared structural split
+      - name: Commit inspection mirror
         run: |
-          if git diff --quiet -- Code.js IndexShell.html IndexHeadComposition.html IndexBodyShell.html IndexRemakeRuntime*.html IndexTatRuntime.html docs/INDEX-AI-STRUCTURAL-SPLIT-2026-08-21.json; then
-            echo 'Structural split already current.'
+          if git diff --quiet -- docs/ai-readable/index; then
+            echo 'Index inspection mirror already current.'
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -- Code.js IndexShell.html IndexHeadComposition.html IndexBodyShell.html IndexRemakeRuntime*.html IndexTatRuntime.html docs/INDEX-AI-STRUCTURAL-SPLIT-2026-08-21.json
-          git commit -m "Split Index into AI-readable composition files"
+          git add -- docs/ai-readable/index
+          git commit -m "Generate AI-readable Index mirror"
           git push origin HEAD:agent/ai-readable-cleanup-2026-08-21
