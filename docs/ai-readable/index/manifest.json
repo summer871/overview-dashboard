@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-08-21T20:11:37.497Z",
+  "generatedAt": "2026-08-21T20:13:35.180Z",
   "authoritativeSource": "Index.html",
-  "authoritativeSourceBytes": 213459,
-  "authoritativeSourceSha256": "c73e8cc04afbbe75e499c8a7ae3e87ce7149bf8a38c245b71a9d63144d296fa7",
+  "authoritativeSourceBytes": 213519,
+  "authoritativeSourceSha256": "6ed6c6a210d9c419ea50bab71ac6729d5904b303a9a650dabc452ce57eab91ee",
   "maxAiReadableBytes": 75000,
   "targetBytes": 62000,
   "chunkCount": 4,
@@ -27,8 +27,8 @@
     },
     {
       "file": "docs/ai-readable/index/IndexPart04.html.txt",
-      "bytes": 15954,
-      "sha256": "05b9c1ca38e66caa658062b86b61208616c2fd175b56d6fd63becc527cdada52",
+      "bytes": 16014,
+      "sha256": "fb0f1102c1298db01695d03687d4853e9eb486c7c599011e143f9528eb3615be",
       "aiReadable": true
     }
   ],

@@ -751,6 +751,49 @@
   window.renderTatGlobalSearchV6509=function(value){const host=id('tatGlobalSearchResultsV6509');if(!host)return;const term=String(value||'').trim();if(!term){host.innerHTML='<div class="remakeDropdownEmptyV6245">Type to search departments, products, groups, customers, and reasons.</div>';return;}const results=[];['department','product','productGroup','customer','reason'].forEach(function(type){optionList(type).forEach(function(option){if(results.length<75&&fuzzy(option.label+' '+option.key,term))results.push({type:type,key:option.key,label:option.label});});});host.innerHTML=results.length?results.map(function(item){return '<div class="tatGlobalResultV6509" onclick="selectTatGlobalOptionV6509(\''+escJs(item.type)+'\',\''+escJs(item.key)+'\')"><span class="type">'+esc(LABELS[item.type])+'</span><span class="label">'+esc(item.label)+'</span><span>+</span></div>';}).join(''):'<div class="remakeDropdownEmptyV6245">No matching filters.</div>';};
   window.selectTatGlobalOptionV6509=function(type,key){ensureCustom(type);selectedSet(type).add(String(key));normalizeMode(type);renderAll();const input=id('tatGlobalSearchInputV6509');renderTatGlobalSearchV6509(input&&input.value||'');};
 
+
+  // v6.646: expose the existing TAT filter state through a narrow adapter
+  // contract so SharedFilterBar can own presentation without creating a
+  // second filter data model.
+  let tatSharedFilterRenderQueuedV6646=false;
+  function scheduleTatSharedFilterRenderV6646(){
+    if(tatSharedFilterRenderQueuedV6646)return;
+    tatSharedFilterRenderQueuedV6646=true;
+    queueMicrotask(function(){tatSharedFilterRenderQueuedV6646=false;renderAll();});
+  }
+  function tatSharedPopulationKeysV6646(targetType){
+    const keys=new Set();
+    (state.rows||[]).forEach(function(row){
+      const year=Number(row.year);if(year!==2025&&year!==2026)return;
+      const matchesOthers=FILTER_TYPES.every(function(type){return type===targetType||isSelected(type,filterKey(type,row));});
+      if(!matchesOthers)return;
+      const key=filterKey(targetType,row);if(key)keys.add(String(key));
+    });
+    return keys;
+  }
+  window.cdaTatFilterBridgeV6646=Object.freeze({
+    version:'v6.646',
+    types:FILTER_TYPES.slice(),
+    labels:Object.assign({},LABELS),
+    allLabels:Object.assign({},ALL_LABELS),
+    getOptions:function(type){return optionList(type).map(function(option){return {key:String(option.key),label:String(option.label)};});},
+    getMode:function(type){return mode(type);},
+    getSelected:function(type){return new Set(Array.from(selectedSet(type)).map(String));},
+    getSearch:function(type){return state.searches[type]||'';},
+    setSearch:function(type,value){state.searches[type]=String(value||'');},
+    applySelection:function(type,nextSet,nextMode){
+      if(FILTER_TYPES.indexOf(type)<0)return;
+      const set=selectedSet(type);set.clear();
+      if(nextMode==='ALL')setMode(type,'ALL');
+      else{
+        Array.from(nextSet||[]).map(String).forEach(function(value){set.add(value);});
+        setMode(type,'CUSTOM');normalizeMode(type);
+      }
+      scheduleTatSharedFilterRenderV6646();
+    },
+    getPopulationKeys:function(type){return tatSharedPopulationKeysV6646(type);}
+  });
+
   function csvEscape(value){const text=String(value==null?'':value);return /[",\n]/.test(text)?'"'+text.replace(/"/g,'""')+'"':text;}
   function downloadCsv(name,headers,rows){const text=[headers].concat(rows).map(function(row){return row.map(csvEscape).join(',');}).join('\n'),blob=new Blob([text],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download=name;document.body.appendChild(link);link.click();link.remove();window.setTimeout(function(){URL.revokeObjectURL(url);},500);}
   function detailCsvRows(){return reportingRowsV6510().map(function(row){return [row.invoiceDate,row.caseNumber,row.customerId,row.customerName,row.productsDepartment,row.productsGroup,row.productId,row.productsDescription,row.soldUnits,row.remakeUnits,row.tatEligible,row.businessTatDays,row.otpEligible,row.onTimeToPromise,row.daysLate,row.tatIssue,row.dateIn,row.completionDate,row.dueDate,row.missingHoldEndCount,row.usedInvoiceDateFallback,row.remakeReason];});}
