@@ -1,5 +1,6 @@
 name: Overview CSS archive checkpoint
 
+# Existing workflow touched intentionally to trigger the guarded checkpoint.
 on:
   pull_request:
     branches:
