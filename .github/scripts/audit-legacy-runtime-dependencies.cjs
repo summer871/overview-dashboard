@@ -22,8 +22,8 @@ function countPattern(text, pattern) {
 function countToken(text, name) {
   return countPattern(text, new RegExp('\\b' + escapeRegex(name) + '\\b', 'g'));
 }
-function countCalls(text, name) {
-  return countPattern(text, new RegExp('\\b' + escapeRegex(name) + '\\s*\\(', 'g'));
+function countBareCalls(text, name) {
+  return countPattern(text, new RegExp('(?<![\\w$.])' + escapeRegex(name) + '\\s*\\(', 'g'));
 }
 function countTypeof(text, name) {
   return countPattern(text, new RegExp('\\btypeof\\s+' + escapeRegex(name) + '\\b', 'g'));
@@ -75,7 +75,7 @@ const activeText = remakeText + '\n' + tatText;
 const legacyDeclared = declarations(legacyText);
 const activeDeclared = declarations(activeText);
 const candidates = [];
-const callableCandidates = [];
+const bareGlobalCandidates = [];
 legacyDeclared.forEach(function(name) {
   if (activeDeclared.has(name)) return;
   const remakeReferences = countToken(remakeText, name);
@@ -90,27 +90,24 @@ legacyDeclared.forEach(function(name) {
   };
   candidates.push(entry);
 
-  const remakeCalls = countCalls(remakeText, name);
-  const tatCalls = countCalls(tatText, name);
+  const remakeBareCalls = countBareCalls(remakeText, name);
+  const tatBareCalls = countBareCalls(tatText, name);
   const remakeTypeof = countTypeof(remakeText, name);
   const tatTypeof = countTypeof(tatText, name);
-  const remakeWindow = countWindow(remakeText, name);
-  const tatWindow = countWindow(tatText, name);
-  if (remakeCalls || tatCalls || remakeTypeof || tatTypeof || remakeWindow || tatWindow) {
-    callableCandidates.push(Object.assign({}, entry, {
-      remakeCalls,
-      tatCalls,
+  if (remakeBareCalls || tatBareCalls || remakeTypeof || tatTypeof) {
+    bareGlobalCandidates.push(Object.assign({}, entry, {
+      remakeBareCalls,
+      tatBareCalls,
       remakeTypeof,
       tatTypeof,
-      remakeWindow,
-      tatWindow
+      guardedOnly: (remakeBareCalls + tatBareCalls) <= (remakeTypeof + tatTypeof)
     }));
   }
 });
 candidates.sort(function(a, b) { return b.totalReferences - a.totalReferences || a.name.localeCompare(b.name); });
-callableCandidates.sort(function(a, b) {
-  const aSignal = a.remakeCalls + a.tatCalls + a.remakeTypeof + a.tatTypeof + a.remakeWindow + a.tatWindow;
-  const bSignal = b.remakeCalls + b.tatCalls + b.remakeTypeof + b.tatTypeof + b.remakeWindow + b.tatWindow;
+bareGlobalCandidates.sort(function(a, b) {
+  const aSignal = a.remakeBareCalls + a.tatBareCalls + a.remakeTypeof + a.tatTypeof;
+  const bSignal = b.remakeBareCalls + b.tatBareCalls + b.remakeTypeof + b.tatTypeof;
   return bSignal - aSignal || b.totalReferences - a.totalReferences || a.name.localeCompare(b.name);
 });
 
@@ -136,6 +133,11 @@ while ((windowMatch = windowRe.exec(legacyText))) {
 }
 explicitWindowExports.sort(function(a, b) { return (b.remakeReferences + b.tatReferences) - (a.remakeReferences + a.tatReferences) || a.name.localeCompare(b.name); });
 
+const unshadowedWindowExports = explicitWindowExports.filter(function(item) { return !item.shadowedByActiveDeclaration; });
+const unguardedBareGlobals = bareGlobalCandidates.filter(function(item) {
+  return (item.remakeBareCalls + item.tatBareCalls) > 0 && item.guardedOnly !== true;
+});
+
 const report = {
   datePt: '2026-08-21',
   purpose: 'Conservative static audit before removing the staged legacy/paused Overview runtime from active execution.',
@@ -148,21 +150,25 @@ const report = {
   activeDeclaredSymbolCount: activeDeclared.size,
   candidateCrossDomainSymbolCount: candidates.length,
   candidateCrossDomainSymbols: candidates,
-  callableCrossDomainCandidateCount: callableCandidates.length,
-  callableCrossDomainCandidates: callableCandidates,
+  bareGlobalCandidateCount: bareGlobalCandidates.length,
+  bareGlobalCandidates,
+  unguardedBareGlobalCandidateCount: unguardedBareGlobals.length,
+  unguardedBareGlobalCandidates: unguardedBareGlobals,
   referencedLegacyWindowExportCount: explicitWindowExports.length,
   referencedLegacyWindowExports: explicitWindowExports,
-  allReferencedLegacyWindowExportsShadowedByActiveDeclarations: explicitWindowExports.every(function(item) { return item.shadowedByActiveDeclaration; }),
-  interpretation: 'Token candidates are intentionally conservative. Callable/window-reference candidates are higher signal. Legacy window exports already shadowed by active declarations are not ownership blockers by themselves; unshadowed callable candidates require tracing or migration before legacy runtime removal.',
+  unshadowedLegacyWindowExportCount: unshadowedWindowExports.length,
+  unshadowedLegacyWindowExports: unshadowedWindowExports,
+  allReferencedLegacyWindowExportsShadowedByActiveDeclarations: unshadowedWindowExports.length === 0,
+  interpretation: 'Property calls such as Math.abs, window.open, and platform.util.escapeHtml are excluded from bare-call signals. A legacy removal blocker must be either an unshadowed window export or an unguarded bare global that is truly resolved from the legacy runtime after contextual trace.',
   runtimeFilesChanged: false
 };
 fs.mkdirSync(path.dirname(reportPath), { recursive: true });
 fs.writeFileSync(reportPath, JSON.stringify(report, null, 2) + '\n', 'utf8');
 console.log(JSON.stringify({
   candidateCrossDomainSymbolCount: report.candidateCrossDomainSymbolCount,
-  callableCrossDomainCandidateCount: report.callableCrossDomainCandidateCount,
-  referencedLegacyWindowExportCount: report.referencedLegacyWindowExportCount,
-  allReferencedLegacyWindowExportsShadowedByActiveDeclarations: report.allReferencedLegacyWindowExportsShadowedByActiveDeclarations,
-  callableCandidates: callableCandidates.slice(0, 30),
-  windowExports: explicitWindowExports
+  bareGlobalCandidateCount: report.bareGlobalCandidateCount,
+  unguardedBareGlobalCandidateCount: report.unguardedBareGlobalCandidateCount,
+  unshadowedLegacyWindowExportCount: report.unshadowedLegacyWindowExportCount,
+  bareGlobalCandidates: report.bareGlobalCandidates,
+  windowExports: report.referencedLegacyWindowExports
 }, null, 2));
