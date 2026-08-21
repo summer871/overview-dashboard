@@ -1314,20 +1314,6 @@
       });
     }
 
-    function toggleDepartment(dept, event) {
-      if (event) event.stopPropagation();
-      clearMoverTablePinnedSelections();
-      if (state.selectedDepartments.has(dept)) {
-        state.selectedDepartments.delete(dept);
-      } else {
-        state.selectedDepartments.add(dept);
-        restoreDepartmentChildren(dept);
-        restoreLinkedFiltersForDepartment(dept);
-      }
-
-
-      renderAll();
-    }
 
     function clearDropdownSearch(panelId) {
       const searchConfig = {
@@ -1617,34 +1603,13 @@
       return count;
     }
 
-    function selectAllDepartments(event) {
-      prepareDropdownAction(event);
-      const rows = getVisibleDepartmentRows();
-      const values = rows.length ? new Set(rows.map(row => row.department)) : new Set(getAllDepartments());
-      state.selectedDepartments = new Set(values);
-      state.deptMode = selectedDepartmentsEqual(getAllDepartments()) ? 'ALL' : 'CUSTOM';
-      renderAfterBulkDropdownSelection('departmentDropdownPanel');
-    }
 
     function selectVisibleDepartments(event) {
       // Backward-compatible alias for older inline handlers.
       selectAllDepartments(event);
     }
 
-    function selectMainDepartments(event) {
-      prepareDropdownAction(event);
-      state.deptMode = 'MAIN';
-      state.selectedDepartments = new Set(getMainDepartments());
-      renderAfterBulkDropdownSelection('departmentDropdownPanel');
-    }
 
-    function clearDepartmentSelection(event) {
-      prepareDropdownAction(event);
-      state.deptMode = 'CUSTOM';
-      state.selectedDepartments = new Set();
-      state.collapseSelectedDepartments = false;
-      renderAfterBulkDropdownSelection('departmentDropdownPanel');
-    }
 
     function selectDefaultYears(event) {
       prepareDropdownAction(event);
@@ -1658,131 +1623,6 @@
       renderAll();
     }
 
-    function updateDropdownLabels() {
-      const deptButton = document.getElementById('departmentDropdownButton');
-      const yearButton = document.getElementById('yearDropdownButton');
-      const productButton = document.getElementById('productDropdownButton');
-      const customerButton = document.getElementById('customerDropdownButton');
-
-      const availableDepartments = getAvailableDepartmentSetForDropdown();
-      const allDepartments = new Set(getAllDepartments());
-      const selectedDeptNames = [...(state.selectedDepartments || new Set())].filter(dept => availableDepartments.has(dept)).sort();
-      const departmentContextRestricted = isSetRestrictedToContext(availableDepartments, allDepartments);
-
-      if (deptButton) {
-        if (!selectedDeptNames.length) {
-          deptButton.textContent = availableDepartments.size ? 'No departments selected' : 'No matching departments';
-          deptButton.title = deptButton.textContent;
-        } else if (departmentContextRestricted && selectedDeptNames.length === availableDepartments.size) {
-          deptButton.textContent = selectedDeptNames.length + ' matching departments';
-          deptButton.title = listForTooltip(selectedDeptNames, 'Matching selected departments');
-        } else if (selectedDeptNames.length === allDepartments.size) {
-          deptButton.textContent = 'All departments';
-          deptButton.title = 'All departments';
-        } else if (selectedDeptNames.length <= 2) {
-          deptButton.textContent = selectedDeptNames.join(', ');
-          deptButton.title = listForTooltip(selectedDeptNames, 'Selected departments');
-        } else {
-          deptButton.textContent = selectedDeptNames.length + ' departments selected';
-          deptButton.title = listForTooltip(selectedDeptNames, 'Selected departments');
-        }
-      }
-
-      if (productButton) {
-        const availableProducts = getAvailableProductSetForDropdown();
-        const allProducts = fullProductKeySet();
-        const selected = getSelectedProductKeys().filter(key => availableProducts.has(key));
-        const excluded = getExcludedProductKeys().filter(key => availableProducts.has(key));
-        const selectedCount = selectedProductCountInSet(availableProducts);
-        const productContextRestricted = isSetRestrictedToContext(availableProducts, allProducts);
-        if (!availableProducts.size) {
-          productButton.textContent = 'No matching products';
-          productButton.title = 'No products match the other active filters';
-        } else if (state.productFilterMode !== 'CUSTOM' && excluded.length) {
-          productButton.textContent = productContextRestricted
-            ? selectedCount + ' matching products'
-            : 'All products except ' + excluded.length;
-          productButton.title = 'Excluded products:\n' + listForTooltip(excluded.map(productLabelFromKey).sort(), 'Excluded products');
-        } else if (state.productFilterMode !== 'CUSTOM') {
-          productButton.textContent = productContextRestricted
-            ? selectedCount + ' matching products'
-            : 'All products';
-          productButton.title = productContextRestricted
-            ? listForTooltip([...availableProducts].map(productLabelFromKey).sort(), 'Matching products')
-            : 'All products';
-        } else if (!selected.length) {
-          productButton.textContent = 'No products selected';
-          productButton.title = 'No products selected';
-        } else if (selected.length === 1) {
-          productButton.textContent = productLabelFromKey(selected[0]) || '1 product selected';
-          productButton.title = productLabelFromKey(selected[0]) || '1 product selected';
-        } else {
-          const productNames = selected.map(productLabelFromKey).sort();
-          productButton.textContent = selected.length + ' products selected';
-          productButton.title = listForTooltip(productNames, 'Selected products');
-        }
-      }
-
-      if (customerButton) {
-        const availableCustomers = getAvailableCustomerSetForDropdown();
-        const allCustomers = fullCustomerIdSet();
-        const selected = getSelectedCustomerIds().filter(id => availableCustomers.has(id));
-        const excluded = getExcludedCustomerIds().filter(id => availableCustomers.has(id));
-        const selectedCount = selectedCustomerCountInSet(availableCustomers);
-        const customerContextRestricted = isSetRestrictedToContext(availableCustomers, allCustomers);
-        if (!availableCustomers.size) {
-          customerButton.textContent = 'No matching customers';
-          customerButton.title = 'No customers match the other active filters';
-        } else if (state.customerFilterMode !== 'CUSTOM' && excluded.length) {
-          customerButton.textContent = customerContextRestricted
-            ? selectedCount + ' matching customers'
-            : 'All customers except ' + excluded.length;
-          customerButton.title = 'Excluded customers:\n' + listForTooltip(excluded.map(getCustomerNameById).sort(), 'Excluded customers');
-        } else if (state.customerFilterMode !== 'CUSTOM') {
-          customerButton.textContent = customerContextRestricted
-            ? selectedCount + ' matching customers'
-            : 'All customers';
-          customerButton.title = customerContextRestricted
-            ? listForTooltip([...availableCustomers].map(getCustomerNameById).sort(), 'Matching customers')
-            : 'All customers';
-        } else if (!selected.length) {
-          customerButton.textContent = 'No customers selected';
-          customerButton.title = 'No customers selected';
-        } else if (selected.length === 1) {
-          const label = getCustomerNameById(selected[0]);
-          customerButton.textContent = label;
-          customerButton.title = label;
-        } else {
-          const customerNames = selected.map(getCustomerNameById).sort();
-          customerButton.textContent = selected.length + ' customers selected';
-          customerButton.title = listForTooltip(customerNames, 'Selected customers');
-        }
-      }
-
-      if (yearButton) {
-        const years = [...state.years].sort((a,b) => b-a);
-        const yearsText = years.join(', ');
-        const months = getSelectedMonths();
-        let periodText = 'YTD';
-        let periodTitle = 'Year to date';
-        if (months.length === 1) {
-          periodText = monthLabels[months[0] - 1];
-          periodTitle = periodText;
-        } else if (months.length > 1) {
-          periodText = months.map(month => monthLabels[month - 1]).join(', ');
-          periodTitle = listForTooltip(months.map(month => monthLabels[month - 1]), 'Selected months');
-        }
-        yearButton.textContent = yearsText + ' • ' + periodText;
-        yearButton.title = 'Years:\n' + listForTooltip(years, 'Selected years') + '\n\nPeriod:\n' + periodTitle;
-      }
-
-      // Keep the toolbar clean: the button titles are just the filter names.
-      // The synced counts/details remain inside the open dropdown panel and active chips.
-      if (deptButton) deptButton.textContent = 'Departments';
-      if (productButton) productButton.textContent = 'Products';
-      if (customerButton) customerButton.textContent = 'Customers';
-      if (yearButton) yearButton.textContent = 'Years';
-    }
 
 
     function getProductDepartmentFromKey(key) {
@@ -1820,276 +1660,20 @@
       getSelectedProductKeys().forEach(key => includeProductDepartmentInFilter(key));
     }
 
-    function normalizeProductSelectionMode() {
-      const selected = getSelectedProductKeys();
-      if (state.productFilterMode === 'CUSTOM' && productOptions.length && selected.length >= productOptions.length) {
-        state.productFilterMode = 'ALL';
-        state.selectedProductKeys = new Set();
-        state.tableSelectedProductKeys = new Set();
-        state.excludedProductKeys = new Set();
-        state.lastSelectedProductKey = null;
-        syncDepartmentsToAllProductInventory();
-      }
-    }
 
-    function normalizeCustomerSelectionMode() {
-      const selected = getSelectedCustomerIds();
-      if (state.customerFilterMode === 'CUSTOM' && customerOptions.length && selected.length >= customerOptions.length) {
-        state.customerFilterMode = 'ALL';
-        state.selectedCustomerIds = new Set();
-        state.tableSelectedCustomerIds = new Set();
-        state.excludedCustomerIds = new Set();
-        state.lastSelectedCustomerId = null;
-      }
-    }
 
-    function setProduct(value, event) {
-      const key = value || '';
-      if (!key) {
-        clearProductSelection();
-        return;
-      }
 
-      if (!state.selectedProductKeys) state.selectedProductKeys = new Set();
-      state.excludedProductKeys = new Set();
-      state.productFilterMode = 'CUSTOM';
-      const additive = isAdditiveEvent(event);
-      const range = isRangeEvent(event);
 
-      if (range && state.lastSelectedProductKey && Array.isArray(state.lastProductTableKeys)) {
-        const startIndex = state.lastProductTableKeys.indexOf(state.lastSelectedProductKey);
-        const endIndex = state.lastProductTableKeys.indexOf(key);
-        if (startIndex >= 0 && endIndex >= 0) {
-          const lo = Math.min(startIndex, endIndex);
-          const hi = Math.max(startIndex, endIndex);
-          const keys = state.lastProductTableKeys.slice(lo, hi + 1);
-          if (additive) keys.forEach(item => state.selectedProductKeys.add(item));
-          else state.selectedProductKeys = new Set(keys);
-        } else if (additive) {
-          if (state.selectedProductKeys.has(key)) state.selectedProductKeys.delete(key);
-          else state.selectedProductKeys.add(key);
-        } else {
-          state.selectedProductKeys = new Set([key]);
-        }
-      } else if (additive) {
-        if (state.selectedProductKeys.has(key)) state.selectedProductKeys.delete(key);
-        else state.selectedProductKeys.add(key);
-      } else {
-        state.selectedProductKeys = new Set([key]);
-      }
 
-      state.lastSelectedProductKey = key;
-      state.tableSelectedProductKeys = new Set(state.selectedProductKeys || []);
-      includeSelectedProductDepartmentsInFilter();
-      if (state.lastSelectedProductKey) restoreLinkedFiltersForProduct(state.lastSelectedProductKey);
-      normalizeProductSelectionMode();
-      syncSelects();
-      renderAll();
-    }
-
-    function toggleProduct(key, event) {
-      if (event) event.stopPropagation();
-      clearMoverTablePinnedSelections();
-      if (!key) return;
-      if (!state.selectedProductKeys) state.selectedProductKeys = new Set();
-      if (!state.excludedProductKeys) state.excludedProductKeys = new Set();
-
-      const affinityProducts = getProductAffinitySet();
-      const effectiveProducts = getAvailableProductSetForDropdown();
-      const excluded = state.excludedProductKeys;
-      const isChecked = isProductCheckedForDropdown(key, affinityProducts, effectiveProducts);
-      const currentlyChecked = new Set(productOptions
-        .filter(item => isProductCheckedForDropdown(item.key, affinityProducts, effectiveProducts))
-        .map(item => item.key));
-
-      if (state.productFilterMode === 'CUSTOM') {
-        if (state.selectedProductKeys.has(key)) {
-          state.selectedProductKeys.delete(key);
-        } else {
-          state.selectedProductKeys.add(key);
-          restoreLinkedFiltersForProduct(key);
-        }
-      } else if (isChecked) {
-        // Google Sheets-style: unchecking a checked value hides just that value.
-        // It should not flip into an only-this-product filter.
-        excluded.add(key);
-        state.selectedProductKeys.delete(key);
-      } else if (excluded.has(key)) {
-        // Re-check a previously hidden value.
-        excluded.delete(key);
-        restoreDepartmentChildren(getProductDepartmentFromKey(key));
-        restoreLinkedFiltersForProduct(key);
-      } else {
-        // This row is visible in the full dropdown inventory but blocked by another
-        // active filter (department, year, customer, or month). Add the product to
-        // the actual selected set and expand the related filters so the click sticks.
-        currentlyChecked.add(key);
-        state.productFilterMode = 'CUSTOM';
-        state.selectedProductKeys = currentlyChecked;
-        state.excludedProductKeys = new Set();
-        restoreDepartmentChildren(getProductDepartmentFromKey(key));
-        restoreLinkedFiltersForProduct(key);
-      }
-
-      state.tableSelectedProductKeys = new Set(state.selectedProductKeys || []);
-      state.lastSelectedProductKey = key;
-      normalizeProductSelectionMode();
-      syncSelects();
-      renderAll();
-    }
-
-    function clearProductSelection(event) {
-      prepareDropdownAction(event);
-      state.productFilterMode = 'CUSTOM';
-      state.selectedProductKeys = new Set();
-      state.tableSelectedProductKeys = new Set();
-      state.excludedProductKeys = new Set();
-      state.lastSelectedProductKey = null;
-      state.collapseSelectedProducts = false;
-      renderAfterBulkDropdownSelection('productDropdownPanel');
-    }
-
-    function selectAllProducts(event) {
-      prepareDropdownAction(event);
-      const visible = getVisibleProductOptions().map(item => item.key);
-      const full = fullProductKeySet();
-      const values = visible.length ? new Set(visible) : full;
-      if (setsEqual(values, full)) {
-        state.productFilterMode = 'ALL';
-        state.selectedProductKeys = new Set();
-      } else {
-        state.productFilterMode = 'CUSTOM';
-        state.selectedProductKeys = new Set(values);
-      }
-      state.tableSelectedProductKeys = new Set(state.selectedProductKeys || []);
-      state.excludedProductKeys = new Set();
-      state.lastSelectedProductKey = null;
-      renderAfterBulkDropdownSelection('productDropdownPanel');
-    }
 
     function selectVisibleProducts(event) {
       // Backward-compatible alias for older inline handlers.
       selectAllProducts(event);
     }
 
-    function setCustomer(value, event) {
-      const id = value || '';
-      if (!id) {
-        clearCustomerSelection();
-        return;
-      }
 
-      if (!state.selectedCustomerIds) state.selectedCustomerIds = new Set();
-      state.excludedCustomerIds = new Set();
-      state.customerFilterMode = 'CUSTOM';
-      const additive = isAdditiveEvent(event);
-      const range = isRangeEvent(event);
 
-      if (range && state.lastSelectedCustomerId && Array.isArray(state.lastCustomerTableIds)) {
-        const startIndex = state.lastCustomerTableIds.indexOf(state.lastSelectedCustomerId);
-        const endIndex = state.lastCustomerTableIds.indexOf(id);
-        if (startIndex >= 0 && endIndex >= 0) {
-          const lo = Math.min(startIndex, endIndex);
-          const hi = Math.max(startIndex, endIndex);
-          const ids = state.lastCustomerTableIds.slice(lo, hi + 1);
-          if (additive) ids.forEach(item => state.selectedCustomerIds.add(item));
-          else state.selectedCustomerIds = new Set(ids);
-        } else if (additive) {
-          if (state.selectedCustomerIds.has(id)) state.selectedCustomerIds.delete(id);
-          else state.selectedCustomerIds.add(id);
-        } else {
-          state.selectedCustomerIds = new Set([id]);
-        }
-      } else if (additive) {
-        if (state.selectedCustomerIds.has(id)) state.selectedCustomerIds.delete(id);
-        else state.selectedCustomerIds.add(id);
-      } else {
-        state.selectedCustomerIds = new Set([id]);
-      }
 
-      state.lastSelectedCustomerId = id;
-      state.tableSelectedCustomerIds = new Set(state.selectedCustomerIds || []);
-      restoreLinkedFiltersForCustomer(id);
-      normalizeCustomerSelectionMode();
-      syncSelects();
-      renderAll();
-    }
-
-    function toggleCustomer(id, event) {
-      if (event) event.stopPropagation();
-      clearMoverTablePinnedSelections();
-      if (!id) return;
-      if (!state.selectedCustomerIds) state.selectedCustomerIds = new Set();
-      if (!state.excludedCustomerIds) state.excludedCustomerIds = new Set();
-
-      const affinityCustomers = getCustomerAffinitySet();
-      const effectiveCustomers = getAvailableCustomerSetForDropdown();
-      const excluded = state.excludedCustomerIds;
-      const isChecked = isCustomerCheckedForDropdown(id, affinityCustomers, effectiveCustomers);
-      const currentlyChecked = new Set(customerOptions
-        .filter(item => isCustomerCheckedForDropdown(item.idValue, affinityCustomers, effectiveCustomers))
-        .map(item => item.idValue));
-
-      if (state.customerFilterMode === 'CUSTOM') {
-        if (state.selectedCustomerIds.has(id)) state.selectedCustomerIds.delete(id);
-        else {
-          state.selectedCustomerIds.add(id);
-          restoreLinkedFiltersForCustomer(id);
-        }
-      } else if (isChecked) {
-        excluded.add(id);
-        state.selectedCustomerIds.delete(id);
-      } else if (excluded.has(id)) {
-        excluded.delete(id);
-        restoreCustomerChildren(id);
-        restoreLinkedFiltersForCustomer(id);
-      } else {
-        // This customer is outside the current department/product/year context.
-        // Add the customer to the selected set and expand related filters so the
-        // click is not immediately blocked by the existing context.
-        currentlyChecked.add(id);
-        state.customerFilterMode = 'CUSTOM';
-        state.selectedCustomerIds = currentlyChecked;
-        state.excludedCustomerIds = new Set();
-        restoreCustomerChildren(id);
-        restoreLinkedFiltersForCustomer(id);
-      }
-
-      state.tableSelectedCustomerIds = new Set(state.selectedCustomerIds || []);
-      state.lastSelectedCustomerId = id;
-      normalizeCustomerSelectionMode();
-      syncSelects();
-      renderAll();
-    }
-
-    function clearCustomerSelection(event) {
-      prepareDropdownAction(event);
-      state.customerFilterMode = 'CUSTOM';
-      state.selectedCustomerIds = new Set();
-      state.tableSelectedCustomerIds = new Set();
-      state.excludedCustomerIds = new Set();
-      state.lastSelectedCustomerId = null;
-      state.collapseSelectedCustomers = false;
-      renderAfterBulkDropdownSelection('customerDropdownPanel');
-    }
-
-    function selectAllCustomers(event) {
-      prepareDropdownAction(event);
-      const visible = getVisibleCustomerOptions().map(item => item.idValue);
-      const full = fullCustomerIdSet();
-      const values = visible.length ? new Set(visible) : full;
-      if (setsEqual(values, full)) {
-        state.customerFilterMode = 'ALL';
-        state.selectedCustomerIds = new Set();
-      } else {
-        state.customerFilterMode = 'CUSTOM';
-        state.selectedCustomerIds = new Set(values);
-      }
-      state.tableSelectedCustomerIds = new Set(state.selectedCustomerIds || []);
-      state.excludedCustomerIds = new Set();
-      state.lastSelectedCustomerId = null;
-      renderAfterBulkDropdownSelection('customerDropdownPanel');
-    }
 
     function selectVisibleCustomers(event) {
       // Backward-compatible alias for older inline handlers.
@@ -2217,22 +1801,6 @@
       resetDepartmentSet();
     }
 
-    function clearFilter(kind) {
-      clearMoverTablePinnedSelections();
-      if (kind === 'month') {
-        state.selectedMonths = new Set();
-        state.monthSelectionMode = 'none';
-        state.lastSelectedMonth = null;
-        syncSelectedMonthLegacy();
-        state.periodMode = 'YTD';
-        state.focusChartId = null;
-      }
-      if (kind === 'product' || kind === 'customer' || kind === 'departments') {
-        setLinkedDropdownInventoryToAll();
-      }
-      if (kind === 'years') state.years = new Set(getDefaultYears());
-      renderAll();
-    }
 
     function resetAllFilters() {
       clearMoverTablePinnedSelections();
@@ -2331,24 +1899,6 @@
       productLabelByKey = new Map(productOptions.map(item => [item.key, item.label + ' [' + item.productId + ']']));
     }
 
-    function getVisibleProductOptions() {
-      const query = String(state.productSearch || '').trim().toLowerCase();
-      const selected = new Set(getSelectedProductKeys());
-      const affinityProducts = getProductAffinitySet();
-      const effectiveProducts = getAvailableProductSetForDropdown();
-      const checkedProducts = new Set(productOptions
-        .filter(item => isProductCheckedForDropdown(item.key, affinityProducts, effectiveProducts))
-        .map(item => item.key));
-      return productOptions
-        .filter(item => !query || item.searchText.includes(query))
-        .sort((a, b) => {
-          const checkedDiff = (checkedProducts.has(b.key) ? 1 : 0) - (checkedProducts.has(a.key) ? 1 : 0);
-          if (checkedDiff) return checkedDiff;
-          const priorityDiff = compareOptionPriority(a.key, b.key, selected, affinityProducts);
-          if (priorityDiff) return priorityDiff;
-          return a.label.localeCompare(b.label);
-        });
-    }
 
     function getDisplayedProductOptions() {
       const affinityProducts = getProductAffinitySet();
@@ -2357,49 +1907,6 @@
       return rows.filter(item => !isProductCheckedForDropdown(item.key, affinityProducts));
     }
 
-    function renderProductList() {
-      const list = document.getElementById('productList');
-      if (!list) return;
-      const selected = new Set(getSelectedProductKeys());
-      const allMatching = getVisibleProductOptions();
-      const affinityProducts = getProductAffinitySet();
-      const effectiveProducts = getAvailableProductSetForDropdown();
-      const checkedRows = allMatching.filter(item => isProductCheckedForDropdown(item.key, affinityProducts, effectiveProducts));
-      const uncheckedRows = allMatching.filter(item => !isProductCheckedForDropdown(item.key, affinityProducts, effectiveProducts));
-      const shownCount = state.collapseSelectedProducts ? uncheckedRows.length : allMatching.length;
-      const countEl = document.getElementById('productVisibleCount');
-      if (countEl) countEl.textContent = dropdownCountText(checkedRows.length, allMatching.length, shownCount);
-      setCollapseButton('productCollapseBtn', state.collapseSelectedProducts);
-
-      if (!allMatching.length) {
-        list.innerHTML = '<div class="emptyFilterRow">No products match that view.</div>';
-        updateDropdownLabels();
-        return;
-      }
-
-      const rowHtml = item => {
-        const isPinnedDirectly = selected.has(item.key);
-        const isDirectSelected = state.productFilterMode === 'CUSTOM' && isPinnedDirectly;
-        const hasAffinity = setHas(affinityProducts, item.key);
-        const displaySelected = isProductCheckedForDropdown(item.key, affinityProducts, effectiveProducts);
-        const isContextSelected = displaySelected && !isDirectSelected && hasAffinity;
-        return `
-        <div class="multiRow ${displaySelected ? 'active' : ''} ${isContextSelected ? 'contextSelected' : ''} ${hasAffinity ? 'affinity' : ''}" onclick="toggleProduct('${escapeJs(item.key)}', event)">
-          <div class="labelSide">
-            <input type="checkbox" tabindex="-1" onclick="event.preventDefault()" ${displaySelected ? 'checked' : ''}>
-            <span title="${escapeHtml(productLabelFromKey(item.key))}">${escapeHtml(productLabelFromKey(item.key))}</span>
-          </div>
-        </div>`;
-      };
-
-      const parts = [];
-      parts.push(selectedCollapseHeader('products', state.collapseSelectedProducts, checkedRows.length, 'Selected'));
-      if (!state.collapseSelectedProducts) parts.push(...checkedRows.map(rowHtml));
-      parts.push(...uncheckedRows.map(rowHtml));
-
-      list.innerHTML = parts.join('') || '<div class="emptyFilterRow">No products match that view.</div>';
-      updateDropdownLabels();
-    }
 
     function buildCustomerControls() {
       const customers = new Map();
@@ -2431,24 +1938,6 @@
       customerLabelById = new Map(customerOptions.map(item => [item.idValue, item.label]));
     }
 
-    function getVisibleCustomerOptions() {
-      const query = String(state.customerSearch || '').trim().toLowerCase();
-      const selected = new Set(getSelectedCustomerIds());
-      const affinityCustomers = getCustomerAffinitySet();
-      const effectiveCustomers = getAvailableCustomerSetForDropdown();
-      const checkedCustomers = new Set(customerOptions
-        .filter(item => isCustomerCheckedForDropdown(item.idValue, affinityCustomers, effectiveCustomers))
-        .map(item => item.idValue));
-      return customerOptions
-        .filter(item => !query || item.searchText.includes(query))
-        .sort((a, b) => {
-          const checkedDiff = (checkedCustomers.has(b.idValue) ? 1 : 0) - (checkedCustomers.has(a.idValue) ? 1 : 0);
-          if (checkedDiff) return checkedDiff;
-          const priorityDiff = compareOptionPriority(a.idValue, b.idValue, selected, affinityCustomers);
-          if (priorityDiff) return priorityDiff;
-          return a.label.localeCompare(b.label);
-        });
-    }
 
     function getDisplayedCustomerOptions() {
       const affinityCustomers = getCustomerAffinitySet();
@@ -2457,50 +1946,6 @@
       return rows.filter(item => !isCustomerCheckedForDropdown(item.idValue, affinityCustomers));
     }
 
-    function renderCustomerList() {
-      const list = document.getElementById('customerList');
-      if (!list) return;
-      const selected = new Set(getSelectedCustomerIds());
-      const allMatching = getVisibleCustomerOptions();
-      const affinityCustomers = getCustomerAffinitySet();
-      const effectiveCustomers = getAvailableCustomerSetForDropdown();
-      const checkedRows = allMatching.filter(item => isCustomerCheckedForDropdown(item.idValue, affinityCustomers, effectiveCustomers));
-      const uncheckedRows = allMatching.filter(item => !isCustomerCheckedForDropdown(item.idValue, affinityCustomers, effectiveCustomers));
-      const shownCount = state.collapseSelectedCustomers ? uncheckedRows.length : allMatching.length;
-      const countEl = document.getElementById('customerVisibleCount');
-      if (countEl) countEl.textContent = dropdownCountText(checkedRows.length, allMatching.length, shownCount);
-      setCollapseButton('customerCollapseBtn', state.collapseSelectedCustomers);
-      updateCustomerActiveOnlyButton();
-
-      if (!allMatching.length) {
-        list.innerHTML = '<div class="emptyFilterRow">No customers match that view.</div>';
-        updateDropdownLabels();
-        return;
-      }
-
-      const rowHtml = item => {
-        const isPinnedDirectly = selected.has(item.idValue);
-        const isDirectSelected = state.customerFilterMode === 'CUSTOM' && isPinnedDirectly;
-        const hasAffinity = setHas(affinityCustomers, item.idValue);
-        const displaySelected = isCustomerCheckedForDropdown(item.idValue, affinityCustomers, effectiveCustomers);
-        const isContextSelected = displaySelected && !isDirectSelected && hasAffinity;
-        return `
-        <div class="multiRow ${displaySelected ? 'active' : ''} ${isContextSelected ? 'contextSelected' : ''} ${hasAffinity ? 'affinity' : ''}" onclick="toggleCustomer('${escapeJs(item.idValue)}', event)">
-          <div class="labelSide">
-            <input type="checkbox" tabindex="-1" onclick="event.preventDefault()" ${displaySelected ? 'checked' : ''}>
-            <span title="${escapeHtml(item.label + (item.active === false ? ' - Inactive' : ''))}">${escapeHtml(item.label)}${item.active === false ? ' <span class="inactiveBadge">Inactive</span>' : ''}</span>
-          </div>
-        </div>`;
-      };
-
-      const parts = [];
-      parts.push(selectedCollapseHeader('customers', state.collapseSelectedCustomers, checkedRows.length, 'Selected'));
-      if (!state.collapseSelectedCustomers) parts.push(...checkedRows.map(rowHtml));
-      parts.push(...uncheckedRows.map(rowHtml));
-
-      list.innerHTML = parts.join('') || '<div class="emptyFilterRow">No customers match that view.</div>';
-      updateDropdownLabels();
-    }
 
     function syncSelects() {
       if (isDropdownOpen('productDropdownPanel')) renderProductList();
@@ -2670,17 +2115,6 @@
       return setsEqual(state.selectedDepartments || new Set(), new Set(departments || []));
     }
 
-    function isQuickDepartmentState(mode) {
-      // Top-right Main/All buttons are quick filters, not stale mode labels.
-      // They should be highlighted only when the whole linked dropdown state
-      // is actually in that clean preset: no empty child filter, no product or
-      // customer restriction, and the selected departments exactly match the preset.
-      if (isLinkedDropdownZeroState()) return false;
-      if (hasLinkedDropdownRestriction()) return false;
-      if (mode === 'MAIN') return selectedDepartmentsEqual(getMainDepartments());
-      if (mode === 'ALL') return selectedDepartmentsEqual(getAllDepartments());
-      return false;
-    }
 
     function updateButtonStates() {
       setActive('btnMain', isQuickDepartmentState('MAIN'));
@@ -2763,58 +2197,10 @@
       return false;
     }
 
-    function isProductCheckedForDropdown(key, affinityProducts, effectiveProducts) {
-      const selected = state.selectedProductKeys || new Set();
-      const excluded = state.excludedProductKeys || new Set();
-      if (state.productFilterMode === 'CUSTOM') return selected.has(key);
-      const effective = effectiveProducts || getAvailableProductSetForDropdown();
-      if (shouldTreatEmptyEffectiveSetAsNone('products', effective)) return false;
-      if (effective && effective.size && !effective.has(key)) return false;
-      return !excluded.has(key);
-    }
 
-    function isCustomerCheckedForDropdown(id, affinityCustomers, effectiveCustomers) {
-      const selected = state.selectedCustomerIds || new Set();
-      const excluded = state.excludedCustomerIds || new Set();
-      if (state.customerFilterMode === 'CUSTOM') return selected.has(id);
-      const effective = effectiveCustomers || getAvailableCustomerSetForDropdown();
-      if (shouldTreatEmptyEffectiveSetAsNone('customers', effective)) return false;
-      if (effective && effective.size && !effective.has(id)) return false;
-      return !excluded.has(id);
-    }
 
-    function hasActiveChildFilterForDepartments() {
-      // Department checkmarks should represent the effective dashboard slice,
-      // not only the raw department preset. If Products or Customers are narrowed,
-      // Departments must narrow visually to the departments that still have matching rows.
-      return hasProductDropdownRestriction() || hasCustomerDropdownRestriction();
-    }
 
-    function getDisplaySelectedDepartmentNames() {
-      const selected = state.selectedDepartments || new Set();
-      const effective = getAvailableDepartmentSetForDropdown();
 
-      if (hasActiveChildFilterForDepartments()) {
-        if (!effective || !effective.size) return [];
-        return [...selected].filter(department => effective.has(department)).sort();
-      }
-
-      return [...selected].sort();
-    }
-
-    function isDepartmentCheckedForDropdown(department, effectiveDepartments) {
-      const selected = state.selectedDepartments || new Set();
-      const effective = effectiveDepartments || getAvailableDepartmentSetForDropdown();
-      if (shouldTreatEmptyEffectiveSetAsNone('departments', effective)) return false;
-
-      if (hasActiveChildFilterForDepartments()) {
-        if (!effective || !effective.size) return false;
-        return selected.has(department) && effective.has(department);
-      }
-
-      if (state.deptMode === 'ALL' && effective && effective.size && !effective.has(department)) return false;
-      return selected.has(department);
-    }
 
     function isDefaultYearSelection() {
       const defaultYears = new Set(getDefaultYears());
@@ -2940,35 +2326,6 @@
       }
     }
 
-    function getVisibleDepartmentRows() {
-      // Keep the Department dropdown inventory independent from the active dashboard filters.
-      // Filters should change the visuals, not hide choices from the control itself.
-      // Selected departments stay first; departments related to the current filter context
-      // come next, so managers can see what the active filter is touching.
-      const affinityDepartments = getDepartmentAffinitySet();
-      const rows = groupBy(facts, row => row.productsDepartment, row => ({
-        department: row.productsDepartment,
-        isMainDepartment: row.isMainDepartment,
-        revenue: 0
-      }), (acc, row) => {
-        if (row.year === (payload.config.currentYear || 2026)) acc.revenue += row.netRevenue;
-      });
-
-      const deptQuery = String(state.departmentSearch || '').trim().toLowerCase();
-      const effectiveDepartments = getAvailableDepartmentSetForDropdown();
-      const checkedDepartments = new Set(rows
-        .filter(row => isDepartmentCheckedForDropdown(row.department, effectiveDepartments))
-        .map(row => row.department));
-      return rows
-        .filter(row => !deptQuery || String(row.department).toLowerCase().includes(deptQuery))
-        .sort((a, b) => {
-          const checkedDiff = (checkedDepartments.has(b.department) ? 1 : 0) - (checkedDepartments.has(a.department) ? 1 : 0);
-          if (checkedDiff) return checkedDiff;
-          const priorityDiff = compareOptionPriority(a.department, b.department, state.selectedDepartments, affinityDepartments);
-          if (priorityDiff) return priorityDiff;
-          return b.revenue - a.revenue;
-        });
-    }
 
     function getDisplayedDepartmentRows() {
       const rows = getVisibleDepartmentRows();
@@ -2977,40 +2334,6 @@
       return rows.filter(row => !isDepartmentCheckedForDropdown(row.department, effectiveDepartments));
     }
 
-    function renderDepartmentList() {
-      const allRows = getVisibleDepartmentRows();
-      const effectiveDepartments = getAvailableDepartmentSetForDropdown();
-      const checkedRows = allRows.filter(row => isDepartmentCheckedForDropdown(row.department, effectiveDepartments));
-      const uncheckedRows = allRows.filter(row => !isDepartmentCheckedForDropdown(row.department, effectiveDepartments));
-      const shownCount = state.collapseSelectedDepartments ? uncheckedRows.length : allRows.length;
-      const countEl = document.getElementById('departmentVisibleCount');
-      if (countEl) countEl.textContent = dropdownCountText(checkedRows.length, allRows.length, shownCount);
-      setCollapseButton('departmentCollapseBtn', state.collapseSelectedDepartments);
-
-      if (!allRows.length) {
-        document.getElementById('departmentList').innerHTML = '<div class="emptyFilterRow">No departments match that view.</div>';
-        return;
-      }
-
-      const rowHtml = row => {
-        const displaySelected = isDepartmentCheckedForDropdown(row.department, effectiveDepartments);
-        return `
-        <div class="deptRow ${displaySelected ? 'active' : ''}" onclick="event.stopPropagation(); toggleDepartment('${escapeJs(row.department)}')">
-          <div class="labelSide">
-            <input type="checkbox" tabindex="-1" onclick="event.preventDefault()" ${displaySelected ? 'checked' : ''}>
-            <span title="${escapeHtml(row.department)}">${escapeHtml(row.department)}</span>
-          </div>
-          <span class="rowTotal">${formatCompact(row.revenue)}</span>
-        </div>`;
-      };
-
-      const parts = [];
-      parts.push(selectedCollapseHeader('departments', state.collapseSelectedDepartments, checkedRows.length, 'Selected'));
-      if (!state.collapseSelectedDepartments) parts.push(...checkedRows.map(rowHtml));
-      parts.push(...uncheckedRows.map(rowHtml));
-
-      document.getElementById('departmentList').innerHTML = parts.join('') || '<div class="emptyFilterRow">No departments match that view.</div>';
-    }
 
     function renderYearList() {
       const affinityYears = getYearAffinitySet();
@@ -3076,137 +2399,6 @@
       return row ? row.customerName : customerId;
     }
 
-    function renderChips() {
-      const chips = [];
-
-      const displayDeptNamesForMode = getDisplaySelectedDepartmentNames();
-      const selectedDeptCountForMode = displayDeptNamesForMode.length;
-      const allDeptCountForMode = getAllDepartments().length;
-      const childFilterNarrowedDepartments = hasActiveChildFilterForDepartments();
-      const deptModeLabel = childFilterNarrowedDepartments
-        ? selectedDeptCountForMode === 0
-          ? 'No matching departments'
-          : selectedDeptCountForMode === 1
-            ? displayDeptNamesForMode[0]
-            : selectedDeptCountForMode + ' matching departments'
-        : state.deptMode === 'MAIN'
-          ? 'Main Departments'
-          : selectedDeptCountForMode === 0
-            ? 'No departments'
-            : selectedDeptCountForMode >= allDeptCountForMode
-              ? 'All Departments'
-              : selectedDeptCountForMode + ' departments selected';
-      const deptModeTooltip = childFilterNarrowedDepartments
-        ? selectedDeptCountForMode === 0
-          ? 'No departments match the active product/customer filters'
-          : 'Matching departments:\n' + listForTooltip(displayDeptNamesForMode, 'Matching departments')
-        : state.deptMode === 'MAIN'
-          ? 'Main departments:\n' + listForTooltip((payload.config && payload.config.mainDepartments) || [], 'Main departments')
-          : selectedDeptCountForMode === 0
-            ? 'No departments selected'
-            : selectedDeptCountForMode >= allDeptCountForMode
-              ? 'All departments'
-              : 'Selected departments:\n' + listForTooltip(displayDeptNamesForMode, 'Selected departments');
-      chips.push({
-        label: deptModeLabel,
-        tooltip: deptModeTooltip,
-        clear: null
-      });
-
-      const selectedMonths = getSelectedMonths();
-      const selectedMonthLabels = selectedMonths.map(month => monthLabels[month - 1]);
-      const monthChipLabel = selectedMonths.length
-        ? 'Months: ' + selectedMonthLabels.join(', ')
-        : 'YTD';
-      chips.push({
-        label: monthChipLabel,
-        tooltip: selectedMonths.length ? listForTooltip(selectedMonthLabels, 'Selected months') : 'Year to date',
-        clear: selectedMonths.length ? 'month' : null
-      });
-
-      const allDeptCount = getAllDepartments().length;
-      const selectedDeptNames = getDisplaySelectedDepartmentNames();
-      const mainDeptSet = new Set(getMainDepartments());
-      const allDeptSet = new Set(getAllDepartments());
-      const isDefaultMainDeptChip = !hasActiveChildFilterForDepartments() && state.deptMode === 'MAIN' && setsEqual(state.selectedDepartments, mainDeptSet);
-      const isAllDeptChip = !hasActiveChildFilterForDepartments() && setsEqual(state.selectedDepartments, allDeptSet);
-
-      if (selectedDeptNames.length && selectedDeptNames.length < allDeptCount && !isDefaultMainDeptChip) {
-        const deptLabel = selectedDeptNames.length <= 4
-          ? selectedDeptNames.join(', ')
-          : selectedDeptNames.slice(0, 4).join(', ') + ' +' + (selectedDeptNames.length - 4);
-        chips.push({
-          label: 'Departments: ' + deptLabel,
-          tooltip: 'Departments:\n' + listForTooltip(selectedDeptNames, 'No departments selected'),
-          clear: isAllDeptChip ? null : 'departments'
-        });
-      }
-
-      const selectedProductKeys = getSelectedProductKeys();
-      const excludedProductKeys = getExcludedProductKeys();
-      if (state.productFilterMode === 'CUSTOM') {
-        const productNames = selectedProductKeys.map(productLabelFromKey).sort();
-        const label = selectedProductKeys.length === 0
-          ? 'Products: none'
-          : selectedProductKeys.length === 1
-            ? productNames[0]
-            : 'Products: ' + selectedProductKeys.length + ' selected';
-        chips.push({
-          label,
-          tooltip: selectedProductKeys.length ? 'Products:\n' + listForTooltip(productNames, 'Selected products') : 'No products selected',
-          clear: 'product'
-        });
-      } else if (excludedProductKeys.length) {
-        const productNames = excludedProductKeys.map(productLabelFromKey).sort();
-        chips.push({
-          label: 'Products: all except ' + excludedProductKeys.length,
-          tooltip: 'Excluded products:\n' + listForTooltip(productNames, 'Excluded products'),
-          clear: 'product'
-        });
-      }
-
-      const selectedCustomerIds = getSelectedCustomerIds();
-      const excludedCustomerIds = getExcludedCustomerIds();
-      if (state.customerFilterMode === 'CUSTOM') {
-        const customerNames = selectedCustomerIds.map(getCustomerNameById).sort();
-        const label = selectedCustomerIds.length === 0
-          ? 'Customers: none'
-          : selectedCustomerIds.length === 1
-            ? customerNames[0]
-            : 'Customers: ' + selectedCustomerIds.length + ' selected';
-        chips.push({
-          label,
-          tooltip: selectedCustomerIds.length ? 'Customers:\n' + listForTooltip(customerNames, 'Selected customers') : 'No customers selected',
-          clear: 'customer'
-        });
-      } else if (excludedCustomerIds.length) {
-        const customerNames = excludedCustomerIds.map(getCustomerNameById).sort();
-        chips.push({
-          label: 'Customers: all except ' + excludedCustomerIds.length,
-          tooltip: 'Excluded customers:\n' + listForTooltip(customerNames, 'Excluded customers'),
-          clear: 'customer'
-        });
-      }
-
-      const years = [...state.years].sort((a,b) => b-a);
-      const defaultYearSet = new Set(getDefaultYears());
-      const canClearYears = !setsEqual(state.years, defaultYearSet);
-      chips.push({
-        label: years.join(', '),
-        tooltip: 'Years:\n' + listForTooltip(years, 'No years selected'),
-        clear: canClearYears ? 'years' : null
-      });
-
-      const chipHtml = chips.map(chip => `
-          <span class="chip" title="${escapeHtml(chip.tooltip || chip.label)}">${escapeHtml(chip.label)} ${chip.clear ? `<button title="Clear this filter" onclick="event.stopPropagation(); clearFilter('${chip.clear}')">×</button>` : ''}</span>
-        `).join('');
-      ['chipRow', 'legacyChipRow'].forEach(id => {
-        const chipRow = document.getElementById(id);
-        if (chipRow) chipRow.innerHTML = chipHtml;
-      });
-
-      updateDropdownLabels();
-    }
 
     function renderKpis() {
       const metrics = summarize(getFilteredFacts());
@@ -4484,29 +3676,7 @@
   
 
 
-    function renderOverviewTwoIfActive() {
-      if (!payload || !facts || !facts.length) return;
-      const isActive = state.activeTab === 'two' || document.getElementById('overviewTwo')?.classList.contains('active');
-      if (!isActive) return;
-      try {
-        renderOverviewTwoKpis();
-        renderOverviewTwoCharts();
-        renderOverviewTwoDriverTable();
-        renderOverviewTwoFooter();
-      } catch (err) {
-        showError('Overview 2.0 render failed: ' + (err.message || err));
-      }
-    }
 
-    function renderOverviewTwoKpis() {
-      const metrics = summarize(getFilteredFacts());
-      const { priorYear } = getCurrentPriorYears();
-      setOverviewTwoKpi('o2KRevenue', metrics.revenue, metrics.priorRevenue, formatCurrency, priorYear);
-      setOverviewTwoKpi('o2KCustomers', metrics.customers, metrics.priorCustomers, formatNumber, priorYear);
-      setOverviewTwoKpi('o2KUnits', metrics.units, metrics.priorUnits, formatNumber, priorYear);
-      setOverviewTwoKpi('o2KAvg', metrics.avgPrice, metrics.priorAvgPrice, formatCurrency, priorYear);
-      setOverviewTwoKpi('o2KRpac', metrics.rpac, metrics.priorRpac, formatCurrency, priorYear);
-    }
 
     function setOverviewTwoKpi(baseId, currentValue, priorValue, formatter, priorYear) {
       const current = Number(currentValue || 0);
@@ -4519,118 +3689,9 @@
       setTone(baseId + 'Delta', gap);
     }
 
-    function renderOverviewTwoCharts() {
-      const rows = getFilteredFacts({month:true});
-      const months = getChartMonths(rows);
-      const years = getDisplayYears();
 
-      drawMetricChart('o2Customers', 'bar', rows, months, years, 'customers', formatNumber);
-      drawMetricChart('o2Units', 'bar', rows, months, years, 'units', formatNumber);
-      drawMetricChart('o2Rpac', 'bar', rows, months, years, 'rpac', formatCurrency);
-      drawMetricChart('o2Avg', 'bar', rows, months, years, 'avgPrice', formatCurrency);
-      drawRevenueTrendChart('o2RevenueTrend', rows, years);
 
-      updateChartFocusStyles();
-    }
 
-    function renderOverviewTwoDriverTable() {
-      ['customers','products','buckets','departments'].forEach(tab => setActive('o2Tab' + titleCase(tab), state.overviewTwoTab === tab));
-      ['losses','gains','top','units'].forEach(sort => setActive('o2Sort' + titleCase(sort), state.overviewTwoSort === sort));
-
-      const rows = getOverviewTwoDriverRows();
-      const pinned = state.overviewTwoPinnedKey;
-      rows.sort((a, b) => {
-        if (pinned && a.key === pinned && b.key !== pinned) return -1;
-        if (pinned && b.key === pinned && a.key !== pinned) return 1;
-        if (state.overviewTwoSort === 'gains') return b.gap - a.gap;
-        if (state.overviewTwoSort === 'top') return b.current - a.current;
-        if (state.overviewTwoSort === 'units') return Math.abs(b.unitGap) - Math.abs(a.unitGap);
-        return a.gap - b.gap;
-      });
-
-      renderOverviewTwoFocus(rows);
-
-      const table = document.getElementById('o2DriverTable');
-      if (!table) return;
-      const nameHeader = { customers: 'Customer', products: 'Product', buckets: 'Category', departments: 'Department' }[state.overviewTwoTab] || 'Name';
-      const shown = rows.slice(0, 60);
-
-      table.innerHTML = '<thead><tr>'
-        + '<th>' + nameHeader + '</th>'
-        + '<th class="num">Current</th>'
-        + '<th class="num">Prior</th>'
-        + '<th class="num">Gap $</th>'
-        + '<th class="num">Gap %</th>'
-        + '<th class="num">Units</th>'
-        + '<th class="num">Unit Gap</th>'
-        + '<th class="o2ActionCol">Action</th>'
-        + '</tr></thead><tbody>'
-        + shown.map(row => {
-          const cls = row.gap < 0 ? 'o2Negative' : row.gap > 0 ? 'o2Positive' : 'o2Neutral';
-          return '<tr class="' + (pinned === row.key ? 'pinned' : '') + '" onclick="pinOverviewTwoRow(\'' + escapeJs(row.key) + '\')">'
-            + '<td class="o2NameCell" title="' + escapeHtml(row.name) + '">' + escapeHtml(row.name) + '</td>'
-            + '<td class="num">' + formatCompact(row.current) + '</td>'
-            + '<td class="num">' + formatCompact(row.prior) + '</td>'
-            + '<td class="num ' + cls + '">' + formatCompact(row.gap) + '</td>'
-            + '<td class="num ' + cls + '">' + formatPercent(row.gapPct) + '</td>'
-            + '<td class="num">' + formatNumber(row.units) + '</td>'
-            + '<td class="num">' + formatNumber(row.unitGap) + '</td>'
-            + '<td class="o2ActionCol"><button class="o2FocusBtn" type="button" onclick="focusOverviewTwoRow(event, \'" + escapeJs(state.overviewTwoTab) + "\', \'" + escapeJs(row.key) + "\')">Focus</button></td>'
-            + '</tr>';
-        }).join('') + '</tbody>';
-    }
-
-    function getOverviewTwoDriverRows() {
-      const rows = getFilteredFacts();
-      const { currentYear, priorYear } = getCurrentPriorYears();
-      const tab = state.overviewTwoTab || 'customers';
-
-      let keyFn = row => row.customerId;
-      let nameFn = row => row.customerName + (row.customerActive === false ? ' (Inactive)' : '');
-      if (tab === 'products') {
-        keyFn = row => productKey(row);
-        nameFn = row => row.productsDescription;
-      } else if (tab === 'buckets') {
-        keyFn = row => row.productsGroup || '(Blank bucket)';
-        nameFn = row => row.productsGroup || '(Blank bucket)';
-      } else if (tab === 'departments') {
-        keyFn = row => row.productsDepartment || '(Blank department)';
-        nameFn = row => row.productsDepartment || '(Blank department)';
-      }
-
-      return groupBy(rows, keyFn, row => ({
-        key: keyFn(row), name: nameFn(row), current: 0, prior: 0, units: 0, priorUnits: 0
-      }), (acc, row) => {
-        if (row.year === currentYear) { acc.current += row.netRevenue; acc.units += row.units; }
-        if (row.year === priorYear) { acc.prior += row.netRevenue; acc.priorUnits += row.units; }
-      }).map(row => ({
-        ...row,
-        gap: row.current - row.prior,
-        gapPct: row.prior ? (row.current - row.prior) / Math.abs(row.prior) : null,
-        unitGap: row.units - row.priorUnits
-      })).filter(row => Math.abs(row.current) + Math.abs(row.prior) + Math.abs(row.units) > 0);
-    }
-
-    function renderOverviewTwoFocus(rows) {
-      const panel = document.getElementById('o2DriverFocus');
-      if (!panel) return;
-      const row = rows.find(item => item.key === state.overviewTwoPinnedKey);
-      if (!row) {
-        panel.innerHTML = '<div class="o2FocusEmpty">Click a row to pin it. Use <b>Focus</b> to drill the dashboard into that customer, product, category, or department.</div>';
-        return;
-      }
-      const label = { customers: 'Customer', products: 'Product', buckets: 'Category', departments: 'Department' }[state.overviewTwoTab] || 'Driver';
-      const cls = row.gap < 0 ? 'o2Negative' : row.gap > 0 ? 'o2Positive' : 'o2Neutral';
-      panel.innerHTML = '<div class="o2FocusCard">'
-        + '<div class="o2FocusLabel">' + escapeHtml(label) + '</div>'
-        + '<div class="o2FocusName" title="' + escapeHtml(row.name) + '">' + escapeHtml(row.name) + '</div>'
-        + '<div class="o2FocusStats">'
-        + '<div><span>Current</span><b>' + formatCompact(row.current) + '</b></div>'
-        + '<div><span>Prior</span><b>' + formatCompact(row.prior) + '</b></div>'
-        + '<div><span>Gap</span><b class="' + cls + '">' + formatCompact(row.gap) + '</b></div>'
-        + '<div><span>Units</span><b>' + formatNumber(row.units) + '</b></div>'
-        + '</div></div>';
-    }
 
     function setOverviewTwoTab(tab) {
       state.overviewTwoTab = tab;
@@ -4711,188 +3772,21 @@
       return rows.filter(row => row.department !== null && row.department !== undefined && String(row.department).trim() !== '');
     }
 
-    function isDepartmentCheckedForDropdown(department) {
-      return !!(state.selectedDepartments && state.selectedDepartments.has(department));
-    }
 
-    function isProductCheckedForDropdown(key) {
-      if (state.productFilterMode === 'CUSTOM') return !!(state.selectedProductKeys && state.selectedProductKeys.has(key));
-      return !(state.excludedProductKeys && state.excludedProductKeys.has(key));
-    }
 
-    function isCustomerCheckedForDropdown(id) {
-      if (state.customerFilterMode === 'CUSTOM') return !!(state.selectedCustomerIds && state.selectedCustomerIds.has(id));
-      return !(state.excludedCustomerIds && state.excludedCustomerIds.has(id));
-    }
 
-    function getSelectedProductKeySetForDisplay() {
-      if (state.productFilterMode === 'CUSTOM') return new Set(state.selectedProductKeys || []);
-      const selected = fullProductKeySet();
-      (state.excludedProductKeys || new Set()).forEach(key => selected.delete(key));
-      return selected;
-    }
 
-    function getSelectedCustomerIdSetForDisplay() {
-      if (state.customerFilterMode === 'CUSTOM') return new Set(state.selectedCustomerIds || []);
-      const selected = fullCustomerIdSet();
-      (state.excludedCustomerIds || new Set()).forEach(id => selected.delete(id));
-      return selected;
-    }
 
-    function getDisplaySelectedDepartmentNames() {
-      return [...(state.selectedDepartments || new Set())].sort();
-    }
 
     function hasActiveChildFilterForDepartments() {
       return false;
     }
 
-    function getVisibleDepartmentRows() {
-      const query = String(state.departmentSearch || '').trim().toLowerCase();
-      const rows = getAllDepartmentRowsLiteral();
-      return rows
-        .filter(row => !query || String(row.department || '').toLowerCase().includes(query))
-        .sort((a, b) => {
-          const checkedDiff = (isDepartmentCheckedForDropdown(b.department) ? 1 : 0) - (isDepartmentCheckedForDropdown(a.department) ? 1 : 0);
-          if (checkedDiff) return checkedDiff;
-          return b.revenue - a.revenue;
-        });
-    }
 
-    function renderDepartmentList() {
-      const list = document.getElementById('departmentList');
-      if (!list) return;
-      const allRows = getAllDepartmentRowsLiteral();
-      const visibleRows = getVisibleDepartmentRows();
-      const checkedVisibleRows = visibleRows.filter(row => isDepartmentCheckedForDropdown(row.department));
-      const uncheckedVisibleRows = visibleRows.filter(row => !isDepartmentCheckedForDropdown(row.department));
-      const selectedTotal = allRows.filter(row => isDepartmentCheckedForDropdown(row.department)).length;
-      const shownCount = state.collapseSelectedDepartments ? uncheckedVisibleRows.length : visibleRows.length;
-      const countEl = document.getElementById('departmentVisibleCount');
-      if (countEl) countEl.textContent = dropdownCountText(selectedTotal, allRows.length, shownCount);
-      setCollapseButton('departmentCollapseBtn', state.collapseSelectedDepartments);
 
-      if (!visibleRows.length) {
-        list.innerHTML = '<div class="emptyFilterRow">No departments match that search.</div>';
-        updateDropdownLabels();
-        return;
-      }
 
-      const rowHtml = row => {
-        const checked = isDepartmentCheckedForDropdown(row.department);
-        return `
-        <div class="deptRow ${checked ? 'active' : ''}" onclick="event.stopPropagation(); toggleDepartment('${escapeJs(row.department)}')">
-          <div class="labelSide">
-            <input type="checkbox" tabindex="-1" onclick="event.preventDefault()" ${checked ? 'checked' : ''}>
-            <span title="${escapeHtml(row.department)}">${escapeHtml(row.department)}</span>
-          </div>
-          <span class="rowTotal">${formatCompact(row.revenue)}</span>
-        </div>`;
-      };
 
-      const parts = [];
-      parts.push(selectedCollapseHeader('departments', state.collapseSelectedDepartments, checkedVisibleRows.length, 'Selected'));
-      if (!state.collapseSelectedDepartments) parts.push(...checkedVisibleRows.map(rowHtml));
-      parts.push(...uncheckedVisibleRows.map(rowHtml));
-      list.innerHTML = parts.join('') || '<div class="emptyFilterRow">No departments match that search.</div>';
-      updateDropdownLabels();
-    }
 
-    function getVisibleProductOptions() {
-      const query = String(state.productSearch || '').trim().toLowerCase();
-      return productOptions
-        .filter(item => !query || item.searchText.includes(query))
-        .sort((a, b) => {
-          const checkedDiff = (isProductCheckedForDropdown(b.key) ? 1 : 0) - (isProductCheckedForDropdown(a.key) ? 1 : 0);
-          if (checkedDiff) return checkedDiff;
-          return a.label.localeCompare(b.label);
-        });
-    }
-
-    function renderProductList() {
-      const list = document.getElementById('productList');
-      if (!list) return;
-      const visibleRows = getVisibleProductOptions();
-      const checkedVisibleRows = visibleRows.filter(item => isProductCheckedForDropdown(item.key));
-      const uncheckedVisibleRows = visibleRows.filter(item => !isProductCheckedForDropdown(item.key));
-      const selectedTotal = productOptions.filter(item => isProductCheckedForDropdown(item.key)).length;
-      const shownCount = state.collapseSelectedProducts ? uncheckedVisibleRows.length : visibleRows.length;
-      const countEl = document.getElementById('productVisibleCount');
-      if (countEl) countEl.textContent = dropdownCountText(selectedTotal, productOptions.length, shownCount);
-      setCollapseButton('productCollapseBtn', state.collapseSelectedProducts);
-
-      if (!visibleRows.length) {
-        list.innerHTML = '<div class="emptyFilterRow">No products match that search.</div>';
-        updateDropdownLabels();
-        return;
-      }
-
-      const rowHtml = item => {
-        const checked = isProductCheckedForDropdown(item.key);
-        return `
-        <div class="multiRow ${checked ? 'active' : ''}" onclick="toggleProduct('${escapeJs(item.key)}', event)">
-          <div class="labelSide">
-            <input type="checkbox" tabindex="-1" onclick="event.preventDefault()" ${checked ? 'checked' : ''}>
-            <span title="${escapeHtml(productLabelFromKey(item.key))}">${escapeHtml(productLabelFromKey(item.key))}</span>
-          </div>
-        </div>`;
-      };
-
-      const parts = [];
-      parts.push(selectedCollapseHeader('products', state.collapseSelectedProducts, checkedVisibleRows.length, 'Selected'));
-      if (!state.collapseSelectedProducts) parts.push(...checkedVisibleRows.map(rowHtml));
-      parts.push(...uncheckedVisibleRows.map(rowHtml));
-      list.innerHTML = parts.join('') || '<div class="emptyFilterRow">No products match that search.</div>';
-      updateDropdownLabels();
-    }
-
-    function getVisibleCustomerOptions() {
-      const query = String(state.customerSearch || '').trim().toLowerCase();
-      return customerOptions
-        .filter(item => !query || item.searchText.includes(query))
-        .sort((a, b) => {
-          const checkedDiff = (isCustomerCheckedForDropdown(b.idValue) ? 1 : 0) - (isCustomerCheckedForDropdown(a.idValue) ? 1 : 0);
-          if (checkedDiff) return checkedDiff;
-          return a.label.localeCompare(b.label);
-        });
-    }
-
-    function renderCustomerList() {
-      const list = document.getElementById('customerList');
-      if (!list) return;
-      const visibleRows = getVisibleCustomerOptions();
-      const checkedVisibleRows = visibleRows.filter(item => isCustomerCheckedForDropdown(item.idValue));
-      const uncheckedVisibleRows = visibleRows.filter(item => !isCustomerCheckedForDropdown(item.idValue));
-      const selectedTotal = customerOptions.filter(item => isCustomerCheckedForDropdown(item.idValue)).length;
-      const shownCount = state.collapseSelectedCustomers ? uncheckedVisibleRows.length : visibleRows.length;
-      const countEl = document.getElementById('customerVisibleCount');
-      if (countEl) countEl.textContent = dropdownCountText(selectedTotal, customerOptions.length, shownCount);
-      setCollapseButton('customerCollapseBtn', state.collapseSelectedCustomers);
-
-      if (!visibleRows.length) {
-        list.innerHTML = '<div class="emptyFilterRow">No customers match that search.</div>';
-        updateDropdownLabels();
-        return;
-      }
-
-      const rowHtml = item => {
-        const checked = isCustomerCheckedForDropdown(item.idValue);
-        return `
-        <div class="multiRow ${checked ? 'active' : ''}" onclick="toggleCustomer('${escapeJs(item.idValue)}', event)">
-          <div class="labelSide">
-            <input type="checkbox" tabindex="-1" onclick="event.preventDefault()" ${checked ? 'checked' : ''}>
-            <span title="${escapeHtml(item.label + (item.active === false ? ' - Inactive' : ''))}">${escapeHtml(item.label)}${item.active === false ? ' <span class="inactiveBadge">Inactive</span>' : ''}</span>
-          </div>
-        </div>`;
-      };
-
-      const parts = [];
-      parts.push(selectedCollapseHeader('customers', state.collapseSelectedCustomers, checkedVisibleRows.length, 'Selected'));
-      if (!state.collapseSelectedCustomers) parts.push(...checkedVisibleRows.map(rowHtml));
-      parts.push(...uncheckedVisibleRows.map(rowHtml));
-      list.innerHTML = parts.join('') || '<div class="emptyFilterRow">No customers match that search.</div>';
-      updateDropdownLabels();
-    }
 
     function normalizeProductSelectionMode() {
       if (state.productFilterMode === 'CUSTOM' && productOptions.length && state.selectedProductKeys && state.selectedProductKeys.size >= productOptions.length) {
@@ -4954,26 +3848,6 @@
       renderAfterBulkDropdownSelection('departmentDropdownPanel');
     }
 
-    function toggleProduct(key, event) {
-      if (event) event.stopPropagation();
-      clearMoverTablePinnedSelections();
-      if (!key) return;
-      if (!state.selectedProductKeys) state.selectedProductKeys = new Set();
-      if (!state.excludedProductKeys) state.excludedProductKeys = new Set();
-
-      if (state.productFilterMode === 'CUSTOM') {
-        if (state.selectedProductKeys.has(key)) state.selectedProductKeys.delete(key);
-        else state.selectedProductKeys.add(key);
-      } else if (state.excludedProductKeys.has(key)) {
-        state.excludedProductKeys.delete(key);
-      } else {
-        state.excludedProductKeys.add(key);
-      }
-
-      state.lastSelectedProductKey = key;
-      normalizeProductSelectionMode();
-      renderAll();
-    }
 
     function selectAllProducts(event) {
       prepareDropdownAction(event);
@@ -5009,26 +3883,6 @@
       renderAfterBulkDropdownSelection('productDropdownPanel');
     }
 
-    function toggleCustomer(id, event) {
-      if (event) event.stopPropagation();
-      clearMoverTablePinnedSelections();
-      if (!id) return;
-      if (!state.selectedCustomerIds) state.selectedCustomerIds = new Set();
-      if (!state.excludedCustomerIds) state.excludedCustomerIds = new Set();
-
-      if (state.customerFilterMode === 'CUSTOM') {
-        if (state.selectedCustomerIds.has(id)) state.selectedCustomerIds.delete(id);
-        else state.selectedCustomerIds.add(id);
-      } else if (state.excludedCustomerIds.has(id)) {
-        state.excludedCustomerIds.delete(id);
-      } else {
-        state.excludedCustomerIds.add(id);
-      }
-
-      state.lastSelectedCustomerId = id;
-      normalizeCustomerSelectionMode();
-      renderAll();
-    }
 
     function selectAllCustomers(event) {
       prepareDropdownAction(event);
@@ -5115,33 +3969,6 @@
       renderAll();
     }
 
-    function updateDropdownLabels() {
-      const deptButton = document.getElementById('departmentDropdownButton');
-      const yearButton = document.getElementById('yearDropdownButton');
-      const productButton = document.getElementById('productDropdownButton');
-      const customerButton = document.getElementById('customerDropdownButton');
-      if (deptButton) deptButton.textContent = 'Departments';
-      if (productButton) productButton.textContent = 'Products';
-      if (customerButton) customerButton.textContent = 'Customers';
-      if (yearButton) yearButton.textContent = 'Years';
-
-      if (deptButton) {
-        const selected = getDisplaySelectedDepartmentNames();
-        deptButton.title = selected.length ? 'Departments:\n' + listForTooltip(selected, 'Selected departments') : 'No departments selected';
-      }
-      if (productButton) {
-        const selected = [...getSelectedProductKeySetForDisplay()].map(productLabelFromKey).sort();
-        productButton.title = selected.length ? 'Products:\n' + listForTooltip(selected, 'Selected products') : 'No products selected';
-      }
-      if (customerButton) {
-        const selected = [...getSelectedCustomerIdSetForDisplay()].map(getCustomerNameById).sort();
-        customerButton.title = selected.length ? 'Customers:\n' + listForTooltip(selected, 'Selected customers') : 'No customers selected';
-      }
-      if (yearButton) {
-        const years = [...(state.years || new Set())].sort((a,b) => b-a);
-        yearButton.title = 'Years:\n' + listForTooltip(years, 'Selected years');
-      }
-    }
 
     function renderChips() {
       const chips = [];
@@ -5279,178 +4106,12 @@
       return getEffectiveCustomerSet();
     }
 
-    function getVisibleDepartmentRows() {
-      const query = String(state.departmentSearch || '').trim().toLowerCase();
-      return getAllDepartmentRowsLiteral()
-        .filter(row => !query || String(row.department || '').toLowerCase().includes(query))
-        .sort((a, b) => {
-          const checkedDiff = (isDepartmentCheckedForDropdown(b.department) ? 1 : 0) - (isDepartmentCheckedForDropdown(a.department) ? 1 : 0);
-          if (checkedDiff) return checkedDiff;
-          return b.revenue - a.revenue;
-        });
-    }
 
-    function renderDepartmentList() {
-      const list = document.getElementById('departmentList');
-      if (!list) return;
-      const allRows = getAllDepartmentRowsLiteral();
-      const visibleRows = getVisibleDepartmentRows();
-      const checkedVisibleRows = visibleRows.filter(row => isDepartmentCheckedForDropdown(row.department));
-      const uncheckedVisibleRows = visibleRows.filter(row => !isDepartmentCheckedForDropdown(row.department));
-      const effectiveDepartments = getEffectiveDepartmentSet();
-      const shownCount = state.collapseSelectedDepartments ? uncheckedVisibleRows.length : visibleRows.length;
-      const countEl = document.getElementById('departmentVisibleCount');
-      if (countEl) countEl.textContent = dropdownCountText(effectiveDepartments.size, allRows.length, shownCount);
-      setCollapseButton('departmentCollapseBtn', state.collapseSelectedDepartments);
 
-      if (!visibleRows.length) {
-        list.innerHTML = '<div class="emptyFilterRow">No departments match that search.</div>';
-        updateDropdownLabels();
-        return;
-      }
 
-      const rowHtml = row => {
-        const checked = isDepartmentCheckedForDropdown(row.department);
-        return `
-        <div class="deptRow ${checked ? 'active' : ''}" onclick="event.stopPropagation(); toggleDepartment('${escapeJs(row.department)}')">
-          <div class="labelSide">
-            <input type="checkbox" tabindex="-1" onclick="event.preventDefault()" ${checked ? 'checked' : ''}>
-            <span title="${escapeHtml(row.department)}">${escapeHtml(row.department)}</span>
-          </div>
-          <span class="rowTotal">${formatCompact(row.revenue)}</span>
-        </div>`;
-      };
 
-      const parts = [];
-      parts.push(selectedCollapseHeader('departments', state.collapseSelectedDepartments, checkedVisibleRows.length, 'Selected'));
-      if (!state.collapseSelectedDepartments) parts.push(...checkedVisibleRows.map(rowHtml));
-      parts.push(...uncheckedVisibleRows.map(rowHtml));
-      list.innerHTML = parts.join('') || '<div class="emptyFilterRow">No departments match that search.</div>';
-      updateDropdownLabels();
-    }
 
-    function getVisibleProductOptions() {
-      const query = String(state.productSearch || '').trim().toLowerCase();
-      return productOptions
-        .filter(item => !query || item.searchText.includes(query))
-        .sort((a, b) => {
-          const checkedDiff = (isProductCheckedForDropdown(b.key) ? 1 : 0) - (isProductCheckedForDropdown(a.key) ? 1 : 0);
-          if (checkedDiff) return checkedDiff;
-          return a.label.localeCompare(b.label);
-        });
-    }
 
-    function renderProductList() {
-      const list = document.getElementById('productList');
-      if (!list) return;
-      const visibleRows = getVisibleProductOptions();
-      const checkedVisibleRows = visibleRows.filter(item => isProductCheckedForDropdown(item.key));
-      const uncheckedVisibleRows = visibleRows.filter(item => !isProductCheckedForDropdown(item.key));
-      const effectiveProducts = getEffectiveProductSet();
-      const shownCount = state.collapseSelectedProducts ? uncheckedVisibleRows.length : visibleRows.length;
-      const countEl = document.getElementById('productVisibleCount');
-      if (countEl) countEl.textContent = dropdownCountText(effectiveProducts.size, productOptions.length, shownCount);
-      setCollapseButton('productCollapseBtn', state.collapseSelectedProducts);
-
-      if (!visibleRows.length) {
-        list.innerHTML = '<div class="emptyFilterRow">No products match that search.</div>';
-        updateDropdownLabels();
-        return;
-      }
-
-      const rowHtml = item => {
-        const checked = isProductCheckedForDropdown(item.key);
-        return `
-        <div class="multiRow ${checked ? 'active' : ''}" onclick="toggleProduct('${escapeJs(item.key)}', event)">
-          <div class="labelSide">
-            <input type="checkbox" tabindex="-1" onclick="event.preventDefault()" ${checked ? 'checked' : ''}>
-            <span title="${escapeHtml(productLabelFromKey(item.key))}">${escapeHtml(productLabelFromKey(item.key))}</span>
-          </div>
-        </div>`;
-      };
-
-      const parts = [];
-      parts.push(selectedCollapseHeader('products', state.collapseSelectedProducts, checkedVisibleRows.length, 'Selected'));
-      if (!state.collapseSelectedProducts) parts.push(...checkedVisibleRows.map(rowHtml));
-      parts.push(...uncheckedVisibleRows.map(rowHtml));
-      list.innerHTML = parts.join('') || '<div class="emptyFilterRow">No products match that search.</div>';
-      updateDropdownLabels();
-    }
-
-    function getVisibleCustomerOptions() {
-      const query = String(state.customerSearch || '').trim().toLowerCase();
-      return customerOptions
-        .filter(item => !query || item.searchText.includes(query))
-        .sort((a, b) => {
-          const checkedDiff = (isCustomerCheckedForDropdown(b.idValue) ? 1 : 0) - (isCustomerCheckedForDropdown(a.idValue) ? 1 : 0);
-          if (checkedDiff) return checkedDiff;
-          return a.label.localeCompare(b.label);
-        });
-    }
-
-    function renderCustomerList() {
-      const list = document.getElementById('customerList');
-      if (!list) return;
-      const visibleRows = getVisibleCustomerOptions();
-      const checkedVisibleRows = visibleRows.filter(item => isCustomerCheckedForDropdown(item.idValue));
-      const uncheckedVisibleRows = visibleRows.filter(item => !isCustomerCheckedForDropdown(item.idValue));
-      const effectiveCustomers = getEffectiveCustomerSet();
-      const shownCount = state.collapseSelectedCustomers ? uncheckedVisibleRows.length : visibleRows.length;
-      const countEl = document.getElementById('customerVisibleCount');
-      if (countEl) countEl.textContent = dropdownCountText(effectiveCustomers.size, customerOptions.length, shownCount);
-      setCollapseButton('customerCollapseBtn', state.collapseSelectedCustomers);
-
-      if (!visibleRows.length) {
-        list.innerHTML = '<div class="emptyFilterRow">No customers match that search.</div>';
-        updateDropdownLabels();
-        return;
-      }
-
-      const rowHtml = item => {
-        const checked = isCustomerCheckedForDropdown(item.idValue);
-        return `
-        <div class="multiRow ${checked ? 'active' : ''}" onclick="toggleCustomer('${escapeJs(item.idValue)}', event)">
-          <div class="labelSide">
-            <input type="checkbox" tabindex="-1" onclick="event.preventDefault()" ${checked ? 'checked' : ''}>
-            <span title="${escapeHtml(item.label + (item.active === false ? ' - Inactive' : ''))}">${escapeHtml(item.label)}${item.active === false ? ' <span class="inactiveBadge">Inactive</span>' : ''}</span>
-          </div>
-        </div>`;
-      };
-
-      const parts = [];
-      parts.push(selectedCollapseHeader('customers', state.collapseSelectedCustomers, checkedVisibleRows.length, 'Selected'));
-      if (!state.collapseSelectedCustomers) parts.push(...checkedVisibleRows.map(rowHtml));
-      parts.push(...uncheckedVisibleRows.map(rowHtml));
-      list.innerHTML = parts.join('') || '<div class="emptyFilterRow">No customers match that search.</div>';
-      updateDropdownLabels();
-    }
-
-    function updateDropdownLabels() {
-      const deptButton = document.getElementById('departmentDropdownButton');
-      const yearButton = document.getElementById('yearDropdownButton');
-      const productButton = document.getElementById('productDropdownButton');
-      const customerButton = document.getElementById('customerDropdownButton');
-      if (deptButton) {
-        deptButton.textContent = 'Departments';
-        const selected = getDisplaySelectedDepartmentNames();
-        deptButton.title = selected.length ? 'Selected in current dashboard result:\n' + listForTooltip(selected, 'Departments') : 'No departments in the current dashboard result';
-      }
-      if (productButton) {
-        productButton.textContent = 'Products';
-        const selected = [...getEffectiveProductSet()].map(productLabelFromKey).sort();
-        productButton.title = selected.length ? 'Selected in current dashboard result:\n' + listForTooltip(selected, 'Products') : 'No products in the current dashboard result';
-      }
-      if (customerButton) {
-        customerButton.textContent = 'Customers';
-        const selected = [...getEffectiveCustomerSet()].map(getCustomerNameById).sort();
-        customerButton.title = selected.length ? 'Selected in current dashboard result:\n' + listForTooltip(selected, 'Customers') : 'No customers in the current dashboard result';
-      }
-      if (yearButton) {
-        yearButton.textContent = 'Years';
-        const years = [...(state.years || new Set())].sort((a,b) => b-a);
-        yearButton.title = 'Years:\n' + listForTooltip(years, 'Selected years');
-      }
-    }
 
 
 
@@ -5460,19 +4121,6 @@
        That made opening a dropdown feel frozen. These final definitions keep
        the same model while computing the effective sets once per dropdown render. */
 
-    function buildEffectiveDropdownSnapshot() {
-      const rows = getEffectiveDropdownRows();
-      const departments = new Set();
-      const products = new Set();
-      const customers = new Set();
-      rows.forEach(row => {
-        if (row && row.productsDepartment !== null && row.productsDepartment !== undefined && String(row.productsDepartment).trim() !== '') departments.add(row.productsDepartment);
-        const pKey = productKey(row);
-        if (pKey !== null && pKey !== undefined && String(pKey).trim() !== '') products.add(pKey);
-        if (row && row.customerId !== null && row.customerId !== undefined && String(row.customerId).trim() !== '') customers.add(row.customerId);
-      });
-      return { rows, departments, products, customers };
-    }
 
     function sortByCheckedThenLabel(items, isChecked, labelFn) {
       return items.slice().sort((a, b) => {
@@ -5584,47 +4232,6 @@
       return customerOptions.filter(item => !query || item.searchText.includes(query));
     }
 
-    function renderCustomerList() {
-      const list = document.getElementById('customerList');
-      if (!list) return;
-
-      const snapshot = buildEffectiveDropdownSnapshot();
-      const visibleRows = sortByCheckedThenLabel(
-        getVisibleCustomerOptions(),
-        item => snapshot.customers.has(item.idValue),
-        item => item.label
-      );
-      const checkedVisibleRows = visibleRows.filter(item => snapshot.customers.has(item.idValue));
-      const uncheckedVisibleRows = visibleRows.filter(item => !snapshot.customers.has(item.idValue));
-      const shownCount = state.collapseSelectedCustomers ? uncheckedVisibleRows.length : visibleRows.length;
-      const countEl = document.getElementById('customerVisibleCount');
-      if (countEl) countEl.textContent = dropdownCountText(snapshot.customers.size, customerOptions.length, shownCount);
-      setCollapseButton('customerCollapseBtn', state.collapseSelectedCustomers);
-
-      if (!visibleRows.length) {
-        list.innerHTML = '<div class="emptyFilterRow">No customers match that search.</div>';
-        updateDropdownLabels(snapshot);
-        return;
-      }
-
-      const rowHtml = item => {
-        const checked = snapshot.customers.has(item.idValue);
-        return `
-        <div class="multiRow ${checked ? 'active' : ''}" onclick="toggleCustomer('${escapeJs(item.idValue)}', event)">
-          <div class="labelSide">
-            <input type="checkbox" tabindex="-1" onclick="event.preventDefault()" ${checked ? 'checked' : ''}>
-            <span title="${escapeHtml(item.label + (item.active === false ? ' - Inactive' : ''))}">${escapeHtml(item.label)}${item.active === false ? ' <span class="inactiveBadge">Inactive</span>' : ''}</span>
-          </div>
-        </div>`;
-      };
-
-      const parts = [];
-      parts.push(selectedCollapseHeader('customers', state.collapseSelectedCustomers, checkedVisibleRows.length, 'Selected'));
-      if (!state.collapseSelectedCustomers) parts.push(...checkedVisibleRows.map(rowHtml));
-      parts.push(...uncheckedVisibleRows.map(rowHtml));
-      list.innerHTML = parts.join('') || '<div class="emptyFilterRow">No customers match that search.</div>';
-      updateDropdownLabels(snapshot);
-    }
 
     function updateDropdownLabels(snapshot) {
       const snap = snapshot || buildEffectiveDropdownSnapshot();
@@ -5696,94 +4303,8 @@
       state.tableSelectedProductKeys = new Set(state.selectedProductKeys || []);
     }
 
-    function includeCustomerForDropdownClick(id) {
-      if (!id) return;
-      if (!state.selectedCustomerIds) state.selectedCustomerIds = new Set();
-      if (!state.excludedCustomerIds) state.excludedCustomerIds = new Set();
 
-      if (state.customerFilterMode === 'CUSTOM') {
-        state.selectedCustomerIds.add(id);
-      } else {
-        state.excludedCustomerIds.delete(id);
-      }
 
-      const customerRows = facts.filter(row => row && row.customerId === id);
-      customerRows.forEach(row => {
-        includeDepartmentForDropdownClick(row.productsDepartment);
-        const key = productKey(row);
-        if (state.productFilterMode === 'CUSTOM') {
-          if (!state.selectedProductKeys) state.selectedProductKeys = new Set();
-          state.selectedProductKeys.add(key);
-        } else {
-          if (!state.excludedProductKeys) state.excludedProductKeys = new Set();
-          state.excludedProductKeys.delete(key);
-        }
-      });
-
-      if (typeof restoreLinkedFiltersForCustomer === 'function') restoreLinkedFiltersForCustomer(id);
-      state.lastSelectedCustomerId = id;
-      state.tableSelectedCustomerIds = new Set(state.selectedCustomerIds || []);
-    }
-
-    function toggleProduct(key, event) {
-      if (event) {
-        if (typeof event.preventDefault === 'function') event.preventDefault();
-        if (typeof event.stopPropagation === 'function') event.stopPropagation();
-      }
-      clearMoverTablePinnedSelections();
-      if (!key) return;
-      if (!state.selectedProductKeys) state.selectedProductKeys = new Set();
-      if (!state.excludedProductKeys) state.excludedProductKeys = new Set();
-
-      const snapshot = typeof buildEffectiveDropdownSnapshot === 'function'
-        ? buildEffectiveDropdownSnapshot()
-        : { products: new Set() };
-      const isCheckedInOpenDropdown = snapshot.products && snapshot.products.has(key);
-
-      if (isCheckedInOpenDropdown) {
-        if (state.productFilterMode === 'CUSTOM') {
-          state.selectedProductKeys.delete(key);
-        } else {
-          state.excludedProductKeys.add(key);
-        }
-      } else {
-        includeProductForDropdownClick(key);
-      }
-
-      if (typeof normalizeProductSelectionMode === 'function') normalizeProductSelectionMode();
-      if (typeof syncSelects === 'function') syncSelects();
-      renderAll();
-    }
-
-    function toggleCustomer(id, event) {
-      if (event) {
-        if (typeof event.preventDefault === 'function') event.preventDefault();
-        if (typeof event.stopPropagation === 'function') event.stopPropagation();
-      }
-      clearMoverTablePinnedSelections();
-      if (!id) return;
-      if (!state.selectedCustomerIds) state.selectedCustomerIds = new Set();
-      if (!state.excludedCustomerIds) state.excludedCustomerIds = new Set();
-
-      const snapshot = typeof buildEffectiveDropdownSnapshot === 'function'
-        ? buildEffectiveDropdownSnapshot()
-        : { customers: new Set() };
-      const isCheckedInOpenDropdown = snapshot.customers && snapshot.customers.has(id);
-
-      if (isCheckedInOpenDropdown) {
-        if (state.customerFilterMode === 'CUSTOM') {
-          state.selectedCustomerIds.delete(id);
-        } else {
-          state.excludedCustomerIds.add(id);
-        }
-      } else {
-        includeCustomerForDropdownClick(id);
-      }
-
-      if (typeof normalizeCustomerSelectionMode === 'function') normalizeCustomerSelectionMode();
-      if (typeof syncSelects === 'function') syncSelects();
-      renderAll();
-    }
 
 
 
@@ -5807,37 +4328,6 @@
       }
     }
 
-    function buildEffectiveDropdownSnapshot() {
-      const rows = getEffectiveDropdownRows();
-      const snapshot = { rows: rows, departments: new Set(), products: new Set(), customers: new Set() };
-      rows.forEach(row => addDropdownSnapshotRow(snapshot, row));
-
-      // Explicit Product selections must remain visually selected even if another
-      // dropdown currently blocks their rows. Also mark their related department
-      // and customers so the linked dropdowns describe the selected product.
-      if (state.productFilterMode === 'CUSTOM' && state.selectedProductKeys) {
-        state.selectedProductKeys.forEach(key => {
-          if (!key) return;
-          snapshot.products.add(key);
-          facts.forEach(row => {
-            if (productKey(row) === key) addDropdownSnapshotRow(snapshot, row);
-          });
-        });
-      }
-
-      // Same rule for explicit Customer selections.
-      if (state.customerFilterMode === 'CUSTOM' && state.selectedCustomerIds) {
-        state.selectedCustomerIds.forEach(id => {
-          if (!id) return;
-          snapshot.customers.add(id);
-          facts.forEach(row => {
-            if (row.customerId === id) addDropdownSnapshotRow(snapshot, row);
-          });
-        });
-      }
-
-      return snapshot;
-    }
 
     function getRowsForProductKeyForDropdown(key) {
       if (!key) return [];

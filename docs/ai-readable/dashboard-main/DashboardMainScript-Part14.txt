@@ -1,828 +1,1190 @@
-      #remakeFactorPage.cleanRemakeV6230 .remakeDropdownListV6245 { max-height:304px !important; overflow-y:auto !important; scrollbar-gutter:stable both-edges !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeDropdownRowV6245 { display:grid !important; grid-template-columns:24px minmax(0,1fr) auto !important; gap:8px !important; align-items:center !important; padding:7px 9px !important; border-bottom:1px solid #f1f3f5 !important; cursor:pointer !important; user-select:none !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeDropdownRowV6245:hover, #remakeFactorPage.cleanRemakeV6230 .remakeDropdownRowV6245.active { background:#eef5ff !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeDropdownRowV6245 input { pointer-events:none !important; width:16px !important; height:16px !important; accent-color:#2563eb !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeDropdownLabelV6245 { overflow:hidden !important; text-overflow:ellipsis !important; white-space:nowrap !important; font:800 12px/1.2 Roboto,Arial,sans-serif !important; color:#344054 !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeDropdownMetaV6245 { display:inline-flex !important; align-items:center !important; gap:6px !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeDropdownOnlyV6245 { border:1px solid #d5dae2 !important; background:#fff !important; color:#475467 !important; border-radius:999px !important; padding:4px 7px !important; font:900 10px/1 Roboto,Arial,sans-serif !important; cursor:pointer !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeDropdownEmptyV6245 { padding:14px 10px !important; color:#667085 !important; font:800 12px/1.3 Roboto,Arial,sans-serif !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeChartModeBarV6230 .measureToggleV6245 { margin-left:6px !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeChartModeBarV6230 .measureToggleV6245::before { content:''; display:inline-block; width:1px; height:18px; background:#d5dae2; margin:0 4px 0 0; vertical-align:middle; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeChartModeBarV6230 .valueToggleV6247 { margin-left:6px !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeChartModeBarV6230 .cumulativeToggleV6302 { margin-left:6px !important; transition:opacity .08s ease,transform .08s ease,background-color .08s ease,border-color .08s ease,color .08s ease !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeChartModeBarV6230 .cumulativeToggleV6302[hidden] { display:none !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeChartModeBarV6230 .valueToggleV6247::before { content:''; display:inline-block; width:1px; height:18px; background:#d5dae2; margin:0 4px 0 0; vertical-align:middle; }
-
-      #remakeFactorPage.cleanRemakeV6230 .remakeCustomerHeaderControlsV6251,
-      #remakeFactorPage.cleanRemakeV6230 .remakeProductHeaderControlsV6264 { display:inline-flex !important; align-items:center !important; gap:6px !important; margin-left:auto !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeCustomerModeBarV6251,
-      #remakeFactorPage.cleanRemakeV6230 .remakeProductModeBarV6264 { display:inline-flex !important; background:#eef1f5 !important; border:1px solid #d8dde6 !important; border-radius:999px !important; padding:2px !important; gap:2px !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeCustomerModeBarV6251 button,
-      #remakeFactorPage.cleanRemakeV6230 .remakeProductModeBarV6264 button { border:0 !important; border-radius:999px !important; background:transparent !important; color:#475467 !important; padding:5px 9px !important; font:900 11px/1 Roboto,Arial,sans-serif !important; cursor:pointer !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeCustomerModeBarV6251 button.active,
-      #remakeFactorPage.cleanRemakeV6230 .remakeProductModeBarV6264 button.active { background:#fff7d6 !important; color:#7a4a00 !important; border:1px solid #f2c94c !important; box-shadow:0 1px 2px rgba(245,158,11,.18) !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeChartBoxV6230 { cursor:default !important; }
-
-      #remakeFactorPage.cleanRemakeV6230 .tableCompareToggleV6297 { margin-left:6px !important; white-space:nowrap !important; height:25px !important; border:1px solid #cfd6df !important; background:#fff !important; color:#344054 !important; border-radius:999px !important; padding:0 10px !important; font:900 10.5px/1 Roboto,Arial,sans-serif !important; cursor:pointer !important; transition:background-color .08s ease,border-color .08s ease,color .08s ease,box-shadow .08s ease,transform .08s ease !important; }
-      #remakeFactorPage.cleanRemakeV6230 .tableCompareToggleV6297:hover { background:#f8fafc !important; border-color:#b8c2cf !important; }
-      #remakeFactorPage.cleanRemakeV6230 .tableCompareToggleV6297.active { background:#fff7d6 !important; color:#7a4a00 !important; border-color:#f2c94c !important; box-shadow:0 1px 2px rgba(245,158,11,.18) !important; transform:translateY(-.5px) !important; }
-      #remakeFactorPage.cleanRemakeV6230 .metricPrimaryV6297 { display:block; font-weight:600; color:inherit; }
-      #remakeFactorPage.cleanRemakeV6230 .metricCompareV6297 { display:block; margin-top:2px; font-size:9px; line-height:1.15; font-weight:600; color:#64748b; white-space:nowrap; }
-      #remakeFactorPage.cleanRemakeV6230 .metricCompareV6297 .deltaGoodV6295 { color:#047857 !important; }
-      #remakeFactorPage.cleanRemakeV6230 .metricCompareV6297 .deltaBadV6295 { color:#b91c1c !important; }
-      #remakeFactorPage.cleanRemakeV6230 .metricCompareV6297 .deltaNeutralV6295 { color:#64748b !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeTable td { vertical-align:middle !important; }
-      #remakeFactorPage.cleanRemakeV6230 .deltaGoodV6295 { color:#047857 !important; font-weight:900 !important; }
-      #remakeFactorPage.cleanRemakeV6230 .deltaBadV6295 { color:#b91c1c !important; font-weight:900 !important; }
-      #remakeFactorPage.cleanRemakeV6230 .deltaNeutralV6295 { color:#667085 !important; font-weight:800 !important; }
-
-      /* v6.343 Ceramist attribution workspace. Responsibility and current-case
-         context stay visually separate; none of these figures are an employee
-         performance rate. */
-      #remakeFactorPage.cleanRemakeV6230 .ceramistPreviewMetaV6342 { display:flex !important; align-items:center !important; justify-content:flex-start !important; gap:10px !important; padding:8px 10px !important; border-bottom:1px solid #edf0f5 !important; background:#fbfcfe !important; }
-      #remakeFactorPage.cleanRemakeV6230 .ceramistFilterStackV6343 { display:flex !important; flex:1 1 auto !important; min-width:0 !important; }
-      #remakeFactorPage.cleanRemakeV6230 .ceramistFilterRowV6343 { display:flex !important; align-items:center !important; gap:5px !important; flex-wrap:wrap !important; }
-      #remakeFactorPage.cleanRemakeV6230 .ceramistFilterSeparatorV6347 { display:inline-block !important; width:1px !important; height:22px !important; margin:0 5px !important; background:#cfd6df !important; flex:0 0 1px !important; }
-      #remakeFactorPage.cleanRemakeV6230 .ceramistFlagBarV6342 { display:flex !important; align-items:center !important; gap:5px !important; flex-wrap:wrap !important; }
-      #remakeFactorPage.cleanRemakeV6230 .ceramistFlagButtonV6342 { height:25px !important; border:1px solid #cfd6df !important; background:#fff !important; color:#475467 !important; border-radius:999px !important; padding:0 9px !important; font:900 10.5px/1 Roboto,Arial,sans-serif !important; cursor:pointer !important; white-space:nowrap !important; }
-      #remakeFactorPage.cleanRemakeV6230 .ceramistFlagButtonV6342.active { background:#fff7d6 !important; color:#7a4a00 !important; border-color:#f2c94c !important; box-shadow:0 1px 2px rgba(245,158,11,.18) !important; }
-      #remakeFactorPage.cleanRemakeV6230 .ceramistPreviewStatusV6342 { color:#667085 !important; font:800 10px/1.35 Roboto,Arial,sans-serif !important; text-align:left !important; white-space:normal !important; }
-      #remakeFactorPage.cleanRemakeV6230 .ceramistPreviewStatusV6342:empty { display:none !important; }
-      #remakeFactorPage.cleanRemakeV6230 .ceramistPreviewKpisV6342 { display:flex !important; align-items:stretch !important; justify-content:flex-start !important; flex-wrap:wrap !important; gap:6px !important; padding:7px 10px !important; border-bottom:1px solid #edf0f5 !important; }
-      #remakeFactorPage.cleanRemakeV6230 .ceramistPreviewKpiV6342 { flex:0 1 165px !important; min-width:125px !important; max-width:180px !important; padding:6px 8px !important; border:1px solid #e4e8ef !important; border-radius:7px !important; background:#f8fafc !important; }
-      #remakeFactorPage.cleanRemakeV6230 .ceramistPreviewKpiV6342 .label { color:#667085 !important; font:900 8.75px/1 Roboto,Arial,sans-serif !important; letter-spacing:.04em !important; text-transform:uppercase !important; margin-bottom:3px !important; }
-      #remakeFactorPage.cleanRemakeV6230 .ceramistPreviewKpiV6342 .value { color:#172033 !important; font:900 15px/1.05 Roboto,Arial,sans-serif !important; white-space:nowrap !important; }
-      #remakeFactorPage.cleanRemakeV6230 .ceramistWorkspaceV6343 { display:grid !important; grid-template-columns:minmax(360px,.78fr) minmax(560px,1.22fr) !important; min-height:330px !important; }
-      #remakeFactorPage.cleanRemakeV6230 .ceramistPanelV6343 { min-width:0 !important; overflow:hidden !important; }
-      #remakeFactorPage.cleanRemakeV6230 .ceramistPanelV6343 + .ceramistPanelV6343 { border-left:1px solid #dfe4eb !important; }
-      #remakeFactorPage.cleanRemakeV6230 .ceramistPanelHeaderV6343 { height:39px !important; padding:6px 9px !important; display:flex !important; align-items:center !important; justify-content:space-between !important; gap:8px !important; border-bottom:1px solid #e5e7eb !important; background:#fff !important; }
-      #remakeFactorPage.cleanRemakeV6230 .ceramistPanelTitleV6343 { min-width:0 !important; overflow:hidden !important; text-overflow:ellipsis !important; white-space:nowrap !important; color:#202124 !important; font:900 11.5px/1 Roboto,Arial,sans-serif !important; }
-      #remakeFactorPage.cleanRemakeV6230 .ceramistPanelHintV6343 { color:#667085 !important; font:800 9.5px/1 Roboto,Arial,sans-serif !important; white-space:nowrap !important; }
-      #remakeFactorPage.cleanRemakeV6230 .ceramistBreakdownBarV6343 { display:inline-flex !important; flex:0 0 auto !important; align-items:center !important; gap:2px !important; padding:2px !important; border:1px solid #d8dde6 !important; border-radius:999px !important; background:#eef1f5 !important; }
-      #remakeFactorPage.cleanRemakeV6230 .ceramistBreakdownBarV6343 button { border:0 !important; border-radius:999px !important; background:transparent !important; color:#475467 !important; padding:5px 8px !important; font:900 10px/1 Roboto,Arial,sans-serif !important; cursor:pointer !important; white-space:nowrap !important; }
-      #remakeFactorPage.cleanRemakeV6230 .ceramistBreakdownBarV6343 button.active { background:#fff7d6 !important; color:#7a4a00 !important; border:1px solid #f2c94c !important; }
-      #remakeFactorPage.cleanRemakeV6230 .ceramistPreviewTableWrapV6342 { height:290px !important; }
-      #remakeFactorPage.cleanRemakeV6230 .ceramistPreviewTableWrapV6342 .remakeTable { table-layout:fixed !important; }
-      #remakeFactorPage.cleanRemakeV6230 #remakeCeramistTableV6342 th:first-child,
-      #remakeFactorPage.cleanRemakeV6230 #remakeCeramistTableV6342 td:first-child { text-align:left !important; width:32% !important; }
-      #remakeFactorPage.cleanRemakeV6230 #remakeCeramistTableV6342 th:not(:first-child),
-      #remakeFactorPage.cleanRemakeV6230 #remakeCeramistTableV6342 td:not(:first-child),
-      #remakeFactorPage.cleanRemakeV6230 #remakeCeramistDetailTableV6343 th:nth-child(n+3),
-      #remakeFactorPage.cleanRemakeV6230 #remakeCeramistDetailTableV6343 td:nth-child(n+3) { text-align:right !important; }
-      #remakeFactorPage.cleanRemakeV6230 #remakeCeramistDetailTableV6343 th:first-child,
-      #remakeFactorPage.cleanRemakeV6230 #remakeCeramistDetailTableV6343 td:first-child { text-align:left !important; width:34% !important; }
-      #remakeFactorPage.cleanRemakeV6230 #remakeCeramistDetailTableV6343 th:nth-child(2),
-      #remakeFactorPage.cleanRemakeV6230 #remakeCeramistDetailTableV6343 td:nth-child(2) { text-align:left !important; width:22% !important; }
-      #remakeFactorPage.cleanRemakeV6230 .ceramistUnattributedV6342 { color:#b42318 !important; font-weight:900 !important; }
-      #remakeFactorPage.cleanRemakeV6230 .ceramistSelectedV6343 td { background:#fff7d6 !important; border-color:#f2c94c !important; font-weight:900 !important; }
-      #remakeFactorPage.cleanRemakeV6230 .ceramistNoteBadgeV6343 { display:inline-flex !important; align-items:center !important; margin-left:5px !important; padding:1px 5px !important; border:1px solid #f3c86a !important; border-radius:999px !important; background:#fff8df !important; color:#8a5300 !important; font:900 8.5px/1.2 Roboto,Arial,sans-serif !important; vertical-align:middle !important; }
-      @keyframes fadeOutV6295 { to { opacity:.42; transform:scale(.992); filter:blur(.7px); } }
-      @keyframes fadeInV6295 { from { opacity:.35; transform:scale(1.008); filter:blur(1px); } to { opacity:1; transform:scale(1); filter:blur(0); } }
-
-      @media(max-width:980px){#remakeFactorPage.cleanRemakeV6230 .remakeStickyTopV6245{top:0!important;margin:-6px 0 1px!important;}#remakeFactorPage.cleanRemakeV6230 .remakeDropdownPanelV6245{position:fixed!important;left:10px!important;right:10px!important;top:112px!important;min-width:0!important;max-height:calc(100vh - 130px)!important;}}
-      @media(max-width:1380px){#remakeFactorPage.cleanRemakeV6230 .remakeKpisV6230{grid-template-columns:repeat(4,minmax(0,1fr)) !important;}#remakeFactorPage.cleanRemakeV6230 .remakeKpiControlsV6279{grid-column:1 / -1 !important; align-items:flex-end !important;}#remakeFactorPage.cleanRemakeV6230 .remakeFilterBarV6230{grid-template-columns:repeat(3,minmax(0,1fr)) !important;}#remakeFactorPage.cleanRemakeV6230 .remakeCustomerSplitV6230{grid-template-columns:1fr !important;}}
-      @media(max-width:980px){#remakeFactorPage.cleanRemakeV6230 .remakeGridV6230{grid-template-columns:1fr !important;}#remakeFactorPage.cleanRemakeV6230 .remakeKpisV6230,#remakeFactorPage.cleanRemakeV6230 .remakeFilterBarV6230,#remakeFactorPage.cleanRemakeV6230 .ceramistPreviewKpisV6342{grid-template-columns:repeat(2,minmax(0,1fr)) !important;}#remakeFactorPage.cleanRemakeV6230 .ceramistPreviewMetaV6342{align-items:flex-start!important;flex-direction:column!important;}#remakeFactorPage.cleanRemakeV6230 .ceramistPreviewStatusV6342{text-align:left!important;max-width:none!important;}#remakeFactorPage.cleanRemakeV6230 .ceramistWorkspaceV6343{grid-template-columns:1fr!important;}#remakeFactorPage.cleanRemakeV6230 .ceramistPanelV6343 + .ceramistPanelV6343{border-left:0!important;border-top:1px solid #dfe4eb!important;}#remakeFactorPage.cleanRemakeV6230 .remakeKpiControlsV6279{grid-column:1 / -1 !important; align-items:flex-start !important; text-align:left !important;}#remakeFactorPage.cleanRemakeV6230 .remakeKpiControlsV6279 .remakePerfV6230,#remakeFactorPage.cleanRemakeV6230 .remakeKpiControlsV6279 .remakeRefreshStamp{text-align:left !important;}}
-    `;
-    document.head.appendChild(style);
-  }
-
-  function cardActionsV6230(component) {
-    const componentLabel = component === 'trend' ? 'chart' : 'table';
-    return '<div class="remakeCardActionsV6230">'
-      + '<button class="remakeMiniButtonV6230" type="button" title="Export the totals and rows currently shown in this panel" onclick="exportRemakeComponentV6230(\'' + escJsV6230(component) + '\')">Export current</button>'
-      + '<button class="remakeMiniButtonV6230" type="button" title="Export the detailed records behind the current panel and filters" onclick="exportRemakeAllDataV6399(\'' + escJsV6230(component) + '\')">All data</button>'
-      + '<button class="remakeMiniButtonV6230" type="button" title="Open a live interactive pop-out" onclick="popoutRemakeComponentV6230(\'' + escJsV6230(component) + '\')">Pop out</button>'
-      + '<button class="remakeMiniButtonV6230 backButtonV6266 clearComponentButtonV6304" type="button" title="Clear only this ' + componentLabel + '\'s cross-filter" aria-label="Clear only this ' + componentLabel + '\'s cross-filter" onclick="clearRemakeComponentV6230(\'' + escJsV6230(component) + '\')">&#8634;</button>'
-      + '</div>';
-  }
-
-
-  const filterMetaV6245 = {
-    year: { inputId: 'remakeYearFilter', buttonId: 'remakeYearButtonV6245', panelId: 'remakeYearPanelV6245', searchId: 'remakeYearSearchV6245', listId: 'remakeYearListV6245', countId: 'remakeYearCountV6245', allLabel: 'All years', label: 'Year' },
-    department: { inputId: 'remakeDepartmentFilter', buttonId: 'remakeDepartmentButtonV6245', panelId: 'remakeDepartmentPanelV6245', searchId: 'remakeDepartmentSearchV6245', listId: 'remakeDepartmentListV6245', countId: 'remakeDepartmentCountV6245', allLabel: 'All departments', label: 'Department' },
-    product: { inputId: 'remakeProductFilter', buttonId: 'remakeProductButtonV6245', panelId: 'remakeProductPanelV6245', searchId: 'remakeProductSearchV6245', listId: 'remakeProductListV6245', countId: 'remakeProductCountV6245', allLabel: 'All products', label: 'Product' },
-    productGroup: { inputId: 'remakeProductGroupFilter', buttonId: 'remakeProductGroupButtonV6245', panelId: 'remakeProductGroupPanelV6245', searchId: 'remakeProductGroupSearchV6245', listId: 'remakeProductGroupListV6245', countId: 'remakeProductGroupCountV6245', allLabel: 'All groups', label: 'Group' },
-    customer: { inputId: 'remakeCustomerFilter', buttonId: 'remakeCustomerButtonV6245', panelId: 'remakeCustomerPanelV6245', searchId: 'remakeCustomerSearchV6245', listId: 'remakeCustomerListV6245', countId: 'remakeCustomerCountV6245', allLabel: 'All customers', label: 'Customer' },
-    reason: { inputId: 'remakeReasonFilter', buttonId: 'remakeReasonButtonV6245', panelId: 'remakeReasonPanelV6245', searchId: 'remakeReasonSearchV6245', listId: 'remakeReasonListV6245', countId: 'remakeReasonCountV6245', allLabel: 'All reasons', label: 'Reason' }
+  window.selectVisibleRemakeOptionsV6245=function(kind){ pushRemakeUndoV6266(); const current=effectiveSelectionSetV6250(kind); visibleOptionsForDropdownV6245(kind).forEach(opt=>current.add(String(opt.value))); commitEffectiveSelectionV6389(kind,Array.from(current)); persistUiV6230(); renderDashboardV6230(); };
+  window.toggleVisibleRemakeOptionsV6502=function(kind,checked,event){
+    if(event) event.stopPropagation();
+    pushRemakeUndoV6266();
+    const current=effectiveSelectionSetV6250(kind);
+    const visible=visibleOptionsForDropdownV6245(kind);
+    visible.forEach(function(opt){
+      const value=String(opt.value);
+      if(checked) current.add(value); else current.delete(value);
+    });
+    commitEffectiveSelectionV6389(kind,Array.from(current));
+    persistUiV6230();
+    renderDashboardV6230();
   };
-  // v6.308: [] continues to mean All. This sentinel is the explicit zero-selection state
-  // used by the new None button without changing the established filter data model.
-  const REMAKE_NONE_FILTER_VALUE_V6308 = '__CDA_REMAKE_NONE_V6308__';
-  function filterValuesV6245(kind) { const raw = uiV6230.filters ? uiV6230.filters[kind] : ''; if (Array.isArray(raw)) return raw.map(String).filter(Boolean); if (!raw) return []; try { const parsed = JSON.parse(String(raw)); if (Array.isArray(parsed)) return parsed.map(String).filter(Boolean); } catch(e) {} return [String(raw)]; }
-  function excludedFilterValuesV6389(kind) { const raw = uiV6230.filterExclusionsV6389 ? uiV6230.filterExclusionsV6389[kind] : []; if (Array.isArray(raw)) return raw.map(String).filter(Boolean); if (!raw) return []; return [String(raw)]; }
-  function filterIsNoneV6308(kind) { const values = filterValuesV6245(kind); return values.length === 1 && values[0] === REMAKE_NONE_FILTER_VALUE_V6308; }
-  function setFilterValuesV6245(kind, values) { const seen = new Set(); const clean = []; (Array.isArray(values) ? values : [values]).forEach(value => { const text = String(value === null || value === undefined ? '' : value).trim(); if (text && !seen.has(text)) { seen.add(text); clean.push(text); } }); uiV6230.filters[kind] = clean; if (!uiV6230.filterExclusionsV6389) uiV6230.filterExclusionsV6389 = {}; uiV6230.filterExclusionsV6389[kind] = []; const meta = filterMetaV6245[kind]; const input = meta ? idV6230(meta.inputId) : null; if (input) input.value = JSON.stringify(clean); return clean; }
-  function setFilterExclusionsV6389(kind, values) { const seen = new Set(); const clean = []; (Array.isArray(values) ? values : [values]).forEach(value => { const text = String(value === null || value === undefined ? '' : value).trim(); if (text && !seen.has(text)) { seen.add(text); clean.push(text); } }); if (!uiV6230.filterExclusionsV6389) uiV6230.filterExclusionsV6389 = {}; uiV6230.filterExclusionsV6389[kind] = clean; uiV6230.filters[kind] = []; const meta = filterMetaV6245[kind]; const input = meta ? idV6230(meta.inputId) : null; if (input) input.value = '[]'; return clean; }
-  function matchesFilterV6245(kind, value) { const selected = filterValuesV6245(kind); if (filterIsNoneV6308(kind)) return false; if (selected.length) return selected.some(item => String(item) === String(value)); const excluded = new Set(excludedFilterValuesV6389(kind)); return !excluded.has(String(value)); }
-  function filterOptionLabelV6245(kind, value) { if (String(value) === REMAKE_NONE_FILTER_VALUE_V6308) return 'None'; const options = (uiV6230.filterOptionsV6245 && uiV6230.filterOptionsV6245[kind]) || []; const match = options.find(opt => String(opt.value) === String(value)); return match ? match.label : ''; }
-  function multiFilterMarkupV6245(kind, label, allLabel) {
-    const meta = filterMetaV6245[kind];
-    const visibleToggleId = 'remakeVisibleToggleV6502_' + kind;
-    return '<div class="remakeFilter remakeMultiFilterV6245" data-filter-kind="' + escV6230(kind) + '">'
-      + '<label for="' + escV6230(meta.buttonId) + '">' + escV6230(label) + '</label>'
-      + '<input id="' + escV6230(meta.inputId) + '" class="remakeHiddenSelectV6245" data-multi-managed-v6245="1" type="hidden" value="[]">'
-      + '<button id="' + escV6230(meta.buttonId) + '" class="remakeDropdownButtonV6245" type="button" onclick="toggleRemakeDropdownV6245(\'' + escJsV6230(kind) + '\')">' + escV6230(allLabel) + '</button>'
-      + '<div id="' + escV6230(meta.panelId) + '" class="remakeDropdownPanelV6245">'
-      + '<div class="remakeDropdownHeaderV6245">'
-      + '<label class="remakeVisibleToggleV6502" title="Check to select every visible option. Uncheck to deselect every visible option.">'
-      + '<input id="' + escV6230(visibleToggleId) + '" type="checkbox" onchange="toggleVisibleRemakeOptionsV6502(\'' + escJsV6230(kind) + '\',this.checked,event)">'
-      + '<span>Visible</span></label>'
-      + '<button type="button" title="Select all options and remove this filter" aria-label="Reset ' + escV6230(label) + ' filter" onclick="clearRemakeMultiFilterV6245(\'' + escJsV6230(kind) + '\')">Reset</button>'
-      + '<button type="button" title="Deselect every option" aria-label="Select no ' + escV6230(label.toLowerCase()) + ' options" onclick="selectNoneRemakeOptionsV6308(\'' + escJsV6230(kind) + '\')">None</button>'
-      + '<span id="' + escV6230(meta.countId) + '" class="remakeDropdownCountV6245">0</span></div>'
-      + '<input id="' + escV6230(meta.searchId) + '" class="remakeDropdownSearchV6245" type="text" placeholder="Search ' + escV6230(label.toLowerCase()) + '" oninput="renderRemakeDropdownListV6245(\'' + escJsV6230(kind) + '\')">'
-      + '<div id="' + escV6230(meta.listId) + '" class="remakeDropdownListV6245"></div></div></div>';
-  }
-
-  function buildShellV6230(force) {
-    const page = idV6230('remakeFactorPage');
-    if (!page) return;
-    const wasActive = page.classList.contains('active');
-    if (!force && page.getAttribute('data-clean-remake-version') === 'v6230' && page.querySelector('#remakeTrendChartV6230')) return;
-    const dockedFilterBarV6337 = document.querySelector('#remakeTabFilterHostV6337 .remakeFilterBarV6230');
-    if (dockedFilterBarV6337) dockedFilterBarV6337.remove();
-    const dockedCacheActionsV6338 = document.querySelector('#remakeTabFilterHostV6337 .remakeCacheActionBarV6338');
-    if (dockedCacheActionsV6338) dockedCacheActionsV6338.remove();
-    page.className = 'tabPage cleanRemakeV6230' + (wasActive ? ' active' : '');
-    page.setAttribute('data-clean-remake-version', 'v6230');
-    page.innerHTML = `
-      <div class="remakeShellV6230">
-        <div class="remakeStickyTopV6245">
-          <div class="remakeHeaderV6230" style="display:none !important;"></div>
-          <div id="remakeNotice" class="remakeNotice"></div>
-          <div class="remakeGlobalSearchBarV6304">
-            <button id="remakeGlobalSearchButtonV6304" class="remakeGlobalSearchButtonV6304" type="button" title="Search every dashboard filter" aria-label="Search every dashboard filter" aria-expanded="false" onclick="toggleRemakeGlobalSearchV6304(event)">
-              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M10.7 4a6.7 6.7 0 1 0 4.13 11.98l3.6 3.6 1.41-1.42-3.59-3.59A6.7 6.7 0 0 0 10.7 4Zm0 2a4.7 4.7 0 1 1 0 9.4 4.7 4.7 0 0 1 0-9.4Z"/></svg>
-            </button>
-            <div id="remakeGlobalSearchPanelV6304" class="remakeGlobalSearchPanelV6304" role="dialog" aria-label="Search all filters">
-              <div class="remakeGlobalSearchInputRowV6304">
-                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M10.7 4a6.7 6.7 0 1 0 4.13 11.98l3.6 3.6 1.41-1.42-3.59-3.59A6.7 6.7 0 0 0 10.7 4Zm0 2a4.7 4.7 0 1 1 0 9.4 4.7 4.7 0 0 1 0-9.4Z"/></svg>
-                <input id="remakeGlobalSearchInputV6304" type="search" autocomplete="off" placeholder="Search and select multiple filters" oninput="renderRemakeGlobalSearchV6304()" onkeydown="handleRemakeGlobalSearchKeyV6304(event)">
-                <button type="button" class="remakeGlobalSearchCloseV6304" title="Close search" aria-label="Close search" onclick="closeRemakeGlobalSearchV6304()">×</button>
-              </div>
-              <div id="remakeGlobalSearchResultsV6304" class="remakeGlobalSearchResultsV6304"></div>
-              <div id="remakeGlobalSearchActionsV6305" class="remakeGlobalSearchActionsV6305">
-                <span id="remakeGlobalSearchCountV6305" class="remakeGlobalSearchCountV6305">0 selected</span>
-                <button type="button" class="remakeGlobalSearchClearV6305" title="Remove all five global filters and return them to All" onclick="clearRemakeGlobalSearchDraftV6305()">Reset all filters</button>
-                <button type="button" class="remakeGlobalSearchApplyV6305" onclick="applyRemakeGlobalSearchSelectionsV6305()">Apply</button>
-              </div>
-            </div>
-          </div>
-          <div id="remakeFilterHomeV6337" aria-hidden="true"></div>
-          <div class="remakeFilterBarV6230">
-            ${multiFilterMarkupV6245('year', 'Year', 'All years')}
-            ${multiFilterMarkupV6245('department', 'Department', 'All departments')}
-            ${multiFilterMarkupV6245('product', 'Product', 'All products')}
-            ${multiFilterMarkupV6245('productGroup', 'Group', 'All groups')}
-            ${multiFilterMarkupV6245('customer', 'Customer', 'All customers')}
-            ${multiFilterMarkupV6245('reason', 'Reason', 'All reasons')}
-          </div>
-          <div class="remakeKpisV6230">
-            <div class="remakeKpi" title="Primary KPI shows the current comparison year. The small line compares against the prior year using the same months."><div class="label">Total Cases</div><div id="remakeTotalCases" class="value">-</div><div id="remakeTotalCasesSub" class="sub"></div></div>
-            <div class="remakeKpi"><div class="label">Remake Cases</div><div id="remakeCases" class="value">-</div><div id="remakeCasesSub" class="sub"></div></div>
-            <div class="remakeKpi"><div class="label">Case Rate</div><div id="remakeCaseRate" class="value">-</div><div id="remakeCaseRateSub" class="sub"></div></div>
-            <div class="remakeKpi"><div class="label">Total Units</div><div id="remakeTotalUnits" class="value">-</div><div id="remakeTotalUnitsSub" class="sub"></div></div>
-            <div class="remakeKpi"><div class="label">Remake Units</div><div id="remakeUnits" class="value">-</div><div id="remakeUnitsSub" class="sub"></div></div>
-            <div class="remakeKpi"><div class="label">Unit Rate</div><div id="remakeUnitRate" class="value">-</div><div id="remakeUnitRateSub" class="sub"></div></div>
-            <div class="remakeKpi"><div class="label">Remake Discount</div><div id="remakeDiscount" class="value">-</div><div id="remakeDiscountSub" class="sub"></div></div>
-          </div>
-          <div id="remakePillsV6230" class="remakePillsV6230" data-placement="below-remake-kpis"></div>
-        </div>
-        <div class="remakeGridV6230">
-          <div class="remakeCard" id="remakeTrendCardV6230">
-            <div class="remakeCardHeader"><div class="remakeCardTitle">Monthly Remake Comparison</div>${cardActionsV6230('trend')}</div>
-            <div class="remakeChartModeBarV6230">
-              <button id="remakeModeLineV6230" type="button" onclick="setRemakeChartModeV6230('line')">Line</button>
-              <button id="remakeModeBarV6230" type="button" onclick="setRemakeChartModeV6230('bar')">Bar</button>
-              <button id="remakeMeasureCasesV6245" class="measureToggleV6245" type="button" onclick="setRemakeTrendMeasureV6245('cases')">Cases</button>
-              <button id="remakeMeasureUnitsV6245" type="button" onclick="setRemakeTrendMeasureV6245('units')">Units</button>
-              <button id="remakeValueTotalV6247" class="valueToggleV6247" type="button" onclick="setRemakeTrendValueModeV6247('total')">Total</button>
-              <button id="remakeValuePercentV6247" type="button" onclick="setRemakeTrendValueModeV6247('percent')">%</button>
-              <div id="remakeTrendViewGroupV6304" class="remakeTrendViewGroupV6304" aria-label="Monthly or cumulative line view" hidden>
-                <span class="remakeTrendViewLabelV6304">View</span>
-                <button id="remakeMonthlyV6304" class="cumulativeToggleV6302" type="button" title="Show each month separately" onclick="setRemakeTrendCumulativeV6304(false)">Monthly</button>
-                <button id="remakeCumulativeV6302" class="cumulativeToggleV6302" type="button" title="Show a running year-to-date total" onclick="setRemakeTrendCumulativeV6304(true)">Cumulative</button>
-              </div>
-            </div>
-            <div class="remakeChartBoxV6230"><canvas id="remakeTrendChartV6230"></canvas></div>
-          </div>
-          <div class="remakeCard" id="remakeDepartmentCardV6230">
-            <div class="remakeCardHeader"><div class="remakeCardTitle">Departments</div><div class="remakeProductHeaderControlsV6264"><button id="remakeDepartmentCompareBtnV6297" class="tableCompareToggleV6297" type="button" onclick="toggleRemakeTableCompareV6297('department')">2025</button>${cardActionsV6230('department')}</div></div>
-            <div class="remakeTableWrap"><table id="remakeDepartmentTable" class="remakeTable"></table></div>
-          </div>
-        </div>
-        <div class="remakeGridV6230">
-          <div class="remakeCard" id="remakeReasonCardV6230">
-            <div class="remakeCardHeader"><div class="remakeCardTitle">Remake Reasons</div><div class="remakeProductHeaderControlsV6264"><button id="remakeReasonCompareBtnV6297" class="tableCompareToggleV6297" type="button" onclick="toggleRemakeTableCompareV6297('reason')">2025</button>${cardActionsV6230('reason')}</div></div>
-            <div class="remakeTableWrap"><table id="remakeReasonTable" class="remakeTable"></table></div>
-          </div>
-          <div class="remakeCard" id="remakeProductCardV6230">
-            <div class="remakeCardHeader"><div id="remakeProductTitleV6264" class="remakeCardTitle">Products</div><div class="remakeProductHeaderControlsV6264"><div class="remakeProductModeBarV6264"><button id="remakeProductModeProductBtnV6264" type="button" onclick="setRemakeProductTableModeV6264('product')">Products</button><button id="remakeProductModeGroupBtnV6264" type="button" onclick="setRemakeProductTableModeV6264('group')">Groups</button></div><button id="remakeProductCompareBtnV6297" class="tableCompareToggleV6297" type="button" onclick="toggleRemakeTableCompareV6297('product')">2025</button>${cardActionsV6230('product')}</div></div>
-            <div class="remakeTableWrap"><table id="remakeProductTable" class="remakeTable"></table></div>
-          </div>
-        </div>
-        <div class="remakeGridV6230">
-          <div class="remakeCard remakeCardWideV6230" id="remakeCustomerCardV6230">
-            <div class="remakeCardHeader"><div id="remakeCustomerTitleV6251" class="remakeCardTitle">Customers</div><div class="remakeCustomerHeaderControlsV6251"><button id="remakeCustomerCompareBtnV6297" class="tableCompareToggleV6297" type="button" onclick="toggleRemakeTableCompareV6297('customer')">2025</button>${cardActionsV6230('customer')}</div></div>
-            <div class="remakeCustomerSplitV6230">
-              <div class="remakeCustomerDetailPanelV6503">
-                <div id="remakeCustomerResponsibilitySummaryV6502" class="remakeCustomerResponsibilitySummaryV6502"></div>
-                <div class="remakeCustomerChartBoxV6230"><canvas id="remakeCustomerChartV6230"></canvas><div id="remakeCustomerDetailEmptyV6503" class="remakeCustomerDetailEmptyChartV6503">Select a customer, department, product, group, reason, or technician to view its responsibility share.</div></div>
-              </div>
-              <div class="remakeTableWrap remakeCustomerTableWrapV6230"><table id="remakeCustomerTable" class="remakeTable"></table></div>
-            </div>
-          </div>
-        </div>
-        <div class="remakeGridV6230">
-          <div class="remakeCard remakeCardWideV6230" id="remakeCeramistCardV6342">
-            <div class="remakeCardHeader"><div class="remakeCardTitle">Technicians</div>${cardActionsV6230('ceramist')}</div>
-            <div class="ceramistTopControlsV6351">
-              <div class="ceramistPreviewKpisV6342">
-                <div class="ceramistPreviewKpiV6342"><div class="label">Cases</div><div id="remakeCeramistVisibleCasesV6343" class="value">-</div></div>
-                <div class="ceramistPreviewKpiV6342"><div class="label">Remake units</div><div id="remakeCeramistUnitsV6342" class="value">-</div></div>
-                <div class="ceramistPreviewKpiV6342"><div class="label">Discount</div><div id="remakeCeramistDiscountV6342" class="value">-</div></div>
-                <div class="ceramistPreviewKpiV6342" title="Percent of visible remake cases that are fully attributed to one confirmed responsible worker. Partial or unassigned cases are excluded from the numerator."><div class="label">Attribution</div><div id="remakeCeramistCoverageV6342" class="value">-</div></div>
-              </div>
-              <div class="ceramistPreviewMetaV6342">
-                <div class="ceramistFilterStackV6343">
-                  <div class="ceramistFilterRowV6343">
-                    <div id="remakeCeramistCaseStatusBarV6343" class="ceramistFlagBarV6342">
-                      <button class="ceramistFlagButtonV6342" data-ceramist-case-status="all" type="button" title="All cases" onclick="setCeramistCaseStatusV6343('all')">All <span id="remakeCeramistAllCountV6342">0</span></button>
-                      <button class="ceramistFlagButtonV6342" data-ceramist-case-status="full" type="button" title="Fully attributed cases" onclick="setCeramistCaseStatusV6343('full')">Attributed <span id="remakeCeramistFullCountV6343">0</span></button>
-                      <button class="ceramistFlagButtonV6342" data-ceramist-case-status="partial" type="button" title="Partially attributed cases" onclick="setCeramistCaseStatusV6343('partial')">Partial <span id="remakeCeramistPartialCountV6343">0</span></button>
-                      <button class="ceramistFlagButtonV6342" data-ceramist-case-status="unattributed" type="button" title="Unattributed cases" onclick="setCeramistCaseStatusV6343('unattributed')">Unassigned <span id="remakeCeramistUnattributedCountV6342">0</span></button>
-                    </div>
-                    <span class="ceramistFilterSeparatorV6347" aria-hidden="true"></span>
-                    <div id="remakeCeramistDiagnosticBarV6343" class="ceramistFlagBarV6342">
-                      <button class="ceramistFlagButtonV6342" data-ceramist-diagnostic="none" type="button" title="No review flag filter" onclick="setCeramistDiagnosticV6343('none')">None</button>
-                      <button class="ceramistFlagButtonV6342" data-ceramist-diagnostic="multi" type="button" title="Multiple remake chains" onclick="setCeramistDiagnosticV6343('multi')">Multi <span id="remakeCeramistMultiCountV6342">0</span></button>
-                      <button class="ceramistFlagButtonV6342" data-ceramist-diagnostic="rootMissing" type="button" title="No matching prior/root CERAMICS completion was found in the attribution cache" onclick="setCeramistDiagnosticV6343('rootMissing')">No prior match <span id="remakeCeramistRootMissingCountV6342">0</span></button>
-                      <button class="ceramistFlagButtonV6342" data-ceramist-diagnostic="noteEvidence" type="button" title="Prior or root invoice-note evidence" onclick="setCeramistDiagnosticV6343('noteEvidence')">Notes <span id="remakeCeramistNoteEvidenceCountV6343">0</span></button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div id="remakeCeramistWorkspaceV6343" class="ceramistWorkspaceV6343">
-              <section class="ceramistPanelV6343" aria-label="Ceramist responsibility summary">
-                <div class="ceramistPanelHeaderV6343"><div class="ceramistPanelTitleV6343">Responsible worker</div></div>
-                <div class="remakeTableWrap ceramistPreviewTableWrapV6342"><table id="remakeCeramistTableV6342" class="remakeTable"></table></div>
-              </section>
-              <section class="ceramistPanelV6343" aria-label="Selected ceramist breakdown">
-                <div class="ceramistPanelHeaderV6343"><div id="remakeCeramistDetailTitleV6343" class="ceramistPanelTitleV6343">Select a ceramist</div><div id="remakeCeramistBreakdownBarV6343" class="ceramistBreakdownBarV6343">
-                  <button data-ceramist-breakdown="product" type="button" onclick="setCeramistBreakdownV6343('product')">Product</button>
-                  <button data-ceramist-breakdown="group" type="button" onclick="setCeramistBreakdownV6343('group')">Group</button>
-                  <button data-ceramist-breakdown="department" type="button" onclick="setCeramistBreakdownV6343('department')">Dept</button>
-                  <button data-ceramist-breakdown="customer" type="button" onclick="setCeramistBreakdownV6343('customer')">Customer</button>
-                  <button data-ceramist-breakdown="reason" type="button" onclick="setCeramistBreakdownV6343('reason')">Reason</button>
-                </div></div>
-                <div id="remakeCeramistDetailSelectionV6368" class="ceramistDetailSelectionV6368" hidden></div>
-                <div class="remakeTableWrap ceramistPreviewTableWrapV6342"><table id="remakeCeramistDetailTableV6343" class="remakeTable"></table></div>
-              </section>
-            </div>
-          </div>
-        </div>
-        <div class="remakePageFooterV6338" aria-label="Cache status">
-          <div id="remakeCacheActionHomeV6338" aria-hidden="true"></div>
-          <div class="remakeCacheActionBarV6338" aria-label="Remake cache controls">
-            <button id="remakeReloadSavedBtn" class="remakeButton secondary" type="button" title="Reload the saved Drive cache and replace this browser copy" onclick="reloadRemakeFactorSavedCache()"><span class="remakeCacheActionIconV6338" aria-hidden="true">&#8595;</span><span class="remakeCacheActionLabelV6338">Reload</span></button>
-            <button id="remakeRefreshBtn" class="remakeButton" type="button" title="Build missing months first, then replace current month from the API" onclick="refreshRemakeFactorData()"><span class="remakeCacheActionIconV6338" aria-hidden="true">&#8635;</span><span class="remakeCacheActionLabelV6338">Refresh</span></button>
-          </div>
-          <span id="remakeCeramistStatusV6342" class="remakeRefreshStamp remakeFooterStampV6338 remakeWorkerFooterStampV6367" title="This is when the worker cache was rebuilt, not the latest case invoice date.">Worker cache: not loaded</span>
-          <span id="remakeLastRefresh" class="remakeRefreshStamp remakeFooterStampV6338 remakeMainFooterStampV6367">${escV6230(uiV6230.lastStamp || 'Not loaded')}</span>
-        </div>
-      </div>`;
+  window.toggleRemakeOnlySelectedV6245=function(kind){ uiV6230.selectedOnlyV6245[kind]=false; window.renderRemakeDropdownListV6245(kind); };
+  window.clearRemakeMultiFilterV6245=function(kind){ pushRemakeUndoV6266(); setFilterValuesV6245(kind,[]); persistUiV6230(); renderDashboardV6230(); };
+  window.selectNoneRemakeOptionsV6308=function(kind){ pushRemakeUndoV6266(); setFilterValuesV6245(kind,[REMAKE_NONE_FILTER_VALUE_V6308]); persistUiV6230(); renderDashboardV6230(); };
+  window.applyRemakeFilterSnapshotV6389=function(filters,exclusions){
+    const sourceFilters=filters&&typeof filters==='object'?filters:{};
+    const sourceExclusions=exclusions&&typeof exclusions==='object'?exclusions:{};
+    Object.keys(filterMetaV6245).forEach(function(kind){
+      const excluded=Array.isArray(sourceExclusions[kind])?sourceExclusions[kind].map(String).filter(Boolean):[];
+      const selected=Array.isArray(sourceFilters[kind])?sourceFilters[kind].map(String).filter(Boolean):[];
+      if(excluded.length) setFilterExclusionsV6389(kind,excluded);
+      else setFilterValuesV6245(kind,selected);
+    });
+    persistUiV6230();
     syncFilterControlsV6230();
-  }
+    renderDashboardV6230();
+  };
+  document.addEventListener('click',function(event){ const target=event&&event.target; if(target&&target.closest&&target.closest('.remakeMultiFilterV6245')) return; Object.keys(filterMetaV6245).forEach(kind=>{const meta=filterMetaV6245[kind]; const panel=idV6230(meta.panelId); const button=idV6230(meta.buttonId); if(panel) panel.classList.remove('open'); if(button) button.classList.remove('active');}); });
 
-  function setNoticeV6230(message, tone) {
-    const el = idV6230('remakeNotice');
-    if (!el) return;
-    el.className = 'remakeNotice' + (message ? ' active' : '') + (tone ? ' ' + tone : '');
-    el.textContent = message || '';
-  }
-  function setLoadingV6230(value) {
-    const btn = idV6230('remakeRefreshBtn');
-    if (btn) btn.disabled = !!value;
-    const reloadBtn = idV6230('remakeReloadSavedBtn');
-    if (reloadBtn) reloadBtn.disabled = !!value;
-    if (!window.remakeFactorState) window.remakeFactorState = {};
-    window.remakeFactorState.loading = !!value;
-  }
-  function setStampV6230(text) { uiV6230.lastStamp = text || ''; const el = idV6230('remakeLastRefresh'); if (el) el.textContent = uiV6230.lastStamp; }
-  function setPerfV6230(ms, filteredCount, totalCount) {
-    const el = idV6230('remakePerfV6230');
-    if (el) el.textContent = 'Render ' + fmtCountV6230(ms) + ' ms · Rows ' + fmtCountV6230(filteredCount) + ' / ' + fmtCountV6230(totalCount);
-  }
-
-  function monthKeyV6230(rawValue) {
-    const raw = textV6230(rawValue, '');
-    if (/^\d{4}-\d{2}/.test(raw)) return raw.slice(0, 7);
-    if (/^\d{8}$/.test(raw)) return raw.slice(0, 4) + '-' + raw.slice(4, 6);
-    if (/^\d{1,2}\/\d{1,2}\/\d{4}/.test(raw)) {
-      const d = new Date(raw);
-      if (!isNaN(d.getTime())) return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
-    }
-    const d = new Date(raw);
-    if (raw && !isNaN(d.getTime())) return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
-    return raw || 'Unknown';
-  }
-  function monthLabelV6230(key) {
-    const m = /^(\d{4})-(\d{2})$/.exec(textV6230(key, ''));
-    if (!m) return textV6230(key, 'Unknown');
-    return new Date(Number(m[1]), Number(m[2]) - 1, 1).toLocaleString(undefined, { month: 'short', year: '2-digit' });
-  }
-  function sortMonthV6230(a, b) { return String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: 'base' }); }
-
-  function isLabLocationV6230(value) {
-    const v = textV6230(value, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
-    return !v || v === 'pacifica' || v === 'san ramon' || v === 'deanza' || v === 'de anza' || v === 'cada' || v === 'cad' || v === 'cda' || v === 'case level';
-  }
-  function inferDepartmentFromProductNameV6230(productName) {
-    const name = textV6230(productName, '');
-    const first = textV6230(name.split(' - ')[0], '');
-    const allowed = new Set(['Fixed','Implant','Alloy','Removable','Nightguard','Advanced Prosthetics','Denture Services','Services','Shipping','CDA Connect']);
-    return allowed.has(first) ? first : '';
-  }
-  function isPlaceholderDepartmentV6264(value) {
-    const clean = textV6230(value, '').toLowerCase();
-    return !clean || clean === 'unassigned' || clean === 'unknown' || clean === 'not specified' || clean === 'case level';
-  }
-  function inferDepartmentFromGroupCodeV6273(value) {
-    const clean = textV6230(value, '');
-    const lower = clean.toLowerCase();
-    if (!clean || lower === 'unassigned' || lower === 'unknown' || lower === 'not specified') return '';
-    if (lower === 'rem' || lower === 'removable' || lower.indexOf('removable') === 0) return 'Removable';
-    if (lower === 'ng' || lower === 'nightguard' || lower === 'night guard' || lower.indexOf('nightguard') === 0 || lower.indexOf('night guard') === 0) return 'Nightguard';
-    if (lower === 'ap' || lower.indexOf('ap-') === 0 || lower.indexOf('advanced prosthetics') === 0) return 'Advanced Prosthetics';
-    if (lower === 'fixed' || lower.indexOf('fixed') === 0) return 'Fixed';
-    if (lower === 'implant' || lower.indexOf('implant') === 0) return 'Implant';
-    if (lower === 'alloy' || lower.indexOf('alloy') === 0) return 'Alloy';
-    if (lower.indexOf('denture') === 0) return 'Denture Services';
-    if (lower === 'shipping' || lower.indexOf('ship') === 0) return 'Shipping';
-    if (lower === 'cda connect' || lower.indexOf('cda connect') === 0) return 'CDA Connect';
-    if (lower === 'services' || lower.indexOf('service') === 0) return 'Services';
-    return '';
-  }
-  function inferProductGroupV6264(row, productMeta, productName, department) {
-    const candidates = [
-      row && row.taxGroup,
-      row && row.productGroup,
-      row && row.productsGroup,
-      row && row.Products_Group,
-      row && row.group,
-      productMeta && productMeta.group,
-      row && row.taxCategory,
-      row && row.productCategory,
-      row && row.productsCategory,
-      row && row.Products_Category,
-      productMeta && productMeta.category
-    ];
-    for (const candidate of candidates) {
-      const clean = textV6230(candidate, '');
-      if (clean && clean.toLowerCase() !== 'unassigned' && clean !== department) return clean;
-    }
-    const parts = textV6230(productName, '').split(' - ').map(part => textV6230(part, '')).filter(Boolean);
-    if (parts.length >= 2) return parts[0];
-    return department || 'Unassigned';
-  }
-
-  function overviewLookupsV6230() {
-    const customerById = new Map();
-    const productById = new Map();
-    const productByName = new Map();
-    const sourceFacts = typeof facts !== 'undefined' && Array.isArray(facts) ? facts : [];
-    sourceFacts.forEach(row => {
-      const cid = textV6230(row.customerId, '');
-      if (cid && !customerById.has(cid)) {
-        const metaName = textV6230(row.customerName || row.customerFullName || row.Customers_CustomerFullName, '');
-        const metaPractice = textV6230(row.practiceName || row.customerPracticeName || row.Customers_PracticeName, '');
-        customerById.set(cid, {
-          id: cid,
-          name: metaName && metaName !== cid ? metaName : '',
-          practiceName: metaPractice && metaPractice !== cid ? metaPractice : '',
-          active: row.customerActive === false ? false : true
-        });
-      } else if (cid && customerById.has(cid) && row.customerActive === false) customerById.get(cid).active = false;
-      const pid = textV6230(row.productId, '');
-      const pname = textV6230(row.productsDescription, pid || 'Unknown product');
-      const dept = textV6230(row.productsDepartment, '');
-      const meta = { id: pid, name: pname, department: dept, group: textV6230(row.productGroup || row.productsGroup || row.Products_Group || row.group || row.category || row.productsCategory || row.Products_Category, '') };
-      if (pid && !productById.has(pid)) productById.set(pid, meta);
-      const nameKey = pname.toLowerCase();
-      if (nameKey && !productByName.has(nameKey)) productByName.set(nameKey, meta);
+  const globalSearchKindsV6304 = ['year','department','product','customer','reason'];
+  let globalSearchDraftV6305 = null;
+  function createGlobalSearchDraftV6305() {
+    const draft = {};
+    globalSearchKindsV6304.forEach(function(kind) {
+      draft[kind] = effectiveSelectionSetV6250(kind);
     });
-    return { customerById, productById, productByName, signature: sourceFacts.length };
+    return draft;
   }
-
-  function isRemakeV6230(row) {
-    if (!row) return false;
-    if (row.isRemake === true) return true;
-    if (row.isRemake === false) return false;
-    if (numV6230(row.remakeCases) > 0 || numV6230(row.remakeUnits) > 0) return true;
-    const flag = textV6230(row.remakeFlag || row.remake || row.caseProductsRemake || row.CaseProducts_Remake, '').toLowerCase();
-    return /^(y|yes|true|1|r|remake)$/.test(flag);
+  function ensureGlobalSearchDraftV6305() {
+    if (!globalSearchDraftV6305) globalSearchDraftV6305 = createGlobalSearchDraftV6305();
+    return globalSearchDraftV6305;
   }
-  function caseIdV6230(row) { return textV6230(row && (row.caseId || row.caseID || row.caseNumber || row.Cases_CaseNumber || row.case), ''); }
-
-  function rawRowsV6230() {
-    const st = window.remakeFactorState || {};
-    const data = st.data || {};
-    if (Array.isArray(st.rows) && st.rows.length) return st.rows;
-    if (Array.isArray(data.detailRows) && data.detailRows.length) return data.detailRows;
-    if (Array.isArray(data.rows) && data.rows.length) return data.rows;
-    return [];
+  function globalSearchDraftSetV6305(kind) {
+    const draft = ensureGlobalSearchDraftV6305();
+    if (!draft[kind]) draft[kind] = new Set();
+    return draft[kind];
   }
-
-  function normalizeRowsV6230(rows, lookups) {
-    lookups = lookups || overviewLookupsV6230();
-    return (rows || []).map(row => {
-      const month = monthKeyV6230(row.month || row.invoiceMonth || row.Cases_InvoiceDate || row.invoiceDate || row.dateIn || row.modifyDate || row.Cases_CreateDate);
-      const year = row.year || (/^\d{4}/.test(month) ? Number(month.slice(0, 4)) : '');
-      const remake = isRemakeV6230(row);
-      const qty = numV6230(row.quantity !== undefined ? row.quantity : (row.units !== undefined ? row.units : row.CaseProducts_Quantity));
-      const rawProductId = textV6230(row.productId || row.productID || row.CaseProducts_ProductID, '');
-      const rawProductName = textV6230(row.productName || row.productsDescription || row.Products_Description || row.productDescription || row.invoiceDescription || rawProductId, 'Unknown product');
-      const productMeta = (rawProductId && lookups.productById.get(rawProductId)) || lookups.productByName.get(rawProductName.toLowerCase()) || null;
-      const productName = textV6230(productMeta && productMeta.name, rawProductName);
-      const productKey = rawProductId || productName;
-      let department = '';
-      const inferredDepartment = inferDepartmentFromProductNameV6230(productName);
-      const rawGroupForDepartment = row.taxGroup || row.productGroup || row.productsGroup || row.Products_Group || row.group || row.taxCategory || (productMeta && (productMeta.group || productMeta.category)) || '';
-      const inferredGroupDepartment = inferDepartmentFromGroupCodeV6273(rawGroupForDepartment);
-      const deptCandidates = [
-        row.taxDepartment,
-        row.taxDept,
-        row.Products_Department,
-        row.productsDepartment,
-        row.productDepartment,
-        productMeta && productMeta.department,
-        inferredGroupDepartment,
-        inferredDepartment,
-        row.department
-      ];
-      for (const candidate of deptCandidates) {
-        const clean = textV6230(candidate, '');
-        if (clean && !isLabLocationV6230(clean) && !isPlaceholderDepartmentV6264(clean)) { department = clean; break; }
-      }
-      department = department || inferredDepartment || 'Unassigned';
-      const productGroup = inferProductGroupV6264(row, productMeta, productName, department);
-      const rawCustomerId = textV6230(row.customerId || row.customerID || row.Cases_CustomerID, '');
-      const customerMeta = rawCustomerId ? lookups.customerById.get(rawCustomerId) : null;
-      function firstNonIdV6253(values) {
-        for (const value of values || []) {
-          const clean = textV6230(value, '');
-          if (!clean) continue;
-          if (rawCustomerId && clean === rawCustomerId) continue;
-          return clean;
-        }
-        return '';
-      }
-      const rawCustomerName = firstNonIdV6253([
-        customerMeta && customerMeta.name,
-        row.customerFullName,
-        row.Customers_CustomerFullName,
-        row.customersCustomerFullName,
-        row.customerDisplayName,
-        row.customerName
-      ]);
-      const rawPracticeName = firstNonIdV6253([
-        customerMeta && customerMeta.practiceName,
-        row.practiceName,
-        row.customerPracticeName,
-        row.Customers_PracticeName,
-        row.customersPracticeName,
-        row.practice,
-        row.officeName
-      ]);
-      const customerName = textV6230(rawCustomerName, rawPracticeName || rawCustomerId || 'Unknown customer');
-      const practiceName = rawPracticeName;
-      const customerDisplayLabel = customerLabelV6246({ customerId: rawCustomerId, customerName: rawCustomerName || customerName, practiceName: practiceName });
-      const customerActive = customerMeta ? customerMeta.active !== false : (row.customerActive === false || row.customerActive === 'false' ? false : true);
-      return {
-        month,
-        year,
-        caseId: caseIdV6230(row),
-        caseNumber: textV6230(row.caseNumber || row.caseNo || row.Cases_CaseNumber, ''),
-        caseProductLineId: textV6230(
-          row.caseProductLineId || row.caseProductLineID || row.caseProductId || row.caseProductID ||
-          row.productLineId || row.productLineID || row.lineId || row.lineID,
-          ''
-        ),
-        customerId: rawCustomerId || customerName,
-        customerKey: rawCustomerId || customerName,
-        customerName,
-        practiceName,
-        customerDisplayLabel,
-        customerActive,
-        department,
-        productId: rawProductId,
-        productKey,
-        productName,
-        productGroup,
-        remakeReason: remake ? textV6230(row.remakeReason || row.reason || row.CaseProducts_RemakeReason, 'Not specified') : 'Not a remake',
-        quantity: qty,
-        units: qty,
-        isRemake: remake,
-        remakeUnits: remake ? numV6230(row.remakeUnits !== undefined ? row.remakeUnits : qty) : 0,
-        remakeDiscount: remake ? Math.abs(numV6230(row.remakeDiscount || row.CaseProducts_RemakeDiscount || 0)) : 0,
-        invoiceDate: textV6230(row.invoiceDate || row.Cases_InvoiceDate, ''),
-        caseStatus: textV6230(row.caseStatus || row.status || row.Cases_Status, ''),
-        invoiceDateTryIn: textV6230(row.invoiceDateTryIn || row.Cases_InvoiceDateTryIn, ''),
-        isRealInvoicedCharge: row.isRealInvoicedCharge !== false,
-        creditDebitReason: textV6230(row.creditDebitReason || row.Cases_CreditDebitReason, ''),
-        chargeAmount: numV6230(row.chargeAmount !== undefined ? row.chargeAmount : row.totalCharge),
-        creditAmount: numV6230(row.creditAmount || 0),
-        netAmount: numV6230(row.netAmount !== undefined ? row.netAmount : row.totalCharge),
-        salesLogicClass: textV6230(row.salesLogicClass, 'charge'),
-        remakeDiscountSource: textV6230(row.remakeDiscountSource, '')
-      };
-    });
+  function globalSearchDraftCountV6305() {
+    const draft = ensureGlobalSearchDraftV6305();
+    return globalSearchKindsV6304.reduce(function(total, kind){
+      if (!draft[kind]) return total;
+      return total + Array.from(draft[kind]).filter(function(value){ return value !== REMAKE_NONE_FILTER_VALUE_V6308; }).length;
+    }, 0);
   }
-
-  function customerLabelV6246(row) {
-    const cid = textV6230(row && (row.customerId || row.customerKey), '');
-    const name = textV6230(row && (row.customerName || row.customerDisplayName), '');
-    const practice = textV6230(row && (row.practiceName || row.customerPracticeName), '');
-    const cleanName = name && cid && name === cid ? '' : name;
-    const cleanPractice = practice && cid && practice === cid ? '' : practice;
-    let label = '';
-    if (cleanName && cleanPractice && cleanName !== cleanPractice) label = cleanName + ' - ' + cleanPractice;
-    else label = cleanName || cleanPractice || cid || 'Unknown customer';
-    if (cid && label !== cid && label.indexOf('(' + cid + ')') < 0) label += ' (' + cid + ')';
-    return label;
+  function updateGlobalSearchActionsV6305() {
+    const count = globalSearchDraftCountV6305();
+    const countNode = idV6230('remakeGlobalSearchCountV6305');
+    const actions = idV6230('remakeGlobalSearchActionsV6305');
+    if (countNode) countNode.textContent = count + (count === 1 ? ' selected' : ' selected');
+    if (actions) actions.classList.toggle('hasSelections', count > 0);
   }
-
-  function normalizedRowsV6230() {
-    const st = window.remakeFactorState || {};
-    const rawRows = rawRowsV6230();
-    const overviewSignature = typeof facts !== 'undefined' && Array.isArray(facts) ? facts.length : 0;
-    const sig = String(rawRows.length) + '|' + String(overviewSignature);
-    if (Array.isArray(st.normalizedRowsV6230) && st.normalizedRowsSignatureV6230 === sig) return st.normalizedRowsV6230;
-    const lookups = overviewLookupsV6230();
-    const rows = normalizeRowsV6230(rawRows, lookups);
-    st.normalizedRowsV6230 = rows;
-    st.normalizedRowsSignatureV6230 = sig;
-    window.remakeFactorState = st;
-    return rows;
-  }
-
-  function summarizeV6230(rows) {
-    const cases = new Set();
-    const remakeCases = new Set();
-    let totalFallback = 0;
-    let remakeFallback = 0;
-    let totalUnits = 0;
-    let remakeUnits = 0;
-    let remakeDiscount = 0;
-    (rows || []).forEach(row => {
-      const cid = caseIdV6230(row);
-      if (cid) cases.add(cid); else totalFallback += numV6230(row.totalCases) || 1;
-      totalUnits += numV6230(row.quantity !== undefined ? row.quantity : row.units);
-      if (isRemakeV6230(row)) {
-        if (cid) remakeCases.add(cid); else remakeFallback += numV6230(row.remakeCases) || 1;
-        remakeUnits += numV6230(row.remakeUnits !== undefined ? row.remakeUnits : (row.quantity !== undefined ? row.quantity : row.units));
-        remakeDiscount += Math.abs(numV6230(row.remakeDiscount));
-      }
-    });
-    const totalCases = cases.size + totalFallback;
-    const remakeCaseCount = remakeCases.size + remakeFallback;
-    return {
-      totalCases,
-      remakeCases: remakeCaseCount,
-      totalUnits,
-      remakeUnits,
-      remakeDiscount,
-      remakeCaseRate: totalCases ? remakeCaseCount / totalCases : 0,
-      remakeUnitRate: totalUnits ? remakeUnits / totalUnits : 0
-    };
-  }
-
-  function groupV6230(rows, keyGetter, labelGetter, extraReducer) {
-    const groups = new Map();
-    (rows || []).forEach(row => {
-      const key = textV6230(keyGetter(row), 'Not specified');
-      if (!groups.has(key)) groups.set(key, { key, label: textV6230(labelGetter ? labelGetter(row) : key, key), rows: [] });
-      const group = groups.get(key);
-      group.rows.push(row);
-      if (extraReducer) extraReducer(group, row);
-    });
-    return Array.from(groups.values()).map(group => Object.assign(group, summarizeV6230(group.rows)));
-  }
-
-  function syncFiltersFromControlsV6230() {
-    Object.keys(filterMetaV6245).forEach(kind => {
+  function globalSearchMatchesV6304(query) {
+    const clean = textV6230(query, '');
+    if (!clean) return [];
+    const matches = [];
+    globalSearchKindsV6304.forEach(function(kind) {
       const meta = filterMetaV6245[kind];
-      const el = idV6230(meta.inputId);
-      if (!el) return;
-      try {
-        const parsed = JSON.parse(el.value || '[]');
-        if (!(excludedFilterValuesV6389(kind).length && Array.isArray(parsed) && !parsed.length)) setFilterValuesV6245(kind, parsed);
-      } catch (error) {
-        if (!excludedFilterValuesV6389(kind).length) setFilterValuesV6245(kind, []);
-      }
+      allOptionsForDropdownV6245(kind).forEach(function(option) {
+        const label = textV6230(option && option.label, option && option.value);
+        const value = textV6230(option && option.value, label);
+        const fuzzyScore = window.dashboardFuzzySearchV6412.score(
+          label + ' ' + value + ' ' + (meta ? meta.label : kind),
+          clean
+        );
+        if (fuzzyScore <= 0) return;
+        matches.push({ kind: kind, kindLabel: meta ? meta.label : kind, label: label, value: value, score: fuzzyScore });
+      });
     });
-    writeLocalJsonV6230(FILTERS_KEY_V6230, uiV6230.filters);
+    return matches.sort(function(a,b){ return b.score-a.score || globalSearchKindsV6304.indexOf(a.kind)-globalSearchKindsV6304.indexOf(b.kind) || a.label.localeCompare(b.label,undefined,{numeric:true,sensitivity:'base'}); }).slice(0,60);
   }
-  function syncFilterControlsV6230() {
-    Object.keys(filterMetaV6245).forEach(kind => {
-      const meta = filterMetaV6245[kind];
-      const el = idV6230(meta.inputId);
-      if (el) el.value = JSON.stringify(filterValuesV6245(kind));
-      renderDropdownButtonV6245(kind);
-      const panel = idV6230(meta.panelId);
-      if (panel && panel.classList.contains('open')) window.renderRemakeDropdownListV6245(kind);
-    });
-  }
-  function currentFiltersV6230() { syncFiltersFromControlsV6230(); return uiV6230.filters; }
-  function rowsForFiltersV6230(rows, options) {
-    const includeMonths = !options || options.months !== false;
-    const includeYear = !(options && options.year === false);
-    const includeDepartment = !(options && options.department === false);
-    const includeProduct = !(options && options.product === false);
-    const includeProductGroup = !(options && options.productGroup === false);
-    const includeCustomer = !(options && options.customer === false);
-    const includeReason = !(options && options.reason === false);
-    const selectedMonths = uiV6230.selectedMonths || new Set();
-
-    /* v6.333: compile filter membership once per pass. The prior predicate
-       rebuilt the selected arrays for every field on every row, which caused
-       a visible main-thread pause before cross-filter transitions. */
-    const compiledFiltersV6333 = {};
-    ['year','department','product','productGroup','customer','reason'].forEach(function(kind) {
-      const values = filterValuesV6245(kind).map(String);
-      const excluded = excludedFilterValuesV6389(kind).map(String);
-      compiledFiltersV6333[kind] = {
-        none: values.length === 1 && values[0] === REMAKE_NONE_FILTER_VALUE_V6308,
-        values: values.length ? new Set(values) : null,
-        excluded: excluded.length ? new Set(excluded) : null
-      };
-    });
-    function matchesCompiledFilterV6333(kind, value) {
-      const filter = compiledFiltersV6333[kind];
-      if (!filter || filter.none) return false;
-      const text = String(value);
-      if (filter.values) return filter.values.has(text);
-      return !filter.excluded || !filter.excluded.has(text);
-    }
-
-    return (rows || []).filter(row =>
-      (!includeYear || matchesCompiledFilterV6333('year', row.year)) &&
-      (!includeDepartment || matchesCompiledFilterV6333('department', row.department)) &&
-      (!includeProduct || matchesCompiledFilterV6333('product', row.productKey)) &&
-      (!includeProductGroup || matchesCompiledFilterV6333('productGroup', row.productGroup || row.department || 'Unassigned')) &&
-      (!includeCustomer || matchesCompiledFilterV6333('customer', row.customerKey)) &&
-      (!includeReason || matchesCompiledFilterV6333('reason', row.remakeReason)) &&
-      (!includeMonths || !selectedMonths.size || selectedMonths.has(row.month))
-    );
-  }
-
-  /* v6.252 denominator logic:
-     Year/month, department, product, and customer filters define the full case base.
-     Reason filters are remake-only, so they narrow the numerator but never shrink Total Cases. */
-  function rowsForBaseFiltersV6252(rows, options) {
-    return rowsForFiltersV6230(rows, Object.assign({}, options || {}, { reason: false }));
-  }
-  function rowsForRemakeFiltersV6252(rows, options) {
-    return rowsForFiltersV6230(rows, options || {});
-  }
-  function summarizeSplitV6252(totalRows, remakeRows) {
-    const cases = new Set();
-    let totalFallback = 0;
-    let totalUnits = 0;
-    (totalRows || []).forEach(row => {
-      const cid = caseIdV6230(row);
-      if (cid) cases.add(cid); else totalFallback += numV6230(row.totalCases) || 1;
-      totalUnits += numV6230(row.quantity !== undefined ? row.quantity : row.units);
-    });
-
-    const remakeCases = new Set();
-    let remakeFallback = 0;
-    let remakeUnits = 0;
-    let remakeDiscount = 0;
-    (remakeRows || []).filter(isRemakeV6230).forEach(row => {
-      const cid = caseIdV6230(row);
-      if (cid) remakeCases.add(cid); else remakeFallback += numV6230(row.remakeCases) || 1;
-      remakeUnits += numV6230(row.remakeUnits !== undefined ? row.remakeUnits : (row.quantity !== undefined ? row.quantity : row.units));
-      remakeDiscount += Math.abs(numV6230(row.remakeDiscount));
-    });
-
-    const totalCases = cases.size + totalFallback;
-    const remakeCaseCount = remakeCases.size + remakeFallback;
-    return {
-      totalCases,
-      remakeCases: remakeCaseCount,
-      totalUnits,
-      remakeUnits,
-      remakeDiscount,
-      remakeCaseRate: totalCases ? remakeCaseCount / totalCases : 0,
-      remakeUnitRate: totalUnits ? remakeUnits / totalUnits : 0
-    };
-  }
-  function groupSplitV6252(totalRows, remakeRows, keyGetter, labelGetter, extraReducer) {
-    const groups = new Map();
-    function ensureGroup(row) {
-      const key = textV6230(keyGetter(row), 'Not specified');
-      if (!groups.has(key)) groups.set(key, { key, label: textV6230(labelGetter ? labelGetter(row) : key, key), rows: [], totalRows: [], remakeRows: [] });
-      const group = groups.get(key);
-      if (extraReducer) extraReducer(group, row);
-      return group;
-    }
-    (totalRows || []).forEach(row => {
-      const group = ensureGroup(row);
-      group.rows.push(row);
-      group.totalRows.push(row);
-    });
-    (remakeRows || []).filter(isRemakeV6230).forEach(row => {
-      const group = ensureGroup(row);
-      group.remakeRows.push(row);
-    });
-    return Array.from(groups.values()).map(group => Object.assign(group, summarizeSplitV6252(group.totalRows, group.remakeRows)));
-  }
-  function monthlyGroupsSplitV6252(totalRows, remakeRows) {
-    return groupSplitV6252(totalRows, remakeRows, row => row.month || 'Unknown', row => row.month || 'Unknown')
-      .filter(row => row.key !== 'Unknown')
-      .sort((a, b) => sortMonthV6230(a.key, b.key))
-      .slice(-24);
-  }
-  function reasonFilterActiveV6252() {
-    return filterValuesV6245('reason').length > 0 || excludedFilterValuesV6389('reason').length > 0;
-  }
-  function remakeCasesHeaderV6252() {
-    return reasonFilterActiveV6252() ? 'Reason Remakes' : 'Remake Cases';
-  }
-  function remakeRateHeaderV6252() {
-    return reasonFilterActiveV6252() ? 'Reason Rate' : 'Case Rate';
-  }
-  function normalizeOptionsV6245(options) { const seen = new Set(); const clean = []; (options || []).forEach(opt => { const value = textV6230(opt && opt.value !== undefined ? opt.value : opt, ''); const label = textV6230(opt && opt.label !== undefined ? opt.label : opt, value); if (!value || seen.has(value)) return; seen.add(value); clean.push({ value, label, active: opt && opt.active }); }); return clean.sort((a,b)=>a.label.localeCompare(b.label,undefined,{numeric:true,sensitivity:'base'})); }
-  function fillSelectV6230(id, allLabel, options, selected) {
-    const map={remakeYearFilter:'year',remakeDepartmentFilter:'department',remakeProductFilter:'product',remakeCustomerFilter:'customer',remakeReasonFilter:'reason'};
-    const kind=map[id];
-    if (!kind) return;
-    uiV6230.filterOptionsV6245[kind]=normalizeOptionsV6245(options);
-    renderDropdownButtonV6245(kind);
-    const meta=filterMetaV6245[kind];
-    const panel=meta?idV6230(meta.panelId):null;
-    if(panel&&panel.classList.contains('open')) window.renderRemakeDropdownListV6245(kind);
-  }
-  function populateFiltersV6230(rows) {
-    // v6.300: filter inventories are based on the full normalized data set, not
-    // the current cross-filter. Rebuilding thousands of hidden dropdown rows on
-    // every table click was the main source of the visible freeze/twitch.
-    if (uiV6230.filterOptionRowsV6300 === rows && uiV6230.filterOptionsV6245) {
-      syncFilterControlsV6230();
-      writeLocalJsonV6230(FILTERS_KEY_V6230, uiV6230.filters);
+  window.renderRemakeGlobalSearchV6304 = function renderRemakeGlobalSearchV6304() {
+    const input = idV6230('remakeGlobalSearchInputV6304');
+    const results = idV6230('remakeGlobalSearchResultsV6304');
+    if (!results) return;
+    ensureGlobalSearchDraftV6305();
+    updateGlobalSearchActionsV6305();
+    const query = input ? input.value : '';
+    if (!textV6230(query,'')) {
+      results.innerHTML = '<div class="remakeGlobalSearchEmptyV6304">Search all five dropdowns, check everything you need, then choose Apply.</div>';
       return;
     }
-    fillSelectV6230('remakeYearFilter','All years',Array.from(new Set((rows||[]).map(row=>row.year).filter(Boolean))).sort((a,b)=>Number(b)-Number(a)).map(year=>({value:String(year),label:String(year)})),uiV6230.filters.year);
-    fillSelectV6230('remakeDepartmentFilter','All departments',Array.from(new Set((rows||[]).map(row=>row.department).filter(Boolean))).map(dept=>({value:dept,label:dept})),uiV6230.filters.department);
-    fillSelectV6230('remakeProductFilter','All products',groupV6230(rows,row=>row.productKey,row=>row.productName).map(row=>({value:row.key,label:row.label})),uiV6230.filters.product);
-    uiV6230.filterOptionsV6245.productGroup = normalizeOptionsV6245(groupV6230(rows,row=>row.productGroup || row.department || 'Unassigned',row=>row.productGroup || row.department || 'Unassigned').map(row=>({value:row.key,label:row.label})));
-    fillSelectV6230('remakeCustomerFilter','All customers',groupV6230(rows,row=>row.customerKey,row=>customerLabelV6246(row),(group,row)=>{group.customerId=row.customerId||row.customerKey; group.customerName=row.customerName||row.customerKey; group.practiceName=row.practiceName||''; group.customerDisplayLabel=customerLabelV6246(row); if(row.customerActive===false) group.active=false;}).map(row=>({value:row.key,label:row.label,active:row.active!==false})),uiV6230.filters.customer);
-    fillSelectV6230('remakeReasonFilter','All reasons',Array.from(new Set((rows||[]).filter(isRemakeV6230).map(row=>row.remakeReason||'Not specified'))).map(reason=>({value:reason,label:reason})),uiV6230.filters.reason);
-    uiV6230.filterOptionRowsV6300 = rows;
-    syncFilterControlsV6230(); writeLocalJsonV6230(FILTERS_KEY_V6230, uiV6230.filters);
+    const matches = globalSearchMatchesV6304(query);
+    if (!matches.length) {
+      results.innerHTML = '<div class="remakeGlobalSearchEmptyV6304">No matching filter values.</div>';
+      return;
+    }
+    results.innerHTML = matches.map(function(match){
+      const selected = globalSearchDraftSetV6305(match.kind).has(String(match.value));
+      const inputId = 'remakeGlobalSearchChoiceV6305_' + match.kind + '_' + Math.abs(hashStringV6305(String(match.value)));
+      return '<label class="remakeGlobalSearchResultV6304' + (selected ? ' selected' : '') + '" for="' + escV6230(inputId) + '">'
+        + '<span class="remakeGlobalSearchKindV6304">' + escV6230(match.kindLabel) + '</span>'
+        + '<span class="remakeGlobalSearchLabelV6304">' + escV6230(match.label) + '</span>'
+        + '<input id="' + escV6230(inputId) + '" class="remakeGlobalSearchCheckboxV6305" type="checkbox" ' + (selected ? 'checked ' : '')
+        + 'onchange="toggleRemakeGlobalSearchDraftV6305(\'' + escJsV6230(match.kind) + '\',\'' + escJsV6230(match.value) + '\',this.checked)">'
+        + '</label>';
+    }).join('');
+  };
+  function hashStringV6305(value) {
+    let hash = 0;
+    const text = String(value || '');
+    for (let i = 0; i < text.length; i += 1) hash = ((hash << 5) - hash + text.charCodeAt(i)) | 0;
+    return hash;
   }
-  function filterLabelV6230(kind,value){ if(!value) return ''; const opt=filterOptionLabelV6245(kind,value); if(opt) return opt; return String(value); }
-  function pillKindLabelV6247(kind) {
-    return kind === 'year' ? 'Year' : kind === 'department' ? 'Department' : kind === 'product' ? 'Product' : kind === 'productGroup' ? 'Group' : kind === 'customer' ? 'Customer' : kind === 'reason' ? 'Reason' : 'Month';
-  }
-  function compactPillLabelV6247(kind, values, labelGetter) {
-    const labels = (values || []).map(value => labelGetter ? labelGetter(value) : String(value)).filter(Boolean);
-    if (!labels.length) return '';
-    const shown = labels.slice(0, 2).join(', ');
-    const extra = labels.length > 2 ? ' +' + (labels.length - 2) : '';
-    return pillKindLabelV6247(kind) + ': ' + shown + extra;
-  }
-  function renderPillsV6230(){
-    const rail = idV6230('remakePillsV6230');
-    if (!rail) return;
-    const pills = [];
-    ['year','department','product','productGroup','customer','reason'].forEach(kind => {
-      const excluded = excludedFilterValuesV6389(kind);
-      const values = filterValuesV6245(kind);
-      if (excluded.length) {
-        const fullTitle = excluded.map(value => pillKindLabelV6247(kind) + ' excluded: ' + filterLabelV6230(kind, value)).join('\n');
-        const labels = excluded.map(value => filterLabelV6230(kind, value)).filter(Boolean);
-        const shown = labels.slice(0, 2).join(', ');
-        const extra = labels.length > 2 ? ' +' + (labels.length - 2) : '';
-        pills.push({ clear: kind, label: pillKindLabelV6247(kind) + ' excluded: ' + shown + extra, title: fullTitle });
-        return;
-      }
-      if (!values.length) return;
-      const fullTitle = values.map(value => pillKindLabelV6247(kind) + ': ' + filterLabelV6230(kind, value)).join('\n');
-      const label = compactPillLabelV6247(kind, values, value => filterLabelV6230(kind, value));
-      pills.push({ clear: kind, label, title: fullTitle });
+  window.toggleRemakeGlobalSearchDraftV6305 = function toggleRemakeGlobalSearchDraftV6305(kind, value, checked) {
+    if (!filterMetaV6245[kind]) return;
+    const selected = globalSearchDraftSetV6305(kind);
+    const text = String(value);
+    if (checked) { selected.delete(REMAKE_NONE_FILTER_VALUE_V6308); selected.add(text); }
+    else selected.delete(text);
+    window.renderRemakeGlobalSearchV6304();
+  };
+  window.clearRemakeGlobalSearchDraftV6305 = function clearRemakeGlobalSearchDraftV6305() {
+    const draft = ensureGlobalSearchDraftV6305();
+    globalSearchKindsV6304.forEach(function(kind){ draft[kind] = new Set(); });
+    window.renderRemakeGlobalSearchV6304();
+  };
+  function globalSearchSelectionsChangedV6305() {
+    const draft = ensureGlobalSearchDraftV6305();
+    return globalSearchKindsV6304.some(function(kind){
+      const current = Array.from(effectiveSelectionSetV6250(kind)).map(String).sort();
+      const next = Array.from(draft[kind] || []).map(String).sort();
+      return current.length !== next.length || current.some(function(value,index){ return value !== next[index]; });
     });
-    const months = Array.from(uiV6230.selectedMonths || []).sort(sortMonthV6230);
-    if (months.length) {
-      pills.push({
-        clear: 'months',
-        label: compactPillLabelV6247('month', months, month => monthLabelV6230(month)),
-        title: months.map(month => 'Month: ' + monthLabelV6230(month)).join('\n')
+  }
+  window.applyRemakeGlobalSearchSelectionsV6305 = function applyRemakeGlobalSearchSelectionsV6305() {
+    const draft = ensureGlobalSearchDraftV6305();
+    const changed = globalSearchSelectionsChangedV6305();
+    if (changed) pushRemakeUndoV6266();
+    globalSearchKindsV6304.forEach(function(kind){
+      commitEffectiveSelectionV6389(kind, Array.from(draft[kind] || []));
+    });
+    persistUiV6230();
+    syncFilterControlsV6230();
+    window.closeRemakeGlobalSearchV6304();
+    if (changed) renderDashboardV6230();
+  };
+  window.openRemakeGlobalSearchV6304 = function openRemakeGlobalSearchV6304() {
+    const panel = idV6230('remakeGlobalSearchPanelV6304');
+    const button = idV6230('remakeGlobalSearchButtonV6304');
+    if (!panel) return;
+    Object.keys(filterMetaV6245).forEach(function(kind){ const meta=filterMetaV6245[kind]; const dropdown=idV6230(meta.panelId); const trigger=idV6230(meta.buttonId); if(dropdown) dropdown.classList.remove('open'); if(trigger) trigger.classList.remove('active'); });
+    globalSearchDraftV6305 = createGlobalSearchDraftV6305();
+    panel.classList.add('open');
+    if (button) button.setAttribute('aria-expanded','true');
+    window.renderRemakeGlobalSearchV6304();
+    const input = idV6230('remakeGlobalSearchInputV6304');
+    if (input) setTimeout(function(){ input.focus(); input.select(); }, 20);
+  };
+  window.closeRemakeGlobalSearchV6304 = function closeRemakeGlobalSearchV6304() {
+    const panel = idV6230('remakeGlobalSearchPanelV6304');
+    const button = idV6230('remakeGlobalSearchButtonV6304');
+    if (panel) panel.classList.remove('open');
+    if (button) button.setAttribute('aria-expanded','false');
+    globalSearchDraftV6305 = null;
+  };
+  window.toggleRemakeGlobalSearchV6304 = function toggleRemakeGlobalSearchV6304(event) {
+    if (event) { event.preventDefault(); event.stopPropagation(); }
+    const panel = idV6230('remakeGlobalSearchPanelV6304');
+    if (panel && panel.classList.contains('open')) window.closeRemakeGlobalSearchV6304();
+    else window.openRemakeGlobalSearchV6304();
+  };
+  window.handleRemakeGlobalSearchKeyV6304 = function handleRemakeGlobalSearchKeyV6304(event) {
+    if (!event) return;
+    if (event.key === 'Escape') { event.preventDefault(); window.closeRemakeGlobalSearchV6304(); return; }
+    if (event.key === 'Enter') {
+      const first = document.querySelector('#remakeGlobalSearchResultsV6304 .remakeGlobalSearchCheckboxV6305');
+      if (first) { event.preventDefault(); first.click(); }
+    }
+  };
+  window.applyRemakeGlobalSearchResultV6304 = function applyRemakeGlobalSearchResultV6304(kind, value) {
+    if (!filterMetaV6245[kind]) return;
+    const selected = globalSearchDraftSetV6305(kind);
+    const text = String(value);
+    if (selected.has(text)) selected.delete(text);
+    else { selected.delete(REMAKE_NONE_FILTER_VALUE_V6308); selected.add(text); }
+    window.renderRemakeGlobalSearchV6304();
+  };
+  document.addEventListener('click', function closeGlobalSearchOutsideV6304(event) {
+    const target = event && event.target;
+    if (target && target.closest && target.closest('#remakeFactorPage .remakeGlobalSearchBarV6304')) return;
+    window.closeRemakeGlobalSearchV6304();
+  });
+
+  function kpiYearValuesV6281(rows) {
+    return Array.from(new Set((rows || []).map(row => Number(row.year)).filter(year => Number.isFinite(year)))).sort((a, b) => a - b);
+  }
+  function kpiMonthNumberV6281(row) {
+    const key = String(row && row.month ? row.month : '');
+    const n = Number(key.slice(5, 7));
+    return Number.isFinite(n) && n >= 1 && n <= 12 ? String(n).padStart(2, '0') : '';
+  }
+  function kpiSelectedMonthNumbersV6281() {
+    const selected = uiV6230.selectedMonths || new Set();
+    const values = Array.from(selected).map(key => String(key).slice(5, 7)).filter(mm => /^\d{2}$/.test(mm));
+    return new Set(values);
+  }
+
+  function remakeInvoiceDayV6306(row) {
+    const raw = textV6230(row && row.invoiceDate, '');
+    const iso = raw.match(/^\d{4}-\d{2}-(\d{2})/);
+    if (iso) return Number(iso[1]) || 0;
+    const parsed = raw ? new Date(raw) : null;
+    return parsed && Number.isFinite(parsed.getTime()) ? parsed.getDate() : 0;
+  }
+  function remakeComparisonDateScopeV6306(rows, currentYear, priorYear, months) {
+    const monthNumbers = Array.from(months || []).map(Number).filter(month => month >= 1 && month <= 12).sort((a, b) => a - b);
+    const latestMonth = monthNumbers.length ? monthNumbers[monthNumbers.length - 1] : 0;
+    const now = new Date();
+    let maxCurrentDay = 0;
+    (rows || []).forEach(row => {
+      if (Number(row.year) !== Number(currentYear)) return;
+      if (Number(kpiMonthNumberV6281(row)) !== Number(latestMonth)) return;
+      maxCurrentDay = Math.max(maxCurrentDay, remakeInvoiceDayV6306(row));
+    });
+    const sameOpenCalendarMonth = Number(currentYear) === now.getFullYear() && latestMonth === (now.getMonth() + 1);
+    const daysInMonth = latestMonth ? new Date(Number(currentYear), latestMonth, 0).getDate() : 0;
+    const cutoffDay = sameOpenCalendarMonth && maxCurrentDay ? Math.min(maxCurrentDay, now.getDate()) : 0;
+    const isPartialMonth = !!(sameOpenCalendarMonth && cutoffDay && cutoffDay < daysInMonth);
+    return { currentYear, priorYear, latestMonth, cutoffDay, daysInMonth, isPartialMonth };
+  }
+  function remakeRowWithinAlignedPriorPeriodV6306(row, scope) {
+    if (!scope || !scope.isPartialMonth) return true;
+    if (Number(row && row.year) !== Number(scope.priorYear)) return true;
+    if (Number(kpiMonthNumberV6281(row)) !== Number(scope.latestMonth)) return true;
+    const day = remakeInvoiceDayV6306(row);
+    return !day || day <= Number(scope.cutoffDay || 0);
+  }
+  function remakePartialMonthNoteV6306(scope) {
+    if (!scope || !scope.isPartialMonth) return '';
+    const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const monthLabel = monthNames[Math.max(0, Number(scope.latestMonth || 1) - 1)] || 'Current month';
+    return 'Partial-month comparison: ' + monthLabel + ' 1-' + scope.cutoffDay + ', ' + scope.currentYear + ' vs ' + monthLabel + ' 1-' + scope.cutoffDay + ', ' + scope.priorYear + '. Completed months use full-month totals.';
+  }
+  function setRemakeComparisonDateNoteV6306(scope) {
+    // v6.307: Preserve the comparison-period calculation for the tooltip,
+    // but do not render a persistent banner above the chart.
+    return scope;
+  }
+  function selectedKpiYearV6281(rows) {
+    const yearFilter = Array.from(effectiveSelectionSetV6250('year')).map(value => Number(value)).filter(year => Number.isFinite(year));
+    if (yearFilter.length) return Math.max.apply(null, yearFilter);
+    const years = kpiYearValuesV6281(rows);
+    return years.length ? years[years.length - 1] : null;
+  }
+  function kpiComparisonV6281(allRows, optionsV6407) {
+    const baseNoYear = rowsForBaseFiltersV6252(allRows, { year: false, months: false });
+    const remakeNoYear = rowsForRemakeFiltersV6252(allRows, { year: false, months: false });
+    /* v6.311 stable calendar context.
+       A department, product, reason, or customer selection may change values,
+       but it must not shorten the comparison window merely because that item
+       has no activity in a later month. Explicit month selections still win. */
+    const currentYear = selectedKpiYearV6281(allRows);
+    const priorYear = currentYear ? currentYear - 1 : null;
+    // v6.407: chart highlighting is presentation-only. The trend can ask for
+    // a stable comparison scope that ignores highlighted months, while KPIs and
+    // the rest of the dashboard continue to honor the active month selection.
+    const ignoreHighlightedMonthsV6407 = !!(optionsV6407 && optionsV6407.ignoreHighlightedMonths);
+    const selectedMonths = ignoreHighlightedMonthsV6407 ? new Set() : kpiSelectedMonthNumbersV6281();
+    let months = selectedMonths;
+    if (!months.size && currentYear) {
+      months = new Set((allRows || []).filter(row => Number(row.year) === currentYear).map(kpiMonthNumberV6281).filter(Boolean));
+    }
+    const dateScopeV6306 = remakeComparisonDateScopeV6306(allRows, currentYear, priorYear, months);
+    function inYearAndMonths(row, year) {
+      if (!year || Number(row.year) !== Number(year)) return false;
+      const mm = kpiMonthNumberV6281(row);
+      if (months.size && !months.has(mm)) return false;
+      return remakeRowWithinAlignedPriorPeriodV6306(row, dateScopeV6306);
+    }
+    const currentTotalRows = baseNoYear.filter(row => inYearAndMonths(row, currentYear));
+    const currentRemakeRows = remakeNoYear.filter(row => inYearAndMonths(row, currentYear));
+    const priorTotalRows = baseNoYear.filter(row => inYearAndMonths(row, priorYear));
+    const priorRemakeRows = remakeNoYear.filter(row => inYearAndMonths(row, priorYear));
+    return {
+      currentYear,
+      priorYear,
+      months: Array.from(months).sort(),
+      dateScopeV6306,
+      current: summarizeSplitV6252(currentTotalRows, currentRemakeRows),
+      prior: summarizeSplitV6252(priorTotalRows, priorRemakeRows)
+    };
+  }
+  function kpiDeltaHtmlV6281(metric, current, prior, priorYear, formatter, options) {
+    const priorValue = numV6230(prior && prior[metric]);
+    if (!priorYear || !Number.isFinite(priorValue) || Math.abs(priorValue) < 0.0000001) return '';
+    const currentValue = numV6230(current && current[metric]);
+    const delta = currentValue - priorValue;
+    const higherIsBad = !!(options && options.higherIsBad);
+    const neutral = Math.abs(delta) < 0.0000001;
+    const good = neutral ? false : (higherIsBad ? delta < 0 : delta > 0);
+    const isRateMetric = metric === 'remakeCaseRate' || metric === 'remakeUnitRate';
+    const pct = delta / Math.abs(priorValue);
+    const sign = delta > 0 ? '+' : '';
+    const deltaText = isRateMetric
+      ? sign + (delta * 100).toFixed(1) + '%'
+      : sign + Math.round(pct * 100) + '%';
+    const cls = neutral ? 'neutral' : (good ? 'good' : 'bad');
+    return '<span class="priorV6281">' + escV6230(priorYear + ': ' + formatter(priorValue)) + '</span><span class="deltaV6281 ' + cls + '">' + escV6230(deltaText) + '</span>';
+  }
+  function setKpisV6230(summary, priorSummary, meta) {
+    summary = summary || {};
+    priorSummary = priorSummary || {};
+    meta = meta || {};
+    const priorYear = meta.priorYear || '';
+    const configs = [
+      { id: 'remakeTotalCases', metric: 'totalCases', value: fmtCountV6230(summary.totalCases), formatter: v => fmtCountV6230(v), higherIsBad: false },
+      { id: 'remakeCases', metric: 'remakeCases', value: fmtCountV6230(summary.remakeCases), formatter: v => fmtCountV6230(v), higherIsBad: true },
+      { id: 'remakeCaseRate', metric: 'remakeCaseRate', value: fmtPctV6230(summary.remakeCaseRate), formatter: v => fmtPctV6230(v), higherIsBad: true },
+      { id: 'remakeTotalUnits', metric: 'totalUnits', value: fmtCountV6230(summary.totalUnits, 1), formatter: v => fmtCountV6230(v, 1), higherIsBad: false },
+      { id: 'remakeUnits', metric: 'remakeUnits', value: fmtCountV6230(summary.remakeUnits, 1), formatter: v => fmtCountV6230(v, 1), higherIsBad: true },
+      { id: 'remakeUnitRate', metric: 'remakeUnitRate', value: fmtPctV6230(summary.remakeUnitRate), formatter: v => fmtPctV6230(v), higherIsBad: true },
+      { id: 'remakeDiscount', metric: 'remakeDiscount', value: fmtCurrencyV6230(summary.remakeDiscount), formatter: v => fmtCurrencyV6230(v), higherIsBad: true }
+    ];
+    configs.forEach(config => {
+      const el = idV6230(config.id);
+      if (el) el.textContent = config.value;
+      const sub = idV6230(config.id + 'Sub');
+      if (sub) sub.innerHTML = kpiDeltaHtmlV6281(config.metric, summary, priorSummary, priorYear, config.formatter, { higherIsBad: config.higherIsBad });
+    });
+  }
+
+  function monthlyGroupsV6230(rows) {
+    return groupV6230(rows, row => row.month || 'Unknown', row => row.month || 'Unknown').filter(row => row.key !== 'Unknown').sort((a, b) => sortMonthV6230(a.key, b.key)).slice(-24);
+  }
+
+  function setModeButtonsV6230() {
+    [['line', 'remakeModeLineV6230'], ['bar', 'remakeModeBarV6230'], ['mom', 'remakeModeMomV6230']].forEach(([mode, id]) => {
+      const el = idV6230(id);
+      if (el) { const active = uiV6230.mode === mode; el.classList.toggle('active', active); el.setAttribute('aria-pressed', active ? 'true' : 'false'); }
+    });
+    [['cases', 'remakeMeasureCasesV6245'], ['units', 'remakeMeasureUnitsV6245']].forEach(([measure, id]) => {
+      const el = idV6230(id);
+      if (el) { const active = (uiV6230.trendMeasure || 'cases') === measure; el.classList.toggle('active', active); el.setAttribute('aria-pressed', active ? 'true' : 'false'); }
+    });
+    [['total', 'remakeValueTotalV6247'], ['percent', 'remakeValuePercentV6247']].forEach(([mode, id]) => {
+      const el = idV6230(id);
+      if (el) { const active = (uiV6230.trendValueMode || 'total') === mode; el.classList.toggle('active', active); el.setAttribute('aria-pressed', active ? 'true' : 'false'); }
+    });
+    const viewGroup = idV6230('remakeTrendViewGroupV6304');
+    const monthly = idV6230('remakeMonthlyV6304');
+    const cumulative = idV6230('remakeCumulativeV6302');
+    const allowed = (uiV6230.mode || 'line') === 'line' && (uiV6230.trendValueMode || 'total') === 'total';
+    const cumulativeActive = allowed && uiV6230.trendCumulative === true;
+    if (viewGroup) {
+      viewGroup.hidden = !allowed;
+      viewGroup.setAttribute('aria-hidden', allowed ? 'false' : 'true');
+    }
+    if (monthly) {
+      monthly.classList.toggle('active', allowed && !cumulativeActive);
+      monthly.setAttribute('aria-pressed', allowed && !cumulativeActive ? 'true' : 'false');
+    }
+    if (cumulative) {
+      cumulative.classList.toggle('active', cumulativeActive);
+      cumulative.setAttribute('aria-pressed', cumulativeActive ? 'true' : 'false');
+    }
+  }
+
+  function renderTrendV6230(allRows, baseRows, remakeBaseRows) {
+    const canvas = idV6230('remakeTrendChartV6230');
+    if (!canvas) return;
+    // v6.407: derive the trend comparison period without the highlighted
+    // months. This prevents Jan-Mar highlighting from shortening the chart's
+    // aligned comparison window or changing any monthly/cumulative values.
+    const trendComparisonPackV6407 = kpiComparisonV6281(allRows || [], { ignoreHighlightedMonths: true });
+    const trendComparisonScopeV6306 = {
+      currentYear: trendComparisonPackV6407.currentYear,
+      priorYear: trendComparisonPackV6407.priorYear,
+      months: new Set((trendComparisonPackV6407.months || []).map(mm => String(mm).padStart(2, '0'))),
+      dateScopeV6306: trendComparisonPackV6407.dateScopeV6306 || null
+    };
+    // Month clicks are visual highlights only for this chart. Rebuild the
+    // trend from the full non-month-filtered scope so selecting Jan-Mar greys
+    // the other months without changing their values.
+    const trendBaseSourceV6306 = rowsForBaseFiltersV6252(allRows, { months: false });
+    const trendRemakeSourceV6306 = rowsForRemakeFiltersV6252(allRows, { months: false });
+    const alignedTrendBaseV6306 = (trendBaseSourceV6306 || []).filter(row => remakeRowWithinAlignedPriorPeriodV6306(row, trendComparisonScopeV6306.dateScopeV6306));
+    const alignedTrendRemakesV6306 = (trendRemakeSourceV6306 || []).filter(row => remakeRowWithinAlignedPriorPeriodV6306(row, trendComparisonScopeV6306.dateScopeV6306));
+    const allGroups = monthlyGroupsSplitV6252(alignedTrendBaseV6306, alignedTrendRemakesV6306);
+    setRemakeComparisonDateNoteV6306(trendComparisonScopeV6306.dateScopeV6306);
+    uiV6230.lastTrendRows = allGroups;
+    const groupByMonth = new Map();
+    allGroups.forEach(row => groupByMonth.set(String(row.key), row));
+
+    const baseMonthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const selected = uiV6230.selectedMonths || new Set();
+    const mode = uiV6230.mode || 'line';
+    const measure = uiV6230.trendMeasure === 'units' ? 'units' : 'cases';
+    const valueMode = uiV6230.trendValueMode === 'percent' ? 'percent' : 'total';
+    const isPercent = valueMode === 'percent';
+    const isMom = mode === 'mom';
+    const isBar = mode === 'bar' || mode === 'mom';
+    const isUnits = measure === 'units';
+    const isCumulative = mode === 'line' && valueMode === 'total' && uiV6230.trendCumulative === true;
+
+    let years = Array.from(new Set(allGroups.map(row => String(row.key || '').slice(0, 4)).filter(year => /^\d{4}$/.test(year)))).sort();
+    const preferredYears = ['2025', '2026'].filter(year => years.indexOf(year) >= 0);
+    years = preferredYears.length ? preferredYears : years.slice(-2);
+
+    function valueForGroup(group) {
+      if (!group) return null;
+      const total = isUnits ? numV6230(group.remakeUnits) : numV6230(group.remakeCases);
+      const rate = numV6230(isUnits ? group.remakeUnitRate : group.remakeCaseRate) * 100;
+      return isPercent ? rate : total;
+    }
+    function formatValue(value) {
+      if (value === null || value === undefined || value === '') return '-';
+      const n = numV6230(value);
+      if (isMom) return isPercent ? fmtPpV6230(n) : ((n > 0 ? '+' : '') + fmtCountV6230(n, isUnits ? 1 : 0));
+      return isPercent ? n.toFixed(1) + '%' : fmtCountV6230(n, isUnits ? 1 : 0);
+    }
+
+    const orange = '#f59e0b';
+    const overviewPalette = {
+      current: {
+        border: '#2563eb',
+        area: 'rgba(37,99,235,.13)',
+        bar: '#4285f4',
+        barBorder: '#2f6fe4'
+      },
+      prior: {
+        border: '#8da2bd',
+        area: 'rgba(141,162,189,.08)',
+        bar: '#94a3b8',
+        barBorder: '#64748b'
+      },
+      extra: {
+        border: '#c47a2c',
+        area: 'rgba(196,122,44,.07)',
+        bar: '#d98b3f',
+        barBorder: '#b96a21'
+      }
+    };
+    const muted = 'rgba(148,163,184,.18)';
+    const metricLabel = isPercent ? (isUnits ? 'Unit remake rate' : 'Case remake rate') : (isUnits ? 'Remake units' : 'Remake cases');
+    const axisTitle = isMom
+      ? (isPercent ? 'Point Change' : (isUnits ? 'Unit Change' : 'Case Change'))
+      : (isCumulative ? (isUnits ? 'Cumulative Remake Units' : 'Cumulative Remake Cases') : (isPercent ? (isUnits ? 'Unit Rate' : 'Case Rate') : (isUnits ? 'Remake Units' : 'Remake Cases')));
+    const numericYears = years.map(year => Number(year)).filter(year => Number.isFinite(year));
+    const currentYear = numericYears.length ? Math.max.apply(null, numericYears) : Number(years[years.length - 1] || 2026);
+    const priorYear = numericYears.filter(year => year < currentYear).sort((a, b) => b - a)[0] || currentYear - 1;
+    const latestYtdMonthNumber = allGroups.reduce((maxMonth, row) => {
+      const key = String(row && row.key ? row.key : '');
+      const yearNumber = Number(key.slice(0, 4));
+      const monthNumber = Number(key.slice(5, 7));
+      if (!Number.isFinite(yearNumber) || !Number.isFinite(monthNumber) || monthNumber < 1 || monthNumber > 12) return maxMonth;
+      if (yearNumber === currentYear) return Math.max(maxMonth, monthNumber);
+      if (years.length === 1) return Math.max(maxMonth, monthNumber);
+      return maxMonth;
+    }, 0);
+    const monthNames = baseMonthNames.slice(0, Math.max(1, Math.min(12, latestYtdMonthNumber || 12)));
+    const selectedMonthIndexesV6407 = new Set();
+    if (selected.size) {
+      monthNames.forEach(function(label, monthIndex) {
+        const mm = String(monthIndex + 1).padStart(2, '0');
+        if (years.some(function(year) { return selected.has(String(year) + '-' + mm); })) {
+          selectedMonthIndexesV6407.add(monthIndex);
+        }
       });
     }
-    if (!pills.length) { rail.innerHTML = ''; return; }
-    rail.innerHTML = pills.map(pill => '<span class="remakePillV6230" title="' + escV6230(pill.title || pill.label) + '"><span>' + escV6230(pill.label) + '</span><button type="button" onclick="clearRemakeFilterV6230(\'' + escJsV6230(pill.clear) + '\')">x</button></span>').join('') + '<button type="button" class="remakeClearAllV6230" title="Reset all filters" aria-label="Reset all filters" onclick="clearRemakeFilterV6230(\'all\')">Reset all</button>';
+    const hasMonthHighlightV6407 = selectedMonthIndexesV6407.size > 0;
+
+    const datasets = years.map((year) => {
+      const yearNumber = Number(year);
+      const isCurrent = yearNumber === currentYear;
+      const isPrior = yearNumber === priorYear;
+      const color = isCurrent ? overviewPalette.current : isPrior ? overviewPalette.prior : overviewPalette.extra;
+      const monthKeys = monthNames.map((label, monthIndex) => year + '-' + String(monthIndex + 1).padStart(2, '0'));
+      const baseValues = monthKeys.map(key => valueForGroup(groupByMonth.get(key)));
+      let values = baseValues;
+      if (isMom) {
+        values = baseValues.map((value, index) => {
+          if (value === null || value === undefined) return null;
+          if (index === 0 || baseValues[index - 1] === null || baseValues[index - 1] === undefined) return null;
+          return value - baseValues[index - 1];
+        });
+      } else if (isCumulative) {
+        let running = 0;
+        let started = false;
+        values = baseValues.map(value => {
+          if (value === null || value === undefined) return started ? running : null;
+          running += numV6230(value);
+          started = true;
+          return running;
+        });
+      }
+      const dimPointV6407 = isCurrent ? 'rgba(100,116,139,.58)' : 'rgba(148,163,184,.48)';
+      const dimLineV6407 = isCurrent ? 'rgba(100,116,139,.54)' : 'rgba(148,163,184,.42)';
+      const pointBackground = monthKeys.map(function(key, index) {
+        if (!hasMonthHighlightV6407) return color.border;
+        return selectedMonthIndexesV6407.has(index) ? orange : dimPointV6407;
+      });
+      const pointRadius = monthKeys.map(function(key, index) {
+        if (!hasMonthHighlightV6407) return isCurrent ? 2.8 : 2.2;
+        return selectedMonthIndexesV6407.has(index) ? (isCurrent ? 5.2 : 4.2) : (isCurrent ? 2.0 : 1.5);
+      });
+      const pointHoverRadius = monthKeys.map(function(key, index) {
+        return hasMonthHighlightV6407 && selectedMonthIndexesV6407.has(index) ? 6.4 : (isCurrent ? 4.4 : 3.6);
+      });
+      const barBackground = monthKeys.map(function(key, index) {
+        if (!hasMonthHighlightV6407) return color.bar;
+        return selectedMonthIndexesV6407.has(index) ? 'rgba(245,158,11,.78)' : muted;
+      });
+      const barBorder = monthKeys.map(function(key, index) {
+        if (!hasMonthHighlightV6407) return color.barBorder;
+        return selectedMonthIndexesV6407.has(index) ? 'rgba(217,119,6,.98)' : 'rgba(148,163,184,.26)';
+      });
+      const momBackground = values.map((value, index) => {
+        const key = monthKeys[index];
+        if (value === null || value === undefined || !Number.isFinite(Number(value))) return 'rgba(0,0,0,0)';
+        if (selectedMonthIndexesV6407.has(index)) return 'rgba(245,158,11,.82)';
+        const positive = Number(value) > 0;
+        const negative = Number(value) < 0;
+        const alpha = hasMonthHighlightV6407 ? (isCurrent ? .18 : .10) : (isCurrent ? .78 : .30);
+        if (positive) return 'rgba(220,38,38,' + alpha + ')';
+        if (negative) return 'rgba(5,150,105,' + alpha + ')';
+        return isCurrent ? 'rgba(100,116,139,.52)' : 'rgba(148,163,184,.24)';
+      });
+      const momBorder = values.map((value, index) => {
+        const key = monthKeys[index];
+        if (selectedMonthIndexesV6407.has(index)) return 'rgba(217,119,6,.98)';
+        const positive = Number(value) > 0;
+        const negative = Number(value) < 0;
+        if (positive) return isCurrent ? 'rgba(185,28,28,.96)' : 'rgba(185,28,28,.52)';
+        if (negative) return isCurrent ? 'rgba(4,120,87,.96)' : 'rgba(4,120,87,.52)';
+        return isCurrent ? 'rgba(71,85,105,.86)' : 'rgba(100,116,139,.42)';
+      });
+      return {
+        label: String(year),
+        data: values,
+        monthKeys: monthKeys,
+        borderColor: isBar ? (isMom ? momBorder : barBorder) : color.border,
+        backgroundColor: isBar ? (isMom ? momBackground : barBackground) : 'transparent',
+        fill: false,
+        tension: isBar ? 0 : .38,
+        borderWidth: isBar ? 1.2 : (isCurrent ? 3.4 : isPrior ? 2.2 : 1.8),
+        borderDash: !isBar && !isCurrent ? (isPrior ? [7, 5] : [2, 5]) : [],
+        segment: !isBar && hasMonthHighlightV6407 ? {
+          borderColor: function(context) {
+            const p0 = Number(context && context.p0DataIndex);
+            const p1 = Number(context && context.p1DataIndex);
+            return selectedMonthIndexesV6407.has(p0) && selectedMonthIndexesV6407.has(p1) ? color.border : dimLineV6407;
+          }
+        } : undefined,
+        pointRadius: isBar ? 0 : pointRadius,
+        pointHoverRadius: isBar ? 0 : pointHoverRadius,
+        pointHitRadius: isBar ? 0 : 18,
+        pointBackgroundColor: isBar ? undefined : pointBackground,
+        pointBorderColor: '#fff',
+        pointBorderWidth: isBar ? 0 : 2,
+        maxBarThickness: isBar ? (isMom ? 38 : 34) : undefined,
+        categoryPercentage: isBar ? (isMom ? .76 : .72) : undefined,
+        barPercentage: isBar ? (isMom ? .86 : .82) : undefined,
+        borderRadius: isBar ? 0 : undefined,
+        borderSkipped: false,
+        spanGaps: false
+      };
+    });
+
+    const stableTooltipPluginV6248 = {
+      id: 'stableRemakeTrendTooltipV6248',
+      afterInit: function() {},
+      afterEvent: function() {}
+    };
+    const remakeMomPolishPluginV6302 = {
+      id: 'remakeMomPolishV6302',
+      beforeDatasetsDraw: function(chart, args, pluginOptions) {
+        if (!pluginOptions || pluginOptions.display !== true || !chart.chartArea || !chart.scales || !chart.scales.y) return;
+        const area = chart.chartArea;
+        const yScale = chart.scales.y;
+        const zeroY = Math.max(area.top, Math.min(area.bottom, yScale.getPixelForValue(0)));
+        const ctx = chart.ctx;
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(area.left, area.top, area.right - area.left, area.bottom - area.top);
+        ctx.clip();
+        if (zeroY > area.top) {
+          ctx.fillStyle = 'rgba(254,242,242,.38)';
+          ctx.fillRect(area.left, area.top, area.right - area.left, zeroY - area.top);
+        }
+        if (zeroY < area.bottom) {
+          ctx.fillStyle = 'rgba(236,253,245,.34)';
+          ctx.fillRect(area.left, zeroY, area.right - area.left, area.bottom - zeroY);
+        }
+        ctx.setLineDash([]);
+        ctx.lineWidth = 1.45;
+        ctx.strokeStyle = 'rgba(71,85,105,.68)';
+        ctx.beginPath();
+        ctx.moveTo(area.left, zeroY);
+        ctx.lineTo(area.right, zeroY);
+        ctx.stroke();
+        ctx.restore();
+
+        ctx.save();
+        ctx.font = '800 9.5px Roboto, Arial, sans-serif';
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'top';
+        ctx.fillStyle = '#b42318';
+        ctx.fillText('INCREASE = WORSE', area.right - 4, area.top + 4);
+        ctx.textBaseline = 'bottom';
+        ctx.fillStyle = '#067647';
+        ctx.fillText('DECREASE = BETTER', area.right - 4, area.bottom - 4);
+        ctx.restore();
+      },
+      afterDatasetsDraw: function(chart, args, pluginOptions) {
+        if (!pluginOptions || pluginOptions.display !== true || !chart.chartArea) return;
+        const area = chart.chartArea;
+        const currentYear = Number(pluginOptions.currentYear || 0);
+        const showPriorLabels = (area.right - area.left) >= 760;
+        const ctx = chart.ctx;
+        chart.data.datasets.forEach(function(dataset, datasetIndex) {
+          const isCurrent = Number(dataset.label) === currentYear;
+          if (!isCurrent && !showPriorLabels) return;
+          const meta = chart.getDatasetMeta(datasetIndex);
+          if (!meta || meta.hidden) return;
+          (meta.data || []).forEach(function(element, index) {
+            const raw = Number(dataset.data[index]);
+            if (!Number.isFinite(raw) || Math.abs(raw) < .0000001 || !element) return;
+            const props = typeof element.getProps === 'function' ? element.getProps(['x','y','base'], true) : element;
+            if (!props || !Number.isFinite(props.x) || !Number.isFinite(props.y) || !Number.isFinite(props.base)) return;
+            const positive = raw > 0;
+            const valueText = pluginOptions.isPercent
+              ? ((raw > 0 ? '+' : '') + raw.toFixed(1) + ' pp')
+              : ((raw > 0 ? '+' : '') + fmtCountV6230(raw, pluginOptions.isUnits ? 1 : 0));
+            const preferredY = positive ? Math.min(props.y, props.base) - 5 : Math.max(props.y, props.base) + 5;
+            const labelY = Math.max(area.top + 14, Math.min(area.bottom - 14, preferredY));
+            ctx.save();
+            ctx.font = (isCurrent ? '900 11px ' : '700 10px ') + 'Roboto, Arial, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = positive ? 'bottom' : 'top';
+            ctx.lineWidth = 3.5;
+            ctx.strokeStyle = 'rgba(255,255,255,.95)';
+            ctx.strokeText(valueText, props.x, labelY);
+            ctx.fillStyle = positive ? (isCurrent ? '#b42318' : '#a65b56') : (isCurrent ? '#067647' : '#4d806d');
+            ctx.fillText(valueText, props.x, labelY);
+            ctx.restore();
+          });
+        });
+      }
+    };
+    const trendConfigV6302 = {
+      type: isBar ? 'bar' : 'line',
+      plugins: [stableTooltipPluginV6248, remakeSelectedMonthBandPluginV6268, remakeTrendDragBandPluginV6266, remakeMomPolishPluginV6302],
+      data: {
+        labels: monthNames,
+        datasets: datasets
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: { duration: 85, easing: 'easeOutQuad' },
+        transitions: {
+          active: { animation: { duration: 45, easing: 'easeOutQuad' } },
+          resize: { animation: { duration: 70, easing: 'easeOutQuad' } }
+        },
+        layout: { padding: { top: 14, right: 6, bottom: 0, left: 2 } },
+        events: ['mousemove', 'mouseout', 'click', 'touchstart', 'touchmove'],
+        interaction: { mode: 'index', intersect: false },
+        hover: { mode: 'index', intersect: false, animationDuration: 0 },
+        onClick: function(event, elements, chart) {
+          if (chart && chart.$remakeSuppressNextClickV6266) { chart.$remakeSuppressNextClickV6266 = false; return; }
+          const points = elements && elements.length ? elements : chart.getElementsAtEventForMode(event, 'nearest', { intersect: false, axis: 'x' }, true);
+          if (!points || !points.length) return;
+          const point = points[0];
+          const dataset = chart.data && chart.data.datasets ? chart.data.datasets[point.datasetIndex] : null;
+          const key = dataset && dataset.monthKeys ? dataset.monthKeys[point.index] : '';
+          if (key && groupByMonth.has(key)) toggleMonthV6230(key, nativeEventV6230(event));
+        },
+        plugins: {
+          executiveValueLabels: { display: !isMom, barLabelPlacement: isBar && !isMom ? 'insideTop' : 'above' },
+          remakeMomPolishV6302: { display: isMom, currentYear: currentYear, priorYear: priorYear, isPercent: isPercent, isUnits: isUnits },
+          revenueGapBand: { display: years.length >= 2 && !isMom, currentYear: currentYear, priorYear: priorYear, higherIsBad: true, selectedMonthIndexesV6407: Array.from(selectedMonthIndexesV6407) },
+          revenueTrendCallouts: { display: years.length >= 2 && !isMom, currentYear: currentYear, priorYear: priorYear, higherIsBad: true, deltaAsPoints: isPercent, selectedMonthIndexesV6407: Array.from(selectedMonthIndexesV6407) },
+          legend: { position: 'top', align: 'start', labels: { boxWidth: 18, boxHeight: 2, color:'#475569', usePointStyle: false, font: { family:'Roboto, Arial, sans-serif', size: 11, weight: '500' }, padding:6 } },
+          tooltip: {
+            enabled: true,
+            position: 'average',
+            intersect: false,
+            displayColors: true,
+            caretPadding: 8,
+            backgroundColor: 'rgba(17,24,39,.94)',
+            titleColor: '#ffffff',
+            bodyColor: '#ffffff',
+            borderColor: 'rgba(255,255,255,.14)',
+            borderWidth: 1,
+            padding: 10,
+            callbacks: {
+              title: items => {
+                if (!items || !items.length) return '';
+                const item = items[0];
+                const dataset = item.dataset || {};
+                const monthKey = dataset.monthKeys ? dataset.monthKeys[item.dataIndex] : '';
+                return monthKey ? monthLabelV6230(monthKey) : String(item.label || '');
+              },
+              label: ctx => (ctx.dataset && ctx.dataset.label ? ctx.dataset.label : 'Year') + ': ' + formatValue(ctx.raw),
+              footer: items => {
+                if (!items || items.length < 2) return '';
+                const currentItem = items.find(item => Number(item.dataset && item.dataset.label) === currentYear);
+                const priorItem = items.find(item => Number(item.dataset && item.dataset.label) === priorYear);
+                if (!currentItem || !priorItem) return '';
+                const currentValue = Number(currentItem.raw);
+                const priorValue = Number(priorItem.raw);
+                if (!Number.isFinite(currentValue) || !Number.isFinite(priorValue)) return '';
+                const delta = currentValue - priorValue;
+                let changeText = '';
+                if (isPercent) changeText = 'Change: ' + (delta > 0 ? '+' : '') + delta.toFixed(1) + '%';
+                else if (Math.abs(priorValue) < 0.0000001) changeText = 'Change: ' + (Math.abs(currentValue) < 0.0000001 ? '0%' : 'New');
+                else {
+                  const relative = delta / Math.abs(priorValue) * 100;
+                  changeText = 'Change: ' + (relative > 0 ? '+' : '') + Math.round(relative) + '%';
+                }
+                const scopeV6306 = trendComparisonScopeV6306.dateScopeV6306;
+                const monthIndexV6306 = Number(currentItem.dataIndex) + 1;
+                const dateTextV6306 = scopeV6306 && scopeV6306.isPartialMonth && monthIndexV6306 === Number(scopeV6306.latestMonth)
+                  ? remakePartialMonthNoteV6306(scopeV6306).replace('Partial-month comparison: ', 'Period: ').replace('. Completed months use full-month totals.', '')
+                  : '';
+                return dateTextV6306 ? [changeText, dateTextV6306] : changeText;
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            grid: { display: false },
+            border: { display: true, color: 'rgba(100,116,139,.42)', width: 1.1 },
+            ticks: { color: '#334155', font: { size: 11, weight: '700' }, padding: 5, maxRotation: 0, autoSkip: false }
+          },
+          y: {
+            beginAtZero: isMom ? false : true,
+            grid: { color: 'rgba(148,163,184,.22)', borderDash: [2, 8], lineWidth: .9, drawTicks: false },
+            border: { display: false },
+            ticks: { color: '#667085', font:{size:10}, padding:6, maxTicksLimit:4, callback: value => isPercent ? (isMom ? Number(value || 0).toFixed(1) + ' pp' : Number(value || 0).toFixed(0) + '%') : fmtCountV6230(value, isUnits ? 1 : 0) },
+            title: { display: true, text: axisTitle, color: '#202124', font: { size: 11, weight: '700' }, padding:{bottom:0} },
+            afterFit: scale => { scale.width += 16; }
+          }
+        }
+      }
+    };
+    const nextTrendTypeV6302 = trendConfigV6302.type;
+    const currentTrendTypeV6302 = remakeChartV6230 && remakeChartV6230.config ? remakeChartV6230.config.type : '';
+    if (remakeChartV6230 && currentTrendTypeV6302 === nextTrendTypeV6302) {
+      remakeChartV6230.data = trendConfigV6302.data;
+      remakeChartV6230.options = trendConfigV6302.options;
+      remakeChartV6230.update();
+    } else {
+      try { if (remakeChartV6230) remakeChartV6230.destroy(); } catch (error) {}
+      remakeChartV6230 = new Chart(canvas.getContext('2d'), trendConfigV6302);
+    }
+    installRemakeTrendDragV6266(remakeChartV6230, years, groupByMonth);
   }
-  function allOptionsForDropdownV6245(kind){ return ((uiV6230.filterOptionsV6245&&uiV6230.filterOptionsV6245[kind])||[]).slice(); }
+
+  function keepRemakeTrendTooltipV6248(chart, index) {
+    // v6.249 anti-twitch: intentionally no-op. Tooltip is handled by Chart.js
+    // on hover without forcing chart.update() loops.
+  }
+
+
+  const comparisonDeltaPrefixV6303 = 'deltaV6303__';
+  function priorFieldV6303(field) {
+    const clean = String(field || '');
+    return clean ? 'prior' + clean.charAt(0).toUpperCase() + clean.slice(1) : '';
+  }
+  function deltaFieldV6303(field) { return comparisonDeltaPrefixV6303 + String(field || ''); }
+  function isPointDeltaFieldV6303(field) {
+    return field === 'remakeCaseRate' || field === 'remakeUnitRate' || field === 'shareCases' || field === 'shareUnits';
+  }
+  function isComparisonSortFieldV6303(field) {
+    const clean = String(field || '');
+    return clean.indexOf(comparisonDeltaPrefixV6303) === 0 || /^prior[A-Z]/.test(clean);
+  }
+  function comparisonDeltaSortValueV6303(row, field) {
+    const priorField = priorFieldV6303(field);
+    const current = numV6230(row && row[field]);
+    const prior = numV6230(row && row[priorField]);
+    if (isPointDeltaFieldV6303(field)) return current - prior;
+    if (Math.abs(prior) < 0.0000001) {
+      if (Math.abs(current) < 0.0000001) return 0;
+      return current > 0 ? Number.POSITIVE_INFINITY : Number.NEGATIVE_INFINITY;
+    }
+    return (current - prior) / Math.abs(prior);
+  }
+  function sortValueV6230(row, field) {
+    if (field === 'label' || field === 'name' || field === 'customerName' || field === 'productName') return String(row.label || row.name || row.customerName || row.productName || row.key || '').toLowerCase();
+    if (field === 'currentWorker') return String(row.currentWorker || '').toLowerCase();
+    if (field === 'customerId') return String(row.customerId || row.key || '').toLowerCase();
+    if (field === 'status') return row.customerActive === false ? 0 : 1;
+    if (String(field || '').indexOf(comparisonDeltaPrefixV6303) === 0) {
+      return comparisonDeltaSortValueV6303(row, String(field).slice(comparisonDeltaPrefixV6303.length));
+    }
+    return numV6230(row[field]);
+  }
+  function sortedRowsV6230(rows, tableKey) {
+    const sort = uiV6230.sorts[tableKey] || defaultSortsV6230[tableKey] || { field: 'remakeCases', dir: 'desc' };
+    const dir = sort.dir === 'asc' ? 1 : -1;
+    return (rows || []).slice().sort((a, b) => {
+      const av = sortValueV6230(a, sort.field);
+      const bv = sortValueV6230(b, sort.field);
+      if (typeof av === 'string' || typeof bv === 'string') return String(av).localeCompare(String(bv), undefined, { numeric: true, sensitivity: 'base' }) * dir;
+      if (av !== bv) return (av - bv) * dir;
+      return String(a.label || a.key).localeCompare(String(b.label || b.key), undefined, { numeric: true, sensitivity: 'base' });
+    });
+  }
+  /* v6.311 selected-row pinning.
+     A selected table value moves above the active sort order and stays pinned
+     beneath the sticky header while the table scrolls. Clearing the filter
+     returns the row to the normal sort order. */
+  function selectedRowsFirstV6311(rows, selectedValues, keyGetter, limit) {
+    const source = (rows || []).slice();
+    const selectedOrder = Array.from(selectedValues || []).map(String);
+    if (!selectedOrder.length) return source.slice(0, limit || source.length);
+    const order = new Map(selectedOrder.map((value, index) => [value, index]));
+    const pinned = [];
+    const rest = [];
+    source.forEach(function(row) {
+      const key = String(keyGetter ? keyGetter(row) : (row && row.key));
+      if (order.has(key)) pinned.push(row);
+      else rest.push(row);
+    });
+    pinned.sort(function(a, b) {
+      const aKey = String(keyGetter ? keyGetter(a) : (a && a.key));
+      const bKey = String(keyGetter ? keyGetter(b) : (b && b.key));
+      return Number(order.get(aKey)) - Number(order.get(bKey));
+    });
+    const maxRows = Math.max(Number(limit || source.length), pinned.length);
+    return pinned.concat(rest).slice(0, maxRows);
+  }
+  function applySelectedRowPinningV6311(table) {
+    if (!table) return;
+    const selectedRows = Array.from(table.querySelectorAll('tbody tr.selectedV6230'));
+    selectedRows.forEach(function(row) { row.classList.add('selectedPinnedV6311'); });
+    if (!selectedRows.length) return;
+    const measure = function() {
+      const header = table.querySelector('thead');
+      let top = header ? Math.max(0, header.getBoundingClientRect().height) : 34;
+      selectedRows.forEach(function(row) {
+        row.style.setProperty('--remake-selected-pin-top-v6311', top + 'px');
+        top += Math.max(1, row.getBoundingClientRect().height);
+      });
+    };
+    if (window.requestAnimationFrame) window.requestAnimationFrame(measure);
+    else measure();
+  }
+
+  function glyphV6230(tableKey, field) {
+    const sort = uiV6230.sorts[tableKey] || {};
+    if (sort.field !== field) return '';
+    return sort.dir === 'asc' ? '&#9650;' : '&#9660;';
+  }
+  function thV6230(tableKey, field, label, numeric, extraClass, titleLabel) {
+    const className = 'sortableV6230' + (numeric ? ' num' : '') + (extraClass ? ' ' + extraClass : '');
+    const fullLabel = titleLabel || label;
+    const role = /(?:^|\s)(?:priorYearHeaderV6301|deltaHeaderV6301)(?:\s|$)/.test(String(extraClass || '')) ? 'extended' : 'standard';
+    return '<th class="' + className + '" data-cda-field="' + escV6230(field) + '" data-cda-column-role="' + role + '" title="Sort by ' + escV6230(fullLabel) + '" aria-label="Sort by ' + escV6230(fullLabel) + '" onclick="setRemakeSortV6230(\'' + escJsV6230(tableKey) + '\',\'' + escJsV6230(field) + '\')">' + escV6230(label) + '<span class="sortGlyphV6230">' + glyphV6230(tableKey, field) + '</span></th>';
+  }
+  window.setRemakeSortV6230 = function setRemakeSortV6230(tableKey, field) {
+    const current = uiV6230.sorts[tableKey] || { field, dir: 'desc' };
+    uiV6230.sorts[tableKey] = { field, dir: current.field === field && current.dir === 'desc' ? 'asc' : 'desc' };
+    writeLocalJsonV6230(SORT_KEY_V6230, uiV6230.sorts);
+    // Sorting is presentation-only. Keep it local so the trend chart and the
+    // other tables do not blink or rebuild.
+    if (tableKey === 'ceramist' || tableKey === 'ceramistDetail') {
+      renderCeramistAnalysisV6342();
+    } else if (['reason','department','product','customer'].indexOf(tableKey) >= 0 && typeof runGentleTableMorphV6297 === 'function') {
+      runGentleTableMorphV6297(tableKey, function(){ renderTableSectionOnlyV6297(tableKey); }, tableKey === 'customer' ? { preserveChart: true } : null);
+    } else renderDashboardV6230();
+  };
+
+
+  const comparisonPackCacheV6301 = { rows: null, signature: '', pack: null };
+  function comparisonFilterSignatureV6301() {
+    const parts = ['year','department','product','productGroup','customer','reason'].map(function(kind){
+      return kind + '=' + filterValuesV6245(kind).map(String).sort().join('|') + ';excluded=' + excludedFilterValuesV6389(kind).map(String).sort().join('|');
+    });
+    parts.push('months=' + Array.from(uiV6230.selectedMonths || []).map(String).sort().join('|'));
+    return parts.join('::');
+  }
+  function comparisonPackV6301(allRows) {
+    const rows = allRows || [];
+    const signature = comparisonFilterSignatureV6301();
+    if (comparisonPackCacheV6301.rows === rows && comparisonPackCacheV6301.signature === signature && comparisonPackCacheV6301.pack) {
+      return comparisonPackCacheV6301.pack;
+    }
+    const pack = kpiComparisonV6281(rows);
+    comparisonPackCacheV6301.rows = rows;
+    comparisonPackCacheV6301.signature = signature;
+    comparisonPackCacheV6301.pack = pack;
+    return pack;
+  }
+  function comparisonScopeV6295(allRows) {
+    const pack = comparisonPackV6301(allRows || []);
+    const months = new Set((pack && pack.months || []).map(mm => String(mm).padStart(2, '0')));
+    return { currentYear: pack.currentYear, priorYear: pack.priorYear, months, dateScopeV6306: pack.dateScopeV6306 || null };
+  }
+  function rowsInComparisonYearV6295(rows, year, months, comparisonScope) {
+    return (rows || []).filter(row => {
+      if (Number(row.year) !== Number(year)) return false;
+      const mm = kpiMonthNumberV6281(row);
+      if (months && months.size && !months.has(mm)) return false;
+      return remakeRowWithinAlignedPriorPeriodV6306(row, comparisonScope && comparisonScope.dateScopeV6306);
+    });
+  }
+  function attachPriorGroupsV6295(currentGroups, priorGroups) {
+    const priorMap = new Map((priorGroups || []).map(row => [String(row.key), row]));
+    return (currentGroups || []).map(row => {
+      const prior = priorMap.get(String(row.key)) || {};
+      return Object.assign({}, row, {
+        priorTotalCases: numV6230(prior.totalCases),
+        priorRemakeCases: numV6230(prior.remakeCases),
+        priorRemakeCaseRate: numV6230(prior.remakeCaseRate),
+        priorTotalUnits: numV6230(prior.totalUnits),
+        priorRemakeUnits: numV6230(prior.remakeUnits),
+        priorRemakeUnitRate: numV6230(prior.remakeUnitRate),
+        priorRemakeDiscount: numV6230(prior.remakeDiscount),
+        priorShareCases: numV6230(prior.shareCases),
+        priorShareUnits: numV6230(prior.shareUnits)
+      });
+    });
+  }
+  function withReasonSharesV6301(groups, totals) {
+    const caseTotal = numV6230(totals && totals.remakeCases);
+    const unitTotal = numV6230(totals && totals.remakeUnits);
+    return (groups || []).map(function(row){
+      return Object.assign({}, row, {
+        shareCases: caseTotal ? numV6230(row.remakeCases) / caseTotal : 0,
+        shareUnits: unitTotal ? numV6230(row.remakeUnits) / unitTotal : 0
+      });
+    });
+  }
+  function relativeDeltaTextV6295(current, prior) {
+    current = numV6230(current); prior = numV6230(prior);
+    if (Math.abs(prior) < 0.0000001) return Math.abs(current) < 0.0000001 ? '0%' : 'New';
+    const pct = (current - prior) / Math.abs(prior) * 100;
+    return (pct > 0 ? '+' : '') + Math.round(pct) + '%';
+  }
+  function pointDeltaTextV6295(currentRate, priorRate) {
+    const points = (numV6230(currentRate) - numV6230(priorRate)) * 100;
+    return (points > 0 ? '+' : '') + points.toFixed(1) + '%';
+  }
+  function deltaClassV6295(current, prior, higherIsBad) {
+    const delta = numV6230(current) - numV6230(prior);
+    if (Math.abs(delta) < 0.0000001) return 'deltaNeutralV6295';
+    const good = higherIsBad ? delta < 0 : delta > 0;
+    return good ? 'deltaGoodV6295' : 'deltaBadV6295';
+  }
+  function priorHeaderV6295(label) {
+    const pack = comparisonScopeV6295(normalizedRowsV6230());
+    return (pack.priorYear || 'Prior') + ' ' + label;
+  }
+
+  function tableCompareOnV6297(tableKey) {
+    return !!(uiV6230.tableCompareV6297 && uiV6230.tableCompareV6297[tableKey]);
+  }
+  function metricCellV6297(current, prior, formatter, deltaMode, higherIsBad, neutralDelta) {
+    const main = '<span class="metricPrimaryV6297">' + escV6230(formatter(current)) + '</span>';
+    if (!Number.isFinite(Number(prior))) return main;
+    let deltaText = '';
+    if (deltaMode === 'points') deltaText = pointDeltaTextV6295(current, prior);
+    else deltaText = relativeDeltaTextV6295(current, prior);
+    const tone = neutralDelta ? 'deltaNeutralV6295' : deltaClassV6295(current, prior, higherIsBad !== false);
+    return main + '<span class="metricCompareV6297">2025: ' + escV6230(formatter(prior)) + ' <span class="' + tone + '">' + escV6230(deltaText) + '</span></span>';
+  }
+  function metricHeaderCellsV6301(tableKey, field, currentLabel, priorLabel, compare, currentTitle, priorTitle) {
+    let html = thV6230(tableKey, field, currentLabel, true, '', currentTitle || currentLabel);
+    if (compare) {
+      html += thV6230(tableKey, priorFieldV6303(field), priorLabel, true, 'priorYearHeaderV6301', priorTitle || priorLabel);
+      html += thV6230(tableKey, deltaFieldV6303(field), 'Delta', true, 'deltaHeaderV6301');
+    }
+    return html;
+  }
+  function metricValueCellsV6301(compare, current, prior, formatter, deltaMode, higherIsBad, neutralDelta) {
+    let html = '<td class="num currentYearCellV6301">' + escV6230(formatter(current)) + '</td>';
+    if (!compare) return html;
+    const deltaText = deltaMode === 'points' ? pointDeltaTextV6295(current, prior) : relativeDeltaTextV6295(current, prior);
+    const tone = neutralDelta ? 'deltaNeutralV6295' : deltaClassV6295(current, prior, higherIsBad !== false);
+    html += '<td class="num priorYearCellV6301">' + escV6230(formatter(prior)) + '</td>';
+    html += '<td class="num deltaCellV6301"><span class="' + tone + '">' + escV6230(deltaText) + '</span></td>';
+    return html;
+  }
+  function reasonMetricHeaderCellsV6301(tableKey, field, currentLabel, priorLabel, compare, currentTitle, priorTitle) {
+    return metricHeaderCellsV6301(tableKey, field, currentLabel, priorLabel, compare, currentTitle, priorTitle);
+  }
+  function syncTableCompareButtonsV6297() {
+    const map = { reason:'remakeReasonCompareBtnV6297', department:'remakeDepartmentCompareBtnV6297', product:'remakeProductCompareBtnV6297', customer:'remakeCustomerCompareBtnV6297' };
+    Object.keys(map).forEach(function(key){ const btn=idV6230(map[key]); if(btn) btn.classList.toggle('active', tableCompareOnV6297(key)); });
+  }
+
+  /* v6.314 compact visual year labels.
+     Current-year table columns omit the year prefix; prior-year comparison columns keep '25.
+     Exports retain full four-digit years. */
+  function shortYearLabelV6312(value) {
+    const text = String(value == null ? '' : value).trim();
+    return /^\d{4}$/.test(text) ? "'" + text.slice(-2) : text;
+  }
+
+  /* v6.334 compact detail-table headings.
+     Standard detail tables show both denominator volume and remake volume:
+     Cases, Rmk Cases, Case %, Units, Rmk Units, Unit %, and Rmk Disc.
+     Full metric names remain available in each sortable header tooltip. */
+  function renderStandardTableV6230(id, tableKey, rows, firstHeader, filterKind, limit) {
+    const table = idV6230(id);
+    if (!table) return;
+    const activeValues = filterKind ? new Set(filterValuesV6245(filterKind).map(String)) : new Set();
+    const sorted = selectedRowsFirstV6311(sortedRowsV6230(rows, tableKey), activeValues, row => row.key, limit || 200);
+    uiV6230.lastTables[tableKey] = sorted;
+    const compare = tableCompareOnV6297(tableKey);
+    const scope = comparisonScopeV6295(normalizedRowsV6230());
+    const year = scope.currentYear || 'Current';
+    const priorYear = scope.priorYear || 'Prior';
+    const yearLabelV6312 = shortYearLabelV6312(year);
+    const priorYearLabelV6312 = shortYearLabelV6312(priorYear);
+    table.classList.toggle('compareColumnsV6301', compare);
+    const header = '<thead><tr>'
+      + thV6230(tableKey, 'label', firstHeader, false)
+      + metricHeaderCellsV6301(tableKey, 'totalCases', 'Cases', priorYearLabelV6312 + ' Cases', compare, 'Total Cases', priorYear + ' Total Cases')
+      + metricHeaderCellsV6301(tableKey, 'remakeCases', 'Rmk Cases', priorYearLabelV6312 + ' Rmk Cases', compare, 'Remake Cases', priorYear + ' Remake Cases')
+      + metricHeaderCellsV6301(tableKey, 'remakeCaseRate', 'Case %', priorYearLabelV6312 + ' Case %', compare, 'Remake Case Rate', priorYear + ' Remake Case Rate')
+      + metricHeaderCellsV6301(tableKey, 'totalUnits', 'Units', priorYearLabelV6312 + ' Units', compare, 'Total Units', priorYear + ' Total Units')
+      + metricHeaderCellsV6301(tableKey, 'remakeUnits', 'Rmk Units', priorYearLabelV6312 + ' Rmk Units', compare, 'Remake Units', priorYear + ' Remake Units')
+      + metricHeaderCellsV6301(tableKey, 'remakeUnitRate', 'Unit %', priorYearLabelV6312 + ' Unit %', compare, 'Remake Unit Rate', priorYear + ' Remake Unit Rate')
+      + metricHeaderCellsV6301(tableKey, 'remakeDiscount', 'Rmk Disc.', priorYearLabelV6312 + ' Rmk Disc.', compare, 'Remake Discount', priorYear + ' Remake Discount')
+      + '</tr></thead>';
+    const columnCount = compare ? 22 : 8;
+    if (!sorted.length) { table.innerHTML = header + '<tbody><tr><td colspan="' + columnCount + '">No matching rows.</td></tr></tbody>'; return; }
+    table.innerHTML = header + '<tbody>' + sorted.map(row => {
+      const isSelected = activeValues.has(String(row.key));
+      const selectedClass = isSelected ? ' selectedV6230' : '';
+      const dimClass = activeValues.size && !isSelected ? ' dimmedV6266' : '';
+      return '<tr class="clickable' + selectedClass + dimClass + '" onclick="applyRemakeTableFilterV6230(\'' + escJsV6230(filterKind) + '\',\'' + escJsV6230(row.key) + '\',event)">'
+        + '<td>' + escV6230(row.label || row.key) + '</td>'
+        + metricValueCellsV6301(compare, row.totalCases, row.priorTotalCases, v => fmtCountV6230(v), 'relative', false, true)
+        + metricValueCellsV6301(compare, row.remakeCases, row.priorRemakeCases, v => fmtCountV6230(v), 'relative', true, false)
+        + metricValueCellsV6301(compare, row.remakeCaseRate, row.priorRemakeCaseRate, v => fmtPctV6230(v), 'points', true, false)
+        + metricValueCellsV6301(compare, row.totalUnits, row.priorTotalUnits, v => fmtCountV6230(v, 1), 'relative', false, true)
+        + metricValueCellsV6301(compare, row.remakeUnits, row.priorRemakeUnits, v => fmtCountV6230(v, 1), 'relative', true, false)
+        + metricValueCellsV6301(compare, row.remakeUnitRate, row.priorRemakeUnitRate, v => fmtPctV6230(v), 'points', true, false)
+        + metricValueCellsV6301(compare, row.remakeDiscount, row.priorRemakeDiscount, v => fmtCurrencyV6230(v), 'relative', true, false)
+        + '</tr>';
+    }).join('') + '</tbody>';
+    applySelectedRowPinningV6311(table);
+  }
+
+
+  /* v6.241 Remake Reasons table clarification.
+     A remake reason only exists on remake rows, so showing both Total Cases and
+     Remake Cases by reason makes every row read as 100%. Keep the underlying
+     calculations/functions intact, but display reason rows as remake distribution. */
+  function renderRemakeReasonTableV6241(id, tableKey, rows, firstHeader, filterKind, limit, totals) {
+    const table = idV6230(id);
+    if (!table) return;
+    const activeValues = filterKind ? new Set(filterValuesV6245(filterKind).map(String)) : new Set();
+    const sorted = selectedRowsFirstV6311(sortedRowsV6230(rows, tableKey), activeValues, row => row.key, limit || 200);
+    uiV6230.lastTables[tableKey] = sorted;
+    const compare = tableCompareOnV6297('reason');
+    const scope = comparisonScopeV6295(normalizedRowsV6230());
+    const year = scope.currentYear || 'Current';
+    const priorYear = scope.priorYear || 'Prior';
+    const yearLabelV6312 = shortYearLabelV6312(year);
+    const priorYearLabelV6312 = shortYearLabelV6312(priorYear);
+    table.classList.toggle('compareColumnsV6301', compare);
+    const header = '<thead><tr>'
+      + thV6230(tableKey, 'label', firstHeader, false)
+      + reasonMetricHeaderCellsV6301(tableKey, 'remakeCases', 'Rmk Cases', priorYearLabelV6312 + ' Rmk Cases', compare, 'Remake Cases', priorYear + ' Remake Cases')
+      + reasonMetricHeaderCellsV6301(tableKey, 'shareCases', 'Case Share %', priorYearLabelV6312 + ' Case Share %', compare, '% of Remake Cases', priorYear + ' % of Remake Cases')
+      + reasonMetricHeaderCellsV6301(tableKey, 'remakeUnits', 'Rmk Units', priorYearLabelV6312 + ' Rmk Units', compare, 'Remake Units', priorYear + ' Remake Units')
+      + reasonMetricHeaderCellsV6301(tableKey, 'shareUnits', 'Unit Share %', priorYearLabelV6312 + ' Unit Share %', compare, '% of Remake Units', priorYear + ' % of Remake Units')
+      + reasonMetricHeaderCellsV6301(tableKey, 'remakeDiscount', 'Rmk Disc.', priorYearLabelV6312 + ' Rmk Disc.', compare, 'Remake Discount', priorYear + ' Remake Discount')
+      + '</tr></thead>';
+    const columnCount = compare ? 16 : 6;
+    if (!sorted.length) { table.innerHTML = header + '<tbody><tr><td colspan="' + columnCount + '">No matching rows.</td></tr></tbody>'; return; }
+    table.innerHTML = header + '<tbody>' + sorted.map(row => {
+      const isSelected = activeValues.has(String(row.key));
+      const selectedClass = isSelected ? ' selectedV6230' : '';
+      const dimClass = activeValues.size && !isSelected ? ' dimmedV6266' : '';
+      return '<tr class="clickable' + selectedClass + dimClass + '" onclick="applyRemakeTableFilterV6230(\'' + escJsV6230(filterKind) + '\',\'' + escJsV6230(row.key) + '\',event)">'
+        + '<td>' + escV6230(row.label || row.key) + '</td>'
+        + metricValueCellsV6301(compare, row.remakeCases, row.priorRemakeCases, v => fmtCountV6230(v), 'relative', true, false)
+        + metricValueCellsV6301(compare, row.shareCases, row.priorShareCases, v => fmtPctV6230(v), 'points', true, false)
+        + metricValueCellsV6301(compare, row.remakeUnits, row.priorRemakeUnits, v => fmtCountV6230(v, 1), 'relative', true, false)
+        + metricValueCellsV6301(compare, row.shareUnits, row.priorShareUnits, v => fmtPctV6230(v), 'points', true, false)
+        + metricValueCellsV6301(compare, row.remakeDiscount, row.priorRemakeDiscount, v => fmtCurrencyV6230(v), 'relative', true, false)
+        + '</tr>';
+    }).join('') + '</tbody>';
+    applySelectedRowPinningV6311(table);
+  }
+
+
+  const remakeResponsibilitySelectionV6504 = { kind:'', values:[] };
+
+  function normalizedResponsibilityKindV6504(kind) {
+    const raw = String(kind || '');
+    if (raw === 'group') return 'productGroup';
+    if (raw === 'ceramist') return 'technician';
+    return raw;
+  }
+  function cleanResponsibilityValuesV6504(values) {
+    const seen = new Set();
+    return (Array.isArray(values) ? values : [values]).map(String).filter(function(value){
+      if (!value || value === REMAKE_NONE_FILTER_VALUE_V6308 || seen.has(value)) return false;
+      seen.add(value); return true;
+    });
+  }
+  function setRemakeResponsibilitySelectionV6504(kind, values) {
+    const clean = cleanResponsibilityValuesV6504(values);
+    remakeResponsibilitySelectionV6504.kind = clean.length ? normalizedResponsibilityKindV6504(kind) : '';
+    remakeResponsibilitySelectionV6504.values = clean;
+    window.setTimeout(function(){
+      try { renderCustomerResponsibilitySummaryV6503(); } catch (error) {}
+      try { renderCustomerChartV6230(); } catch (error) {}
+    }, 0);
+  }
+  function clearRemakeResponsibilitySelectionV6504(kind) {
+    const normalized = normalizedResponsibilityKindV6504(kind);
+    if (!normalized || normalized === 'all' || remakeResponsibilitySelectionV6504.kind === normalized) setRemakeResponsibilitySelectionV6504('', []);
+  }
+  function responsibilityKindLabelV6504(kind) {
+    return ({customer:'Customer',department:'Department',product:'Product',productGroup:'Product group',reason:'Remake reason',technician:'Technician'})[kind] || 'Selected item';
+  }
+  function responsibilityRowsV6504(kind) {
+    if (kind === 'customer') return Array.isArray(uiV6230.lastCustomerGroupsV6291) ? uiV6230.lastCustomerGroupsV6291 : [];
+    if (kind === 'department') return Array.isArray(uiV6230.lastDepartmentGroupsV6297) ? uiV6230.lastDepartmentGroupsV6297 : [];
+    if (kind === 'reason') return Array.isArray(uiV6230.lastReasonGroupsV6297) ? uiV6230.lastReasonGroupsV6297 : [];
+    if (kind === 'product' || kind === 'productGroup') {
+      const activeKind = uiV6230.productTableMode === 'group' ? 'productGroup' : 'product';
+      return activeKind === kind && Array.isArray(uiV6230.lastProductGroupsV6297) ? uiV6230.lastProductGroupsV6297 : [];
+    }
+    if (kind === 'technician') return Array.isArray(uiV6230.lastTables.ceramist) ? uiV6230.lastTables.ceramist : [];
+    return [];
+  }
+  function responsibilityRowMatchesV6504(kind, value, row) {
+    const target = String(value);
+    if (kind === 'customer') return String(row && row.customerKey) === target;
+    if (kind === 'department') return String(row && (row.department || 'Unassigned')) === target;
+    if (kind === 'product') return String(row && row.productKey) === target;
+    if (kind === 'productGroup') return String(row && (row.productGroup || row.department || 'Unassigned')) === target;
+    if (kind === 'reason') return String(row && (row.remakeReason || 'Not specified')) === target;
+    return false;
+  }
+  function computedResponsibilityMetricsV6504(kind, value) {
+    const allRows = normalizedRowsV6230();
+    const scope = comparisonScopeV6295(allRows);
+    const currentRows = rowsInComparisonYearV6295(allRows, scope.currentYear, scope.months, scope);
+    const options = { year:false, months:false };
+    options[kind] = false;
+    const denominatorTotalRows = rowsForBaseFiltersV6252(currentRows, options);
+    const denominatorRemakeRows = rowsForRemakeFiltersV6252(currentRows, options);
+    const selectedTotalRows = kind === 'reason' ? [] : denominatorTotalRows.filter(function(row){ return responsibilityRowMatchesV6504(kind,value,row); });
+    const selectedRemakeRows = denominatorRemakeRows.filter(function(row){ return responsibilityRowMatchesV6504(kind,value,row); });
+    const denominator = summarizeSplitV6252(denominatorTotalRows, denominatorRemakeRows);
+    const selected = summarizeSplitV6252(selectedTotalRows, selectedRemakeRows);
+    return {
+      remakeCases:selected.remakeCases,
+      remakeUnits:selected.remakeUnits,
+      remakeDiscount:selected.remakeDiscount,
+      caseShare:denominator.remakeCases ? selected.remakeCases / denominator.remakeCases : 0,
+      unitShare:denominator.remakeUnits ? selected.remakeUnits / denominator.remakeUnits : 0,
+      discountShare:denominator.remakeDiscount ? selected.remakeDiscount / denominator.remakeDiscount : 0,
+      caseRate:selected.remakeCaseRate,
+      unitRate:selected.remakeUnitRate
+    };
+  }
+  function responsibilityItemV6504() {
+    const kind = normalizedResponsibilityKindV6504(remakeResponsibilitySelectionV6504.kind);
+    const values = cleanResponsibilityValuesV6504(remakeResponsibilitySelectionV6504.values);
+    if (!kind || !values.length) return {state:'empty'};
+    if (values.length !== 1) return {state:'multiple',kind:kind,count:values.length};
+    const value = values[0];
+    const rows = responsibilityRowsV6504(kind);
+    const row = rows.find(function(item){ return String(item && item.key) === value; });
+    if (!row && kind === 'technician') return {state:'waiting',kind:kind,value:value};
+    let metrics = null;
+    let rateAvailable = kind !== 'reason' && kind !== 'technician';
+    if (kind === 'technician') {
+      const caseTotal = rows.reduce(function(sum,item){ return sum + numV6230(item && item.remakeCases); },0);
+      const unitTotal = rows.reduce(function(sum,item){ return sum + numV6230(item && item.remakeUnits); },0);
+      const discountTotal = rows.reduce(function(sum,item){ return sum + Math.abs(numV6230(item && item.remakeDiscount)); },0);
+      metrics = {
+        remakeCases:numV6230(row.remakeCases),
+        remakeUnits:numV6230(row.remakeUnits),

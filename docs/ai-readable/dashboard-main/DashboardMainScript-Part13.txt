@@ -1,968 +1,842 @@
-    const filtered = remakeFilteredRowsV6216();
-    const summary = remakeSummaryV6216(filtered);
-    renderRemakeKpisV6216(summary);
-    renderRemakeTrendV6216(filtered);
-    renderRemakeTableV6216('remakeReasonTable', groupRemakeV6216(filtered.filter(r => String(r.isRemake !== undefined ? r.isRemake : r.remakeFlag || r.remake || '').toLowerCase() !== 'false'), r => r.remakeReason || r.reason || 'Not specified'), 'Reason', 'remakeReasonFilter');
-    renderRemakeTableV6216('remakeDepartmentTable', groupRemakeV6216(filtered, r => r.department || 'Unassigned'), 'Department', 'remakeDepartmentFilter');
-    renderRemakeTableV6216('remakeProductTable', groupRemakeV6216(filtered, r => r.productName || r.productId || 'Unknown product'), 'Product', 'remakeProductFilter');
-    if (filtered.length) setRemakeNoticeV6216('', ''); else setRemakeNoticeV6216('No Remake Factor rows match the selected filters.', 'warn');
-  }
-  window.renderRemakeFactorDashboardV6216 = renderRemakeFactorDashboardV6216;
-  window.applyRemakeFactorFilters = function applyRemakeFactorFiltersV6216() { requestAnimationFrame(renderRemakeFactorDashboardV6216); };
+      #remakeFactorPage.cleanRemakeV6230 .ceramistFlagButtonV6342 { height:25px !important; border:1px solid #cfd6df !important; background:#fff !important; color:#475467 !important; border-radius:999px !important; padding:0 9px !important; font:900 10.5px/1 Roboto,Arial,sans-serif !important; cursor:pointer !important; white-space:nowrap !important; }
+      #remakeFactorPage.cleanRemakeV6230 .ceramistFlagButtonV6342.active { background:#fff7d6 !important; color:#7a4a00 !important; border-color:#f2c94c !important; box-shadow:0 1px 2px rgba(245,158,11,.18) !important; }
+      #remakeFactorPage.cleanRemakeV6230 .ceramistPreviewStatusV6342 { color:#667085 !important; font:800 10px/1.35 Roboto,Arial,sans-serif !important; text-align:left !important; white-space:normal !important; }
+      #remakeFactorPage.cleanRemakeV6230 .ceramistPreviewStatusV6342:empty { display:none !important; }
+      #remakeFactorPage.cleanRemakeV6230 .ceramistPreviewKpisV6342 { display:flex !important; align-items:stretch !important; justify-content:flex-start !important; flex-wrap:wrap !important; gap:6px !important; padding:7px 10px !important; border-bottom:1px solid #edf0f5 !important; }
+      #remakeFactorPage.cleanRemakeV6230 .ceramistPreviewKpiV6342 { flex:0 1 165px !important; min-width:125px !important; max-width:180px !important; padding:6px 8px !important; border:1px solid #e4e8ef !important; border-radius:7px !important; background:#f8fafc !important; }
+      #remakeFactorPage.cleanRemakeV6230 .ceramistPreviewKpiV6342 .label { color:#667085 !important; font:900 8.75px/1 Roboto,Arial,sans-serif !important; letter-spacing:.04em !important; text-transform:uppercase !important; margin-bottom:3px !important; }
+      #remakeFactorPage.cleanRemakeV6230 .ceramistPreviewKpiV6342 .value { color:#172033 !important; font:900 15px/1.05 Roboto,Arial,sans-serif !important; white-space:nowrap !important; }
+      #remakeFactorPage.cleanRemakeV6230 .ceramistWorkspaceV6343 { display:grid !important; grid-template-columns:minmax(360px,.78fr) minmax(560px,1.22fr) !important; min-height:330px !important; }
+      #remakeFactorPage.cleanRemakeV6230 .ceramistPanelV6343 { min-width:0 !important; overflow:hidden !important; }
+      #remakeFactorPage.cleanRemakeV6230 .ceramistPanelV6343 + .ceramistPanelV6343 { border-left:1px solid #dfe4eb !important; }
+      #remakeFactorPage.cleanRemakeV6230 .ceramistPanelHeaderV6343 { height:39px !important; padding:6px 9px !important; display:flex !important; align-items:center !important; justify-content:space-between !important; gap:8px !important; border-bottom:1px solid #e5e7eb !important; background:#fff !important; }
+      #remakeFactorPage.cleanRemakeV6230 .ceramistPanelTitleV6343 { min-width:0 !important; overflow:hidden !important; text-overflow:ellipsis !important; white-space:nowrap !important; color:#202124 !important; font:900 11.5px/1 Roboto,Arial,sans-serif !important; }
+      #remakeFactorPage.cleanRemakeV6230 .ceramistPanelHintV6343 { color:#667085 !important; font:800 9.5px/1 Roboto,Arial,sans-serif !important; white-space:nowrap !important; }
+      #remakeFactorPage.cleanRemakeV6230 .ceramistBreakdownBarV6343 { display:inline-flex !important; flex:0 0 auto !important; align-items:center !important; gap:2px !important; padding:2px !important; border:1px solid #d8dde6 !important; border-radius:999px !important; background:#eef1f5 !important; }
+      #remakeFactorPage.cleanRemakeV6230 .ceramistBreakdownBarV6343 button { border:0 !important; border-radius:999px !important; background:transparent !important; color:#475467 !important; padding:5px 8px !important; font:900 10px/1 Roboto,Arial,sans-serif !important; cursor:pointer !important; white-space:nowrap !important; }
+      #remakeFactorPage.cleanRemakeV6230 .ceramistBreakdownBarV6343 button.active { background:#fff7d6 !important; color:#7a4a00 !important; border:1px solid #f2c94c !important; }
+      #remakeFactorPage.cleanRemakeV6230 .ceramistPreviewTableWrapV6342 { height:290px !important; }
+      #remakeFactorPage.cleanRemakeV6230 .ceramistPreviewTableWrapV6342 .remakeTable { table-layout:fixed !important; }
+      #remakeFactorPage.cleanRemakeV6230 #remakeCeramistTableV6342 th:first-child,
+      #remakeFactorPage.cleanRemakeV6230 #remakeCeramistTableV6342 td:first-child { text-align:left !important; width:32% !important; }
+      #remakeFactorPage.cleanRemakeV6230 #remakeCeramistTableV6342 th:not(:first-child),
+      #remakeFactorPage.cleanRemakeV6230 #remakeCeramistTableV6342 td:not(:first-child),
+      #remakeFactorPage.cleanRemakeV6230 #remakeCeramistDetailTableV6343 th:nth-child(n+3),
+      #remakeFactorPage.cleanRemakeV6230 #remakeCeramistDetailTableV6343 td:nth-child(n+3) { text-align:right !important; }
+      #remakeFactorPage.cleanRemakeV6230 #remakeCeramistDetailTableV6343 th:first-child,
+      #remakeFactorPage.cleanRemakeV6230 #remakeCeramistDetailTableV6343 td:first-child { text-align:left !important; width:34% !important; }
+      #remakeFactorPage.cleanRemakeV6230 #remakeCeramistDetailTableV6343 th:nth-child(2),
+      #remakeFactorPage.cleanRemakeV6230 #remakeCeramistDetailTableV6343 td:nth-child(2) { text-align:left !important; width:22% !important; }
+      #remakeFactorPage.cleanRemakeV6230 .ceramistUnattributedV6342 { color:#b42318 !important; font-weight:900 !important; }
+      #remakeFactorPage.cleanRemakeV6230 .ceramistSelectedV6343 td { background:#fff7d6 !important; border-color:#f2c94c !important; font-weight:900 !important; }
+      #remakeFactorPage.cleanRemakeV6230 .ceramistNoteBadgeV6343 { display:inline-flex !important; align-items:center !important; margin-left:5px !important; padding:1px 5px !important; border:1px solid #f3c86a !important; border-radius:999px !important; background:#fff8df !important; color:#8a5300 !important; font:900 8.5px/1.2 Roboto,Arial,sans-serif !important; vertical-align:middle !important; }
+      @keyframes fadeOutV6295 { to { opacity:.42; transform:scale(.992); filter:blur(.7px); } }
+      @keyframes fadeInV6295 { from { opacity:.35; transform:scale(1.008); filter:blur(1px); } to { opacity:1; transform:scale(1); filter:blur(0); } }
 
-  function storeLocalRemakeV6216(data) { try { const json = JSON.stringify(data); localStorage.setItem(REMAKE_LOCAL_CACHE_KEY_V6216, json); localStorage.setItem('cdaRemakeFactorCache.v6215', json); } catch (error) {} }
-  function readLocalRemakeV6216() { try { return JSON.parse(localStorage.getItem(REMAKE_LOCAL_CACHE_KEY_V6216) || localStorage.getItem('cdaRemakeFactorCache.v6215') || 'null'); } catch (error) { return null; } }
-
-  function handleRemakeDataV6216(data, fromLocal) {
-    if (!window.remakeFactorState) window.remakeFactorState = {};
-    if (!data || !data.ok) { window.remakeFactorState.loaded = false; setRemakeNoticeV6216((data && data.message) || 'Remake cache could not load.', 'error'); return; }
-    window.remakeFactorState.data = data;
-    window.remakeFactorState.rows = normalizeRemakeRowsV6216(data);
-    window.remakeFactorState.loaded = true;
-    window.remakeFactorState.loading = false;
-    const stamp = data.generatedAt || data.lastRefreshAt || '';
-    setRemakeTextV6216('remakeLastRefresh', (fromLocal ? 'Saved browser cache: ' : 'Last refreshed: ') + (stamp || 'Loaded'));
-    renderRemakeFactorDashboardV6216();
-    if (!fromLocal) storeLocalRemakeV6216(data);
-  }
-
-  window.loadRemakeFactorData = function loadRemakeFactorDataV6216(forceRefresh) {
-    if (!window.remakeFactorState) window.remakeFactorState = {};
-    if (window.remakeFactorState.loading) return;
-    setRemakeLoadingV6216(true);
-    if (!forceRefresh) {
-      const cached = readLocalRemakeV6216();
-      if (cached && cached.ok) {
-        handleRemakeDataV6216(cached, true);
-        setRemakeNoticeV6216('Loading...', 'warn');
-      }
-    }
-    const request = forceRefresh ? { forceRefresh: true, quickRefresh: true, incrementalRefresh: true, openRefreshMonths: 1, lookbackMonths: 12, pageSize: 120, maxPages: 50, maxPagesPerChunk: 50, maxDetailFetches: 160, fetchProductMap: false, chunkByMonth: true } : { forceRefresh: false };
-    setRemakeNoticeV6216(forceRefresh ? 'Refreshing only the current open month, then merging with closed historical cache...' : 'Loading...', 'warn');
-    google.script.run.withSuccessHandler(data => { setRemakeLoadingV6216(false); handleRemakeDataV6216(data, false); }).withFailureHandler(error => { setRemakeLoadingV6216(false); if (window.remakeFactorState && window.remakeFactorState.loaded) setRemakeNoticeV6216('Server cache check failed. Keeping saved browser cache. ' + ((error && error.message) || String(error)), 'warn'); else setRemakeNoticeV6216((error && error.message) || String(error), 'error'); }).getRemakeFactorData(request);
-  };
-  window.refreshRemakeFactorData = function refreshRemakeFactorDataV6216() { window.loadRemakeFactorData(true); };
-
-  const previousSwitchTabV6216 = typeof switchTab === 'function' ? switchTab : null;
-  window.switchTab = switchTab = function switchTabV6216(tab) {
-    if (tab !== 'remakeFactor') return previousSwitchTabV6216 ? previousSwitchTabV6216.apply(this, arguments) : undefined;
-    state.activeTab = 'remakeFactor';
-    if (typeof closeUnderConstructionMenu === 'function') closeUnderConstructionMenu();
-    if (typeof closeDropdowns === 'function') closeDropdowns();
-    ['overviewOne','categoricalPage','overviewTwo'].forEach(id => { const el = document.getElementById(id); if (el) el.classList.remove('active'); });
-    const remake = document.getElementById('remakeFactorPage'); if (remake) { remake.classList.add('active'); remake.classList.add('remakeOverviewReadyV6216'); }
-    const nav = document.getElementById('overviewNavActions'); if (nav) nav.style.display = 'none';
-    const tabOne = document.getElementById('tabOneBtn'); if (tabOne) tabOne.classList.remove('active');
-    const remBtn = document.getElementById('remakeFactorTabBtn'); if (remBtn) remBtn.classList.add('active');
-    const uc = document.getElementById('underConstructionBtn'); if (uc) uc.classList.remove('active');
-    if (!window.remakeFactorState || !window.remakeFactorState.loaded) window.loadRemakeFactorData(false); else renderRemakeFactorDashboardV6216();
-  };
-
-  function installStylesV6216() {
-    if (document.getElementById(STYLE_ID_V6216)) return;
-    const style = document.createElement('style');
-    style.id = STYLE_ID_V6216;
-    style.textContent = `
-      #overviewOne .topBar.executiveTop .comparisonKpis { grid-template-columns: repeat(5, minmax(168px, 1fr)) !important; gap: 10px !important; }
-      #overviewOne .topBar.executiveTop .comparisonKpi { min-height: 78px !important; padding: 11px 14px 10px !important; border-radius: 9px !important; }
-      #overviewOne .topBar.executiveTop .comparisonKpi .label { font-size: 10.5px !important; margin-bottom: 5px !important; }
-      #overviewOne .topBar.executiveTop .comparisonKpi .value { font-size: clamp(22px, 1.9vw, 30px) !important; line-height: 1.02 !important; margin-bottom: 7px !important; }
-      #overviewOne .topBar.executiveTop .kpiSub { font-size: 11.5px !important; }
-      @media (max-width: 1320px) { #overviewOne .topBar.executiveTop .comparisonKpis { grid-template-columns: repeat(3, minmax(180px, 1fr)) !important; } }
-      @media (max-width: 860px) { #overviewOne .topBar.executiveTop .comparisonKpis { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; } }
-      #overviewFilterDeck.topOverviewFilterDeck .filterCard { border-radius: 10px !important; box-shadow: 0 1px 3px rgba(16,24,40,.10) !important; }
-      #overviewFilterDeck.topOverviewFilterDeck .dropdownButton { height: 36px !important; border-radius: 10px !important; padding: 8px 12px !important; font-weight: 800 !important; background: #fff !important; }
-      #overviewFilterDeck.topOverviewFilterDeck .dropdownButton::after { content: '' !important; width: 8px !important; height: 8px !important; border-right: 2px solid #667085 !important; border-bottom: 2px solid #667085 !important; transform: rotate(45deg) translateY(-2px) !important; margin-left: 10px !important; }
-      #overviewFilterDeck.topOverviewFilterDeck .dropdownPanel { border-radius: 12px !important; box-shadow: 0 18px 36px rgba(16,24,40,.20) !important; }
-      #overviewFilterDeck.topOverviewFilterDeck .dropdownPanelHeader { border-radius: 12px 12px 0 0 !important; background: #f8fafc !important; }
-      #overviewFilterDeck.topOverviewFilterDeck .dropdownPanelHeader button { border-radius: 8px !important; font-weight: 900 !important; }
-      #overviewFilterDeck.topOverviewFilterDeck .deptRow, #overviewFilterDeck.topOverviewFilterDeck .multiRow, #overviewFilterDeck.topOverviewFilterDeck .yearRow { border-radius: 8px !important; min-height: 30px !important; }
-      #overviewFilterDeck.topOverviewFilterDeck .deptRow.active, #overviewFilterDeck.topOverviewFilterDeck .multiRow.active, #overviewFilterDeck.topOverviewFilterDeck .yearRow.active { background: #eef4ff !important; border-color: #bfd2ff !important; }
-      #overviewOne .v6216ExternalPoppedSource { position: relative !important; }
-      #overviewOne .v6216PopoutOverlay { position:absolute !important; inset:0 !important; z-index:700 !important; background:rgba(229,231,235,.86) !important; backdrop-filter:grayscale(1) opacity(.9) !important; display:flex !important; align-items:flex-start !important; justify-content:flex-end !important; padding:8px !important; pointer-events:auto !important; }
-      #overviewOne .v6216PopBackBtn { height:30px !important; border:1px solid #cfd6df !important; border-radius:999px !important; background:#fff !important; color:#172033 !important; font:900 12px/1 Roboto,Arial,sans-serif !important; padding:0 12px !important; cursor:pointer !important; box-shadow:0 1px 2px rgba(16,24,40,.14) !important; }
-      #remakeFactorPage.remakeOverviewReadyV6216 { background:#ebe9ed !important; padding:8px !important; }
-      #remakeFactorPage.remakeOverviewReadyV6216 .remakeShell { max-width:1900px !important; margin:0 auto !important; background:#ebe9ed !important; border:0 !important; box-shadow:none !important; padding:8px 10px 10px !important; }
-      #remakeFactorPage.remakeOverviewReadyV6216 .remakeHeader { min-height:58px !important; margin-bottom:10px !important; background:transparent !important; border:0 !important; box-shadow:none !important; padding:0 !important; }
-      #remakeFactorPage.remakeOverviewReadyV6216 .remakeTitle { font:900 22px/1.1 Roboto,Arial,sans-serif !important; color:#172033 !important; margin:0 !important; }
-      #remakeFactorPage.remakeOverviewReadyV6216 .remakeButton { min-height:34px !important; border-radius:8px !important; padding:8px 14px !important; background:#172033 !important; color:#fff !important; border:1px solid #172033 !important; font-weight:900 !important; }
-      #remakeFactorPage.remakeOverviewReadyV6216 .remakeButton.secondary { background:#fff !important; color:#344054 !important; border-color:#bdc5d1 !important; }
-      #remakeFactorPage.remakeOverviewReadyV6216 .remakeFilterBar { display:grid !important; grid-template-columns:repeat(5,minmax(170px,1fr)) !important; gap:10px !important; margin-bottom:10px !important; }
-      #remakeFactorPage.remakeOverviewReadyV6216 .remakeFilter, #remakeFactorPage.remakeOverviewReadyV6216 .remakeKpi, #remakeFactorPage.remakeOverviewReadyV6216 .remakeCard { background:#fff !important; border:1px solid #d7dce2 !important; border-radius:8px !important; box-shadow:0 1px 3px rgba(20,32,42,.14) !important; }
-      #remakeFactorPage.remakeOverviewReadyV6216 .remakeFilter { padding:9px !important; }
-      #remakeFactorPage.remakeOverviewReadyV6216 .remakeFilter label { color:#667085 !important; font-size:10px !important; letter-spacing:.06em !important; text-transform:uppercase !important; font-weight:900 !important; margin-bottom:6px !important; }
-      #remakeFactorPage.remakeOverviewReadyV6216 .remakeFilter select { height:36px !important; border:1px solid #d5dae2 !important; border-radius:8px !important; background:#fff !important; color:#202124 !important; font-size:12px !important; font-weight:700 !important; }
-      #remakeFactorPage.remakeOverviewReadyV6216 .remakeKpis { display:grid !important; grid-template-columns:repeat(7,minmax(138px,1fr)) !important; gap:10px !important; margin-bottom:10px !important; }
-      #remakeFactorPage.remakeOverviewReadyV6216 .remakeKpi { min-height:76px !important; padding:11px 14px !important; }
-      #remakeFactorPage.remakeOverviewReadyV6216 .remakeKpi .label { font-size:10.5px !important; letter-spacing:.06em !important; text-transform:uppercase !important; color:#667085 !important; font-weight:900 !important; margin-bottom:6px !important; }
-      #remakeFactorPage.remakeOverviewReadyV6216 .remakeKpi .value { font-size:clamp(22px,1.6vw,28px) !important; font-weight:900 !important; color:#172033 !important; line-height:1.02 !important; }
-      #remakeFactorPage.remakeOverviewReadyV6216 .remakeGrid { display:grid !important; grid-template-columns:minmax(0,1.15fr) minmax(0,1fr) !important; gap:10px !important; margin-bottom:10px !important; }
-      #remakeFactorPage.remakeOverviewReadyV6216 .remakeCard { padding:0 !important; overflow:hidden !important; }
-      #remakeFactorPage.remakeOverviewReadyV6216 .remakeCardHeader { min-height:34px !important; padding:7px 10px !important; border-bottom:1px solid #d7dce2 !important; display:flex !important; align-items:center !important; }
-      #remakeFactorPage.remakeOverviewReadyV6216 .remakeCardTitle { font:900 13px/1.1 Roboto,Arial,sans-serif !important; color:#202124 !important; }
-      #remakeFactorPage.remakeOverviewReadyV6216 .remakeOverviewChartBox { height:300px !important; padding:12px 14px 10px !important; }
-      #remakeFactorPage.remakeOverviewReadyV6216 .remakeTableWrap { height:300px !important; overflow:auto !important; border:0 !important; }
-      #remakeFactorPage.remakeOverviewReadyV6216 .remakeTable { width:100% !important; border-collapse:collapse !important; font-size:11px !important; }
-      #remakeFactorPage.remakeOverviewReadyV6216 .remakeTable th { position:sticky !important; top:0 !important; background:#203038 !important; color:#fff !important; border:1px solid #34454f !important; padding:6px 7px !important; font-weight:900 !important; white-space:nowrap !important; }
-      #remakeFactorPage.remakeOverviewReadyV6216 .remakeTable td { border:1px solid #e5e7eb !important; padding:6px 7px !important; color:#3c4043 !important; background:#fff !important; white-space:nowrap !important; }
-      #remakeFactorPage.remakeOverviewReadyV6216 .remakeTable tr:nth-child(even) td { background:#fafafa !important; }
-      #remakeFactorPage.remakeOverviewReadyV6216 .remakeTable tr.clickable:hover td { background:#eef4ff !important; cursor:pointer !important; }
-      #remakeFactorPage.remakeOverviewReadyV6216 .remakeTable td.num, #remakeFactorPage.remakeOverviewReadyV6216 .remakeTable th.num { text-align:right !important; }
-      @media(max-width:1180px){#remakeFactorPage.remakeOverviewReadyV6216 .remakeFilterBar{grid-template-columns:repeat(2,minmax(0,1fr)) !important;}#remakeFactorPage.remakeOverviewReadyV6216 .remakeKpis{grid-template-columns:repeat(2,minmax(0,1fr)) !important;}#remakeFactorPage.remakeOverviewReadyV6216 .remakeGrid{grid-template-columns:1fr !important;}}
+      @media(max-width:980px){#remakeFactorPage.cleanRemakeV6230 .remakeStickyTopV6245{top:0!important;margin:-6px 0 1px!important;}#remakeFactorPage.cleanRemakeV6230 .remakeDropdownPanelV6245{position:fixed!important;left:10px!important;right:10px!important;top:112px!important;min-width:0!important;max-height:calc(100vh - 130px)!important;}}
+      @media(max-width:1380px){#remakeFactorPage.cleanRemakeV6230 .remakeKpisV6230{grid-template-columns:repeat(4,minmax(0,1fr)) !important;}#remakeFactorPage.cleanRemakeV6230 .remakeKpiControlsV6279{grid-column:1 / -1 !important; align-items:flex-end !important;}#remakeFactorPage.cleanRemakeV6230 .remakeFilterBarV6230{grid-template-columns:repeat(3,minmax(0,1fr)) !important;}#remakeFactorPage.cleanRemakeV6230 .remakeCustomerSplitV6230{grid-template-columns:1fr !important;}}
+      @media(max-width:980px){#remakeFactorPage.cleanRemakeV6230 .remakeGridV6230{grid-template-columns:1fr !important;}#remakeFactorPage.cleanRemakeV6230 .remakeKpisV6230,#remakeFactorPage.cleanRemakeV6230 .remakeFilterBarV6230,#remakeFactorPage.cleanRemakeV6230 .ceramistPreviewKpisV6342{grid-template-columns:repeat(2,minmax(0,1fr)) !important;}#remakeFactorPage.cleanRemakeV6230 .ceramistPreviewMetaV6342{align-items:flex-start!important;flex-direction:column!important;}#remakeFactorPage.cleanRemakeV6230 .ceramistPreviewStatusV6342{text-align:left!important;max-width:none!important;}#remakeFactorPage.cleanRemakeV6230 .ceramistWorkspaceV6343{grid-template-columns:1fr!important;}#remakeFactorPage.cleanRemakeV6230 .ceramistPanelV6343 + .ceramistPanelV6343{border-left:0!important;border-top:1px solid #dfe4eb!important;}#remakeFactorPage.cleanRemakeV6230 .remakeKpiControlsV6279{grid-column:1 / -1 !important; align-items:flex-start !important; text-align:left !important;}#remakeFactorPage.cleanRemakeV6230 .remakeKpiControlsV6279 .remakePerfV6230,#remakeFactorPage.cleanRemakeV6230 .remakeKpiControlsV6279 .remakeRefreshStamp{text-align:left !important;}}
     `;
     document.head.appendChild(style);
   }
 
-  installStylesV6216();
-  const loadBtn = document.getElementById('remakeLoadBtn'); if (loadBtn) { loadBtn.textContent = 'Load Cache'; loadBtn.style.display = 'none'; }
-  const refreshBtn = document.getElementById('remakeRefreshBtn'); if (refreshBtn) refreshBtn.textContent = 'Refresh Cache';
-  setBannerV6216();
-  setTimeout(setBannerV6216, 300);
-  setTimeout(setBannerV6216, 1200);
-})();
+  function cardActionsV6230(component) {
+    const componentLabel = component === 'trend' ? 'chart' : 'table';
+    return '<div class="remakeCardActionsV6230">'
+      + '<button class="remakeMiniButtonV6230" type="button" title="Export the totals and rows currently shown in this panel" onclick="exportRemakeComponentV6230(\'' + escJsV6230(component) + '\')">Export current</button>'
+      + '<button class="remakeMiniButtonV6230" type="button" title="Export the detailed records behind the current panel and filters" onclick="exportRemakeAllDataV6399(\'' + escJsV6230(component) + '\')">All data</button>'
+      + '<button class="remakeMiniButtonV6230" type="button" title="Open a live interactive pop-out" onclick="popoutRemakeComponentV6230(\'' + escJsV6230(component) + '\')">Pop out</button>'
+      + '<button class="remakeMiniButtonV6230 backButtonV6266 clearComponentButtonV6304" type="button" title="Clear only this ' + componentLabel + '\'s cross-filter" aria-label="Clear only this ' + componentLabel + '\'s cross-filter" onclick="clearRemakeComponentV6230(\'' + escJsV6230(component) + '\')">&#8634;</button>'
+      + '</div>';
+  }
 
 
+  const filterMetaV6245 = {
+    year: { inputId: 'remakeYearFilter', buttonId: 'remakeYearButtonV6245', panelId: 'remakeYearPanelV6245', searchId: 'remakeYearSearchV6245', listId: 'remakeYearListV6245', countId: 'remakeYearCountV6245', allLabel: 'All years', label: 'Year' },
+    department: { inputId: 'remakeDepartmentFilter', buttonId: 'remakeDepartmentButtonV6245', panelId: 'remakeDepartmentPanelV6245', searchId: 'remakeDepartmentSearchV6245', listId: 'remakeDepartmentListV6245', countId: 'remakeDepartmentCountV6245', allLabel: 'All departments', label: 'Department' },
+    product: { inputId: 'remakeProductFilter', buttonId: 'remakeProductButtonV6245', panelId: 'remakeProductPanelV6245', searchId: 'remakeProductSearchV6245', listId: 'remakeProductListV6245', countId: 'remakeProductCountV6245', allLabel: 'All products', label: 'Product' },
+    productGroup: { inputId: 'remakeProductGroupFilter', buttonId: 'remakeProductGroupButtonV6245', panelId: 'remakeProductGroupPanelV6245', searchId: 'remakeProductGroupSearchV6245', listId: 'remakeProductGroupListV6245', countId: 'remakeProductGroupCountV6245', allLabel: 'All groups', label: 'Group' },
+    customer: { inputId: 'remakeCustomerFilter', buttonId: 'remakeCustomerButtonV6245', panelId: 'remakeCustomerPanelV6245', searchId: 'remakeCustomerSearchV6245', listId: 'remakeCustomerListV6245', countId: 'remakeCustomerCountV6245', allLabel: 'All customers', label: 'Customer' },
+    reason: { inputId: 'remakeReasonFilter', buttonId: 'remakeReasonButtonV6245', panelId: 'remakeReasonPanelV6245', searchId: 'remakeReasonSearchV6245', listId: 'remakeReasonListV6245', countId: 'remakeReasonCountV6245', allLabel: 'All reasons', label: 'Reason' }
+  };
+  // v6.308: [] continues to mean All. This sentinel is the explicit zero-selection state
+  // used by the new None button without changing the established filter data model.
+  const REMAKE_NONE_FILTER_VALUE_V6308 = '__CDA_REMAKE_NONE_V6308__';
+  function filterValuesV6245(kind) { const raw = uiV6230.filters ? uiV6230.filters[kind] : ''; if (Array.isArray(raw)) return raw.map(String).filter(Boolean); if (!raw) return []; try { const parsed = JSON.parse(String(raw)); if (Array.isArray(parsed)) return parsed.map(String).filter(Boolean); } catch(e) {} return [String(raw)]; }
+  function excludedFilterValuesV6389(kind) { const raw = uiV6230.filterExclusionsV6389 ? uiV6230.filterExclusionsV6389[kind] : []; if (Array.isArray(raw)) return raw.map(String).filter(Boolean); if (!raw) return []; return [String(raw)]; }
+  function filterIsNoneV6308(kind) { const values = filterValuesV6245(kind); return values.length === 1 && values[0] === REMAKE_NONE_FILTER_VALUE_V6308; }
+  function setFilterValuesV6245(kind, values) { const seen = new Set(); const clean = []; (Array.isArray(values) ? values : [values]).forEach(value => { const text = String(value === null || value === undefined ? '' : value).trim(); if (text && !seen.has(text)) { seen.add(text); clean.push(text); } }); uiV6230.filters[kind] = clean; if (!uiV6230.filterExclusionsV6389) uiV6230.filterExclusionsV6389 = {}; uiV6230.filterExclusionsV6389[kind] = []; const meta = filterMetaV6245[kind]; const input = meta ? idV6230(meta.inputId) : null; if (input) input.value = JSON.stringify(clean); return clean; }
+  function setFilterExclusionsV6389(kind, values) { const seen = new Set(); const clean = []; (Array.isArray(values) ? values : [values]).forEach(value => { const text = String(value === null || value === undefined ? '' : value).trim(); if (text && !seen.has(text)) { seen.add(text); clean.push(text); } }); if (!uiV6230.filterExclusionsV6389) uiV6230.filterExclusionsV6389 = {}; uiV6230.filterExclusionsV6389[kind] = clean; uiV6230.filters[kind] = []; const meta = filterMetaV6245[kind]; const input = meta ? idV6230(meta.inputId) : null; if (input) input.value = '[]'; return clean; }
+  function matchesFilterV6245(kind, value) { const selected = filterValuesV6245(kind); if (filterIsNoneV6308(kind)) return false; if (selected.length) return selected.some(item => String(item) === String(value)); const excluded = new Set(excludedFilterValuesV6389(kind)); return !excluded.has(String(value)); }
+  function filterOptionLabelV6245(kind, value) { if (String(value) === REMAKE_NONE_FILTER_VALUE_V6308) return 'None'; const options = (uiV6230.filterOptionsV6245 && uiV6230.filterOptionsV6245[kind]) || []; const match = options.find(opt => String(opt.value) === String(value)); return match ? match.label : ''; }
+  function multiFilterMarkupV6245(kind, label, allLabel) {
+    const meta = filterMetaV6245[kind];
+    const visibleToggleId = 'remakeVisibleToggleV6502_' + kind;
+    return '<div class="remakeFilter remakeMultiFilterV6245" data-filter-kind="' + escV6230(kind) + '">'
+      + '<label for="' + escV6230(meta.buttonId) + '">' + escV6230(label) + '</label>'
+      + '<input id="' + escV6230(meta.inputId) + '" class="remakeHiddenSelectV6245" data-multi-managed-v6245="1" type="hidden" value="[]">'
+      + '<button id="' + escV6230(meta.buttonId) + '" class="remakeDropdownButtonV6245" type="button" onclick="toggleRemakeDropdownV6245(\'' + escJsV6230(kind) + '\')">' + escV6230(allLabel) + '</button>'
+      + '<div id="' + escV6230(meta.panelId) + '" class="remakeDropdownPanelV6245">'
+      + '<div class="remakeDropdownHeaderV6245">'
+      + '<label class="remakeVisibleToggleV6502" title="Check to select every visible option. Uncheck to deselect every visible option.">'
+      + '<input id="' + escV6230(visibleToggleId) + '" type="checkbox" onchange="toggleVisibleRemakeOptionsV6502(\'' + escJsV6230(kind) + '\',this.checked,event)">'
+      + '<span>Visible</span></label>'
+      + '<button type="button" title="Select all options and remove this filter" aria-label="Reset ' + escV6230(label) + ' filter" onclick="clearRemakeMultiFilterV6245(\'' + escJsV6230(kind) + '\')">Reset</button>'
+      + '<button type="button" title="Deselect every option" aria-label="Select no ' + escV6230(label.toLowerCase()) + ' options" onclick="selectNoneRemakeOptionsV6308(\'' + escJsV6230(kind) + '\')">None</button>'
+      + '<span id="' + escV6230(meta.countId) + '" class="remakeDropdownCountV6245">0</span></div>'
+      + '<input id="' + escV6230(meta.searchId) + '" class="remakeDropdownSearchV6245" type="text" placeholder="Search ' + escV6230(label.toLowerCase()) + '" oninput="renderRemakeDropdownListV6245(\'' + escJsV6230(kind) + '\')">'
+      + '<div id="' + escV6230(meta.listId) + '" class="remakeDropdownListV6245"></div></div></div>';
+  }
 
+  function buildShellV6230(force) {
+    const page = idV6230('remakeFactorPage');
+    if (!page) return;
+    const wasActive = page.classList.contains('active');
+    if (!force && page.getAttribute('data-clean-remake-version') === 'v6230' && page.querySelector('#remakeTrendChartV6230')) return;
+    const dockedFilterBarV6337 = document.querySelector('#remakeTabFilterHostV6337 .remakeFilterBarV6230');
+    if (dockedFilterBarV6337) dockedFilterBarV6337.remove();
+    const dockedCacheActionsV6338 = document.querySelector('#remakeTabFilterHostV6337 .remakeCacheActionBarV6338');
+    if (dockedCacheActionsV6338) dockedCacheActionsV6338.remove();
+    page.className = 'tabPage cleanRemakeV6230' + (wasActive ? ' active' : '');
+    page.setAttribute('data-clean-remake-version', 'v6230');
+    page.innerHTML = `
+      <div class="remakeShellV6230">
+        <div class="remakeStickyTopV6245">
+          <div class="remakeHeaderV6230" style="display:none !important;"></div>
+          <div id="remakeNotice" class="remakeNotice"></div>
+          <div class="remakeGlobalSearchBarV6304">
+            <button id="remakeGlobalSearchButtonV6304" class="remakeGlobalSearchButtonV6304" type="button" title="Search every dashboard filter" aria-label="Search every dashboard filter" aria-expanded="false" onclick="toggleRemakeGlobalSearchV6304(event)">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M10.7 4a6.7 6.7 0 1 0 4.13 11.98l3.6 3.6 1.41-1.42-3.59-3.59A6.7 6.7 0 0 0 10.7 4Zm0 2a4.7 4.7 0 1 1 0 9.4 4.7 4.7 0 0 1 0-9.4Z"/></svg>
+            </button>
+            <div id="remakeGlobalSearchPanelV6304" class="remakeGlobalSearchPanelV6304" role="dialog" aria-label="Search all filters">
+              <div class="remakeGlobalSearchInputRowV6304">
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M10.7 4a6.7 6.7 0 1 0 4.13 11.98l3.6 3.6 1.41-1.42-3.59-3.59A6.7 6.7 0 0 0 10.7 4Zm0 2a4.7 4.7 0 1 1 0 9.4 4.7 4.7 0 0 1 0-9.4Z"/></svg>
+                <input id="remakeGlobalSearchInputV6304" type="search" autocomplete="off" placeholder="Search and select multiple filters" oninput="renderRemakeGlobalSearchV6304()" onkeydown="handleRemakeGlobalSearchKeyV6304(event)">
+                <button type="button" class="remakeGlobalSearchCloseV6304" title="Close search" aria-label="Close search" onclick="closeRemakeGlobalSearchV6304()">×</button>
+              </div>
+              <div id="remakeGlobalSearchResultsV6304" class="remakeGlobalSearchResultsV6304"></div>
+              <div id="remakeGlobalSearchActionsV6305" class="remakeGlobalSearchActionsV6305">
+                <span id="remakeGlobalSearchCountV6305" class="remakeGlobalSearchCountV6305">0 selected</span>
+                <button type="button" class="remakeGlobalSearchClearV6305" title="Remove all five global filters and return them to All" onclick="clearRemakeGlobalSearchDraftV6305()">Reset all filters</button>
+                <button type="button" class="remakeGlobalSearchApplyV6305" onclick="applyRemakeGlobalSearchSelectionsV6305()">Apply</button>
+              </div>
+            </div>
+          </div>
+          <div id="remakeFilterHomeV6337" aria-hidden="true"></div>
+          <div class="remakeFilterBarV6230">
+            ${multiFilterMarkupV6245('year', 'Year', 'All years')}
+            ${multiFilterMarkupV6245('department', 'Department', 'All departments')}
+            ${multiFilterMarkupV6245('product', 'Product', 'All products')}
+            ${multiFilterMarkupV6245('productGroup', 'Group', 'All groups')}
+            ${multiFilterMarkupV6245('customer', 'Customer', 'All customers')}
+            ${multiFilterMarkupV6245('reason', 'Reason', 'All reasons')}
+          </div>
+          <div class="remakeKpisV6230">
+            <div class="remakeKpi" title="Primary KPI shows the current comparison year. The small line compares against the prior year using the same months."><div class="label">Total Cases</div><div id="remakeTotalCases" class="value">-</div><div id="remakeTotalCasesSub" class="sub"></div></div>
+            <div class="remakeKpi"><div class="label">Remake Cases</div><div id="remakeCases" class="value">-</div><div id="remakeCasesSub" class="sub"></div></div>
+            <div class="remakeKpi"><div class="label">Case Rate</div><div id="remakeCaseRate" class="value">-</div><div id="remakeCaseRateSub" class="sub"></div></div>
+            <div class="remakeKpi"><div class="label">Total Units</div><div id="remakeTotalUnits" class="value">-</div><div id="remakeTotalUnitsSub" class="sub"></div></div>
+            <div class="remakeKpi"><div class="label">Remake Units</div><div id="remakeUnits" class="value">-</div><div id="remakeUnitsSub" class="sub"></div></div>
+            <div class="remakeKpi"><div class="label">Unit Rate</div><div id="remakeUnitRate" class="value">-</div><div id="remakeUnitRateSub" class="sub"></div></div>
+            <div class="remakeKpi"><div class="label">Remake Discount</div><div id="remakeDiscount" class="value">-</div><div id="remakeDiscountSub" class="sub"></div></div>
+          </div>
+          <div id="remakePillsV6230" class="remakePillsV6230" data-placement="below-remake-kpis"></div>
+        </div>
+        <div class="remakeGridV6230">
+          <div class="remakeCard" id="remakeTrendCardV6230">
+            <div class="remakeCardHeader"><div class="remakeCardTitle">Monthly Remake Comparison</div>${cardActionsV6230('trend')}</div>
+            <div class="remakeChartModeBarV6230">
+              <button id="remakeModeLineV6230" type="button" onclick="setRemakeChartModeV6230('line')">Line</button>
+              <button id="remakeModeBarV6230" type="button" onclick="setRemakeChartModeV6230('bar')">Bar</button>
+              <button id="remakeMeasureCasesV6245" class="measureToggleV6245" type="button" onclick="setRemakeTrendMeasureV6245('cases')">Cases</button>
+              <button id="remakeMeasureUnitsV6245" type="button" onclick="setRemakeTrendMeasureV6245('units')">Units</button>
+              <button id="remakeValueTotalV6247" class="valueToggleV6247" type="button" onclick="setRemakeTrendValueModeV6247('total')">Total</button>
+              <button id="remakeValuePercentV6247" type="button" onclick="setRemakeTrendValueModeV6247('percent')">%</button>
+              <div id="remakeTrendViewGroupV6304" class="remakeTrendViewGroupV6304" aria-label="Monthly or cumulative line view" hidden>
+                <span class="remakeTrendViewLabelV6304">View</span>
+                <button id="remakeMonthlyV6304" class="cumulativeToggleV6302" type="button" title="Show each month separately" onclick="setRemakeTrendCumulativeV6304(false)">Monthly</button>
+                <button id="remakeCumulativeV6302" class="cumulativeToggleV6302" type="button" title="Show a running year-to-date total" onclick="setRemakeTrendCumulativeV6304(true)">Cumulative</button>
+              </div>
+            </div>
+            <div class="remakeChartBoxV6230"><canvas id="remakeTrendChartV6230"></canvas></div>
+          </div>
+          <div class="remakeCard" id="remakeDepartmentCardV6230">
+            <div class="remakeCardHeader"><div class="remakeCardTitle">Departments</div><div class="remakeProductHeaderControlsV6264"><button id="remakeDepartmentCompareBtnV6297" class="tableCompareToggleV6297" type="button" onclick="toggleRemakeTableCompareV6297('department')">2025</button>${cardActionsV6230('department')}</div></div>
+            <div class="remakeTableWrap"><table id="remakeDepartmentTable" class="remakeTable"></table></div>
+          </div>
+        </div>
+        <div class="remakeGridV6230">
+          <div class="remakeCard" id="remakeReasonCardV6230">
+            <div class="remakeCardHeader"><div class="remakeCardTitle">Remake Reasons</div><div class="remakeProductHeaderControlsV6264"><button id="remakeReasonCompareBtnV6297" class="tableCompareToggleV6297" type="button" onclick="toggleRemakeTableCompareV6297('reason')">2025</button>${cardActionsV6230('reason')}</div></div>
+            <div class="remakeTableWrap"><table id="remakeReasonTable" class="remakeTable"></table></div>
+          </div>
+          <div class="remakeCard" id="remakeProductCardV6230">
+            <div class="remakeCardHeader"><div id="remakeProductTitleV6264" class="remakeCardTitle">Products</div><div class="remakeProductHeaderControlsV6264"><div class="remakeProductModeBarV6264"><button id="remakeProductModeProductBtnV6264" type="button" onclick="setRemakeProductTableModeV6264('product')">Products</button><button id="remakeProductModeGroupBtnV6264" type="button" onclick="setRemakeProductTableModeV6264('group')">Groups</button></div><button id="remakeProductCompareBtnV6297" class="tableCompareToggleV6297" type="button" onclick="toggleRemakeTableCompareV6297('product')">2025</button>${cardActionsV6230('product')}</div></div>
+            <div class="remakeTableWrap"><table id="remakeProductTable" class="remakeTable"></table></div>
+          </div>
+        </div>
+        <div class="remakeGridV6230">
+          <div class="remakeCard remakeCardWideV6230" id="remakeCustomerCardV6230">
+            <div class="remakeCardHeader"><div id="remakeCustomerTitleV6251" class="remakeCardTitle">Customers</div><div class="remakeCustomerHeaderControlsV6251"><button id="remakeCustomerCompareBtnV6297" class="tableCompareToggleV6297" type="button" onclick="toggleRemakeTableCompareV6297('customer')">2025</button>${cardActionsV6230('customer')}</div></div>
+            <div class="remakeCustomerSplitV6230">
+              <div class="remakeCustomerDetailPanelV6503">
+                <div id="remakeCustomerResponsibilitySummaryV6502" class="remakeCustomerResponsibilitySummaryV6502"></div>
+                <div class="remakeCustomerChartBoxV6230"><canvas id="remakeCustomerChartV6230"></canvas><div id="remakeCustomerDetailEmptyV6503" class="remakeCustomerDetailEmptyChartV6503">Select a customer, department, product, group, reason, or technician to view its responsibility share.</div></div>
+              </div>
+              <div class="remakeTableWrap remakeCustomerTableWrapV6230"><table id="remakeCustomerTable" class="remakeTable"></table></div>
+            </div>
+          </div>
+        </div>
+        <div class="remakeGridV6230">
+          <div class="remakeCard remakeCardWideV6230" id="remakeCeramistCardV6342">
+            <div class="remakeCardHeader"><div class="remakeCardTitle">Technicians</div>${cardActionsV6230('ceramist')}</div>
+            <div class="ceramistTopControlsV6351">
+              <div class="ceramistPreviewKpisV6342">
+                <div class="ceramistPreviewKpiV6342"><div class="label">Cases</div><div id="remakeCeramistVisibleCasesV6343" class="value">-</div></div>
+                <div class="ceramistPreviewKpiV6342"><div class="label">Remake units</div><div id="remakeCeramistUnitsV6342" class="value">-</div></div>
+                <div class="ceramistPreviewKpiV6342"><div class="label">Discount</div><div id="remakeCeramistDiscountV6342" class="value">-</div></div>
+                <div class="ceramistPreviewKpiV6342" title="Percent of visible remake cases that are fully attributed to one confirmed responsible worker. Partial or unassigned cases are excluded from the numerator."><div class="label">Attribution</div><div id="remakeCeramistCoverageV6342" class="value">-</div></div>
+              </div>
+              <div class="ceramistPreviewMetaV6342">
+                <div class="ceramistFilterStackV6343">
+                  <div class="ceramistFilterRowV6343">
+                    <div id="remakeCeramistCaseStatusBarV6343" class="ceramistFlagBarV6342">
+                      <button class="ceramistFlagButtonV6342" data-ceramist-case-status="all" type="button" title="All cases" onclick="setCeramistCaseStatusV6343('all')">All <span id="remakeCeramistAllCountV6342">0</span></button>
+                      <button class="ceramistFlagButtonV6342" data-ceramist-case-status="full" type="button" title="Fully attributed cases" onclick="setCeramistCaseStatusV6343('full')">Attributed <span id="remakeCeramistFullCountV6343">0</span></button>
+                      <button class="ceramistFlagButtonV6342" data-ceramist-case-status="partial" type="button" title="Partially attributed cases" onclick="setCeramistCaseStatusV6343('partial')">Partial <span id="remakeCeramistPartialCountV6343">0</span></button>
+                      <button class="ceramistFlagButtonV6342" data-ceramist-case-status="unattributed" type="button" title="Unattributed cases" onclick="setCeramistCaseStatusV6343('unattributed')">Unassigned <span id="remakeCeramistUnattributedCountV6342">0</span></button>
+                    </div>
+                    <span class="ceramistFilterSeparatorV6347" aria-hidden="true"></span>
+                    <div id="remakeCeramistDiagnosticBarV6343" class="ceramistFlagBarV6342">
+                      <button class="ceramistFlagButtonV6342" data-ceramist-diagnostic="none" type="button" title="No review flag filter" onclick="setCeramistDiagnosticV6343('none')">None</button>
+                      <button class="ceramistFlagButtonV6342" data-ceramist-diagnostic="multi" type="button" title="Multiple remake chains" onclick="setCeramistDiagnosticV6343('multi')">Multi <span id="remakeCeramistMultiCountV6342">0</span></button>
+                      <button class="ceramistFlagButtonV6342" data-ceramist-diagnostic="rootMissing" type="button" title="No matching prior/root CERAMICS completion was found in the attribution cache" onclick="setCeramistDiagnosticV6343('rootMissing')">No prior match <span id="remakeCeramistRootMissingCountV6342">0</span></button>
+                      <button class="ceramistFlagButtonV6342" data-ceramist-diagnostic="noteEvidence" type="button" title="Prior or root invoice-note evidence" onclick="setCeramistDiagnosticV6343('noteEvidence')">Notes <span id="remakeCeramistNoteEvidenceCountV6343">0</span></button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div id="remakeCeramistWorkspaceV6343" class="ceramistWorkspaceV6343">
+              <section class="ceramistPanelV6343" aria-label="Ceramist responsibility summary">
+                <div class="ceramistPanelHeaderV6343"><div class="ceramistPanelTitleV6343">Responsible worker</div></div>
+                <div class="remakeTableWrap ceramistPreviewTableWrapV6342"><table id="remakeCeramistTableV6342" class="remakeTable"></table></div>
+              </section>
+              <section class="ceramistPanelV6343" aria-label="Selected ceramist breakdown">
+                <div class="ceramistPanelHeaderV6343"><div id="remakeCeramistDetailTitleV6343" class="ceramistPanelTitleV6343">Select a ceramist</div><div id="remakeCeramistBreakdownBarV6343" class="ceramistBreakdownBarV6343">
+                  <button data-ceramist-breakdown="product" type="button" onclick="setCeramistBreakdownV6343('product')">Product</button>
+                  <button data-ceramist-breakdown="group" type="button" onclick="setCeramistBreakdownV6343('group')">Group</button>
+                  <button data-ceramist-breakdown="department" type="button" onclick="setCeramistBreakdownV6343('department')">Dept</button>
+                  <button data-ceramist-breakdown="customer" type="button" onclick="setCeramistBreakdownV6343('customer')">Customer</button>
+                  <button data-ceramist-breakdown="reason" type="button" onclick="setCeramistBreakdownV6343('reason')">Reason</button>
+                </div></div>
+                <div id="remakeCeramistDetailSelectionV6368" class="ceramistDetailSelectionV6368" hidden></div>
+                <div class="remakeTableWrap ceramistPreviewTableWrapV6342"><table id="remakeCeramistDetailTableV6343" class="remakeTable"></table></div>
+              </section>
+            </div>
+          </div>
+        </div>
+        <div class="remakePageFooterV6338" aria-label="Cache status">
+          <div id="remakeCacheActionHomeV6338" aria-hidden="true"></div>
+          <div class="remakeCacheActionBarV6338" aria-label="Remake cache controls">
+            <button id="remakeReloadSavedBtn" class="remakeButton secondary" type="button" title="Reload the saved Drive cache and replace this browser copy" onclick="reloadRemakeFactorSavedCache()"><span class="remakeCacheActionIconV6338" aria-hidden="true">&#8595;</span><span class="remakeCacheActionLabelV6338">Reload</span></button>
+            <button id="remakeRefreshBtn" class="remakeButton" type="button" title="Build missing months first, then replace current month from the API" onclick="refreshRemakeFactorData()"><span class="remakeCacheActionIconV6338" aria-hidden="true">&#8635;</span><span class="remakeCacheActionLabelV6338">Refresh</span></button>
+          </div>
+          <span id="remakeCeramistStatusV6342" class="remakeRefreshStamp remakeFooterStampV6338 remakeWorkerFooterStampV6367" title="This is when the worker cache was rebuilt, not the latest case invoice date.">Worker cache: not loaded</span>
+          <span id="remakeLastRefresh" class="remakeRefreshStamp remakeFooterStampV6338 remakeMainFooterStampV6367">${escV6230(uiV6230.lastStamp || 'Not loaded')}</span>
+        </div>
+      </div>`;
+    syncFilterControlsV6230();
+  }
 
+  function setNoticeV6230(message, tone) {
+    const el = idV6230('remakeNotice');
+    if (!el) return;
+    el.className = 'remakeNotice' + (message ? ' active' : '') + (tone ? ' ' + tone : '');
+    el.textContent = message || '';
+  }
+  function setLoadingV6230(value) {
+    const btn = idV6230('remakeRefreshBtn');
+    if (btn) btn.disabled = !!value;
+    const reloadBtn = idV6230('remakeReloadSavedBtn');
+    if (reloadBtn) reloadBtn.disabled = !!value;
+    if (!window.remakeFactorState) window.remakeFactorState = {};
+    window.remakeFactorState.loading = !!value;
+  }
+  function setStampV6230(text) { uiV6230.lastStamp = text || ''; const el = idV6230('remakeLastRefresh'); if (el) el.textContent = uiV6230.lastStamp; }
+  function setPerfV6230(ms, filteredCount, totalCount) {
+    const el = idV6230('remakePerfV6230');
+    if (el) el.textContent = 'Render ' + fmtCountV6230(ms) + ' ms · Rows ' + fmtCountV6230(filteredCount) + ' / ' + fmtCountV6230(totalCount);
+  }
 
-/* v6.230 Remake section full rebuild.
-   Changed only Index.html.
-   Replaces the Remake tab shell and state handling cleanly: no repeated control layers, no select-reset on render,
-   customer names/status from Overview facts, real product departments, sortable tables, and one action set per card. */
-(function installCleanRemakeSectionV6230() {
-  'use strict';
-
-  const VERSION_TEXT_V6230 = 'v6.402 Remake Factor + Group filter + dual exports + stable selections + two-hour page-only reload + collapsible Customers/Technicians';
-  const CACHE_KEY_V6230 = 'cdaRemakeFactorIndexedCache.v6346';
-  const LEGACY_CACHE_KEYS_V6230 = [
-    // v6.254 intentionally does not read old browser cache keys.
-    // This forces a fresh read from the Drive/server cache after the customer-name fixes.
-  ];
-  const REMAKE_RUNTIME_BRIDGE_VERSION_V6637 = 'v6.637';
-  function remakeRuntimeGetV6637(name) {
-    switch (String(name || "")) {
-      case 'expandRemakeBrowserReadyPayloadV6388': return expandRemakeBrowserReadyPayloadV6388;
-      case 'normalizeRowsV6230': return normalizeRowsV6230;
-      case 'rowsForRemakeFiltersV6252': return rowsForRemakeFiltersV6252;
-      case 'populateFiltersV6230': return populateFiltersV6230;
-      case 'slimDataV6230': return slimDataV6230;
-      case 'handleDataV6230': return handleDataV6230;
-      case 'isRemakeV6230': return isRemakeV6230;
-      default: return null;
+  function monthKeyV6230(rawValue) {
+    const raw = textV6230(rawValue, '');
+    if (/^\d{4}-\d{2}/.test(raw)) return raw.slice(0, 7);
+    if (/^\d{8}$/.test(raw)) return raw.slice(0, 4) + '-' + raw.slice(4, 6);
+    if (/^\d{1,2}\/\d{1,2}\/\d{4}/.test(raw)) {
+      const d = new Date(raw);
+      if (!isNaN(d.getTime())) return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
     }
+    const d = new Date(raw);
+    if (raw && !isNaN(d.getTime())) return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+    return raw || 'Unknown';
   }
-  function remakeRuntimeSetV6637(name, fn) {
-    if (typeof fn !== 'function') return false;
-    switch (String(name || "")) {
-      case 'expandRemakeBrowserReadyPayloadV6388': expandRemakeBrowserReadyPayloadV6388 = fn; break;
-      case 'normalizeRowsV6230': normalizeRowsV6230 = fn; break;
-      case 'rowsForRemakeFiltersV6252': rowsForRemakeFiltersV6252 = fn; break;
-      case 'populateFiltersV6230': populateFiltersV6230 = fn; break;
-      case 'slimDataV6230': slimDataV6230 = fn; break;
-      case 'handleDataV6230': handleDataV6230 = fn; break;
-      case 'isRemakeV6230': isRemakeV6230 = fn; break;
-      default: return false;
+  function monthLabelV6230(key) {
+    const m = /^(\d{4})-(\d{2})$/.exec(textV6230(key, ''));
+    if (!m) return textV6230(key, 'Unknown');
+    return new Date(Number(m[1]), Number(m[2]) - 1, 1).toLocaleString(undefined, { month: 'short', year: '2-digit' });
+  }
+  function sortMonthV6230(a, b) { return String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: 'base' }); }
+
+  function isLabLocationV6230(value) {
+    const v = textV6230(value, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+    return !v || v === 'pacifica' || v === 'san ramon' || v === 'deanza' || v === 'de anza' || v === 'cada' || v === 'cad' || v === 'cda' || v === 'case level';
+  }
+  function inferDepartmentFromProductNameV6230(productName) {
+    const name = textV6230(productName, '');
+    const first = textV6230(name.split(' - ')[0], '');
+    const allowed = new Set(['Fixed','Implant','Alloy','Removable','Nightguard','Advanced Prosthetics','Denture Services','Services','Shipping','CDA Connect']);
+    return allowed.has(first) ? first : '';
+  }
+  function isPlaceholderDepartmentV6264(value) {
+    const clean = textV6230(value, '').toLowerCase();
+    return !clean || clean === 'unassigned' || clean === 'unknown' || clean === 'not specified' || clean === 'case level';
+  }
+  function inferDepartmentFromGroupCodeV6273(value) {
+    const clean = textV6230(value, '');
+    const lower = clean.toLowerCase();
+    if (!clean || lower === 'unassigned' || lower === 'unknown' || lower === 'not specified') return '';
+    if (lower === 'rem' || lower === 'removable' || lower.indexOf('removable') === 0) return 'Removable';
+    if (lower === 'ng' || lower === 'nightguard' || lower === 'night guard' || lower.indexOf('nightguard') === 0 || lower.indexOf('night guard') === 0) return 'Nightguard';
+    if (lower === 'ap' || lower.indexOf('ap-') === 0 || lower.indexOf('advanced prosthetics') === 0) return 'Advanced Prosthetics';
+    if (lower === 'fixed' || lower.indexOf('fixed') === 0) return 'Fixed';
+    if (lower === 'implant' || lower.indexOf('implant') === 0) return 'Implant';
+    if (lower === 'alloy' || lower.indexOf('alloy') === 0) return 'Alloy';
+    if (lower.indexOf('denture') === 0) return 'Denture Services';
+    if (lower === 'shipping' || lower.indexOf('ship') === 0) return 'Shipping';
+    if (lower === 'cda connect' || lower.indexOf('cda connect') === 0) return 'CDA Connect';
+    if (lower === 'services' || lower.indexOf('service') === 0) return 'Services';
+    return '';
+  }
+  function inferProductGroupV6264(row, productMeta, productName, department) {
+    const candidates = [
+      row && row.taxGroup,
+      row && row.productGroup,
+      row && row.productsGroup,
+      row && row.Products_Group,
+      row && row.group,
+      productMeta && productMeta.group,
+      row && row.taxCategory,
+      row && row.productCategory,
+      row && row.productsCategory,
+      row && row.Products_Category,
+      productMeta && productMeta.category
+    ];
+    for (const candidate of candidates) {
+      const clean = textV6230(candidate, '');
+      if (clean && clean.toLowerCase() !== 'unassigned' && clean !== department) return clean;
     }
-    return true;
+    const parts = textV6230(productName, '').split(' - ').map(part => textV6230(part, '')).filter(Boolean);
+    if (parts.length >= 2) return parts[0];
+    return department || 'Unassigned';
   }
-  window.cdaRemakeRuntimeBridgeV6637 = Object.freeze({
-    version: REMAKE_RUNTIME_BRIDGE_VERSION_V6637,
-    get: remakeRuntimeGetV6637,
-    set: remakeRuntimeSetV6637,
-    has: function(name) { return typeof remakeRuntimeGetV6637(name) === 'function'; }
-  });
-  document.dispatchEvent(new CustomEvent('cdaRemakeRuntimeBridgeReadyV6637', { detail: { version: REMAKE_RUNTIME_BRIDGE_VERSION_V6637 } }));
-  const MODE_KEY_V6230 = 'cdaRemakeFactorMode.v6230';
-  const TREND_MEASURE_KEY_V6245 = 'cdaRemakeFactorTrendMeasure.v6245';
-  const TREND_VALUE_KEY_V6247 = 'cdaRemakeFactorTrendValueMode.v6247';
-  const TREND_CUMULATIVE_KEY_V6302 = 'cdaRemakeFactorTrendCumulative.v6302';
-  const MONTHS_KEY_V6230 = 'cdaRemakeFactorMonths.v6230';
-  const FILTERS_KEY_V6230 = 'cdaRemakeFactorFilters.v6230';
-  const FILTER_EXCLUSIONS_KEY_V6389 = 'cdaRemakeFactorFilterExclusions.v6389';
-  const SORT_KEY_V6230 = 'cdaRemakeFactorSorts.v6230';
-  const CUSTOMER_TABLE_MODE_KEY_V6251 = 'cdaRemakeFactorCustomerTableMode.v6251';
-  const PRODUCT_TABLE_MODE_KEY_V6264 = 'cdaRemakeFactorProductTableMode.v6264';
-  const TABLE_COMPARE_KEY_V6297 = 'cdaRemakeFactorTableCompare.v6297';
 
-  let remakeChartV6230 = null;
-  let customerChartV6230 = null;
-  let renderTimerV6230 = 0;
-  let startupTimerV6230 = 0;
-  // v6.346 memory guard: a full Remake payload must never overlap the prior
-  // 114k-row browser state, a second full IndexedDB structured clone, and the
-  // separate Ceramist payload. Normal filter-click transitions remain intact.
-  let mainCacheSwapActiveV6346 = false;
-  let suppressNextMorphV6346 = false;
-  let browserCacheWriteScheduledV6346 = false;
-  let browserCacheWriteRunningV6346 = false;
-  let browserCacheWriteHandleV6346 = 0;
-  let browserCacheWriteHandleTypeV6346 = '';
-  let browserCacheWritePromiseV6346 = Promise.resolve();
-  let browserCacheWriteCompletionV6568 = Promise.resolve(true);
-  let finishBrowserCacheWriteCompletionV6568 = null;
-  let remakeMetaCheckRunningV6409 = false;
-  let remakeMetaLastCheckedAtV6409 = 0;
-  let remakeAutoSyncTimerV6409 = 0;
-  let remakeBrowserReadyEnsureRunningV6410 = false;
-  let remakeBrowserReadyPollTimerV6410 = 0;
-  let remakeBrowserReadyPollStartedAtV6410 = 0;
-  const REMAKE_META_MIN_GAP_MS_V6409 = 30 * 1000;
-  const REMAKE_AUTO_SYNC_INTERVAL_MS_V6409 = 2 * 60 * 60 * 1000;
-  const REMAKE_FOCUS_SYNC_MIN_AGE_MS_V6409 = 10 * 60 * 1000;
-  const REMAKE_BROWSER_READY_POLL_INTERVAL_MS_V6410 = 30 * 1000;
-  const REMAKE_BROWSER_READY_POLL_MAX_MS_V6410 = 10 * 60 * 1000;
-  let ceramistLazyObserverV6346 = null;
-  let ceramistLazyRequestedV6346 = false;
-  let ceramistLazyFallbackBoundV6346 = false;
-  let ceramistLazyFallbackHandlerV6346 = null;
-  let ceramistLoadGenerationV6346 = 0;
-  // v6.364: the separate Ceramics Worker Analysis now has its own chunked
-  // IndexedDB cache. It renders the last nightly result immediately and only
-  // downloads the Drive payload when the lightweight server token changes.
-  let ceramistBrowserCacheWriteScheduledV6364 = false;
-  let ceramistBrowserCacheWriteRunningV6364 = false;
-  let ceramistBrowserCacheWriteHandleV6364 = 0;
-  let ceramistBrowserCacheWriteHandleTypeV6364 = '';
-  let ceramistBrowserCacheWritePromiseV6364 = Promise.resolve();
-
-  const defaultSortsV6230 = {
-    reason: { field: 'remakeCases', dir: 'desc' },
-    department: { field: 'remakeCases', dir: 'desc' },
-    product: { field: 'remakeCases', dir: 'desc' },
-    customer: { field: 'remakeCaseRate', dir: 'desc' },
-    ceramist: { field: 'remakeUnits', dir: 'desc' },
-    ceramistDetail: { field: 'remakeUnits', dir: 'desc' }
-  };
-
-  const uiV6230 = {
-    mode: readLocalTextV6230(MODE_KEY_V6230) || 'line',
-    trendMeasure: readLocalTextV6230(TREND_MEASURE_KEY_V6245) || 'cases',
-    trendValueMode: readLocalTextV6230(TREND_VALUE_KEY_V6247) || 'total',
-    trendCumulative: readLocalTextV6230(TREND_CUMULATIVE_KEY_V6302) === '1',
-    customerTableMode: readLocalTextV6230(CUSTOMER_TABLE_MODE_KEY_V6251) === 'all' ? 'all' : 'highest',
-    productTableMode: readLocalTextV6230(PRODUCT_TABLE_MODE_KEY_V6264) === 'group' ? 'group' : 'product',
-    tableCompareV6297: Object.assign({ reason: false, department: false, product: false, customer: false }, readLocalJsonV6230(TABLE_COMPARE_KEY_V6297, {})),
-    selectedMonths: new Set(readLocalJsonV6230(MONTHS_KEY_V6230, [])),
-    filters: Object.assign({ year: '', department: '', product: '', productGroup: '', customer: '', reason: '' }, readLocalJsonV6230(FILTERS_KEY_V6230, {})),
-    filterExclusionsV6389: Object.assign({ year: [], department: [], product: [], productGroup: [], customer: [], reason: [] }, readLocalJsonV6230(FILTER_EXCLUSIONS_KEY_V6389, {})),
-    sorts: Object.assign({}, defaultSortsV6230, readLocalJsonV6230(SORT_KEY_V6230, {})),
-    filterOptionsV6245: {},
-    selectedOnlyV6245: {},
-    lastTables: {},
-    lastTrendRows: [],
-    lastStamp: 'Not loaded'
-  };
-
-  /* v6.342: Ceramist attribution is intentionally isolated from the large
-     Remake Factor browser cache. The dashboard reads one compact Drive JSON
-     through getCeramistRemakeAnalysisData(); it never calls CRM or BigQuery
-     while rendering or cross-filtering. */
-  const ceramistStateV6342 = {
-    loading: false,
-    loaded: false,
-    ok: false,
-    rows: [],
-    stats: {},
-    version: '',
-    generatedAt: '',
-    caseLevelRefreshedAt: '',
-    cacheToken: '',
-    driveUpdatedAt: '',
-    badgeUpdatedAt: '',
-    browserCached: false,
-    syncing: false,
-    statusText: '',
-    message: '',
-    caseStatus: 'all',
-    diagnosticFlag: 'none',
-    selectedCeramist: '',
-    selectionCleared: false,
-    breakdown: 'product'
-  };
-
-  ['year','department','product','productGroup','customer','reason'].forEach(kind => {
-    const raw = uiV6230.filters[kind];
-    if (Array.isArray(raw)) uiV6230.filters[kind] = raw;
-    else if (raw) uiV6230.filters[kind] = [String(raw)];
-    else uiV6230.filters[kind] = [];
-    const excludedRaw = uiV6230.filterExclusionsV6389[kind];
-    if (Array.isArray(excludedRaw)) uiV6230.filterExclusionsV6389[kind] = excludedRaw.map(String).filter(Boolean);
-    else if (excludedRaw) uiV6230.filterExclusionsV6389[kind] = [String(excludedRaw)];
-    else uiV6230.filterExclusionsV6389[kind] = [];
-    if (uiV6230.filters[kind].length) uiV6230.filterExclusionsV6389[kind] = [];
-  });
-
-  const undoV6266 = { stack: [], max: 40, restoring: false, lastSnapshot: '' };
-  if (uiV6230.mode !== 'bar') uiV6230.mode = 'line';
-  if (uiV6230.trendMeasure !== 'units') uiV6230.trendMeasure = 'cases';
-  if (uiV6230.trendValueMode !== 'percent') uiV6230.trendValueMode = 'total';
-  uiV6230.trendCumulative = uiV6230.trendCumulative === true;
-
-  function idV6230(id) { return document.getElementById(id); }
-  function textV6230(value, fallback) {
-    const clean = String(value === null || value === undefined ? '' : value).replace(/\s+/g, ' ').trim();
-    return clean || fallback || '';
+  function overviewLookupsV6230() {
+    const customerById = new Map();
+    const productById = new Map();
+    const productByName = new Map();
+    const sourceFacts = typeof facts !== 'undefined' && Array.isArray(facts) ? facts : [];
+    sourceFacts.forEach(row => {
+      const cid = textV6230(row.customerId, '');
+      if (cid && !customerById.has(cid)) {
+        const metaName = textV6230(row.customerName || row.customerFullName || row.Customers_CustomerFullName, '');
+        const metaPractice = textV6230(row.practiceName || row.customerPracticeName || row.Customers_PracticeName, '');
+        customerById.set(cid, {
+          id: cid,
+          name: metaName && metaName !== cid ? metaName : '',
+          practiceName: metaPractice && metaPractice !== cid ? metaPractice : '',
+          active: row.customerActive === false ? false : true
+        });
+      } else if (cid && customerById.has(cid) && row.customerActive === false) customerById.get(cid).active = false;
+      const pid = textV6230(row.productId, '');
+      const pname = textV6230(row.productsDescription, pid || 'Unknown product');
+      const dept = textV6230(row.productsDepartment, '');
+      const meta = { id: pid, name: pname, department: dept, group: textV6230(row.productGroup || row.productsGroup || row.Products_Group || row.group || row.category || row.productsCategory || row.Products_Category, '') };
+      if (pid && !productById.has(pid)) productById.set(pid, meta);
+      const nameKey = pname.toLowerCase();
+      if (nameKey && !productByName.has(nameKey)) productByName.set(nameKey, meta);
+    });
+    return { customerById, productById, productByName, signature: sourceFacts.length };
   }
-  function numV6230(value) { return Number(value || 0) || 0; }
-  function escV6230(value) {
-    return String(value === null || value === undefined ? '' : value).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
-  }
-  function escJsV6230(value) {
-    return String(value === null || value === undefined ? '' : value).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\r?\n/g, ' ');
-  }
-  function readLocalTextV6230(key) { try { return window.localStorage ? localStorage.getItem(key) : null; } catch (error) { return null; } }
-  function writeLocalTextV6230(key, value) { try { if (window.localStorage) localStorage.setItem(key, value); } catch (error) {} }
-  function readLocalJsonV6230(key, fallback) { try { const raw = window.localStorage ? localStorage.getItem(key) : null; return raw ? JSON.parse(raw) : fallback; } catch (error) { return fallback; } }
-  function writeLocalJsonV6230(key, value) { try { if (window.localStorage) localStorage.setItem(key, JSON.stringify(value)); } catch (error) {} }
-  function fmtCountV6230(value, digits) { return numV6230(value).toLocaleString(undefined, { minimumFractionDigits: digits || 0, maximumFractionDigits: digits || 0 }); }
-  function fmtCurrencyV6230(value) { return numV6230(value).toLocaleString(undefined, { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }); }
-  function fmtPctV6230(value, digits) { return (numV6230(value) * 100).toLocaleString(undefined, { minimumFractionDigits: digits === undefined ? 1 : digits, maximumFractionDigits: digits === undefined ? 1 : digits }) + '%'; }
-  function fmtPpV6230(value) { const n = numV6230(value); return (n > 0 ? '+' : '') + n.toFixed(1) + ' pp'; }
-  function nativeEventV6230(event) { return event && event.native ? event.native : (event || window.event); }
-  function additiveV6230(event) { const e = nativeEventV6230(event); return !!(e && (e.ctrlKey || e.metaKey)); }
-  function slugV6230(value) { return String(value || 'remake').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'remake'; }
 
-  function remakeSnapshotV6266() {
-    return JSON.stringify({
-      filters: uiV6230.filters || {},
-      selectedMonths: Array.from(uiV6230.selectedMonths || []),
-      mode: uiV6230.mode === 'bar' ? 'bar' : 'line',
-      filterExclusionsV6389: uiV6230.filterExclusionsV6389 || {},
-      trendMeasure: uiV6230.trendMeasure || 'cases',
-      trendValueMode: uiV6230.trendValueMode || 'total',
-      trendCumulative: uiV6230.trendCumulative === true,
-      customerTableMode: uiV6230.customerTableMode || 'highest',
-      productTableMode: uiV6230.productTableMode || 'product',
-      tableCompareV6297: Object.assign({}, uiV6230.tableCompareV6297 || {}),
-      sorts: uiV6230.sorts || {}
+  function isRemakeV6230(row) {
+    if (!row) return false;
+    if (row.isRemake === true) return true;
+    if (row.isRemake === false) return false;
+    if (numV6230(row.remakeCases) > 0 || numV6230(row.remakeUnits) > 0) return true;
+    const flag = textV6230(row.remakeFlag || row.remake || row.caseProductsRemake || row.CaseProducts_Remake, '').toLowerCase();
+    return /^(y|yes|true|1|r|remake)$/.test(flag);
+  }
+  function caseIdV6230(row) { return textV6230(row && (row.caseId || row.caseID || row.caseNumber || row.Cases_CaseNumber || row.case), ''); }
+
+  function rawRowsV6230() {
+    const st = window.remakeFactorState || {};
+    const data = st.data || {};
+    if (Array.isArray(st.rows) && st.rows.length) return st.rows;
+    if (Array.isArray(data.detailRows) && data.detailRows.length) return data.detailRows;
+    if (Array.isArray(data.rows) && data.rows.length) return data.rows;
+    return [];
+  }
+
+  function normalizeRowsV6230(rows, lookups) {
+    lookups = lookups || overviewLookupsV6230();
+    return (rows || []).map(row => {
+      const month = monthKeyV6230(row.month || row.invoiceMonth || row.Cases_InvoiceDate || row.invoiceDate || row.dateIn || row.modifyDate || row.Cases_CreateDate);
+      const year = row.year || (/^\d{4}/.test(month) ? Number(month.slice(0, 4)) : '');
+      const remake = isRemakeV6230(row);
+      const qty = numV6230(row.quantity !== undefined ? row.quantity : (row.units !== undefined ? row.units : row.CaseProducts_Quantity));
+      const rawProductId = textV6230(row.productId || row.productID || row.CaseProducts_ProductID, '');
+      const rawProductName = textV6230(row.productName || row.productsDescription || row.Products_Description || row.productDescription || row.invoiceDescription || rawProductId, 'Unknown product');
+      const productMeta = (rawProductId && lookups.productById.get(rawProductId)) || lookups.productByName.get(rawProductName.toLowerCase()) || null;
+      const productName = textV6230(productMeta && productMeta.name, rawProductName);
+      const productKey = rawProductId || productName;
+      let department = '';
+      const inferredDepartment = inferDepartmentFromProductNameV6230(productName);
+      const rawGroupForDepartment = row.taxGroup || row.productGroup || row.productsGroup || row.Products_Group || row.group || row.taxCategory || (productMeta && (productMeta.group || productMeta.category)) || '';
+      const inferredGroupDepartment = inferDepartmentFromGroupCodeV6273(rawGroupForDepartment);
+      const deptCandidates = [
+        row.taxDepartment,
+        row.taxDept,
+        row.Products_Department,
+        row.productsDepartment,
+        row.productDepartment,
+        productMeta && productMeta.department,
+        inferredGroupDepartment,
+        inferredDepartment,
+        row.department
+      ];
+      for (const candidate of deptCandidates) {
+        const clean = textV6230(candidate, '');
+        if (clean && !isLabLocationV6230(clean) && !isPlaceholderDepartmentV6264(clean)) { department = clean; break; }
+      }
+      department = department || inferredDepartment || 'Unassigned';
+      const productGroup = inferProductGroupV6264(row, productMeta, productName, department);
+      const rawCustomerId = textV6230(row.customerId || row.customerID || row.Cases_CustomerID, '');
+      const customerMeta = rawCustomerId ? lookups.customerById.get(rawCustomerId) : null;
+      function firstNonIdV6253(values) {
+        for (const value of values || []) {
+          const clean = textV6230(value, '');
+          if (!clean) continue;
+          if (rawCustomerId && clean === rawCustomerId) continue;
+          return clean;
+        }
+        return '';
+      }
+      const rawCustomerName = firstNonIdV6253([
+        customerMeta && customerMeta.name,
+        row.customerFullName,
+        row.Customers_CustomerFullName,
+        row.customersCustomerFullName,
+        row.customerDisplayName,
+        row.customerName
+      ]);
+      const rawPracticeName = firstNonIdV6253([
+        customerMeta && customerMeta.practiceName,
+        row.practiceName,
+        row.customerPracticeName,
+        row.Customers_PracticeName,
+        row.customersPracticeName,
+        row.practice,
+        row.officeName
+      ]);
+      const customerName = textV6230(rawCustomerName, rawPracticeName || rawCustomerId || 'Unknown customer');
+      const practiceName = rawPracticeName;
+      const customerDisplayLabel = customerLabelV6246({ customerId: rawCustomerId, customerName: rawCustomerName || customerName, practiceName: practiceName });
+      const customerActive = customerMeta ? customerMeta.active !== false : (row.customerActive === false || row.customerActive === 'false' ? false : true);
+      return {
+        month,
+        year,
+        caseId: caseIdV6230(row),
+        caseNumber: textV6230(row.caseNumber || row.caseNo || row.Cases_CaseNumber, ''),
+        caseProductLineId: textV6230(
+          row.caseProductLineId || row.caseProductLineID || row.caseProductId || row.caseProductID ||
+          row.productLineId || row.productLineID || row.lineId || row.lineID,
+          ''
+        ),
+        customerId: rawCustomerId || customerName,
+        customerKey: rawCustomerId || customerName,
+        customerName,
+        practiceName,
+        customerDisplayLabel,
+        customerActive,
+        department,
+        productId: rawProductId,
+        productKey,
+        productName,
+        productGroup,
+        remakeReason: remake ? textV6230(row.remakeReason || row.reason || row.CaseProducts_RemakeReason, 'Not specified') : 'Not a remake',
+        quantity: qty,
+        units: qty,
+        isRemake: remake,
+        remakeUnits: remake ? numV6230(row.remakeUnits !== undefined ? row.remakeUnits : qty) : 0,
+        remakeDiscount: remake ? Math.abs(numV6230(row.remakeDiscount || row.CaseProducts_RemakeDiscount || 0)) : 0,
+        invoiceDate: textV6230(row.invoiceDate || row.Cases_InvoiceDate, ''),
+        caseStatus: textV6230(row.caseStatus || row.status || row.Cases_Status, ''),
+        invoiceDateTryIn: textV6230(row.invoiceDateTryIn || row.Cases_InvoiceDateTryIn, ''),
+        isRealInvoicedCharge: row.isRealInvoicedCharge !== false,
+        creditDebitReason: textV6230(row.creditDebitReason || row.Cases_CreditDebitReason, ''),
+        chargeAmount: numV6230(row.chargeAmount !== undefined ? row.chargeAmount : row.totalCharge),
+        creditAmount: numV6230(row.creditAmount || 0),
+        netAmount: numV6230(row.netAmount !== undefined ? row.netAmount : row.totalCharge),
+        salesLogicClass: textV6230(row.salesLogicClass, 'charge'),
+        remakeDiscountSource: textV6230(row.remakeDiscountSource, '')
+      };
     });
   }
 
-  function pushRemakeUndoV6266() {
-    if (undoV6266.restoring) return;
-    const snapshot = remakeSnapshotV6266();
-    const prior = undoV6266.stack.length ? undoV6266.stack[undoV6266.stack.length - 1] : '';
-    if (snapshot === prior || snapshot === undoV6266.lastSnapshot) return;
-    undoV6266.stack.push(snapshot);
-    if (undoV6266.stack.length > undoV6266.max) undoV6266.stack.shift();
-    undoV6266.lastSnapshot = snapshot;
+  function customerLabelV6246(row) {
+    const cid = textV6230(row && (row.customerId || row.customerKey), '');
+    const name = textV6230(row && (row.customerName || row.customerDisplayName), '');
+    const practice = textV6230(row && (row.practiceName || row.customerPracticeName), '');
+    const cleanName = name && cid && name === cid ? '' : name;
+    const cleanPractice = practice && cid && practice === cid ? '' : practice;
+    let label = '';
+    if (cleanName && cleanPractice && cleanName !== cleanPractice) label = cleanName + ' - ' + cleanPractice;
+    else label = cleanName || cleanPractice || cid || 'Unknown customer';
+    if (cid && label !== cid && label.indexOf('(' + cid + ')') < 0) label += ' (' + cid + ')';
+    return label;
   }
 
-  function applyRemakeSnapshotV6266(snapshotText) {
-    let snapshot = null;
-    try { snapshot = JSON.parse(snapshotText || '{}'); } catch (error) { snapshot = {}; }
-    undoV6266.restoring = true;
-    try {
-      uiV6230.filters = Object.assign({ year: [], department: [], product: [], productGroup: [], customer: [], reason: [] }, snapshot.filters || {});
-      ['year','department','product','productGroup','customer','reason'].forEach(kind => {
-        const raw = uiV6230.filters[kind];
-        uiV6230.filters[kind] = Array.isArray(raw) ? raw.map(String) : (raw ? [String(raw)] : []);
-      });
-      uiV6230.selectedMonths = new Set((snapshot.selectedMonths || []).map(String));
-      uiV6230.mode = snapshot.mode === 'bar' ? 'bar' : 'line';
-      uiV6230.filterExclusionsV6389 = Object.assign({ year: [], department: [], product: [], productGroup: [], customer: [], reason: [] }, snapshot.filterExclusionsV6389 || {});
-      ['year','department','product','productGroup','customer','reason'].forEach(function(kind){
-        const excluded = uiV6230.filterExclusionsV6389[kind];
-        uiV6230.filterExclusionsV6389[kind] = Array.isArray(excluded) ? excluded.map(String).filter(Boolean) : (excluded ? [String(excluded)] : []);
-        if (uiV6230.filters[kind].length) uiV6230.filterExclusionsV6389[kind] = [];
-      });
-      uiV6230.trendMeasure = snapshot.trendMeasure === 'units' ? 'units' : 'cases';
-      uiV6230.trendValueMode = snapshot.trendValueMode === 'percent' ? 'percent' : 'total';
-      uiV6230.trendCumulative = snapshot.trendCumulative === true;
-      uiV6230.customerTableMode = snapshot.customerTableMode === 'all' ? 'all' : 'highest';
-      uiV6230.productTableMode = snapshot.productTableMode === 'group' ? 'group' : 'product';
-      uiV6230.tableCompareV6297 = Object.assign({ reason:false, department:false, product:false, customer:false }, snapshot.tableCompareV6297 || {});
-      uiV6230.sorts = Object.assign({}, defaultSortsV6230, snapshot.sorts || {});
-      persistUiV6230();
-      syncFilterControlsV6230();
-    } finally {
-      undoV6266.restoring = false;
-      undoV6266.lastSnapshot = remakeSnapshotV6266();
+  function normalizedRowsV6230() {
+    const st = window.remakeFactorState || {};
+    const rawRows = rawRowsV6230();
+    const overviewSignature = typeof facts !== 'undefined' && Array.isArray(facts) ? facts.length : 0;
+    const sig = String(rawRows.length) + '|' + String(overviewSignature);
+    if (Array.isArray(st.normalizedRowsV6230) && st.normalizedRowsSignatureV6230 === sig) return st.normalizedRowsV6230;
+    const lookups = overviewLookupsV6230();
+    const rows = normalizeRowsV6230(rawRows, lookups);
+    st.normalizedRowsV6230 = rows;
+    st.normalizedRowsSignatureV6230 = sig;
+    window.remakeFactorState = st;
+    return rows;
+  }
+
+  function summarizeV6230(rows) {
+    const cases = new Set();
+    const remakeCases = new Set();
+    let totalFallback = 0;
+    let remakeFallback = 0;
+    let totalUnits = 0;
+    let remakeUnits = 0;
+    let remakeDiscount = 0;
+    (rows || []).forEach(row => {
+      const cid = caseIdV6230(row);
+      if (cid) cases.add(cid); else totalFallback += numV6230(row.totalCases) || 1;
+      totalUnits += numV6230(row.quantity !== undefined ? row.quantity : row.units);
+      if (isRemakeV6230(row)) {
+        if (cid) remakeCases.add(cid); else remakeFallback += numV6230(row.remakeCases) || 1;
+        remakeUnits += numV6230(row.remakeUnits !== undefined ? row.remakeUnits : (row.quantity !== undefined ? row.quantity : row.units));
+        remakeDiscount += Math.abs(numV6230(row.remakeDiscount));
+      }
+    });
+    const totalCases = cases.size + totalFallback;
+    const remakeCaseCount = remakeCases.size + remakeFallback;
+    return {
+      totalCases,
+      remakeCases: remakeCaseCount,
+      totalUnits,
+      remakeUnits,
+      remakeDiscount,
+      remakeCaseRate: totalCases ? remakeCaseCount / totalCases : 0,
+      remakeUnitRate: totalUnits ? remakeUnits / totalUnits : 0
+    };
+  }
+
+  function groupV6230(rows, keyGetter, labelGetter, extraReducer) {
+    const groups = new Map();
+    (rows || []).forEach(row => {
+      const key = textV6230(keyGetter(row), 'Not specified');
+      if (!groups.has(key)) groups.set(key, { key, label: textV6230(labelGetter ? labelGetter(row) : key, key), rows: [] });
+      const group = groups.get(key);
+      group.rows.push(row);
+      if (extraReducer) extraReducer(group, row);
+    });
+    return Array.from(groups.values()).map(group => Object.assign(group, summarizeV6230(group.rows)));
+  }
+
+  function syncFiltersFromControlsV6230() {
+    Object.keys(filterMetaV6245).forEach(kind => {
+      const meta = filterMetaV6245[kind];
+      const el = idV6230(meta.inputId);
+      if (!el) return;
+      try {
+        const parsed = JSON.parse(el.value || '[]');
+        if (!(excludedFilterValuesV6389(kind).length && Array.isArray(parsed) && !parsed.length)) setFilterValuesV6245(kind, parsed);
+      } catch (error) {
+        if (!excludedFilterValuesV6389(kind).length) setFilterValuesV6245(kind, []);
+      }
+    });
+    writeLocalJsonV6230(FILTERS_KEY_V6230, uiV6230.filters);
+  }
+  function syncFilterControlsV6230() {
+    Object.keys(filterMetaV6245).forEach(kind => {
+      const meta = filterMetaV6245[kind];
+      const el = idV6230(meta.inputId);
+      if (el) el.value = JSON.stringify(filterValuesV6245(kind));
+      renderDropdownButtonV6245(kind);
+      const panel = idV6230(meta.panelId);
+      if (panel && panel.classList.contains('open')) window.renderRemakeDropdownListV6245(kind);
+    });
+  }
+  function currentFiltersV6230() { syncFiltersFromControlsV6230(); return uiV6230.filters; }
+  function rowsForFiltersV6230(rows, options) {
+    const includeMonths = !options || options.months !== false;
+    const includeYear = !(options && options.year === false);
+    const includeDepartment = !(options && options.department === false);
+    const includeProduct = !(options && options.product === false);
+    const includeProductGroup = !(options && options.productGroup === false);
+    const includeCustomer = !(options && options.customer === false);
+    const includeReason = !(options && options.reason === false);
+    const selectedMonths = uiV6230.selectedMonths || new Set();
+
+    /* v6.333: compile filter membership once per pass. The prior predicate
+       rebuilt the selected arrays for every field on every row, which caused
+       a visible main-thread pause before cross-filter transitions. */
+    const compiledFiltersV6333 = {};
+    ['year','department','product','productGroup','customer','reason'].forEach(function(kind) {
+      const values = filterValuesV6245(kind).map(String);
+      const excluded = excludedFilterValuesV6389(kind).map(String);
+      compiledFiltersV6333[kind] = {
+        none: values.length === 1 && values[0] === REMAKE_NONE_FILTER_VALUE_V6308,
+        values: values.length ? new Set(values) : null,
+        excluded: excluded.length ? new Set(excluded) : null
+      };
+    });
+    function matchesCompiledFilterV6333(kind, value) {
+      const filter = compiledFiltersV6333[kind];
+      if (!filter || filter.none) return false;
+      const text = String(value);
+      if (filter.values) return filter.values.has(text);
+      return !filter.excluded || !filter.excluded.has(text);
     }
-    renderDashboardV6230();
+
+    return (rows || []).filter(row =>
+      (!includeYear || matchesCompiledFilterV6333('year', row.year)) &&
+      (!includeDepartment || matchesCompiledFilterV6333('department', row.department)) &&
+      (!includeProduct || matchesCompiledFilterV6333('product', row.productKey)) &&
+      (!includeProductGroup || matchesCompiledFilterV6333('productGroup', row.productGroup || row.department || 'Unassigned')) &&
+      (!includeCustomer || matchesCompiledFilterV6333('customer', row.customerKey)) &&
+      (!includeReason || matchesCompiledFilterV6333('reason', row.remakeReason)) &&
+      (!includeMonths || !selectedMonths.size || selectedMonths.has(row.month))
+    );
   }
 
-  window.undoRemakeFilterChangeV6266 = function undoRemakeFilterChangeV6266() {
-    const snapshot = undoV6266.stack.pop();
-    if (!snapshot) {
-      setNoticeV6230('Nothing to go back to yet.', 'warn');
+  /* v6.252 denominator logic:
+     Year/month, department, product, and customer filters define the full case base.
+     Reason filters are remake-only, so they narrow the numerator but never shrink Total Cases. */
+  function rowsForBaseFiltersV6252(rows, options) {
+    return rowsForFiltersV6230(rows, Object.assign({}, options || {}, { reason: false }));
+  }
+  function rowsForRemakeFiltersV6252(rows, options) {
+    return rowsForFiltersV6230(rows, options || {});
+  }
+  function summarizeSplitV6252(totalRows, remakeRows) {
+    const cases = new Set();
+    let totalFallback = 0;
+    let totalUnits = 0;
+    (totalRows || []).forEach(row => {
+      const cid = caseIdV6230(row);
+      if (cid) cases.add(cid); else totalFallback += numV6230(row.totalCases) || 1;
+      totalUnits += numV6230(row.quantity !== undefined ? row.quantity : row.units);
+    });
+
+    const remakeCases = new Set();
+    let remakeFallback = 0;
+    let remakeUnits = 0;
+    let remakeDiscount = 0;
+    (remakeRows || []).filter(isRemakeV6230).forEach(row => {
+      const cid = caseIdV6230(row);
+      if (cid) remakeCases.add(cid); else remakeFallback += numV6230(row.remakeCases) || 1;
+      remakeUnits += numV6230(row.remakeUnits !== undefined ? row.remakeUnits : (row.quantity !== undefined ? row.quantity : row.units));
+      remakeDiscount += Math.abs(numV6230(row.remakeDiscount));
+    });
+
+    const totalCases = cases.size + totalFallback;
+    const remakeCaseCount = remakeCases.size + remakeFallback;
+    return {
+      totalCases,
+      remakeCases: remakeCaseCount,
+      totalUnits,
+      remakeUnits,
+      remakeDiscount,
+      remakeCaseRate: totalCases ? remakeCaseCount / totalCases : 0,
+      remakeUnitRate: totalUnits ? remakeUnits / totalUnits : 0
+    };
+  }
+  function groupSplitV6252(totalRows, remakeRows, keyGetter, labelGetter, extraReducer) {
+    const groups = new Map();
+    function ensureGroup(row) {
+      const key = textV6230(keyGetter(row), 'Not specified');
+      if (!groups.has(key)) groups.set(key, { key, label: textV6230(labelGetter ? labelGetter(row) : key, key), rows: [], totalRows: [], remakeRows: [] });
+      const group = groups.get(key);
+      if (extraReducer) extraReducer(group, row);
+      return group;
+    }
+    (totalRows || []).forEach(row => {
+      const group = ensureGroup(row);
+      group.rows.push(row);
+      group.totalRows.push(row);
+    });
+    (remakeRows || []).filter(isRemakeV6230).forEach(row => {
+      const group = ensureGroup(row);
+      group.remakeRows.push(row);
+    });
+    return Array.from(groups.values()).map(group => Object.assign(group, summarizeSplitV6252(group.totalRows, group.remakeRows)));
+  }
+  function monthlyGroupsSplitV6252(totalRows, remakeRows) {
+    return groupSplitV6252(totalRows, remakeRows, row => row.month || 'Unknown', row => row.month || 'Unknown')
+      .filter(row => row.key !== 'Unknown')
+      .sort((a, b) => sortMonthV6230(a.key, b.key))
+      .slice(-24);
+  }
+  function reasonFilterActiveV6252() {
+    return filterValuesV6245('reason').length > 0 || excludedFilterValuesV6389('reason').length > 0;
+  }
+  function remakeCasesHeaderV6252() {
+    return reasonFilterActiveV6252() ? 'Reason Remakes' : 'Remake Cases';
+  }
+  function remakeRateHeaderV6252() {
+    return reasonFilterActiveV6252() ? 'Reason Rate' : 'Case Rate';
+  }
+  function normalizeOptionsV6245(options) { const seen = new Set(); const clean = []; (options || []).forEach(opt => { const value = textV6230(opt && opt.value !== undefined ? opt.value : opt, ''); const label = textV6230(opt && opt.label !== undefined ? opt.label : opt, value); if (!value || seen.has(value)) return; seen.add(value); clean.push({ value, label, active: opt && opt.active }); }); return clean.sort((a,b)=>a.label.localeCompare(b.label,undefined,{numeric:true,sensitivity:'base'})); }
+  function fillSelectV6230(id, allLabel, options, selected) {
+    const map={remakeYearFilter:'year',remakeDepartmentFilter:'department',remakeProductFilter:'product',remakeCustomerFilter:'customer',remakeReasonFilter:'reason'};
+    const kind=map[id];
+    if (!kind) return;
+    uiV6230.filterOptionsV6245[kind]=normalizeOptionsV6245(options);
+    renderDropdownButtonV6245(kind);
+    const meta=filterMetaV6245[kind];
+    const panel=meta?idV6230(meta.panelId):null;
+    if(panel&&panel.classList.contains('open')) window.renderRemakeDropdownListV6245(kind);
+  }
+  function populateFiltersV6230(rows) {
+    // v6.300: filter inventories are based on the full normalized data set, not
+    // the current cross-filter. Rebuilding thousands of hidden dropdown rows on
+    // every table click was the main source of the visible freeze/twitch.
+    if (uiV6230.filterOptionRowsV6300 === rows && uiV6230.filterOptionsV6245) {
+      syncFilterControlsV6230();
+      writeLocalJsonV6230(FILTERS_KEY_V6230, uiV6230.filters);
       return;
     }
-    applyRemakeSnapshotV6266(snapshot);
-  };
-
-  document.addEventListener('keydown', function(event) {
-    const activePage = idV6230('remakeFactorPage');
-    if (!activePage || !activePage.classList.contains('active')) return;
-    const target = event && event.target;
-    if (target && target.closest && target.closest('input, textarea, select, [contenteditable="true"]')) return;
-    const key = String(event.key || '').toLowerCase();
-    if ((event.ctrlKey || event.metaKey) && key === 'z' && !event.shiftKey) {
-      event.preventDefault();
-      window.undoRemakeFilterChangeV6266();
-    }
-  });
-
-  const remakeTrendDragBandPluginV6266 = {
-    id: 'remakeTrendDragBandV6266',
-    beforeDatasetsDraw: function(chart) {
-      const range = chart && chart.$remakeDragRangeV6266;
-      if (!range || !chart.scales || !chart.scales.x) return;
-      const xScale = chart.scales.x;
-      const area = chart.chartArea || {};
-      const start = Math.min(range.start, range.end);
-      const end = Math.max(range.start, range.end);
-      const left = Math.max(area.left || 0, xScale.getPixelForValue(start) - 18);
-      const right = Math.min(area.right || chart.width, xScale.getPixelForValue(end) + 18);
-      const ctx = chart.ctx;
-      ctx.save();
-      ctx.fillStyle = 'rgba(245,158,11,.14)';
-      ctx.strokeStyle = 'rgba(245,158,11,.55)';
-      ctx.lineWidth = 1;
-      ctx.fillRect(left, area.top || 0, Math.max(1, right - left), Math.max(1, (area.bottom || chart.height) - (area.top || 0)));
-      ctx.strokeRect(left, area.top || 0, Math.max(1, right - left), Math.max(1, (area.bottom || chart.height) - (area.top || 0)));
-      ctx.restore();
-    }
-  };
-
-
-
-  const remakeSelectedMonthBandPluginV6268 = {
-    id: 'remakeSelectedMonthBandV6268',
-    beforeDatasetsDraw: function(chart) {
-      const selected = uiV6230 && uiV6230.selectedMonths ? uiV6230.selectedMonths : new Set();
-      if (!selected || !selected.size || !chart || !chart.scales || !chart.scales.x) return;
-      const area = chart.chartArea || {};
-      const xScale = chart.scales.x;
-      const ctx = chart.ctx;
-      const labels = (chart.data && chart.data.labels) || [];
-      ctx.save();
-      for (let index = 0; index < labels.length; index += 1) {
-        const isSelectedMonthIndex = (chart.data.datasets || []).some(dataset => {
-          const keys = dataset && dataset.monthKeys ? dataset.monthKeys : [];
-          return keys[index] && selected.has(String(keys[index]));
-        });
-        if (!isSelectedMonthIndex) continue;
-        const center = xScale.getPixelForValue(index);
-        const prev = index > 0 ? xScale.getPixelForValue(index - 1) : area.left;
-        const next = index < labels.length - 1 ? xScale.getPixelForValue(index + 1) : area.right;
-        const halfWidth = Math.max(12, Math.min(36, ((next - prev) / 2) * 0.72));
-        const left = Math.max(area.left || 0, center - halfWidth);
-        const right = Math.min(area.right || chart.width, center + halfWidth);
-        ctx.fillStyle = 'rgba(245,158,11,.105)';
-        ctx.fillRect(left, area.top || 0, Math.max(1, right - left), Math.max(1, (area.bottom || chart.height) - (area.top || 0)));
-      }
-      ctx.restore();
-    }
-  };
-
-  function chartMonthIndexFromPointerV6266(chart, event) {
-    if (!chart || !chart.scales || !chart.scales.x || !event) return null;
-    const rect = chart.canvas.getBoundingClientRect();
-    const x = event.clientX - rect.left;
-    const index = Math.round(chart.scales.x.getValueForPixel(x));
-    if (!Number.isFinite(index)) return null;
-    return Math.max(0, Math.min(11, index));
+    fillSelectV6230('remakeYearFilter','All years',Array.from(new Set((rows||[]).map(row=>row.year).filter(Boolean))).sort((a,b)=>Number(b)-Number(a)).map(year=>({value:String(year),label:String(year)})),uiV6230.filters.year);
+    fillSelectV6230('remakeDepartmentFilter','All departments',Array.from(new Set((rows||[]).map(row=>row.department).filter(Boolean))).map(dept=>({value:dept,label:dept})),uiV6230.filters.department);
+    fillSelectV6230('remakeProductFilter','All products',groupV6230(rows,row=>row.productKey,row=>row.productName).map(row=>({value:row.key,label:row.label})),uiV6230.filters.product);
+    uiV6230.filterOptionsV6245.productGroup = normalizeOptionsV6245(groupV6230(rows,row=>row.productGroup || row.department || 'Unassigned',row=>row.productGroup || row.department || 'Unassigned').map(row=>({value:row.key,label:row.label})));
+    fillSelectV6230('remakeCustomerFilter','All customers',groupV6230(rows,row=>row.customerKey,row=>customerLabelV6246(row),(group,row)=>{group.customerId=row.customerId||row.customerKey; group.customerName=row.customerName||row.customerKey; group.practiceName=row.practiceName||''; group.customerDisplayLabel=customerLabelV6246(row); if(row.customerActive===false) group.active=false;}).map(row=>({value:row.key,label:row.label,active:row.active!==false})),uiV6230.filters.customer);
+    fillSelectV6230('remakeReasonFilter','All reasons',Array.from(new Set((rows||[]).filter(isRemakeV6230).map(row=>row.remakeReason||'Not specified'))).map(reason=>({value:reason,label:reason})),uiV6230.filters.reason);
+    uiV6230.filterOptionRowsV6300 = rows;
+    syncFilterControlsV6230(); writeLocalJsonV6230(FILTERS_KEY_V6230, uiV6230.filters);
   }
-
-  function selectRemakeMonthRangeV6266(startIndex, endIndex, years, groupByMonth, event) {
-    const start = Math.min(startIndex, endIndex);
-    const end = Math.max(startIndex, endIndex);
-    const additive = additiveV6230(event);
-    pushRemakeUndoV6266();
-    const next = additive ? new Set(uiV6230.selectedMonths || []) : new Set();
-    (years || []).forEach(year => {
-      for (let index = start; index <= end; index += 1) {
-        const key = String(year) + '-' + String(index + 1).padStart(2, '0');
-        if (!groupByMonth || groupByMonth.has(key)) next.add(key);
-      }
-    });
-    uiV6230.selectedMonths = next;
-    persistUiV6230();
-    renderDashboardV6230();
+  function filterLabelV6230(kind,value){ if(!value) return ''; const opt=filterOptionLabelV6245(kind,value); if(opt) return opt; return String(value); }
+  function pillKindLabelV6247(kind) {
+    return kind === 'year' ? 'Year' : kind === 'department' ? 'Department' : kind === 'product' ? 'Product' : kind === 'productGroup' ? 'Group' : kind === 'customer' ? 'Customer' : kind === 'reason' ? 'Reason' : 'Month';
   }
-
-  function installRemakeTrendDragV6266(chart, years, groupByMonth) {
-    if (!chart || !chart.canvas) return;
-    const canvas = chart.canvas;
-    let dragging = false;
-    let startIndex = null;
-    let lastIndex = null;
-    let moved = false;
-    canvas.onpointerdown = function(event) {
-      if (event.button !== undefined && event.button !== 0) return;
-      const index = chartMonthIndexFromPointerV6266(chart, event);
-      if (index === null) return;
-      dragging = true;
-      moved = false;
-      startIndex = index;
-      lastIndex = index;
-      chart.$remakeDragRangeV6266 = { start: startIndex, end: lastIndex };
-      try { canvas.setPointerCapture(event.pointerId); } catch (error) {}
-      chart.draw();
-    };
-    canvas.onpointermove = function(event) {
-      if (!dragging) return;
-      const index = chartMonthIndexFromPointerV6266(chart, event);
-      if (index === null) return;
-      if (index !== lastIndex) moved = true;
-      lastIndex = index;
-      chart.$remakeDragRangeV6266 = { start: startIndex, end: lastIndex };
-      chart.draw();
-    };
-    canvas.onpointerup = function(event) {
-      if (!dragging) return;
-      dragging = false;
-      const index = chartMonthIndexFromPointerV6266(chart, event);
-      if (index !== null) lastIndex = index;
-      chart.$remakeDragRangeV6266 = null;
-      if (moved && startIndex !== null && lastIndex !== null) {
-        chart.$remakeSuppressNextClickV6266 = true;
-        selectRemakeMonthRangeV6266(startIndex, lastIndex, years, groupByMonth, event);
-      } else {
-        chart.draw();
-      }
-    };
-    canvas.onpointercancel = function() {
-      dragging = false;
-      chart.$remakeDragRangeV6266 = null;
-      chart.draw();
-    };
+  function compactPillLabelV6247(kind, values, labelGetter) {
+    const labels = (values || []).map(value => labelGetter ? labelGetter(value) : String(value)).filter(Boolean);
+    if (!labels.length) return '';
+    const shown = labels.slice(0, 2).join(', ');
+    const extra = labels.length > 2 ? ' +' + (labels.length - 2) : '';
+    return pillKindLabelV6247(kind) + ': ' + shown + extra;
   }
-
-
-  const REMAKE_FAST_CACHE_DB_V6261 = 'remakeFactorFastCacheDb';
-  const REMAKE_FAST_CACHE_STORE_V6261 = 'payloads';
-  const REMAKE_FAST_CACHE_MODE_V6346 = 'monthlyChunksV6346';
-  const REMAKE_FAST_CACHE_CHUNK_PREFIX_V6346 = CACHE_KEY_V6230 + '.month.';
-  const REMAKE_FAST_CACHE_LEGACY_KEYS_V6346 = ['cdaRemakeFactorIndexedCache.v6340'];
-
-  function openRemakeFastCacheDbV6261() {
-    return new Promise((resolve, reject) => {
-      if (!window.indexedDB) {
-        reject(new Error('IndexedDB unavailable'));
+  function renderPillsV6230(){
+    const rail = idV6230('remakePillsV6230');
+    if (!rail) return;
+    const pills = [];
+    ['year','department','product','productGroup','customer','reason'].forEach(kind => {
+      const excluded = excludedFilterValuesV6389(kind);
+      const values = filterValuesV6245(kind);
+      if (excluded.length) {
+        const fullTitle = excluded.map(value => pillKindLabelV6247(kind) + ' excluded: ' + filterLabelV6230(kind, value)).join('\n');
+        const labels = excluded.map(value => filterLabelV6230(kind, value)).filter(Boolean);
+        const shown = labels.slice(0, 2).join(', ');
+        const extra = labels.length > 2 ? ' +' + (labels.length - 2) : '';
+        pills.push({ clear: kind, label: pillKindLabelV6247(kind) + ' excluded: ' + shown + extra, title: fullTitle });
         return;
       }
-      const request = indexedDB.open(REMAKE_FAST_CACHE_DB_V6261, 1);
-      request.onupgradeneeded = event => {
-        const db = event.target.result;
-        if (!db.objectStoreNames.contains(REMAKE_FAST_CACHE_STORE_V6261)) {
-          db.createObjectStore(REMAKE_FAST_CACHE_STORE_V6261);
-        }
-      };
-      request.onerror = event => reject(event.target.error || new Error('IndexedDB open failed'));
-      request.onsuccess = event => resolve(event.target.result);
+      if (!values.length) return;
+      const fullTitle = values.map(value => pillKindLabelV6247(kind) + ': ' + filterLabelV6230(kind, value)).join('\n');
+      const label = compactPillLabelV6247(kind, values, value => filterLabelV6230(kind, value));
+      pills.push({ clear: kind, label, title: fullTitle });
     });
-  }
-
-  function readRemakeFastCacheValueV6346(db, key) {
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(REMAKE_FAST_CACHE_STORE_V6261, 'readonly');
-      const store = tx.objectStore(REMAKE_FAST_CACHE_STORE_V6261);
-      const request = store.get(key);
-      request.onerror = event => reject(event.target.error || new Error('IndexedDB get failed'));
-      request.onsuccess = event => resolve(event.target.result || null);
-    });
-  }
-
-  function writeRemakeFastCacheValueV6346(db, key, value) {
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(REMAKE_FAST_CACHE_STORE_V6261, 'readwrite');
-      tx.oncomplete = () => resolve(true);
-      tx.onerror = event => reject(event.target.error || new Error('IndexedDB set failed'));
-      tx.objectStore(REMAKE_FAST_CACHE_STORE_V6261).put(value, key);
-    });
-  }
-
-  function deleteRemakeFastCacheKeysV6346(db, keepChunkKeys, deleteManifest) {
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(REMAKE_FAST_CACHE_STORE_V6261, 'readwrite');
-      const store = tx.objectStore(REMAKE_FAST_CACHE_STORE_V6261);
-      const request = store.openCursor();
-      request.onerror = event => reject(event.target.error || new Error('IndexedDB cursor failed'));
-      request.onsuccess = event => {
-        const cursor = event.target.result;
-        if (!cursor) return;
-        const key = String(cursor.key || '');
-        const isCurrentManifest = key === CACHE_KEY_V6230;
-        const isCurrentChunk = key.indexOf(REMAKE_FAST_CACHE_CHUNK_PREFIX_V6346) === 0;
-        const isLegacy = REMAKE_FAST_CACHE_LEGACY_KEYS_V6346.indexOf(key) >= 0;
-        const removeChunk = isCurrentChunk && (!keepChunkKeys || !keepChunkKeys.has(key));
-        if ((deleteManifest && isCurrentManifest) || removeChunk || isLegacy) cursor.delete();
-        cursor.continue();
-      };
-      tx.oncomplete = () => resolve(true);
-      tx.onerror = event => reject(event.target.error || new Error('IndexedDB cleanup failed'));
-    });
-  }
-
-  function remakeFastCacheMonthV6346(row) {
-    return monthKeyV6230(row && (row.month || row.invoiceMonth || row.invoiceDate || row.Cases_InvoiceDate || row.dateIn)) || 'Unknown';
-  }
-
-  async function readRemakeFastCacheV6261() {
-    const db = await openRemakeFastCacheDbV6261();
-    try {
-      const manifest = await readRemakeFastCacheValueV6346(db, CACHE_KEY_V6230);
-      if (!manifest) return null;
-      // The v6.346 key is new, but retaining this fallback makes the reader
-      // tolerant if a partial deployment ever wrote a single compact object.
-      if (manifest.cacheMode !== REMAKE_FAST_CACHE_MODE_V6346) return manifest;
-      const entries = Array.isArray(manifest.entries) ? manifest.entries : [];
-      const rows = [];
-      for (let index = 0; index < entries.length; index += 1) {
-        const entry = entries[index] || {};
-        const chunk = entry.key ? await readRemakeFastCacheValueV6346(db, entry.key) : null;
-        if (!chunk || !Array.isArray(chunk.rows)) return null;
-        for (let rowIndex = 0; rowIndex < chunk.rows.length; rowIndex += 1) rows.push(chunk.rows[rowIndex]);
-      }
-      if (Number(manifest.totalRows || 0) !== rows.length) return null;
-      return Object.assign({}, manifest.meta || {}, {
-        ok: true,
-        browserRowsNormalized: true,
-        browserRowSchema: 'remakeBrowserRowV1323',
-        rows: rows
+    const months = Array.from(uiV6230.selectedMonths || []).sort(sortMonthV6230);
+    if (months.length) {
+      pills.push({
+        clear: 'months',
+        label: compactPillLabelV6247('month', months, month => monthLabelV6230(month)),
+        title: months.map(month => 'Month: ' + monthLabelV6230(month)).join('\n')
       });
-    } finally {
-      db.close();
     }
+    if (!pills.length) { rail.innerHTML = ''; return; }
+    rail.innerHTML = pills.map(pill => '<span class="remakePillV6230" title="' + escV6230(pill.title || pill.label) + '"><span>' + escV6230(pill.label) + '</span><button type="button" onclick="clearRemakeFilterV6230(\'' + escJsV6230(pill.clear) + '\')">x</button></span>').join('') + '<button type="button" class="remakeClearAllV6230" title="Reset all filters" aria-label="Reset all filters" onclick="clearRemakeFilterV6230(\'all\')">Reset all</button>';
   }
-
-  async function writeRemakeFastCacheV6261(data) {
-    const rows = data && Array.isArray(data.rows) ? data.rows : [];
-    const grouped = new Map();
-    rows.forEach(row => {
-      const month = remakeFastCacheMonthV6346(row);
-      if (!grouped.has(month)) grouped.set(month, []);
-      grouped.get(month).push(row);
-    });
-    const generation = Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8);
-    const meta = Object.assign({}, data || {});
-    delete meta.rows;
-    delete meta.detailRows;
-    const entries = [];
-    const keepChunkKeys = new Set();
-    const db = await openRemakeFastCacheDbV6261();
-    try {
-      const months = Array.from(grouped.keys()).sort();
-      // Each month is committed in its own transaction. IndexedDB therefore
-      // structured-clones only one month at a time instead of duplicating all
-      // 114k rows in memory during one giant put().
-      for (let index = 0; index < months.length; index += 1) {
-        const month = months[index];
-        const monthRows = grouped.get(month) || [];
-        const key = REMAKE_FAST_CACHE_CHUNK_PREFIX_V6346 + generation + '.' + encodeURIComponent(month);
-        await writeRemakeFastCacheValueV6346(db, key, { month: month, rows: monthRows });
-        entries.push({ month: month, key: key, rowCount: monthRows.length });
-        keepChunkKeys.add(key);
-      }
-      // Publish the new manifest only after every chunk succeeds, so a failed
-      // write cannot replace the last readable browser cache.
-      await writeRemakeFastCacheValueV6346(db, CACHE_KEY_V6230, {
-        ok: true,
-        cacheMode: REMAKE_FAST_CACHE_MODE_V6346,
-        generation: generation,
-        generatedAt: meta.generatedAt || '',
-        totalRows: rows.length,
-        entries: entries,
-        meta: meta
-      });
-      await deleteRemakeFastCacheKeysV6346(db, keepChunkKeys, false);
-      return true;
-    } finally {
-      db.close();
+  function allOptionsForDropdownV6245(kind){ return ((uiV6230.filterOptionsV6245&&uiV6230.filterOptionsV6245[kind])||[]).slice(); }
+  function allOptionValuesForDropdownV6245(kind){ return allOptionsForDropdownV6245(kind).map(opt=>String(opt.value)); }
+  function explicitSelectionSetV6250(kind){ return new Set(filterValuesV6245(kind).map(value=>String(value)).filter(value=>value!==REMAKE_NONE_FILTER_VALUE_V6308)); }
+  function exclusionSetV6389(kind){ return new Set(excludedFilterValuesV6389(kind).map(String)); }
+  function effectiveSelectionSetV6250(kind){ if(filterIsNoneV6308(kind)) return new Set(); const selected=explicitSelectionSetV6250(kind); if(selected.size) return selected; const all=new Set(allOptionValuesForDropdownV6245(kind)); exclusionSetV6389(kind).forEach(value=>all.delete(value)); return all; }
+  function normalizeSelectionForSaveV6250(kind, values){ const raw=(values||[]).map(value=>String(value)); const nonNone=raw.filter(value=>value!==REMAKE_NONE_FILTER_VALUE_V6308); if(raw.indexOf(REMAKE_NONE_FILTER_VALUE_V6308)>=0&&!nonNone.length) return [REMAKE_NONE_FILTER_VALUE_V6308]; const all=allOptionValuesForDropdownV6245(kind); const allSet=new Set(all); const clean=[]; const seen=new Set(); nonNone.forEach(text=>{ if(!allSet.has(text)||seen.has(text)) return; seen.add(text); clean.push(text); }); if(!clean.length) return []; if(clean.length===all.length) return []; return clean; }
+  function commitEffectiveSelectionV6389(kind, values){ const all=allOptionValuesForDropdownV6245(kind); const allSet=new Set(all); const next=new Set(); (values||[]).forEach(value=>{ const text=String(value); if(allSet.has(text)) next.add(text); }); if(!next.size){ setFilterValuesV6245(kind,[REMAKE_NONE_FILTER_VALUE_V6308]); return; } if(next.size===all.length){ setFilterValuesV6245(kind,[]); return; } const excluded=all.filter(value=>!next.has(value)); if(excluded.length < next.size) setFilterExclusionsV6389(kind,excluded); else setFilterValuesV6245(kind,Array.from(next)); }
+  function visibleOptionsForDropdownV6245(kind){
+    const meta=filterMetaV6245[kind];
+    const search=meta?textV6230((idV6230(meta.searchId)||{}).value,''):'';
+    let options=allOptionsForDropdownV6245(kind);
+    if(!search) return options;
+    return options.map((opt,index)=>({
+      opt,
+      index,
+      fuzzyScore:window.dashboardFuzzySearchV6412.score(
+        [opt&&opt.label,opt&&opt.value,meta&&meta.label].filter(Boolean).join(' '),
+        search
+      )
+    })).filter(entry=>entry.fuzzyScore>0).sort((a,b)=>b.fuzzyScore-a.fuzzyScore||a.index-b.index).map(entry=>entry.opt);
+  }
+  function syncVisibleRemakeToggleV6502(kind, visible, effective) {
+    const input = idV6230('remakeVisibleToggleV6502_' + kind);
+    if (!input) return;
+    const shown = Array.isArray(visible) ? visible : visibleOptionsForDropdownV6245(kind);
+    const selected = effective instanceof Set ? effective : effectiveSelectionSetV6250(kind);
+    const selectedVisible = shown.reduce(function(total, opt){ return total + (selected.has(String(opt.value)) ? 1 : 0); }, 0);
+    input.disabled = shown.length === 0;
+    input.checked = shown.length > 0 && selectedVisible === shown.length;
+    input.indeterminate = selectedVisible > 0 && selectedVisible < shown.length;
+    input.setAttribute('aria-checked', input.indeterminate ? 'mixed' : (input.checked ? 'true' : 'false'));
+    input.title = input.checked
+      ? 'Uncheck to deselect all ' + shown.length + ' visible options'
+      : 'Check to select all ' + shown.length + ' visible options';
+  }
+  function renderDropdownButtonV6245(kind){
+    const meta=filterMetaV6245[kind];
+    if(!meta) return;
+    const button=idV6230(meta.buttonId);
+    const count=idV6230(meta.countId);
+    const values=filterValuesV6245(kind);
+    const excluded=excludedFilterValuesV6389(kind);
+    const visible=visibleOptionsForDropdownV6245(kind);
+    const none=filterIsNoneV6308(kind);
+    const effective=effectiveSelectionSetV6250(kind);
+    const selectedCount=effective.size;
+    if(button){
+      if(none) button.textContent='None';
+      else if(excluded.length) button.textContent='All except '+excluded.length;
+      else if(!values.length) button.textContent=meta.allLabel;
+      else if(values.length===1) button.textContent=filterOptionLabelV6245(kind,values[0])||values[0];
+      else button.textContent=values.length+' selected';
     }
+    if(count) count.textContent=none?('None selected · '+visible.length+' shown'):(excluded.length?(selectedCount+' selected · '+excluded.length+' excluded · '+visible.length+' shown'):(values.length?(values.length+' selected · '+visible.length+' shown'):('All selected · '+visible.length+' shown')));
+    syncVisibleRemakeToggleV6502(kind, visible, effective);
   }
-
-  async function deleteRemakeFastCacheV6261() {
-    try {
-      const db = await openRemakeFastCacheDbV6261();
-      try {
-        return await deleteRemakeFastCacheKeysV6346(db, null, true);
-      } finally {
-        db.close();
-      }
-    } catch (error) {
-      return false;
-    }
-  }
-
-  const CERAMIST_FAST_CACHE_KEY_V6364 = 'cdaCeramistAnalysisIndexedCache.v6364';
-  const CERAMIST_FAST_CACHE_MODE_V6364 = 'monthlyChunksV6364';
-  const CERAMIST_FAST_CACHE_CHUNK_PREFIX_V6364 = CERAMIST_FAST_CACHE_KEY_V6364 + '.month.';
-
-  function ceramistFastCacheMonthV6364(row) {
-    return monthKeyV6230(row && (row.month || row.invoiceMonth || row.invoiceDate || row.Cases_InvoiceDate || row.dateIn)) || 'Unknown';
-  }
-
-  function deleteCeramistFastCacheKeysV6364(db, keepChunkKeys, deleteManifest) {
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(REMAKE_FAST_CACHE_STORE_V6261, 'readwrite');
-      const store = tx.objectStore(REMAKE_FAST_CACHE_STORE_V6261);
-      const request = store.openCursor();
-      request.onerror = event => reject(event.target.error || new Error('Ceramist IndexedDB cursor failed'));
-      request.onsuccess = event => {
-        const cursor = event.target.result;
-        if (!cursor) return;
-        const key = String(cursor.key || '');
-        const isManifest = key === CERAMIST_FAST_CACHE_KEY_V6364;
-        const isChunk = key.indexOf(CERAMIST_FAST_CACHE_CHUNK_PREFIX_V6364) === 0;
-        const removeChunk = isChunk && (!keepChunkKeys || !keepChunkKeys.has(key));
-        if ((deleteManifest && isManifest) || removeChunk) cursor.delete();
-        cursor.continue();
-      };
-      tx.oncomplete = () => resolve(true);
-      tx.onerror = event => reject(event.target.error || new Error('Ceramist IndexedDB cleanup failed'));
-    });
-  }
-
-  async function readCeramistFastCacheV6364() {
-    const db = await openRemakeFastCacheDbV6261();
-    try {
-      const manifest = await readRemakeFastCacheValueV6346(db, CERAMIST_FAST_CACHE_KEY_V6364);
-      if (!manifest || manifest.cacheMode !== CERAMIST_FAST_CACHE_MODE_V6364) return null;
-      const entries = Array.isArray(manifest.entries) ? manifest.entries : [];
-      const rows = [];
-      for (let index = 0; index < entries.length; index += 1) {
-        const entry = entries[index] || {};
-        const chunk = entry.key ? await readRemakeFastCacheValueV6346(db, entry.key) : null;
-        if (!chunk || !Array.isArray(chunk.rows)) return null;
-        for (let rowIndex = 0; rowIndex < chunk.rows.length; rowIndex += 1) rows.push(chunk.rows[rowIndex]);
-      }
-      if (Number(manifest.totalRows || 0) !== rows.length) return null;
-      return Object.assign({}, manifest.meta || {}, {
-        ok: true,
-        browserCached: true,
-        cacheToken: manifest.cacheToken || (manifest.meta && manifest.meta.cacheToken) || '',
-        rows: rows
-      });
-    } finally {
-      db.close();
-    }
-  }
-
-  async function writeCeramistFastCacheV6364(data) {
-    const rows = data && Array.isArray(data.rows) ? data.rows : [];
-    const grouped = new Map();
-    rows.forEach(row => {
-      const month = ceramistFastCacheMonthV6364(row);
-      if (!grouped.has(month)) grouped.set(month, []);
-      grouped.get(month).push(row);
-    });
-    const generation = Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8);
-    const meta = Object.assign({}, data || {});
-    delete meta.rows;
-    const entries = [];
-    const keepChunkKeys = new Set();
-    const db = await openRemakeFastCacheDbV6261();
-    try {
-      const months = Array.from(grouped.keys()).sort();
-      for (let index = 0; index < months.length; index += 1) {
-        const month = months[index];
-        const monthRows = grouped.get(month) || [];
-        const key = CERAMIST_FAST_CACHE_CHUNK_PREFIX_V6364 + generation + '.' + encodeURIComponent(month);
-        await writeRemakeFastCacheValueV6346(db, key, { month: month, rows: monthRows });
-        entries.push({ month: month, key: key, rowCount: monthRows.length });
-        keepChunkKeys.add(key);
-      }
-      await writeRemakeFastCacheValueV6346(db, CERAMIST_FAST_CACHE_KEY_V6364, {
-        ok: true,
-        cacheMode: CERAMIST_FAST_CACHE_MODE_V6364,
-        generation: generation,
-        cacheToken: meta.cacheToken || '',
-        generatedAt: meta.generatedAt || '',
-        totalRows: rows.length,
-        entries: entries,
-        meta: meta
-      });
-      await deleteCeramistFastCacheKeysV6364(db, keepChunkKeys, false);
-      return true;
-    } finally {
-      db.close();
-    }
-  }
-
-  async function deleteCeramistFastCacheV6364() {
-    try {
-      const db = await openRemakeFastCacheDbV6261();
-      try {
-        return await deleteCeramistFastCacheKeysV6364(db, null, true);
-      } finally {
-        db.close();
-      }
-    } catch (error) {
-      return false;
-    }
-  }
-
-  function cancelScheduledCeramistBrowserCacheWriteV6364() {
-    if (ceramistBrowserCacheWriteHandleV6364) {
-      try {
-        if (ceramistBrowserCacheWriteHandleTypeV6364 === 'idle' && typeof window.cancelIdleCallback === 'function') {
-          window.cancelIdleCallback(ceramistBrowserCacheWriteHandleV6364);
-        } else {
-          window.clearTimeout(ceramistBrowserCacheWriteHandleV6364);
-        }
-      } catch (error) {}
-    }
-    ceramistBrowserCacheWriteHandleV6364 = 0;
-    ceramistBrowserCacheWriteHandleTypeV6364 = '';
-    if (!ceramistBrowserCacheWriteRunningV6364) ceramistBrowserCacheWriteScheduledV6364 = false;
-  }
-
-  function scheduleCeramistBrowserCacheWriteV6364(data) {
-    cancelScheduledCeramistBrowserCacheWriteV6364();
-    ceramistBrowserCacheWriteScheduledV6364 = true;
-    const save = function saveCeramistBrowserCacheV6364() {
-      ceramistBrowserCacheWriteHandleV6364 = 0;
-      ceramistBrowserCacheWriteHandleTypeV6364 = '';
-      ceramistBrowserCacheWriteRunningV6364 = true;
-      ceramistBrowserCacheWritePromiseV6364 = writeCeramistFastCacheV6364(data)
-        .catch(error => { console.warn('Ceramist browser cache write skipped', error); return false; })
-        .finally(function finishCeramistBrowserCacheWriteV6364() {
-          ceramistBrowserCacheWriteRunningV6364 = false;
-          ceramistBrowserCacheWriteScheduledV6364 = false;
-        });
-    };
-    if (typeof window.requestIdleCallback === 'function') {
-      ceramistBrowserCacheWriteHandleTypeV6364 = 'idle';
-      ceramistBrowserCacheWriteHandleV6364 = window.requestIdleCallback(save, { timeout: 5000 });
-    } else {
-      ceramistBrowserCacheWriteHandleTypeV6364 = 'timeout';
-      ceramistBrowserCacheWriteHandleV6364 = window.setTimeout(save, 500);
-    }
-  }
-
-  function setBannerV6230() {
-    const banner = idV6230('singleShellDebugBanner');
-    if (banner && banner.textContent !== VERSION_TEXT_V6230) banner.textContent = VERSION_TEXT_V6230;
-    document.querySelectorAll('.debugBadge').forEach(el => { if (el.textContent !== 'v6.281') el.textContent = 'v6.281'; });
-  }
-
-  function installStylesV6230() {
-    if (idV6230('cleanRemakeStylesV6230')) return;
-    const style = document.createElement('style');
-    style.id = 'cleanRemakeStylesV6230';
-    style.textContent = `
-      #remakeFactorPage.cleanRemakeV6230 { background:#ebe9ed !important; color:#172033 !important; min-height:calc(100vh - 80px) !important; padding:10px 12px 22px !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeShellV6230 { max-width:1900px !important; margin:0 auto !important; display:flex !important; flex-direction:column !important; gap:9px !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeHeaderV6230 { display:flex !important; align-items:flex-start !important; justify-content:flex-end !important; gap:12px !important; min-height:42px !important; width:100% !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeTitle { font:900 24px/1 Roboto,Arial,sans-serif !important; color:#172033 !important; margin:0 !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeHeaderRightV6230 { display:flex !important; align-items:center !important; justify-content:flex-end !important; gap:8px !important; flex-wrap:wrap !important; margin-left:auto !important; text-align:right !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakePerfV6230, #remakeFactorPage.cleanRemakeV6230 .remakeRefreshStamp { color:#667085 !important; font:800 10.5px/1.2 Roboto,Arial,sans-serif !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeRefreshStamp { flex-basis:100% !important; text-align:right !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeButton { height:34px !important; border-radius:8px !important; padding:0 14px !important; background:#172033 !important; color:#fff !important; border:1px solid #172033 !important; font:900 12px/1 Roboto,Arial,sans-serif !important; cursor:pointer !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeButton.secondary { background:#fff7d6 !important; color:#7a4a00 !important; border-color:#f2c94c !important; box-shadow:0 1px 2px rgba(245,158,11,.18) !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeButton:disabled { opacity:.55 !important; cursor:wait !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeNotice { display:none !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeNotice.active { display:inline-flex !important; align-items:center !important; width:auto !important; max-width:100% !important; border-radius:999px !important; padding:7px 10px !important; border:1px solid #d7dce2 !important; background:#fff !important; color:#344054 !important; font:800 11px/1 Roboto,Arial,sans-serif !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeNotice.warn { border-color:#f2c94c !important; background:#fff7d6 !important; color:#7a4a00 !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeNotice.error { border-color:#f1a9a9 !important; background:#fff5f5 !important; color:#991b1b !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakePillsV6230 { display:flex !important; flex-wrap:wrap !important; gap:7px !important; align-items:center !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakePillsV6230:empty { display:none !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakePillV6230, #remakeFactorPage.cleanRemakeV6230 .remakeClearAllV6230 { display:inline-flex !important; align-items:center !important; gap:7px !important; border:1px solid #f2c94c !important; background:#fff7d6 !important; color:#172033 !important; border-radius:999px !important; padding:6px 9px !important; font:800 11px/1 Roboto,Arial,sans-serif !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakePillV6230 button, #remakeFactorPage.cleanRemakeV6230 .remakeClearAllV6230 { cursor:pointer !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakePillV6230 button { border:0 !important; background:transparent !important; color:#9a6200 !important; font:900 13px/1 Roboto,Arial,sans-serif !important; padding:0 !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeFilterBarV6230 { display:grid !important; grid-template-columns:repeat(5,minmax(170px,1fr)) !important; gap:8px !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeFilter, #remakeFactorPage.cleanRemakeV6230 .remakeKpi, #remakeFactorPage.cleanRemakeV6230 .remakeCard { background:#fff !important; border:1px solid #d7dce2 !important; border-radius:8px !important; box-shadow:0 1px 3px rgba(20,32,42,.14) !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeFilter { padding:8px !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeFilter label { display:block !important; color:#667085 !important; font-size:10px !important; letter-spacing:.06em !important; text-transform:uppercase !important; font-weight:900 !important; margin-bottom:6px !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeFilter select { width:100% !important; height:34px !important; border:1px solid #d5dae2 !important; border-radius:8px !important; background:#fff !important; color:#202124 !important; font-size:12px !important; font-weight:800 !important; padding:0 8px !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeKpisV6230 { display:grid !important; grid-template-columns:repeat(7,minmax(136px,1fr)) !important; gap:8px !important; align-items:stretch !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeKpi { min-height:68px !important; padding:10px 12px !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeKpi .label { color:#667085 !important; font:900 10.5px/1 Roboto,Arial,sans-serif !important; letter-spacing:.06em !important; text-transform:uppercase !important; margin-bottom:5px !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeKpi .value { font:900 clamp(21px,1.55vw,28px)/1.04 Roboto,Arial,sans-serif !important; color:#172033 !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeKpi .sub { display:flex !important; align-items:center !important; gap:6px !important; margin-top:5px !important; font:800 10.5px/1.15 Roboto,Arial,sans-serif !important; white-space:nowrap !important; min-height:13px !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeKpi .sub .priorV6281 { color:#667085 !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeKpi .sub .deltaV6281 { font-weight:900 !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeKpi .sub .deltaV6281.good { color:#067647 !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeKpi .sub .deltaV6281.bad { color:#b42318 !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeKpi .sub .deltaV6281.neutral { color:#667085 !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeKpiControlsV6279 { min-height:68px !important; padding:8px 10px !important; border:0 !important; box-shadow:none !important; background:transparent !important; display:flex !important; flex-direction:column !important; align-items:flex-end !important; justify-content:center !important; gap:6px !important; text-align:right !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeKpiControlsTopV6279 { display:flex !important; align-items:center !important; justify-content:flex-end !important; gap:7px !important; flex-wrap:wrap !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeKpiControlsV6279 .remakePerfV6230 { width:100% !important; text-align:right !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeKpiControlsV6279 .remakeRefreshStamp { flex-basis:auto !important; width:100% !important; text-align:right !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakePageFooterV6338 { min-height:30px !important; padding:1px 4px 0 !important; display:flex !important; align-items:center !important; justify-content:flex-end !important; gap:8px !important; flex-wrap:wrap !important; }
-      #remakeFactorPage.cleanRemakeV6230 #remakeCacheActionHomeV6338 { display:none !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeCacheActionBarV6338 { display:inline-flex !important; align-items:center !important; justify-content:flex-end !important; gap:6px !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeCacheActionBarV6338 .remakeButton { height:29px !important; min-height:29px !important; padding:0 10px !important; display:inline-flex !important; align-items:center !important; justify-content:center !important; gap:5px !important; font-size:11px !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeCacheActionIconV6338 { font:900 15px/1 Roboto,Arial,sans-serif !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeFooterStampV6338 { flex:0 1 auto !important; flex-basis:auto !important; width:auto !important; text-align:right !important; color:#98a2b3 !important; font:700 9.5px/1.2 Roboto,Arial,sans-serif !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeWorkerFooterStampV6367 { color:#667085 !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeWorkerFooterStampV6367::after { content:'•'; display:inline-block; margin-left:8px; color:#c1c7d0; }
-      @media(max-width:760px){#remakeFactorPage.cleanRemakeV6230 .remakePageFooterV6338{justify-content:flex-start!important;padding:8px 12px 86px!important;gap:5px!important;}#remakeFactorPage.cleanRemakeV6230 .remakeWorkerFooterStampV6367,#remakeFactorPage.cleanRemakeV6230 .remakeMainFooterStampV6367{flex:1 1 100%!important;width:100%!important;text-align:left!important;font-size:10px!important;}#remakeFactorPage.cleanRemakeV6230 .remakeWorkerFooterStampV6367::after{display:none!important;}}
-      #remakeFactorPage.cleanRemakeV6230 .remakeGridV6230 { display:grid !important; grid-template-columns:minmax(0,1.16fr) minmax(0,1fr) !important; gap:10px !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeCard { overflow:hidden !important; padding:0 !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeCardWideV6230 { grid-column:1 / -1 !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeCardHeader { min-height:35px !important; padding:8px 10px !important; border-bottom:1px solid #d7dce2 !important; display:flex !important; align-items:center !important; justify-content:space-between !important; gap:8px !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeCardTitle { color:#202124 !important; font:900 13px/1.1 Roboto,Arial,sans-serif !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeCardActionsV6230 { display:inline-flex !important; align-items:center !important; justify-content:flex-end !important; gap:4px !important; margin-left:auto !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeMiniButtonV6230 { height:24px !important; border:1px solid #cfd6df !important; background:#fff !important; color:#344054 !important; border-radius:999px !important; padding:0 9px !important; font:900 10.5px/1 Roboto,Arial,sans-serif !important; cursor:pointer !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeMiniButtonV6230:hover { background:#172033 !important; border-color:#172033 !important; color:#fff !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeChartModeBarV6230 { display:flex !important; align-items:center !important; gap:6px !important; padding:8px 10px 0 !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeChartModeBarV6230 button { height:25px !important; border:1px solid #cfd6df !important; background:#fff !important; color:#344054 !important; border-radius:999px !important; padding:0 10px !important; font:900 10.5px/1 Roboto,Arial,sans-serif !important; cursor:pointer !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeChartModeBarV6230 button.active { background:#fff7d6 !important; color:#7a4a00 !important; border-color:#f2c94c !important; box-shadow:0 1px 2px rgba(245,158,11,.18) !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeChartModeBarV6230 .measureToggleV6245.active,
-      #remakeFactorPage.cleanRemakeV6230 .remakeChartModeBarV6230 .valueToggleV6247.active { background:#fff7d6 !important; color:#7a4a00 !important; border-color:#f2c94c !important; box-shadow:0 1px 2px rgba(245,158,11,.18) !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeChartBoxV6230 { height:320px !important; padding:8px 12px 12px !important; box-sizing:border-box !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeChartBoxV6230 { background:linear-gradient(180deg,#ffffff 0%,#f8fbff 100%) !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeChartBoxV6230 canvas { cursor:crosshair !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeCustomerSplitV6230 { display:grid !important; grid-template-columns:minmax(360px,.86fr) minmax(0,1.14fr) !important; gap:10px !important; padding:10px !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeCustomerChartBoxV6230 { height:360px !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeTableWrap { height:320px !important; overflow:auto !important; border:0 !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeCustomerTableWrapV6230 { height:360px !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeTable { width:100% !important; border-collapse:collapse !important; font-size:11px !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeTable th { position:sticky !important; top:0 !important; z-index:2 !important; background:#203038 !important; color:#fff !important; border:1px solid #34454f !important; padding:6px 7px !important; font-weight:900 !important; white-space:nowrap !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeTable th.sortableV6230 { cursor:pointer !important; user-select:none !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeTable th.sortableV6230:hover { background:#2b424d !important; }
-      #remakeFactorPage.cleanRemakeV6230 .sortGlyphV6230 { display:inline-block !important; min-width:12px !important; margin-left:4px !important; color:#fed7aa !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeTable td { border:1px solid #e5e7eb !important; padding:6px 7px !important; color:#3c4043 !important; background:#fff !important; white-space:nowrap !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeTable tr:nth-child(even) td { background:#fafafa !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeTable tr.clickable:hover td { background:#eef4ff !important; cursor:pointer !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeTable tr.selectedV6230 td { background:#fff7d6 !important; border-color:#f2c94c !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeTable tr.selectedV6230 td { font-weight:900 !important; color:#172033 !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeTable tr.selectedV6230 .customerNameText { font-weight:900 !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeTable tr.dimmedV6266 td { color:#98a2b3 !important; background:#f5f6f8 !important; opacity:.72 !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeTable tr.dimmedV6266:hover td { background:#eef1f5 !important; color:#667085 !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeMiniButtonV6230.backButtonV6266 { border-color:#f2c94c !important; background:#fff7d6 !important; color:#7a4a00 !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeMiniButtonV6230.backButtonV6266 { min-width:28px !important; padding:0 8px !important; font-size:15px !important; line-height:1 !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeMiniButtonV6230.backButtonV6266:hover { background:#fedf89 !important; border-color:#f59e0b !important; color:#7a4a00 !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeTable th.num, #remakeFactorPage.cleanRemakeV6230 .remakeTable td.num { text-align:right !important; }
-      #remakeFactorPage.cleanRemakeV6230 .customerNameCell { min-width:220px !important; max-width:380px !important; white-space:normal !important; }
-      #remakeFactorPage.cleanRemakeV6230 .customerNameText { font-weight:800 !important; color:#202124 !important; }
-      #remakeFactorPage.cleanRemakeV6230 .inactiveBadge { display:inline-flex !important; border:1px solid #fecaca !important; background:#fff1f1 !important; color:#b42318 !important; border-radius:999px !important; padding:2px 6px !important; font-size:10px !important; font-weight:900 !important; margin-left:6px !important; }
-
-      #remakeFactorPage.cleanRemakeV6230 .remakeCustomerSplitV6230 { grid-template-columns:minmax(360px,.92fr) minmax(0,1.08fr) !important; align-items:stretch !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeCustomerChartBoxV6230,
-      #remakeFactorPage.cleanRemakeV6230 .remakeCustomerTableWrapV6230 { height:390px !important; }
-      #remakeFactorPage.cleanRemakeV6230 #remakeCustomerTable th:nth-child(2),
-      #remakeFactorPage.cleanRemakeV6230 #remakeCustomerTable td:nth-child(2) { min-width:260px !important; }
-      body.cdaExecRemakeOnlyV6243 #layoutEditButtonV6183,
-      html.cdaExecRemakeOnlyV6243 #layoutEditButtonV6183,
-      body.cdaExecRemakeOnlyV6243 #layoutEditPanelV6183,
-      html.cdaExecRemakeOnlyV6243 #layoutEditPanelV6183,
-      body.cdaExecRemakeOnlyV6243 #layoutCardEditorV6184,
-      html.cdaExecRemakeOnlyV6243 #layoutCardEditorV6184,
-      body.cdaExecRemakeOnlyV6243 .layoutResizeHandleV6184,
-      html.cdaExecRemakeOnlyV6243 .layoutResizeHandleV6184,
-      body.cdaExecRemakeOnlyV6243 .layoutBlockEditableV6184::after,
-      html.cdaExecRemakeOnlyV6243 .layoutBlockEditableV6184::after {
-        display:none !important;
-        visibility:hidden !important;
-        pointer-events:none !important;
-      }
-      #remakeFactorPage.cleanRemakeV6230 .mutedSmallV6230 { color:#667085 !important; font-size:10px !important; font-weight:800 !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeStickyTopV6245 { position:sticky !important; top:0 !important; z-index:900 !important; background:#ebe9ed !important; padding:8px 0 9px !important; margin:-10px 0 1px !important; border-bottom:1px solid rgba(196,205,216,.86) !important; box-shadow:0 8px 18px rgba(20,32,42,.10) !important; display:flex !important; flex-direction:column !important; gap:8px !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeStickyTopV6245 .remakeHeaderV6230 { margin:0 !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeMultiFilterV6245 { position:relative !important; overflow:visible !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeFilter input.remakeHiddenSelectV6245 { display:none !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeDropdownButtonV6245 { width:100% !important; min-height:34px !important; border:1px solid #d5dae2 !important; border-radius:8px !important; background:#fff !important; color:#202124 !important; font:900 12px/1.15 Roboto,Arial,sans-serif !important; padding:8px 30px 8px 10px !important; text-align:left !important; cursor:pointer !important; position:relative !important; overflow:hidden !important; text-overflow:ellipsis !important; white-space:nowrap !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeDropdownButtonV6245::after { content:'▾'; position:absolute; right:10px; top:50%; transform:translateY(-50%); color:#475467; font-size:13px; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeDropdownButtonV6245.active { border-color:#94a3b8 !important; box-shadow:0 0 0 3px rgba(37,99,235,.10) !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeDropdownPanelV6245 { display:none; position:absolute; left:8px; right:8px; top:calc(100% - 2px); min-width:340px; max-height:430px; background:#fff; border:1px solid #cbd5df; border-radius:10px; box-shadow:0 18px 38px rgba(16,24,40,.24); z-index:5000; overflow:hidden; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeDropdownPanelV6245.open { display:block !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeDropdownHeaderV6245 { display:flex !important; gap:6px !important; align-items:center !important; padding:7px !important; border-bottom:1px solid #e5e7eb !important; background:#f8fafc !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeDropdownHeaderV6245 button { border:1px solid #cbd5df !important; background:#fff !important; color:#1f2937 !important; border-radius:999px !important; padding:6px 8px !important; font:800 11px/1 Roboto,Arial,sans-serif !important; cursor:pointer !important; white-space:nowrap !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeDropdownCountV6245 { margin-left:auto !important; color:#667085 !important; font:800 11px/1 Roboto,Arial,sans-serif !important; white-space:nowrap !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeDropdownSearchV6245 { width:calc(100% - 14px) !important; margin:7px !important; height:32px !important; border:1px solid #d5dae2 !important; border-radius:7px !important; padding:0 9px !important; color:#202124 !important; font:700 12px/1 Roboto,Arial,sans-serif !important; outline:none !important; }
-      #remakeFactorPage.cleanRemakeV6230 .remakeDropdownSearchV6245:focus { border-color:#94a3b8 !important; box-shadow:0 0 0 3px rgba(37,99,235,.10) !important; }
+  window.renderRemakeDropdownListV6245=function(kind){ const meta=filterMetaV6245[kind]; if(!meta) return; const list=idV6230(meta.listId); if(!list) return; const explicit=explicitSelectionSetV6250(kind); const excluded=exclusionSetV6389(kind); const effective=effectiveSelectionSetV6250(kind); const visible=visibleOptionsForDropdownV6245(kind); renderDropdownButtonV6245(kind); if(!visible.length){list.innerHTML='<div class="remakeDropdownEmptyV6245">No matching options.</div>';return;} list.innerHTML=visible.map(opt=>{ const value=String(opt.value); const checked=effective.has(value); const explicitActive=!excluded.size&&explicit.size&&checked; const inactive=opt.active===false?'<span class="inactiveBadge">Inactive</span>':''; return '<div class="remakeDropdownRowV6245'+(explicitActive?' active':'')+'" onclick="toggleRemakeMultiValueV6245(\''+escJsV6230(kind)+'\',\''+escJsV6230(value)+'\')"><input type="checkbox" '+(checked?'checked':'')+'><div class="remakeDropdownLabelV6245" title="'+escV6230(opt.label)+'">'+escV6230(opt.label)+inactive+'</div><button type="button" class="remakeDropdownOnlyV6245" onclick="onlyRemakeMultiValueV6245(\''+escJsV6230(kind)+'\',\''+escJsV6230(value)+'\',event)">Only</button></div>'; }).join(''); };
+  function renderAllRemakeDropdownsV6245(){ Object.keys(filterMetaV6245).forEach(kind=>{ const meta=filterMetaV6245[kind]; renderDropdownButtonV6245(kind); const panel=meta?idV6230(meta.panelId):null; if(panel&&panel.classList.contains('open')) window.renderRemakeDropdownListV6245(kind); }); }
+  window.toggleRemakeDropdownV6245=function(kind){ const meta=filterMetaV6245[kind]; if(!meta) return; Object.keys(filterMetaV6245).forEach(other=>{const m=filterMetaV6245[other]; const p=idV6230(m.panelId); const b=idV6230(m.buttonId); if(other!==kind){ if(p) p.classList.remove('open'); if(b) b.classList.remove('active'); }}); const panel=idV6230(meta.panelId); const btn=idV6230(meta.buttonId); if(panel) panel.classList.toggle('open'); if(btn) btn.classList.toggle('active'); window.renderRemakeDropdownListV6245(kind); const search=idV6230(meta.searchId); if(panel&&panel.classList.contains('open')&&search) setTimeout(()=>search.focus(),20); };
+  window.toggleRemakeMultiValueV6245=function(kind,value){ pushRemakeUndoV6266(); const text=String(value); const next=effectiveSelectionSetV6250(kind); if(next.has(text)) next.delete(text); else next.add(text); commitEffectiveSelectionV6389(kind,Array.from(next)); persistUiV6230(); renderDashboardV6230(); };
+  window.onlyRemakeMultiValueV6245=function(kind,value,event){ if(event){event.preventDefault();event.stopPropagation();} pushRemakeUndoV6266(); setFilterValuesV6245(kind,[String(value)]); persistUiV6230(); renderDashboardV6230(); };

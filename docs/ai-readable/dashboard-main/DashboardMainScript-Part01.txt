@@ -1314,20 +1314,6 @@
       });
     }
 
-    function toggleDepartment(dept, event) {
-      if (event) event.stopPropagation();
-      clearMoverTablePinnedSelections();
-      if (state.selectedDepartments.has(dept)) {
-        state.selectedDepartments.delete(dept);
-      } else {
-        state.selectedDepartments.add(dept);
-        restoreDepartmentChildren(dept);
-        restoreLinkedFiltersForDepartment(dept);
-      }
-
-
-      renderAll();
-    }
 
     function clearDropdownSearch(panelId) {
       const searchConfig = {
@@ -1617,34 +1603,13 @@
       return count;
     }
 
-    function selectAllDepartments(event) {
-      prepareDropdownAction(event);
-      const rows = getVisibleDepartmentRows();
-      const values = rows.length ? new Set(rows.map(row => row.department)) : new Set(getAllDepartments());
-      state.selectedDepartments = new Set(values);
-      state.deptMode = selectedDepartmentsEqual(getAllDepartments()) ? 'ALL' : 'CUSTOM';
-      renderAfterBulkDropdownSelection('departmentDropdownPanel');
-    }
 
     function selectVisibleDepartments(event) {
       // Backward-compatible alias for older inline handlers.
       selectAllDepartments(event);
     }
 
-    function selectMainDepartments(event) {
-      prepareDropdownAction(event);
-      state.deptMode = 'MAIN';
-      state.selectedDepartments = new Set(getMainDepartments());
-      renderAfterBulkDropdownSelection('departmentDropdownPanel');
-    }
 
-    function clearDepartmentSelection(event) {
-      prepareDropdownAction(event);
-      state.deptMode = 'CUSTOM';
-      state.selectedDepartments = new Set();
-      state.collapseSelectedDepartments = false;
-      renderAfterBulkDropdownSelection('departmentDropdownPanel');
-    }
 
     function selectDefaultYears(event) {
       prepareDropdownAction(event);
@@ -1658,63 +1623,158 @@
       renderAll();
     }
 
-    function updateDropdownLabels() {
-      const deptButton = document.getElementById('departmentDropdownButton');
-      const yearButton = document.getElementById('yearDropdownButton');
-      const productButton = document.getElementById('productDropdownButton');
-      const customerButton = document.getElementById('customerDropdownButton');
 
-      const availableDepartments = getAvailableDepartmentSetForDropdown();
-      const allDepartments = new Set(getAllDepartments());
-      const selectedDeptNames = [...(state.selectedDepartments || new Set())].filter(dept => availableDepartments.has(dept)).sort();
-      const departmentContextRestricted = isSetRestrictedToContext(availableDepartments, allDepartments);
 
-      if (deptButton) {
-        if (!selectedDeptNames.length) {
-          deptButton.textContent = availableDepartments.size ? 'No departments selected' : 'No matching departments';
-          deptButton.title = deptButton.textContent;
-        } else if (departmentContextRestricted && selectedDeptNames.length === availableDepartments.size) {
-          deptButton.textContent = selectedDeptNames.length + ' matching departments';
-          deptButton.title = listForTooltip(selectedDeptNames, 'Matching selected departments');
-        } else if (selectedDeptNames.length === allDepartments.size) {
-          deptButton.textContent = 'All departments';
-          deptButton.title = 'All departments';
-        } else if (selectedDeptNames.length <= 2) {
-          deptButton.textContent = selectedDeptNames.join(', ');
-          deptButton.title = listForTooltip(selectedDeptNames, 'Selected departments');
-        } else {
-          deptButton.textContent = selectedDeptNames.length + ' departments selected';
-          deptButton.title = listForTooltip(selectedDeptNames, 'Selected departments');
-        }
+    function getProductDepartmentFromKey(key) {
+      const option = productOptions.find(item => item.key === key);
+      if (option && option.department) return option.department;
+      const parts = String(key || '').split('||');
+      return parts.length >= 3 ? parts[2] : '';
+    }
+
+    function syncDepartmentsToAllProductInventory() {
+      // When Product Select all is used, the product filter should truly mean
+      // every product in the dropdown inventory. If Departments stays on Main
+      // Departments, then the dashboard is still restricted even though the
+      // Product control says All products. Keep the parent filter in sync.
+      const productDepartments = new Set(productOptions.map(item => item.department).filter(Boolean));
+      const departments = productDepartments.size ? productDepartments : new Set(getAllDepartments());
+      state.deptMode = 'ALL';
+      state.selectedDepartments = new Set(departments);
+    }
+
+    function includeProductDepartmentInFilter(key) {
+      const department = getProductDepartmentFromKey(key);
+      if (!department) return;
+      if (!state.selectedDepartments) state.selectedDepartments = new Set();
+      if (state.selectedDepartments.has(department)) return;
+
+      // Google Sheets-style behavior: when a manager directly checks a product
+      // from outside the active department context, make the department filter
+      // inclusive enough for that product to appear instead of returning a blank dashboard.
+      state.selectedDepartments.add(department);
+      state.deptMode = 'CUSTOM';
+    }
+
+    function includeSelectedProductDepartmentsInFilter() {
+      getSelectedProductKeys().forEach(key => includeProductDepartmentInFilter(key));
+    }
+
+
+
+
+
+
+
+    function selectVisibleProducts(event) {
+      // Backward-compatible alias for older inline handlers.
+      selectAllProducts(event);
+    }
+
+
+
+
+
+    function selectVisibleCustomers(event) {
+      // Backward-compatible alias for older inline handlers.
+      selectAllCustomers(event);
+    }
+
+    function toggleYear(year, event) {
+      if (event) event.stopPropagation();
+      clearMoverTablePinnedSelections();
+
+      // Years now behave like the other dropdown checkboxes:
+      // clicking a year adds/removes it without clearing the rest.
+      if (!state.years) state.years = new Set();
+      if (state.years.has(year)) {
+        state.years.delete(year);
+      } else {
+        state.years.add(year);
       }
 
-      if (productButton) {
-        const availableProducts = getAvailableProductSetForDropdown();
-        const allProducts = fullProductKeySet();
-        const selected = getSelectedProductKeys().filter(key => availableProducts.has(key));
-        const excluded = getExcludedProductKeys().filter(key => availableProducts.has(key));
-        const selectedCount = selectedProductCountInSet(availableProducts);
-        const productContextRestricted = isSetRestrictedToContext(availableProducts, allProducts);
-        if (!availableProducts.size) {
-          productButton.textContent = 'No matching products';
-          productButton.title = 'No products match the other active filters';
-        } else if (state.productFilterMode !== 'CUSTOM' && excluded.length) {
-          productButton.textContent = productContextRestricted
-            ? selectedCount + ' matching products'
-            : 'All products except ' + excluded.length;
-          productButton.title = 'Excluded products:\n' + listForTooltip(excluded.map(productLabelFromKey).sort(), 'Excluded products');
-        } else if (state.productFilterMode !== 'CUSTOM') {
-          productButton.textContent = productContextRestricted
-            ? selectedCount + ' matching products'
-            : 'All products';
-          productButton.title = productContextRestricted
-            ? listForTooltip([...availableProducts].map(productLabelFromKey).sort(), 'Matching products')
-            : 'All products';
-        } else if (!selected.length) {
-          productButton.textContent = 'No products selected';
-          productButton.title = 'No products selected';
-        } else if (selected.length === 1) {
-          productButton.textContent = productLabelFromKey(selected[0]) || '1 product selected';
-          productButton.title = productLabelFromKey(selected[0]) || '1 product selected';
-        } else {
-          const productNames = selected.map(productLabelFromKey).sort();
+      renderAll();
+    }
+
+    function setProductSort(mode) {
+      state.productSort = mode;
+      state.productColumnSort = null;
+      renderAll();
+    }
+
+    function setCustomerSort(mode) {
+      state.customerSort = mode;
+      state.customerColumnSort = null;
+      renderAll();
+    }
+
+    function setProductMetric(metric) {
+      state.productMetric = metric === 'units' && state.productMetric !== 'units' ? 'units' : 'revenue';
+      state.productColumnSort = null;
+      renderAll();
+    }
+
+    function setCustomerMetric(metric) {
+      state.customerMetric = metric === 'units' && state.customerMetric !== 'units' ? 'units' : 'revenue';
+      state.customerColumnSort = null;
+      renderAll();
+    }
+
+    function getMetricColumn(metric, role) {
+      const units = metric === 'units';
+      if (role === 'prior') return units ? 'priorUnits' : 'priorRevenue';
+      if (role === 'current') return units ? 'currentUnits' : 'currentRevenue';
+      return units ? 'unitGap' : 'gap';
+    }
+
+    function setProductMetricColumnSort(role) {
+      setProductColumnSort(getMetricColumn(state.productMetric, role));
+    }
+
+    function setCustomerMetricColumnSort(role) {
+      setCustomerColumnSort(getMetricColumn(state.customerMetric, role));
+    }
+
+    function setProductColumnSort(column) {
+      state.productColumnSort = nextColumnSort(state.productColumnSort, column);
+      renderAll();
+    }
+
+    function setCustomerColumnSort(column) {
+      state.customerColumnSort = nextColumnSort(state.customerColumnSort, column);
+      renderAll();
+    }
+
+    function nextColumnSort(currentSort, column) {
+      if (!currentSort || currentSort.column !== column) {
+        return { column, dir: 'asc' };
+      }
+
+      return { column, dir: currentSort.dir === 'asc' ? 'desc' : 'asc' };
+    }
+
+    function resetFiltersForPageRefresh() {
+      state.deptMode = 'MAIN';
+      state.periodMode = 'YTD';
+      state.selectedMonth = null;
+      state.selectedMonths = new Set();
+      state.monthSelectionMode = 'none';
+      state.lastSelectedMonth = null;
+      syncSelectedMonthLegacy();
+
+      state.selectedProductKeys = new Set();
+      state.selectedCustomerIds = new Set();
+      state.tableSelectedProductKeys = new Set();
+      state.tableSelectedCustomerIds = new Set();
+      state.excludedProductKeys = new Set();
+      state.excludedCustomerIds = new Set();
+      state.productFilterMode = 'ALL';
+      state.customerFilterMode = 'ALL';
+      state.customerActiveOnly = false;
+      state.lastSelectedProductKey = null;
+      state.lastSelectedCustomerId = null;
+      state.lastProductTableKeys = [];
+      state.lastCustomerTableIds = [];
+
+      state.productSearch = '';
+      state.customerSearch = '';

@@ -1,479 +1,3 @@
-          productButton.textContent = selected.length + ' products selected';
-          productButton.title = listForTooltip(productNames, 'Selected products');
-        }
-      }
-
-      if (customerButton) {
-        const availableCustomers = getAvailableCustomerSetForDropdown();
-        const allCustomers = fullCustomerIdSet();
-        const selected = getSelectedCustomerIds().filter(id => availableCustomers.has(id));
-        const excluded = getExcludedCustomerIds().filter(id => availableCustomers.has(id));
-        const selectedCount = selectedCustomerCountInSet(availableCustomers);
-        const customerContextRestricted = isSetRestrictedToContext(availableCustomers, allCustomers);
-        if (!availableCustomers.size) {
-          customerButton.textContent = 'No matching customers';
-          customerButton.title = 'No customers match the other active filters';
-        } else if (state.customerFilterMode !== 'CUSTOM' && excluded.length) {
-          customerButton.textContent = customerContextRestricted
-            ? selectedCount + ' matching customers'
-            : 'All customers except ' + excluded.length;
-          customerButton.title = 'Excluded customers:\n' + listForTooltip(excluded.map(getCustomerNameById).sort(), 'Excluded customers');
-        } else if (state.customerFilterMode !== 'CUSTOM') {
-          customerButton.textContent = customerContextRestricted
-            ? selectedCount + ' matching customers'
-            : 'All customers';
-          customerButton.title = customerContextRestricted
-            ? listForTooltip([...availableCustomers].map(getCustomerNameById).sort(), 'Matching customers')
-            : 'All customers';
-        } else if (!selected.length) {
-          customerButton.textContent = 'No customers selected';
-          customerButton.title = 'No customers selected';
-        } else if (selected.length === 1) {
-          const label = getCustomerNameById(selected[0]);
-          customerButton.textContent = label;
-          customerButton.title = label;
-        } else {
-          const customerNames = selected.map(getCustomerNameById).sort();
-          customerButton.textContent = selected.length + ' customers selected';
-          customerButton.title = listForTooltip(customerNames, 'Selected customers');
-        }
-      }
-
-      if (yearButton) {
-        const years = [...state.years].sort((a,b) => b-a);
-        const yearsText = years.join(', ');
-        const months = getSelectedMonths();
-        let periodText = 'YTD';
-        let periodTitle = 'Year to date';
-        if (months.length === 1) {
-          periodText = monthLabels[months[0] - 1];
-          periodTitle = periodText;
-        } else if (months.length > 1) {
-          periodText = months.map(month => monthLabels[month - 1]).join(', ');
-          periodTitle = listForTooltip(months.map(month => monthLabels[month - 1]), 'Selected months');
-        }
-        yearButton.textContent = yearsText + ' • ' + periodText;
-        yearButton.title = 'Years:\n' + listForTooltip(years, 'Selected years') + '\n\nPeriod:\n' + periodTitle;
-      }
-
-      // Keep the toolbar clean: the button titles are just the filter names.
-      // The synced counts/details remain inside the open dropdown panel and active chips.
-      if (deptButton) deptButton.textContent = 'Departments';
-      if (productButton) productButton.textContent = 'Products';
-      if (customerButton) customerButton.textContent = 'Customers';
-      if (yearButton) yearButton.textContent = 'Years';
-    }
-
-
-    function getProductDepartmentFromKey(key) {
-      const option = productOptions.find(item => item.key === key);
-      if (option && option.department) return option.department;
-      const parts = String(key || '').split('||');
-      return parts.length >= 3 ? parts[2] : '';
-    }
-
-    function syncDepartmentsToAllProductInventory() {
-      // When Product Select all is used, the product filter should truly mean
-      // every product in the dropdown inventory. If Departments stays on Main
-      // Departments, then the dashboard is still restricted even though the
-      // Product control says All products. Keep the parent filter in sync.
-      const productDepartments = new Set(productOptions.map(item => item.department).filter(Boolean));
-      const departments = productDepartments.size ? productDepartments : new Set(getAllDepartments());
-      state.deptMode = 'ALL';
-      state.selectedDepartments = new Set(departments);
-    }
-
-    function includeProductDepartmentInFilter(key) {
-      const department = getProductDepartmentFromKey(key);
-      if (!department) return;
-      if (!state.selectedDepartments) state.selectedDepartments = new Set();
-      if (state.selectedDepartments.has(department)) return;
-
-      // Google Sheets-style behavior: when a manager directly checks a product
-      // from outside the active department context, make the department filter
-      // inclusive enough for that product to appear instead of returning a blank dashboard.
-      state.selectedDepartments.add(department);
-      state.deptMode = 'CUSTOM';
-    }
-
-    function includeSelectedProductDepartmentsInFilter() {
-      getSelectedProductKeys().forEach(key => includeProductDepartmentInFilter(key));
-    }
-
-    function normalizeProductSelectionMode() {
-      const selected = getSelectedProductKeys();
-      if (state.productFilterMode === 'CUSTOM' && productOptions.length && selected.length >= productOptions.length) {
-        state.productFilterMode = 'ALL';
-        state.selectedProductKeys = new Set();
-        state.tableSelectedProductKeys = new Set();
-        state.excludedProductKeys = new Set();
-        state.lastSelectedProductKey = null;
-        syncDepartmentsToAllProductInventory();
-      }
-    }
-
-    function normalizeCustomerSelectionMode() {
-      const selected = getSelectedCustomerIds();
-      if (state.customerFilterMode === 'CUSTOM' && customerOptions.length && selected.length >= customerOptions.length) {
-        state.customerFilterMode = 'ALL';
-        state.selectedCustomerIds = new Set();
-        state.tableSelectedCustomerIds = new Set();
-        state.excludedCustomerIds = new Set();
-        state.lastSelectedCustomerId = null;
-      }
-    }
-
-    function setProduct(value, event) {
-      const key = value || '';
-      if (!key) {
-        clearProductSelection();
-        return;
-      }
-
-      if (!state.selectedProductKeys) state.selectedProductKeys = new Set();
-      state.excludedProductKeys = new Set();
-      state.productFilterMode = 'CUSTOM';
-      const additive = isAdditiveEvent(event);
-      const range = isRangeEvent(event);
-
-      if (range && state.lastSelectedProductKey && Array.isArray(state.lastProductTableKeys)) {
-        const startIndex = state.lastProductTableKeys.indexOf(state.lastSelectedProductKey);
-        const endIndex = state.lastProductTableKeys.indexOf(key);
-        if (startIndex >= 0 && endIndex >= 0) {
-          const lo = Math.min(startIndex, endIndex);
-          const hi = Math.max(startIndex, endIndex);
-          const keys = state.lastProductTableKeys.slice(lo, hi + 1);
-          if (additive) keys.forEach(item => state.selectedProductKeys.add(item));
-          else state.selectedProductKeys = new Set(keys);
-        } else if (additive) {
-          if (state.selectedProductKeys.has(key)) state.selectedProductKeys.delete(key);
-          else state.selectedProductKeys.add(key);
-        } else {
-          state.selectedProductKeys = new Set([key]);
-        }
-      } else if (additive) {
-        if (state.selectedProductKeys.has(key)) state.selectedProductKeys.delete(key);
-        else state.selectedProductKeys.add(key);
-      } else {
-        state.selectedProductKeys = new Set([key]);
-      }
-
-      state.lastSelectedProductKey = key;
-      state.tableSelectedProductKeys = new Set(state.selectedProductKeys || []);
-      includeSelectedProductDepartmentsInFilter();
-      if (state.lastSelectedProductKey) restoreLinkedFiltersForProduct(state.lastSelectedProductKey);
-      normalizeProductSelectionMode();
-      syncSelects();
-      renderAll();
-    }
-
-    function toggleProduct(key, event) {
-      if (event) event.stopPropagation();
-      clearMoverTablePinnedSelections();
-      if (!key) return;
-      if (!state.selectedProductKeys) state.selectedProductKeys = new Set();
-      if (!state.excludedProductKeys) state.excludedProductKeys = new Set();
-
-      const affinityProducts = getProductAffinitySet();
-      const effectiveProducts = getAvailableProductSetForDropdown();
-      const excluded = state.excludedProductKeys;
-      const isChecked = isProductCheckedForDropdown(key, affinityProducts, effectiveProducts);
-      const currentlyChecked = new Set(productOptions
-        .filter(item => isProductCheckedForDropdown(item.key, affinityProducts, effectiveProducts))
-        .map(item => item.key));
-
-      if (state.productFilterMode === 'CUSTOM') {
-        if (state.selectedProductKeys.has(key)) {
-          state.selectedProductKeys.delete(key);
-        } else {
-          state.selectedProductKeys.add(key);
-          restoreLinkedFiltersForProduct(key);
-        }
-      } else if (isChecked) {
-        // Google Sheets-style: unchecking a checked value hides just that value.
-        // It should not flip into an only-this-product filter.
-        excluded.add(key);
-        state.selectedProductKeys.delete(key);
-      } else if (excluded.has(key)) {
-        // Re-check a previously hidden value.
-        excluded.delete(key);
-        restoreDepartmentChildren(getProductDepartmentFromKey(key));
-        restoreLinkedFiltersForProduct(key);
-      } else {
-        // This row is visible in the full dropdown inventory but blocked by another
-        // active filter (department, year, customer, or month). Add the product to
-        // the actual selected set and expand the related filters so the click sticks.
-        currentlyChecked.add(key);
-        state.productFilterMode = 'CUSTOM';
-        state.selectedProductKeys = currentlyChecked;
-        state.excludedProductKeys = new Set();
-        restoreDepartmentChildren(getProductDepartmentFromKey(key));
-        restoreLinkedFiltersForProduct(key);
-      }
-
-      state.tableSelectedProductKeys = new Set(state.selectedProductKeys || []);
-      state.lastSelectedProductKey = key;
-      normalizeProductSelectionMode();
-      syncSelects();
-      renderAll();
-    }
-
-    function clearProductSelection(event) {
-      prepareDropdownAction(event);
-      state.productFilterMode = 'CUSTOM';
-      state.selectedProductKeys = new Set();
-      state.tableSelectedProductKeys = new Set();
-      state.excludedProductKeys = new Set();
-      state.lastSelectedProductKey = null;
-      state.collapseSelectedProducts = false;
-      renderAfterBulkDropdownSelection('productDropdownPanel');
-    }
-
-    function selectAllProducts(event) {
-      prepareDropdownAction(event);
-      const visible = getVisibleProductOptions().map(item => item.key);
-      const full = fullProductKeySet();
-      const values = visible.length ? new Set(visible) : full;
-      if (setsEqual(values, full)) {
-        state.productFilterMode = 'ALL';
-        state.selectedProductKeys = new Set();
-      } else {
-        state.productFilterMode = 'CUSTOM';
-        state.selectedProductKeys = new Set(values);
-      }
-      state.tableSelectedProductKeys = new Set(state.selectedProductKeys || []);
-      state.excludedProductKeys = new Set();
-      state.lastSelectedProductKey = null;
-      renderAfterBulkDropdownSelection('productDropdownPanel');
-    }
-
-    function selectVisibleProducts(event) {
-      // Backward-compatible alias for older inline handlers.
-      selectAllProducts(event);
-    }
-
-    function setCustomer(value, event) {
-      const id = value || '';
-      if (!id) {
-        clearCustomerSelection();
-        return;
-      }
-
-      if (!state.selectedCustomerIds) state.selectedCustomerIds = new Set();
-      state.excludedCustomerIds = new Set();
-      state.customerFilterMode = 'CUSTOM';
-      const additive = isAdditiveEvent(event);
-      const range = isRangeEvent(event);
-
-      if (range && state.lastSelectedCustomerId && Array.isArray(state.lastCustomerTableIds)) {
-        const startIndex = state.lastCustomerTableIds.indexOf(state.lastSelectedCustomerId);
-        const endIndex = state.lastCustomerTableIds.indexOf(id);
-        if (startIndex >= 0 && endIndex >= 0) {
-          const lo = Math.min(startIndex, endIndex);
-          const hi = Math.max(startIndex, endIndex);
-          const ids = state.lastCustomerTableIds.slice(lo, hi + 1);
-          if (additive) ids.forEach(item => state.selectedCustomerIds.add(item));
-          else state.selectedCustomerIds = new Set(ids);
-        } else if (additive) {
-          if (state.selectedCustomerIds.has(id)) state.selectedCustomerIds.delete(id);
-          else state.selectedCustomerIds.add(id);
-        } else {
-          state.selectedCustomerIds = new Set([id]);
-        }
-      } else if (additive) {
-        if (state.selectedCustomerIds.has(id)) state.selectedCustomerIds.delete(id);
-        else state.selectedCustomerIds.add(id);
-      } else {
-        state.selectedCustomerIds = new Set([id]);
-      }
-
-      state.lastSelectedCustomerId = id;
-      state.tableSelectedCustomerIds = new Set(state.selectedCustomerIds || []);
-      restoreLinkedFiltersForCustomer(id);
-      normalizeCustomerSelectionMode();
-      syncSelects();
-      renderAll();
-    }
-
-    function toggleCustomer(id, event) {
-      if (event) event.stopPropagation();
-      clearMoverTablePinnedSelections();
-      if (!id) return;
-      if (!state.selectedCustomerIds) state.selectedCustomerIds = new Set();
-      if (!state.excludedCustomerIds) state.excludedCustomerIds = new Set();
-
-      const affinityCustomers = getCustomerAffinitySet();
-      const effectiveCustomers = getAvailableCustomerSetForDropdown();
-      const excluded = state.excludedCustomerIds;
-      const isChecked = isCustomerCheckedForDropdown(id, affinityCustomers, effectiveCustomers);
-      const currentlyChecked = new Set(customerOptions
-        .filter(item => isCustomerCheckedForDropdown(item.idValue, affinityCustomers, effectiveCustomers))
-        .map(item => item.idValue));
-
-      if (state.customerFilterMode === 'CUSTOM') {
-        if (state.selectedCustomerIds.has(id)) state.selectedCustomerIds.delete(id);
-        else {
-          state.selectedCustomerIds.add(id);
-          restoreLinkedFiltersForCustomer(id);
-        }
-      } else if (isChecked) {
-        excluded.add(id);
-        state.selectedCustomerIds.delete(id);
-      } else if (excluded.has(id)) {
-        excluded.delete(id);
-        restoreCustomerChildren(id);
-        restoreLinkedFiltersForCustomer(id);
-      } else {
-        // This customer is outside the current department/product/year context.
-        // Add the customer to the selected set and expand related filters so the
-        // click is not immediately blocked by the existing context.
-        currentlyChecked.add(id);
-        state.customerFilterMode = 'CUSTOM';
-        state.selectedCustomerIds = currentlyChecked;
-        state.excludedCustomerIds = new Set();
-        restoreCustomerChildren(id);
-        restoreLinkedFiltersForCustomer(id);
-      }
-
-      state.tableSelectedCustomerIds = new Set(state.selectedCustomerIds || []);
-      state.lastSelectedCustomerId = id;
-      normalizeCustomerSelectionMode();
-      syncSelects();
-      renderAll();
-    }
-
-    function clearCustomerSelection(event) {
-      prepareDropdownAction(event);
-      state.customerFilterMode = 'CUSTOM';
-      state.selectedCustomerIds = new Set();
-      state.tableSelectedCustomerIds = new Set();
-      state.excludedCustomerIds = new Set();
-      state.lastSelectedCustomerId = null;
-      state.collapseSelectedCustomers = false;
-      renderAfterBulkDropdownSelection('customerDropdownPanel');
-    }
-
-    function selectAllCustomers(event) {
-      prepareDropdownAction(event);
-      const visible = getVisibleCustomerOptions().map(item => item.idValue);
-      const full = fullCustomerIdSet();
-      const values = visible.length ? new Set(visible) : full;
-      if (setsEqual(values, full)) {
-        state.customerFilterMode = 'ALL';
-        state.selectedCustomerIds = new Set();
-      } else {
-        state.customerFilterMode = 'CUSTOM';
-        state.selectedCustomerIds = new Set(values);
-      }
-      state.tableSelectedCustomerIds = new Set(state.selectedCustomerIds || []);
-      state.excludedCustomerIds = new Set();
-      state.lastSelectedCustomerId = null;
-      renderAfterBulkDropdownSelection('customerDropdownPanel');
-    }
-
-    function selectVisibleCustomers(event) {
-      // Backward-compatible alias for older inline handlers.
-      selectAllCustomers(event);
-    }
-
-    function toggleYear(year, event) {
-      if (event) event.stopPropagation();
-      clearMoverTablePinnedSelections();
-
-      // Years now behave like the other dropdown checkboxes:
-      // clicking a year adds/removes it without clearing the rest.
-      if (!state.years) state.years = new Set();
-      if (state.years.has(year)) {
-        state.years.delete(year);
-      } else {
-        state.years.add(year);
-      }
-
-      renderAll();
-    }
-
-    function setProductSort(mode) {
-      state.productSort = mode;
-      state.productColumnSort = null;
-      renderAll();
-    }
-
-    function setCustomerSort(mode) {
-      state.customerSort = mode;
-      state.customerColumnSort = null;
-      renderAll();
-    }
-
-    function setProductMetric(metric) {
-      state.productMetric = metric === 'units' && state.productMetric !== 'units' ? 'units' : 'revenue';
-      state.productColumnSort = null;
-      renderAll();
-    }
-
-    function setCustomerMetric(metric) {
-      state.customerMetric = metric === 'units' && state.customerMetric !== 'units' ? 'units' : 'revenue';
-      state.customerColumnSort = null;
-      renderAll();
-    }
-
-    function getMetricColumn(metric, role) {
-      const units = metric === 'units';
-      if (role === 'prior') return units ? 'priorUnits' : 'priorRevenue';
-      if (role === 'current') return units ? 'currentUnits' : 'currentRevenue';
-      return units ? 'unitGap' : 'gap';
-    }
-
-    function setProductMetricColumnSort(role) {
-      setProductColumnSort(getMetricColumn(state.productMetric, role));
-    }
-
-    function setCustomerMetricColumnSort(role) {
-      setCustomerColumnSort(getMetricColumn(state.customerMetric, role));
-    }
-
-    function setProductColumnSort(column) {
-      state.productColumnSort = nextColumnSort(state.productColumnSort, column);
-      renderAll();
-    }
-
-    function setCustomerColumnSort(column) {
-      state.customerColumnSort = nextColumnSort(state.customerColumnSort, column);
-      renderAll();
-    }
-
-    function nextColumnSort(currentSort, column) {
-      if (!currentSort || currentSort.column !== column) {
-        return { column, dir: 'asc' };
-      }
-
-      return { column, dir: currentSort.dir === 'asc' ? 'desc' : 'asc' };
-    }
-
-    function resetFiltersForPageRefresh() {
-      state.deptMode = 'MAIN';
-      state.periodMode = 'YTD';
-      state.selectedMonth = null;
-      state.selectedMonths = new Set();
-      state.monthSelectionMode = 'none';
-      state.lastSelectedMonth = null;
-      syncSelectedMonthLegacy();
-
-      state.selectedProductKeys = new Set();
-      state.selectedCustomerIds = new Set();
-      state.tableSelectedProductKeys = new Set();
-      state.tableSelectedCustomerIds = new Set();
-      state.excludedProductKeys = new Set();
-      state.excludedCustomerIds = new Set();
-      state.productFilterMode = 'ALL';
-      state.customerFilterMode = 'ALL';
-      state.customerActiveOnly = false;
-      state.lastSelectedProductKey = null;
-      state.lastSelectedCustomerId = null;
-      state.lastProductTableKeys = [];
-      state.lastCustomerTableIds = [];
-
-      state.productSearch = '';
-      state.customerSearch = '';
       state.departmentSearch = '';
       state.collapseSelectedDepartments = false;
       state.collapseSelectedProducts = false;
@@ -497,22 +21,6 @@
       resetDepartmentSet();
     }
 
-    function clearFilter(kind) {
-      clearMoverTablePinnedSelections();
-      if (kind === 'month') {
-        state.selectedMonths = new Set();
-        state.monthSelectionMode = 'none';
-        state.lastSelectedMonth = null;
-        syncSelectedMonthLegacy();
-        state.periodMode = 'YTD';
-        state.focusChartId = null;
-      }
-      if (kind === 'product' || kind === 'customer' || kind === 'departments') {
-        setLinkedDropdownInventoryToAll();
-      }
-      if (kind === 'years') state.years = new Set(getDefaultYears());
-      renderAll();
-    }
 
     function resetAllFilters() {
       clearMoverTablePinnedSelections();
@@ -611,24 +119,6 @@
       productLabelByKey = new Map(productOptions.map(item => [item.key, item.label + ' [' + item.productId + ']']));
     }
 
-    function getVisibleProductOptions() {
-      const query = String(state.productSearch || '').trim().toLowerCase();
-      const selected = new Set(getSelectedProductKeys());
-      const affinityProducts = getProductAffinitySet();
-      const effectiveProducts = getAvailableProductSetForDropdown();
-      const checkedProducts = new Set(productOptions
-        .filter(item => isProductCheckedForDropdown(item.key, affinityProducts, effectiveProducts))
-        .map(item => item.key));
-      return productOptions
-        .filter(item => !query || item.searchText.includes(query))
-        .sort((a, b) => {
-          const checkedDiff = (checkedProducts.has(b.key) ? 1 : 0) - (checkedProducts.has(a.key) ? 1 : 0);
-          if (checkedDiff) return checkedDiff;
-          const priorityDiff = compareOptionPriority(a.key, b.key, selected, affinityProducts);
-          if (priorityDiff) return priorityDiff;
-          return a.label.localeCompare(b.label);
-        });
-    }
 
     function getDisplayedProductOptions() {
       const affinityProducts = getProductAffinitySet();
@@ -637,49 +127,6 @@
       return rows.filter(item => !isProductCheckedForDropdown(item.key, affinityProducts));
     }
 
-    function renderProductList() {
-      const list = document.getElementById('productList');
-      if (!list) return;
-      const selected = new Set(getSelectedProductKeys());
-      const allMatching = getVisibleProductOptions();
-      const affinityProducts = getProductAffinitySet();
-      const effectiveProducts = getAvailableProductSetForDropdown();
-      const checkedRows = allMatching.filter(item => isProductCheckedForDropdown(item.key, affinityProducts, effectiveProducts));
-      const uncheckedRows = allMatching.filter(item => !isProductCheckedForDropdown(item.key, affinityProducts, effectiveProducts));
-      const shownCount = state.collapseSelectedProducts ? uncheckedRows.length : allMatching.length;
-      const countEl = document.getElementById('productVisibleCount');
-      if (countEl) countEl.textContent = dropdownCountText(checkedRows.length, allMatching.length, shownCount);
-      setCollapseButton('productCollapseBtn', state.collapseSelectedProducts);
-
-      if (!allMatching.length) {
-        list.innerHTML = '<div class="emptyFilterRow">No products match that view.</div>';
-        updateDropdownLabels();
-        return;
-      }
-
-      const rowHtml = item => {
-        const isPinnedDirectly = selected.has(item.key);
-        const isDirectSelected = state.productFilterMode === 'CUSTOM' && isPinnedDirectly;
-        const hasAffinity = setHas(affinityProducts, item.key);
-        const displaySelected = isProductCheckedForDropdown(item.key, affinityProducts, effectiveProducts);
-        const isContextSelected = displaySelected && !isDirectSelected && hasAffinity;
-        return `
-        <div class="multiRow ${displaySelected ? 'active' : ''} ${isContextSelected ? 'contextSelected' : ''} ${hasAffinity ? 'affinity' : ''}" onclick="toggleProduct('${escapeJs(item.key)}', event)">
-          <div class="labelSide">
-            <input type="checkbox" tabindex="-1" onclick="event.preventDefault()" ${displaySelected ? 'checked' : ''}>
-            <span title="${escapeHtml(productLabelFromKey(item.key))}">${escapeHtml(productLabelFromKey(item.key))}</span>
-          </div>
-        </div>`;
-      };
-
-      const parts = [];
-      parts.push(selectedCollapseHeader('products', state.collapseSelectedProducts, checkedRows.length, 'Selected'));
-      if (!state.collapseSelectedProducts) parts.push(...checkedRows.map(rowHtml));
-      parts.push(...uncheckedRows.map(rowHtml));
-
-      list.innerHTML = parts.join('') || '<div class="emptyFilterRow">No products match that view.</div>';
-      updateDropdownLabels();
-    }
 
     function buildCustomerControls() {
       const customers = new Map();
@@ -711,24 +158,6 @@
       customerLabelById = new Map(customerOptions.map(item => [item.idValue, item.label]));
     }
 
-    function getVisibleCustomerOptions() {
-      const query = String(state.customerSearch || '').trim().toLowerCase();
-      const selected = new Set(getSelectedCustomerIds());
-      const affinityCustomers = getCustomerAffinitySet();
-      const effectiveCustomers = getAvailableCustomerSetForDropdown();
-      const checkedCustomers = new Set(customerOptions
-        .filter(item => isCustomerCheckedForDropdown(item.idValue, affinityCustomers, effectiveCustomers))
-        .map(item => item.idValue));
-      return customerOptions
-        .filter(item => !query || item.searchText.includes(query))
-        .sort((a, b) => {
-          const checkedDiff = (checkedCustomers.has(b.idValue) ? 1 : 0) - (checkedCustomers.has(a.idValue) ? 1 : 0);
-          if (checkedDiff) return checkedDiff;
-          const priorityDiff = compareOptionPriority(a.idValue, b.idValue, selected, affinityCustomers);
-          if (priorityDiff) return priorityDiff;
-          return a.label.localeCompare(b.label);
-        });
-    }
 
     function getDisplayedCustomerOptions() {
       const affinityCustomers = getCustomerAffinitySet();
@@ -737,50 +166,6 @@
       return rows.filter(item => !isCustomerCheckedForDropdown(item.idValue, affinityCustomers));
     }
 
-    function renderCustomerList() {
-      const list = document.getElementById('customerList');
-      if (!list) return;
-      const selected = new Set(getSelectedCustomerIds());
-      const allMatching = getVisibleCustomerOptions();
-      const affinityCustomers = getCustomerAffinitySet();
-      const effectiveCustomers = getAvailableCustomerSetForDropdown();
-      const checkedRows = allMatching.filter(item => isCustomerCheckedForDropdown(item.idValue, affinityCustomers, effectiveCustomers));
-      const uncheckedRows = allMatching.filter(item => !isCustomerCheckedForDropdown(item.idValue, affinityCustomers, effectiveCustomers));
-      const shownCount = state.collapseSelectedCustomers ? uncheckedRows.length : allMatching.length;
-      const countEl = document.getElementById('customerVisibleCount');
-      if (countEl) countEl.textContent = dropdownCountText(checkedRows.length, allMatching.length, shownCount);
-      setCollapseButton('customerCollapseBtn', state.collapseSelectedCustomers);
-      updateCustomerActiveOnlyButton();
-
-      if (!allMatching.length) {
-        list.innerHTML = '<div class="emptyFilterRow">No customers match that view.</div>';
-        updateDropdownLabels();
-        return;
-      }
-
-      const rowHtml = item => {
-        const isPinnedDirectly = selected.has(item.idValue);
-        const isDirectSelected = state.customerFilterMode === 'CUSTOM' && isPinnedDirectly;
-        const hasAffinity = setHas(affinityCustomers, item.idValue);
-        const displaySelected = isCustomerCheckedForDropdown(item.idValue, affinityCustomers, effectiveCustomers);
-        const isContextSelected = displaySelected && !isDirectSelected && hasAffinity;
-        return `
-        <div class="multiRow ${displaySelected ? 'active' : ''} ${isContextSelected ? 'contextSelected' : ''} ${hasAffinity ? 'affinity' : ''}" onclick="toggleCustomer('${escapeJs(item.idValue)}', event)">
-          <div class="labelSide">
-            <input type="checkbox" tabindex="-1" onclick="event.preventDefault()" ${displaySelected ? 'checked' : ''}>
-            <span title="${escapeHtml(item.label + (item.active === false ? ' - Inactive' : ''))}">${escapeHtml(item.label)}${item.active === false ? ' <span class="inactiveBadge">Inactive</span>' : ''}</span>
-          </div>
-        </div>`;
-      };
-
-      const parts = [];
-      parts.push(selectedCollapseHeader('customers', state.collapseSelectedCustomers, checkedRows.length, 'Selected'));
-      if (!state.collapseSelectedCustomers) parts.push(...checkedRows.map(rowHtml));
-      parts.push(...uncheckedRows.map(rowHtml));
-
-      list.innerHTML = parts.join('') || '<div class="emptyFilterRow">No customers match that view.</div>';
-      updateDropdownLabels();
-    }
 
     function syncSelects() {
       if (isDropdownOpen('productDropdownPanel')) renderProductList();
@@ -950,17 +335,6 @@
       return setsEqual(state.selectedDepartments || new Set(), new Set(departments || []));
     }
 
-    function isQuickDepartmentState(mode) {
-      // Top-right Main/All buttons are quick filters, not stale mode labels.
-      // They should be highlighted only when the whole linked dropdown state
-      // is actually in that clean preset: no empty child filter, no product or
-      // customer restriction, and the selected departments exactly match the preset.
-      if (isLinkedDropdownZeroState()) return false;
-      if (hasLinkedDropdownRestriction()) return false;
-      if (mode === 'MAIN') return selectedDepartmentsEqual(getMainDepartments());
-      if (mode === 'ALL') return selectedDepartmentsEqual(getAllDepartments());
-      return false;
-    }
 
     function updateButtonStates() {
       setActive('btnMain', isQuickDepartmentState('MAIN'));
@@ -1043,58 +417,10 @@
       return false;
     }
 
-    function isProductCheckedForDropdown(key, affinityProducts, effectiveProducts) {
-      const selected = state.selectedProductKeys || new Set();
-      const excluded = state.excludedProductKeys || new Set();
-      if (state.productFilterMode === 'CUSTOM') return selected.has(key);
-      const effective = effectiveProducts || getAvailableProductSetForDropdown();
-      if (shouldTreatEmptyEffectiveSetAsNone('products', effective)) return false;
-      if (effective && effective.size && !effective.has(key)) return false;
-      return !excluded.has(key);
-    }
 
-    function isCustomerCheckedForDropdown(id, affinityCustomers, effectiveCustomers) {
-      const selected = state.selectedCustomerIds || new Set();
-      const excluded = state.excludedCustomerIds || new Set();
-      if (state.customerFilterMode === 'CUSTOM') return selected.has(id);
-      const effective = effectiveCustomers || getAvailableCustomerSetForDropdown();
-      if (shouldTreatEmptyEffectiveSetAsNone('customers', effective)) return false;
-      if (effective && effective.size && !effective.has(id)) return false;
-      return !excluded.has(id);
-    }
 
-    function hasActiveChildFilterForDepartments() {
-      // Department checkmarks should represent the effective dashboard slice,
-      // not only the raw department preset. If Products or Customers are narrowed,
-      // Departments must narrow visually to the departments that still have matching rows.
-      return hasProductDropdownRestriction() || hasCustomerDropdownRestriction();
-    }
 
-    function getDisplaySelectedDepartmentNames() {
-      const selected = state.selectedDepartments || new Set();
-      const effective = getAvailableDepartmentSetForDropdown();
 
-      if (hasActiveChildFilterForDepartments()) {
-        if (!effective || !effective.size) return [];
-        return [...selected].filter(department => effective.has(department)).sort();
-      }
-
-      return [...selected].sort();
-    }
-
-    function isDepartmentCheckedForDropdown(department, effectiveDepartments) {
-      const selected = state.selectedDepartments || new Set();
-      const effective = effectiveDepartments || getAvailableDepartmentSetForDropdown();
-      if (shouldTreatEmptyEffectiveSetAsNone('departments', effective)) return false;
-
-      if (hasActiveChildFilterForDepartments()) {
-        if (!effective || !effective.size) return false;
-        return selected.has(department) && effective.has(department);
-      }
-
-      if (state.deptMode === 'ALL' && effective && effective.size && !effective.has(department)) return false;
-      return selected.has(department);
-    }
 
     function isDefaultYearSelection() {
       const defaultYears = new Set(getDefaultYears());
@@ -1220,35 +546,6 @@
       }
     }
 
-    function getVisibleDepartmentRows() {
-      // Keep the Department dropdown inventory independent from the active dashboard filters.
-      // Filters should change the visuals, not hide choices from the control itself.
-      // Selected departments stay first; departments related to the current filter context
-      // come next, so managers can see what the active filter is touching.
-      const affinityDepartments = getDepartmentAffinitySet();
-      const rows = groupBy(facts, row => row.productsDepartment, row => ({
-        department: row.productsDepartment,
-        isMainDepartment: row.isMainDepartment,
-        revenue: 0
-      }), (acc, row) => {
-        if (row.year === (payload.config.currentYear || 2026)) acc.revenue += row.netRevenue;
-      });
-
-      const deptQuery = String(state.departmentSearch || '').trim().toLowerCase();
-      const effectiveDepartments = getAvailableDepartmentSetForDropdown();
-      const checkedDepartments = new Set(rows
-        .filter(row => isDepartmentCheckedForDropdown(row.department, effectiveDepartments))
-        .map(row => row.department));
-      return rows
-        .filter(row => !deptQuery || String(row.department).toLowerCase().includes(deptQuery))
-        .sort((a, b) => {
-          const checkedDiff = (checkedDepartments.has(b.department) ? 1 : 0) - (checkedDepartments.has(a.department) ? 1 : 0);
-          if (checkedDiff) return checkedDiff;
-          const priorityDiff = compareOptionPriority(a.department, b.department, state.selectedDepartments, affinityDepartments);
-          if (priorityDiff) return priorityDiff;
-          return b.revenue - a.revenue;
-        });
-    }
 
     function getDisplayedDepartmentRows() {
       const rows = getVisibleDepartmentRows();
@@ -1257,40 +554,6 @@
       return rows.filter(row => !isDepartmentCheckedForDropdown(row.department, effectiveDepartments));
     }
 
-    function renderDepartmentList() {
-      const allRows = getVisibleDepartmentRows();
-      const effectiveDepartments = getAvailableDepartmentSetForDropdown();
-      const checkedRows = allRows.filter(row => isDepartmentCheckedForDropdown(row.department, effectiveDepartments));
-      const uncheckedRows = allRows.filter(row => !isDepartmentCheckedForDropdown(row.department, effectiveDepartments));
-      const shownCount = state.collapseSelectedDepartments ? uncheckedRows.length : allRows.length;
-      const countEl = document.getElementById('departmentVisibleCount');
-      if (countEl) countEl.textContent = dropdownCountText(checkedRows.length, allRows.length, shownCount);
-      setCollapseButton('departmentCollapseBtn', state.collapseSelectedDepartments);
-
-      if (!allRows.length) {
-        document.getElementById('departmentList').innerHTML = '<div class="emptyFilterRow">No departments match that view.</div>';
-        return;
-      }
-
-      const rowHtml = row => {
-        const displaySelected = isDepartmentCheckedForDropdown(row.department, effectiveDepartments);
-        return `
-        <div class="deptRow ${displaySelected ? 'active' : ''}" onclick="event.stopPropagation(); toggleDepartment('${escapeJs(row.department)}')">
-          <div class="labelSide">
-            <input type="checkbox" tabindex="-1" onclick="event.preventDefault()" ${displaySelected ? 'checked' : ''}>
-            <span title="${escapeHtml(row.department)}">${escapeHtml(row.department)}</span>
-          </div>
-          <span class="rowTotal">${formatCompact(row.revenue)}</span>
-        </div>`;
-      };
-
-      const parts = [];
-      parts.push(selectedCollapseHeader('departments', state.collapseSelectedDepartments, checkedRows.length, 'Selected'));
-      if (!state.collapseSelectedDepartments) parts.push(...checkedRows.map(rowHtml));
-      parts.push(...uncheckedRows.map(rowHtml));
-
-      document.getElementById('departmentList').innerHTML = parts.join('') || '<div class="emptyFilterRow">No departments match that view.</div>';
-    }
 
     function renderYearList() {
       const affinityYears = getYearAffinitySet();
@@ -1356,137 +619,6 @@
       return row ? row.customerName : customerId;
     }
 
-    function renderChips() {
-      const chips = [];
-
-      const displayDeptNamesForMode = getDisplaySelectedDepartmentNames();
-      const selectedDeptCountForMode = displayDeptNamesForMode.length;
-      const allDeptCountForMode = getAllDepartments().length;
-      const childFilterNarrowedDepartments = hasActiveChildFilterForDepartments();
-      const deptModeLabel = childFilterNarrowedDepartments
-        ? selectedDeptCountForMode === 0
-          ? 'No matching departments'
-          : selectedDeptCountForMode === 1
-            ? displayDeptNamesForMode[0]
-            : selectedDeptCountForMode + ' matching departments'
-        : state.deptMode === 'MAIN'
-          ? 'Main Departments'
-          : selectedDeptCountForMode === 0
-            ? 'No departments'
-            : selectedDeptCountForMode >= allDeptCountForMode
-              ? 'All Departments'
-              : selectedDeptCountForMode + ' departments selected';
-      const deptModeTooltip = childFilterNarrowedDepartments
-        ? selectedDeptCountForMode === 0
-          ? 'No departments match the active product/customer filters'
-          : 'Matching departments:\n' + listForTooltip(displayDeptNamesForMode, 'Matching departments')
-        : state.deptMode === 'MAIN'
-          ? 'Main departments:\n' + listForTooltip((payload.config && payload.config.mainDepartments) || [], 'Main departments')
-          : selectedDeptCountForMode === 0
-            ? 'No departments selected'
-            : selectedDeptCountForMode >= allDeptCountForMode
-              ? 'All departments'
-              : 'Selected departments:\n' + listForTooltip(displayDeptNamesForMode, 'Selected departments');
-      chips.push({
-        label: deptModeLabel,
-        tooltip: deptModeTooltip,
-        clear: null
-      });
-
-      const selectedMonths = getSelectedMonths();
-      const selectedMonthLabels = selectedMonths.map(month => monthLabels[month - 1]);
-      const monthChipLabel = selectedMonths.length
-        ? 'Months: ' + selectedMonthLabels.join(', ')
-        : 'YTD';
-      chips.push({
-        label: monthChipLabel,
-        tooltip: selectedMonths.length ? listForTooltip(selectedMonthLabels, 'Selected months') : 'Year to date',
-        clear: selectedMonths.length ? 'month' : null
-      });
-
-      const allDeptCount = getAllDepartments().length;
-      const selectedDeptNames = getDisplaySelectedDepartmentNames();
-      const mainDeptSet = new Set(getMainDepartments());
-      const allDeptSet = new Set(getAllDepartments());
-      const isDefaultMainDeptChip = !hasActiveChildFilterForDepartments() && state.deptMode === 'MAIN' && setsEqual(state.selectedDepartments, mainDeptSet);
-      const isAllDeptChip = !hasActiveChildFilterForDepartments() && setsEqual(state.selectedDepartments, allDeptSet);
-
-      if (selectedDeptNames.length && selectedDeptNames.length < allDeptCount && !isDefaultMainDeptChip) {
-        const deptLabel = selectedDeptNames.length <= 4
-          ? selectedDeptNames.join(', ')
-          : selectedDeptNames.slice(0, 4).join(', ') + ' +' + (selectedDeptNames.length - 4);
-        chips.push({
-          label: 'Departments: ' + deptLabel,
-          tooltip: 'Departments:\n' + listForTooltip(selectedDeptNames, 'No departments selected'),
-          clear: isAllDeptChip ? null : 'departments'
-        });
-      }
-
-      const selectedProductKeys = getSelectedProductKeys();
-      const excludedProductKeys = getExcludedProductKeys();
-      if (state.productFilterMode === 'CUSTOM') {
-        const productNames = selectedProductKeys.map(productLabelFromKey).sort();
-        const label = selectedProductKeys.length === 0
-          ? 'Products: none'
-          : selectedProductKeys.length === 1
-            ? productNames[0]
-            : 'Products: ' + selectedProductKeys.length + ' selected';
-        chips.push({
-          label,
-          tooltip: selectedProductKeys.length ? 'Products:\n' + listForTooltip(productNames, 'Selected products') : 'No products selected',
-          clear: 'product'
-        });
-      } else if (excludedProductKeys.length) {
-        const productNames = excludedProductKeys.map(productLabelFromKey).sort();
-        chips.push({
-          label: 'Products: all except ' + excludedProductKeys.length,
-          tooltip: 'Excluded products:\n' + listForTooltip(productNames, 'Excluded products'),
-          clear: 'product'
-        });
-      }
-
-      const selectedCustomerIds = getSelectedCustomerIds();
-      const excludedCustomerIds = getExcludedCustomerIds();
-      if (state.customerFilterMode === 'CUSTOM') {
-        const customerNames = selectedCustomerIds.map(getCustomerNameById).sort();
-        const label = selectedCustomerIds.length === 0
-          ? 'Customers: none'
-          : selectedCustomerIds.length === 1
-            ? customerNames[0]
-            : 'Customers: ' + selectedCustomerIds.length + ' selected';
-        chips.push({
-          label,
-          tooltip: selectedCustomerIds.length ? 'Customers:\n' + listForTooltip(customerNames, 'Selected customers') : 'No customers selected',
-          clear: 'customer'
-        });
-      } else if (excludedCustomerIds.length) {
-        const customerNames = excludedCustomerIds.map(getCustomerNameById).sort();
-        chips.push({
-          label: 'Customers: all except ' + excludedCustomerIds.length,
-          tooltip: 'Excluded customers:\n' + listForTooltip(customerNames, 'Excluded customers'),
-          clear: 'customer'
-        });
-      }
-
-      const years = [...state.years].sort((a,b) => b-a);
-      const defaultYearSet = new Set(getDefaultYears());
-      const canClearYears = !setsEqual(state.years, defaultYearSet);
-      chips.push({
-        label: years.join(', '),
-        tooltip: 'Years:\n' + listForTooltip(years, 'No years selected'),
-        clear: canClearYears ? 'years' : null
-      });
-
-      const chipHtml = chips.map(chip => `
-          <span class="chip" title="${escapeHtml(chip.tooltip || chip.label)}">${escapeHtml(chip.label)} ${chip.clear ? `<button title="Clear this filter" onclick="event.stopPropagation(); clearFilter('${chip.clear}')">×</button>` : ''}</span>
-        `).join('');
-      ['chipRow', 'legacyChipRow'].forEach(id => {
-        const chipRow = document.getElementById(id);
-        if (chipRow) chipRow.innerHTML = chipHtml;
-      });
-
-      updateDropdownLabels();
-    }
 
     function renderKpis() {
       const metrics = summarize(getFilteredFacts());
@@ -1549,3 +681,976 @@
     }
 
     function getChartMonths(rows) {
+      const selectedMonths = getSelectedMonths();
+      if (selectedMonths.length && state.monthSelectionMode !== 'multi') return selectedMonths;
+
+      const months = [...new Set(rows.map(row => row.monthNum))]
+        .filter(Boolean)
+        .sort((a,b) => a-b);
+
+      return months.length ? months : [1,2,3,4,5,6];
+    }
+
+    function hasDailyRevenueRows(rows) {
+      const selectedMonth = getSingleSelectedMonth();
+      return !!selectedMonth && rows.some(row => row.invoiceDate && row.dayOfMonth && row.monthNum === selectedMonth);
+    }
+
+    function shouldUseDailyRevenueTrend(baseRows) {
+      const selectedMonth = getSingleSelectedMonth();
+      return !!selectedMonth && state.monthSelectionMode !== 'multi' && hasDailyRevenueRows(baseRows);
+    }
+
+    function getRevenueTrendRows(baseRows) {
+      const selectedMonth = getSingleSelectedMonth();
+      if (!shouldUseDailyRevenueTrend(baseRows)) {
+        return {
+          mode: 'monthly',
+          rows: baseRows,
+          labels: getChartMonths(baseRows).map(month => monthLabels[month - 1]),
+          points: getChartMonths(baseRows)
+        };
+      }
+
+      const monthRows = getFilteredFacts().filter(row => row.monthNum === selectedMonth);
+      const maxDayFromData = Math.max(
+        0,
+        ...monthRows.map(row => Number(row.dayOfMonth || 0)).filter(Boolean)
+      );
+      const selectedYears = getDisplayYears();
+      const fallbackMaxDay = selectedYears.length
+        ? Math.min(...selectedYears.map(year => daysInMonth(year, selectedMonth)))
+        : 31;
+      const maxDay = Math.max(1, maxDayFromData || fallbackMaxDay);
+      const points = Array.from({length: maxDay}, (_, index) => index + 1);
+
+      return {
+        mode: 'dailyCumulative',
+        rows: monthRows,
+        labels: points.map(day => String(day)),
+        points
+      };
+    }
+
+    function dailyCumulativeMetricFor(rows, year, day) {
+      const scoped = rows.filter(row =>
+        row.year === Number(year) &&
+        row.monthNum === Number(getSingleSelectedMonth()) &&
+        Number(row.dayOfMonth || 0) <= Number(day)
+      );
+
+      return {
+        revenue: sum(scoped, 'netRevenue'),
+        units: sum(scoped, 'units'),
+        customers: distinctCount(scoped, 'customerId')
+      };
+    }
+
+    function drawRevenueTrendChart(canvasId, baseRows, years) {
+      const currentYear = Number(payload && payload.config ? payload.config.currentYear : 2026);
+      const priorYear = Number(payload && payload.config ? payload.config.priorYear : 2025);
+      const trend = getRevenueTrendRows(baseRows);
+      const isDaily = trend.mode === 'dailyCumulative';
+      const selectedMonths = getSelectedMonths();
+      const highlightMonthlySelection = !isDaily && state.monthSelectionMode === 'multi' && selectedMonths.length > 0;
+
+      const datasets = years.map(year => {
+        const color = colors[year] || colors[priorYear] || colors[2025];
+        const isCurrent = Number(year) === currentYear;
+        const isPrior = Number(year) === priorYear;
+
+        return {
+          label: String(year),
+          data: trend.points.map(point => {
+            if (isDaily) {
+              const value = dailyCumulativeMetricFor(trend.rows, year, point).revenue;
+              // v6.91: for filtered customer/product views, no purchase should read as a true zero, not a missing point.
+              // This keeps the line flat on the baseline instead of creating odd diagonal fills/gaps.
+              return Number.isFinite(Number(value)) ? Number(value) : 0;
+            }
+
+            const value = metricFor(trend.rows, year, point).revenue;
+            // v6.91: missing rows inside the selected reporting period mean zero sales for this filter selection.
+            // Future/nonexistent periods are handled by getRevenueTrendRows/getChartMonths, so keep the plotted series continuous.
+            return Number.isFinite(Number(value)) ? Number(value) : 0;
+          }),
+          borderColor: color.border,
+          backgroundColor: isCurrent ? color.area : 'transparent',
+          pointBackgroundColor: color.border,
+          pointBorderColor: '#ffffff',
+          pointBorderWidth: isCurrent ? 2 : 0,
+          pointRadius: highlightMonthlySelection
+            ? trend.points.map(point => selectedMonths.includes(Number(point)) ? (isCurrent ? 4 : 2.5) : (isCurrent ? 1.6 : 0))
+            : (isCurrent ? (isDaily ? 1.8 : 2.8) : 0),
+          pointHoverRadius: highlightMonthlySelection
+            ? trend.points.map(point => selectedMonths.includes(Number(point)) ? 5 : 3)
+            : (isCurrent ? 5 : 0),
+          borderWidth: isCurrent ? 3.4 : isPrior ? 2.2 : 1.8,
+          borderDash: isCurrent ? [] : isPrior ? [7, 5] : [2, 5],
+          fill: isCurrent ? 'origin' : false,
+          tension: isDaily ? 0.28 : 0.38,
+          spanGaps: false
+        };
+      });
+
+      drawChart(canvasId, {
+        type: 'line',
+        data: {
+          labels: trend.labels,
+          datasets
+        },
+        options: chartOptions(formatCurrency, 'revenue', 'line', {
+          currentYear,
+          priorYear,
+          isRevenueTrend: true,
+          trendMode: trend.mode,
+          selectedMonth: getSingleSelectedMonth(),
+          canvasId
+        })
+      });
+    }
+
+    function metricFor(rows, year, month) {
+      const scoped = rows.filter(row => row.year === year && row.monthNum === month);
+      const revenue = sum(scoped, 'netRevenue');
+      const units = sum(scoped, 'units');
+      const customers = distinctCount(scoped, 'customerId');
+
+      return {
+        revenue,
+        units,
+        customers,
+        rpac: customers ? revenue / customers : 0,
+        avgPrice: units ? revenue / units : 0
+      };
+    }
+
+    function drawMetricChart(canvasId, type, rows, months, years, metricKey, formatter) {
+      const currentYear = Number(payload && payload.config ? payload.config.currentYear : 2026);
+      const priorYear = Number(payload && payload.config ? payload.config.priorYear : 2025);
+      const isRevenueTrend = type === 'line' && metricKey === 'revenue';
+      const selectedMonths = getSelectedMonths();
+      const highlightMonthlySelection = state.monthSelectionMode === 'multi' && selectedMonths.length > 0;
+
+      const datasets = years.map(year => {
+        const color = colors[year] || colors[priorYear] || colors[2025];
+        const isCurrent = Number(year) === currentYear;
+        const isPrior = Number(year) === priorYear;
+
+        return {
+          label: String(year),
+          data: months.map(month => {
+            const value = metricFor(rows, year, month)[metricKey];
+            if (type === 'line' && !hasMetricRows(rows, year, month)) return null;
+            return value;
+          }),
+          borderColor: type === 'line'
+            ? color.border
+            : (highlightMonthlySelection
+              ? months.map(month => selectedMonths.includes(Number(month)) ? color.barBorder : color.area)
+              : color.barBorder),
+          backgroundColor: type === 'line'
+            ? (isRevenueTrend && isCurrent ? color.area : 'transparent')
+            : (highlightMonthlySelection
+              ? months.map(month => selectedMonths.includes(Number(month)) ? color.bar : color.area)
+              : color.bar),
+          hoverBackgroundColor: type === 'bar' ? color.bar : undefined,
+          hoverBorderColor: type === 'bar' ? color.barBorder : undefined,
+          pointBackgroundColor: type === 'line' ? color.border : color.bar,
+          pointBorderColor: '#ffffff',
+          pointBorderWidth: type === 'line' && isCurrent ? 2 : 0,
+          pointRadius: type === 'line' ? (isRevenueTrend ? (isCurrent ? 2.8 : 0) : (isCurrent ? 3 : 2.5)) : 0,
+          pointHoverRadius: type === 'line' ? (isRevenueTrend ? (isCurrent ? 5 : 0) : (isCurrent ? 4 : 3.5)) : 0,
+          borderWidth: type === 'line' ? (isCurrent ? 3.4 : isPrior ? 2.2 : 1.8) : 1.2,
+          borderDash: type === 'line' ? (isCurrent ? [] : isPrior ? [7, 5] : [2, 5]) : [],
+          fill: isRevenueTrend && isCurrent ? 'origin' : false,
+          tension: type === 'line' ? (isRevenueTrend ? 0.38 : 0.25) : 0,
+          spanGaps: false,
+          borderRadius: 0,
+          borderSkipped: false,
+          maxBarThickness: type === 'bar' ? 34 : undefined,
+          categoryPercentage: type === 'bar' ? 0.72 : undefined,
+          barPercentage: type === 'bar' ? 0.82 : undefined
+        };
+      });
+
+      const currentDataset = datasets.find(dataset => Number(dataset.label) === currentYear);
+      const currentValues = currentDataset ? currentDataset.data.filter(value => Number(value || 0) && isFinite(Number(value || 0))).map(Number) : [];
+      const averageValue = currentValues.length ? currentValues.reduce((total, value) => total + value, 0) / currentValues.length : 0;
+
+      drawChart(canvasId, {
+        type,
+        data: {
+          labels: months.map(month => monthLabels[month - 1]),
+          datasets
+        },
+        options: chartOptions(formatter, metricKey, type, {
+          currentYear,
+          priorYear,
+          isRevenueTrend,
+          averageValue,
+          canvasId
+        })
+      });
+    }
+
+    function hasMetricRows(rows, year, month) {
+      return rows.some(row => row.year === Number(year) && row.monthNum === Number(month));
+    }
+
+    function getMetricAxisTitle(metricKey) {
+      switch (metricKey) {
+        case 'revenue':
+          return 'Revenue';
+        case 'customers':
+          return 'Customers';
+        case 'units':
+          return 'Units';
+        case 'rpac':
+          return 'Revenue / customer';
+        case 'avgPrice':
+          return 'Avg $ / unit';
+        default:
+          return '';
+      }
+    }
+
+    function chartOptions(formatter, metricKey, chartType, optionMeta = {}) {
+      const isRevenueTrend = !!optionMeta.isRevenueTrend;
+      const isBarChart = chartType === 'bar';
+      const currentYear = Number(optionMeta.currentYear || 2026);
+      const priorYear = Number(optionMeta.priorYear || 2025);
+      const axisTitle = getMetricAxisTitle(metricKey);
+      const xAxisTitle = optionMeta.trendMode === 'dailyCumulative' ? 'Day of month' : 'Month';
+
+      return {
+        responsive: true,
+        maintainAspectRatio: false,
+        layout: {
+          padding: {
+            top: isRevenueTrend ? 14 : isBarChart ? 0 : 8,
+            right: isRevenueTrend ? 6 : isBarChart ? 2 : 5,
+            bottom: isRevenueTrend ? 0 : isBarChart ? 0 : 2,
+            left: isRevenueTrend ? 2 : isBarChart ? 0 : 3
+          }
+        },
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          overviewLegendSpacing: {
+            display: true,
+            padding: isRevenueTrend ? 4 : isBarChart ? 3 : 28
+          },
+          executiveTrendBackground: {
+            display: isRevenueTrend,
+            averageValue: 0,
+            trendMode: optionMeta.trendMode || 'monthly'
+          },
+          revenueTrendMeta: {
+            trendMode: optionMeta.trendMode || 'monthly',
+            selectedMonth: optionMeta.selectedMonth || null,
+            currentYear,
+            priorYear
+          },
+          revenueGapBand: {
+            display: isRevenueTrend,
+            currentYear,
+            priorYear
+          },
+          revenueTrendCallouts: {
+            display: isRevenueTrend,
+            currentYear,
+            priorYear
+          },
+          executiveValueLabels: {
+            display: !isRevenueTrend,
+            metricKey: metricKey
+          },
+          legend: {
+            position: 'top',
+            align: 'start',
+            labels: {
+              boxWidth: isRevenueTrend ? 18 : 14,
+              boxHeight: isRevenueTrend ? 2 : undefined,
+              color: isRevenueTrend ? '#475569' : '#3c4043',
+              usePointStyle: false,
+              font: { family: 'Roboto, Arial, sans-serif', size: isRevenueTrend ? 11 : 11, weight: isRevenueTrend ? '500' : '800' },
+              padding: isRevenueTrend ? 6 : isBarChart ? 6 : 14,
+              sort: null,
+              generateLabels: isRevenueTrend
+                ? chart => Chart.defaults.plugins.legend.labels.generateLabels(chart).map(item => {
+                    const year = Number(item.text);
+                    return {
+                      ...item,
+                      text: "'" + String(item.text).slice(-2),
+                      lineWidth: year === currentYear ? 3 : 2.4,
+                      strokeStyle: colors[year]?.border || item.strokeStyle,
+                      fillStyle: colors[year]?.border || item.fillStyle,
+                      lineDash: year === currentYear ? [] : year === priorYear ? [7, 5] : [2, 5]
+                    };
+                  })
+                : undefined
+            }
+          },
+          tooltip: isRevenueTrend
+            ? {
+                enabled: false,
+                external: context => externalRevenueTooltip(context, currentYear, priorYear)
+              }
+            : {
+                callbacks: {
+                  label: context => {
+                    return (context.dataset.label ? context.dataset.label + ': ' : '') + formatter(Number(context.raw || 0));
+                  }
+                }
+              }
+        },
+        scales: {
+          x: {
+            grid: {
+              display: !isRevenueTrend,
+              color: '#edf0f5'
+            },
+            border: {
+              display: true,
+              color: isRevenueTrend ? 'rgba(100, 116, 139, 0.42)' : '#dbe2ea',
+              width: isRevenueTrend ? 1.1 : 1
+            },
+            ticks: {
+              color: '#334155',
+              font: { size: isRevenueTrend ? 11 : isBarChart ? 10 : 11 },
+              padding: isRevenueTrend ? 5 : isBarChart ? 1 : 4,
+              callback: function(value, index) {
+                const label = this.getLabelForValue(value);
+                if (isRevenueTrend && optionMeta.trendMode === 'dailyCumulative') {
+                  const day = Number(label);
+                  if (day === 1 || day % 5 === 0 || index === this.chart.data.labels.length - 1) return label;
+                  return '';
+                }
+                return label;
+              }
+            },
+            title: {
+              display: false,
+              text: xAxisTitle,
+              color: '#202124',
+              font: { size: 10, weight: '600' },
+              padding: { top: 0 }
+            },
+            afterFit: isBarChart
+              ? scale => { scale.height = Math.max(18, Math.min(scale.height, 22)); }
+              : undefined
+          },
+          y: {
+            grid: {
+              color: isRevenueTrend ? 'rgba(148, 163, 184, 0.22)' : '#edf0f5',
+              borderDash: isRevenueTrend ? [2, 8] : [],
+              lineWidth: isRevenueTrend ? 0.9 : 1,
+              drawTicks: false
+            },
+            border: { display: !(isRevenueTrend || isBarChart) },
+            ticks: {
+              display: !(isRevenueTrend || isBarChart),
+              maxTicksLimit: isRevenueTrend ? 4 : isBarChart ? 6 : 7,
+              padding: isRevenueTrend ? 6 : isBarChart ? 0 : 3,
+              color: '#667085',
+              font: { size: 10 },
+              callback: value => formatter(Number(value || 0))
+            },
+            title: {
+              display: isRevenueTrend || (!isRevenueTrend && !!axisTitle),
+              text: isRevenueTrend ? 'Revenue' : axisTitle,
+              color: '#202124',
+              font: { size: isRevenueTrend ? 11 : isBarChart ? 11 : 10, weight: '700' },
+              padding: { bottom: isRevenueTrend ? 0 : isBarChart ? 0 : 2 }
+            },
+            afterFit: (isRevenueTrend || isBarChart)
+              ? scale => { scale.width += isRevenueTrend ? 16 : 18; }
+              : undefined
+          }
+        },
+        onClick: (event, elements, chart) => {
+          if (!elements || !elements.length || !chart || !chart.data || !chart.data.labels) return;
+
+          state.focusChartId = chart.canvas && chart.canvas.id ? chart.canvas.id : optionMeta.canvasId || null;
+
+          const index = elements[0].index;
+          const label = chart.data.labels[index];
+
+          if (optionMeta.trendMode === 'dailyCumulative') {
+            return;
+          }
+
+          const month = monthLabels.indexOf(label) + 1;
+
+          if (month > 0) {
+            applyMonthSelection(month, isAdditiveEvent(event), isRangeEvent(event));
+          }
+        }
+      };
+    }
+
+    function externalRevenueTooltip(context, currentYear, priorYear) {
+      const {chart, tooltip} = context;
+      const tooltipEl = getOrCreateRevenueTooltip(chart);
+
+      if (!tooltip || tooltip.opacity === 0) {
+        tooltipEl.style.opacity = 0;
+        return;
+      }
+
+      const point = (tooltip.dataPoints || []).find(item => Number(item.dataset.label) === currentYear) || (tooltip.dataPoints || [])[0];
+      if (!point) {
+        tooltipEl.style.opacity = 0;
+        return;
+      }
+
+      const data = buildRevenueTooltipData(chart, point.dataIndex, currentYear, priorYear);
+      const deltaClass = data.delta >= 0 ? 'deltaGood' : 'deltaBad';
+      const arrow = data.delta >= 0 ? '▲' : '▼';
+      const pct = data.deltaPct === null ? '' : ' (' + formatSignedPercent(data.deltaPct) + ')';
+
+      const olderYearRow = data.olderYear
+        ? `<div class="revenueTooltipRow comparison comparisonOlder"><span>${escapeHtml(String(data.olderYear))}</span><b>${escapeHtml(formatCurrency(data.older))}</b></div>`
+        : '';
+
+      tooltipEl.innerHTML = `
+        <div class="revenueTooltipTitle">${escapeHtml(data.title)}</div>
+        <div class="revenueTooltipRow current"><span>${escapeHtml(String(currentYear))}</span><b>${escapeHtml(formatCurrency(data.sales))}</b></div>
+        <div class="revenueTooltipRow comparison"><span>${escapeHtml(String(priorYear))}</span><b>${escapeHtml(formatCurrency(data.prior))}</b></div>
+        ${olderYearRow}
+        <div class="revenueTooltipRow ${deltaClass}"><span>Δ vs ${escapeHtml(String(priorYear))}</span><b>${arrow} ${escapeHtml(formatCurrency(Math.abs(data.delta)))}${escapeHtml(pct)}</b></div>
+      `;
+
+      const canvasRect = chart.canvas.getBoundingClientRect();
+      const parentRect = chart.canvas.parentNode.getBoundingClientRect();
+      const leftBase = canvasRect.left - parentRect.left + tooltip.caretX;
+      const topBase = canvasRect.top - parentRect.top + tooltip.caretY;
+
+      tooltipEl.style.opacity = 1;
+      tooltipEl.style.left = leftBase + 'px';
+      tooltipEl.style.top = topBase + 'px';
+
+      const width = tooltipEl.offsetWidth || 166;
+      const parentWidth = chart.canvas.parentNode.clientWidth || 0;
+      if (parentWidth && leftBase + width + 24 > parentWidth) {
+        tooltipEl.style.transform = 'translate(calc(-100% - 10px), -50%)';
+      } else {
+        tooltipEl.style.transform = 'translate(10px, -50%)';
+      }
+    }
+
+    function getOrCreateRevenueTooltip(chart) {
+      let tooltipEl = chart.canvas.parentNode.querySelector('.revenueTooltip');
+      if (!tooltipEl) {
+        tooltipEl = document.createElement('div');
+        tooltipEl.className = 'revenueTooltip';
+        chart.canvas.parentNode.appendChild(tooltipEl);
+      }
+      return tooltipEl;
+    }
+
+    function buildRevenueTooltipData(chart, dataIndex, currentYear, priorYear) {
+      const datasets = chart.data && chart.data.datasets ? chart.data.datasets : [];
+      const currentDataset = datasets.find(dataset => Number(dataset.label) === currentYear);
+      const priorDataset = datasets.find(dataset => Number(dataset.label) === priorYear);
+      const olderDataset = datasets
+        .filter(dataset => Number(dataset.label) !== currentYear && Number(dataset.label) !== priorYear)
+        .sort((a, b) => Number(b.label) - Number(a.label))[0];
+
+      const sales = Number(currentDataset && currentDataset.data ? currentDataset.data[dataIndex] || 0 : 0);
+      const prior = Number(priorDataset && priorDataset.data ? priorDataset.data[dataIndex] || 0 : 0);
+      const older = Number(olderDataset && olderDataset.data ? olderDataset.data[dataIndex] || 0 : 0);
+      const olderYear = olderDataset ? Number(olderDataset.label) : null;
+      const delta = sales - prior;
+      const deltaPct = prior ? delta / Math.abs(prior) : null;
+      const trendMeta = chart.options && chart.options.plugins ? chart.options.plugins.revenueTrendMeta || {} : {};
+      const label = chart.data.labels[dataIndex] || '';
+      const title = trendMeta.trendMode === 'dailyCumulative' && trendMeta.selectedMonth
+        ? monthLabels[Number(trendMeta.selectedMonth) - 1] + ' ' + label + " '" + String(currentYear).slice(-2)
+        : label + " '" + String(currentYear).slice(-2);
+
+      return {
+        title,
+        sales,
+        prior,
+        older,
+        olderYear,
+        delta,
+        deltaPct
+      };
+    }
+
+    function updateChartFocusStyles() {
+      const activeIds = new Set(visibleChartIdsByTab[state.activeTab] || []);
+      const focusId = activeIds.has(state.focusChartId) ? state.focusChartId : null;
+
+      // When a click applies a real data-point filter (month/product/customer), every chart is
+      // now showing that selected slice. Do not dim peer charts in that state; otherwise the
+      // selected month bars/points look washed out even though they are part of the selection.
+      const hasAppliedDataPointFilter = hasMonthFilter() || getSelectedProductKeys().length > 0 || getSelectedCustomerIds().length > 0;
+
+      Object.values(visibleChartIdsByTab).flat().forEach(canvasId => {
+        const canvas = document.getElementById(canvasId);
+        const card = canvas ? canvas.closest('.card') : null;
+        if (!card) return;
+
+        card.classList.add('chartFocusCard');
+        const isVisibleChart = activeIds.has(canvasId);
+        const isActive = !!focusId && canvasId === focusId;
+        const shouldDim = !!focusId && isVisibleChart && canvasId !== focusId && !hasAppliedDataPointFilter;
+
+        card.classList.toggle('chartFocusActive', isActive);
+        card.classList.toggle('chartFocusDim', shouldDim);
+      });
+    }
+
+
+    const componentMenuConfigs = {
+      revenue: { title: 'Revenue Trend', type: 'chart', canvasId: 'chartRevenue', resetKind: 'month' },
+      customerCount: { title: 'Customer Count', type: 'chart', canvasId: 'chartCustomers', resetKind: 'month' },
+      units: { title: 'Units Produced', type: 'chart', canvasId: 'chartUnits', resetKind: 'month' },
+      rpac: { title: 'Revenue Per Active Customer', type: 'chart', canvasId: 'chartRpac', resetKind: 'month' },
+      avg: { title: 'Avg Price Per Unit', type: 'chart', canvasId: 'chartAvg', resetKind: 'month' },
+      twoRevenue: { title: 'Overview 2.0 Revenue Trend', type: 'chart', canvasId: 'twoRevenue', resetKind: 'month' },
+      twoCustomers: { title: 'Overview 2.0 Customers', type: 'chart', canvasId: 'twoCustomers', resetKind: 'month' },
+      twoUnits: { title: 'Overview 2.0 Units', type: 'chart', canvasId: 'twoUnits', resetKind: 'month' },
+      customerTable: { title: 'Customer Movers', type: 'table', tableSelector: '#customerTable', resetKind: 'customer', sortPrefix: 'customer' },
+      productTable: { title: 'Product Movers', type: 'table', tableSelector: '#productTable', resetKind: 'product', sortPrefix: 'product' }
+    };
+
+    function openComponentMenu(event, componentId) {
+      if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+
+      const config = componentMenuConfigs[componentId];
+      if (!config) return;
+
+      const menu = document.getElementById('componentMenu');
+      const isTable = config.type === 'table';
+      const hasCanvas = !!config.canvasId;
+
+      menu.className = 'componentMenu open' + (isTable ? ' tableMenu' : '');
+      menu.innerHTML = buildComponentMenuHtml(componentId, config, hasCanvas, isTable);
+
+      document.querySelectorAll('.componentMenuBtn.active').forEach(btn => btn.classList.remove('active'));
+      if (event && event.currentTarget) event.currentTarget.classList.add('active');
+
+      const rect = event && event.currentTarget ? event.currentTarget.getBoundingClientRect() : { left: 16, bottom: 16 };
+      menu.style.display = 'block';
+      const menuWidth = menu.offsetWidth || 230;
+      const left = Math.max(8, Math.min(rect.right - menuWidth, window.innerWidth - menuWidth - 8));
+      const top = Math.max(8, Math.min(rect.bottom + 6, window.innerHeight - (menu.offsetHeight || 260) - 8));
+      menu.style.left = left + 'px';
+      menu.style.top = top + 'px';
+    }
+
+    function buildComponentMenuHtml(componentId, config, hasCanvas, isTable) {
+      const sortBlock = isTable ? `
+        <div class="componentMenuDivider"></div>
+        <div class="componentMenuHint">Sort by</div>
+        ${buildComponentSortButtons(componentId, config)}
+      ` : '';
+
+      return `
+        <div class="componentMenuTitle">${escapeHtml(config.title)}</div>
+        <button onclick="resetComponentSelection('${escapeJs(componentId)}')"><span>Reset component filter</span></button>
+        <button onclick="exportComponentData('${escapeJs(componentId)}')"><span>Export data</span><span>CSV</span></button>
+        <button onclick="saveComponentPng('${escapeJs(componentId)}')"><span>Save as PNG</span></button>
+        <button onclick="copyComponentImage('${escapeJs(componentId)}')"><span>Copy image</span></button>
+        ${sortBlock}
+      `;
+    }
+
+    function buildComponentSortButtons(componentId, config) {
+      if (componentId === 'customerTable') {
+        return `
+          <button onclick="setCustomerColumnSort('customerName'); closeComponentMenu();"><span>CustomerName</span></button>
+          <button onclick="setCustomerColumnSort('priorRevenue'); closeComponentMenu();"><span>2025</span></button>
+          <button onclick="setCustomerColumnSort('currentRevenue'); closeComponentMenu();"><span>2026</span></button>
+          <button onclick="setCustomerColumnSort('gap'); closeComponentMenu();"><span>26v25</span></button>
+        `;
+      }
+      if (componentId === 'productTable') {
+        return `
+          <button onclick="setProductColumnSort('productsDescription'); closeComponentMenu();"><span>Products_Description</span></button>
+          <button onclick="setProductColumnSort('priorRevenue'); closeComponentMenu();"><span>2025</span></button>
+          <button onclick="setProductColumnSort('currentRevenue'); closeComponentMenu();"><span>2026</span></button>
+          <button onclick="setProductColumnSort('gap'); closeComponentMenu();"><span>26v25</span></button>
+        `;
+      }
+      return '';
+    }
+
+    function closeComponentMenu() {
+      const menu = document.getElementById('componentMenu');
+      if (menu) {
+        menu.classList.remove('open');
+        menu.style.display = 'none';
+      }
+      document.querySelectorAll('.componentMenuBtn.active').forEach(btn => btn.classList.remove('active'));
+    }
+
+    document.addEventListener('click', event => {
+      const menu = document.getElementById('componentMenu');
+      if (menu && menu.classList.contains('open') && !event.target.closest('.componentMenu') && !event.target.closest('.componentMenuBtn')) {
+        closeComponentMenu();
+      }
+    });
+
+    document.addEventListener('keydown', event => {
+      if (event.key === 'Escape') closeComponentMenu();
+    });
+
+    function resetComponentSelection(componentId) {
+      const config = componentMenuConfigs[componentId] || {};
+      if (config.resetKind === 'month') {
+        state.selectedMonth = null;
+        state.selectedMonths = new Set();
+        state.monthSelectionMode = 'none';
+        state.lastSelectedMonth = null;
+        state.focusChartId = null;
+      } else if (config.resetKind === 'customer') {
+        state.selectedCustomerIds = new Set();
+        state.tableSelectedCustomerIds = new Set();
+        state.lastSelectedCustomerId = null;
+        state.customerColumnSort = null;
+        state.customerSort = 'losses';
+        state.customerMetric = 'revenue';
+      } else if (config.resetKind === 'product') {
+        state.selectedProductKeys = new Set();
+        state.tableSelectedProductKeys = new Set();
+        state.lastSelectedProductKey = null;
+        state.productColumnSort = null;
+        state.productSort = 'losses';
+        state.productMetric = 'revenue';
+      }
+      closeComponentMenu();
+      renderAll();
+    }
+
+    function refreshComponentData(componentId) {
+      closeComponentMenu();
+      showStatus('Refreshing latest dashboard cache...');
+      fetchLatestDashboardData();
+    }
+
+    function exportComponentData(componentId) {
+      const config = componentMenuConfigs[componentId];
+      if (!config) return;
+
+      const rows = config.type === 'chart'
+        ? getChartExportRows(config.canvasId)
+        : getTableExportRows(config.tableSelector);
+
+      if (!rows.length) {
+        showStatus('No visible data to export for ' + config.title + '.', 'warn');
+        return;
+      }
+
+      downloadTextFile(slugify(config.title) + '.csv', rowsToCsv(rows), 'text/csv;charset=utf-8');
+      closeComponentMenu();
+    }
+
+    function getChartExportRows(canvasId) {
+      const chart = charts[canvasId];
+      if (!chart || !chart.data) return [];
+      const datasets = chart.data.datasets || [];
+      const header = ['Label'].concat(datasets.map(dataset => String(dataset.label || 'Value')));
+      const rows = [header];
+      (chart.data.labels || []).forEach((label, index) => {
+        rows.push([String(label)].concat(datasets.map(dataset => dataset.data && dataset.data[index] !== undefined && dataset.data[index] !== null ? dataset.data[index] : '')));
+      });
+      return rows;
+    }
+
+    function getTableExportRows(tableSelector) {
+      const tbody = document.querySelector(tableSelector);
+      const table = tbody ? tbody.closest('table') : null;
+      if (!table) return [];
+      const header = [...table.querySelectorAll('thead th')].map(th => cleanCellText(th.textContent));
+      const rows = [header];
+      [...table.querySelectorAll('tbody tr')].forEach(tr => {
+        rows.push([...tr.querySelectorAll('td')].map(td => cleanCellText(td.textContent)));
+      });
+      return rows;
+    }
+
+    function cleanCellText(value) {
+      return String(value || '').replace(/▲|▼/g, '').replace(/\s+/g, ' ').trim();
+    }
+
+    function rowsToCsv(rows) {
+      return rows.map(row => row.map(cell => {
+        const text = String(cell === null || cell === undefined ? '' : cell);
+        return '"' + text.replace(/"/g, '""') + '"';
+      }).join(',')).join('\r\n');
+    }
+
+    function downloadTextFile(fileName, text, mimeType) {
+      const blob = new Blob([text], { type: mimeType || 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    async function renderComponentToPngBlob(componentId) {
+      const config = componentMenuConfigs[componentId];
+      if (!config) return null;
+
+      const card = getComponentCard(componentId);
+      if (card && window.html2canvas) {
+        const activeMenuButtons = [...card.querySelectorAll('.componentMenuBtn.active')];
+        activeMenuButtons.forEach(button => button.classList.remove('active'));
+        const canvas = await html2canvas(card, {
+          backgroundColor: '#ffffff',
+          scale: Math.min(2, window.devicePixelRatio || 1.5),
+          useCORS: true,
+          logging: false,
+          scrollX: 0,
+          scrollY: 0
+        });
+        activeMenuButtons.forEach(button => button.classList.add('active'));
+        return new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+      }
+
+      const canvas = config.canvasId ? document.getElementById(config.canvasId) : null;
+      if (canvas && canvas.toBlob) {
+        return new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+      }
+
+      return null;
+    }
+
+    function blobToObjectUrl(blob) {
+      return URL.createObjectURL(blob);
+    }
+
+    async function saveComponentPng(componentId) {
+      const config = componentMenuConfigs[componentId];
+      if (!config) return;
+      closeComponentMenu();
+
+      try {
+        showStatus('Preparing ' + config.title + ' PNG...');
+        const blob = await renderComponentToPngBlob(componentId);
+        if (!blob) {
+          showStatus('Could not create PNG for ' + config.title + '.', 'warn');
+          return;
+        }
+        const url = blobToObjectUrl(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = slugify(config.title) + '.png';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1200);
+        showStatus('Downloaded ' + config.title + ' PNG.', 'good');
+      } catch (error) {
+        showStatus('Could not create PNG for ' + config.title + '. Try Export data instead.', 'warn');
+      }
+    }
+
+    async function copyComponentImage(componentId) {
+      const config = componentMenuConfigs[componentId];
+      if (!config) return;
+      closeComponentMenu();
+
+      if (!navigator.clipboard || !window.ClipboardItem) {
+        await saveComponentPng(componentId);
+        showStatus('Image copy is not available in this browser, so the PNG was downloaded instead.', 'warn');
+        return;
+      }
+
+      try {
+        const blob = await renderComponentToPngBlob(componentId);
+        if (!blob) {
+          showStatus('Could not create image for ' + config.title + '.', 'warn');
+          return;
+        }
+        await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+        showStatus('Copied ' + config.title + ' image to clipboard.', 'good');
+      } catch (error) {
+        await saveComponentPng(componentId);
+        showStatus('Clipboard copy was blocked, so the PNG was downloaded instead.', 'warn');
+      }
+    }
+
+    function copyComponentLink(componentId) {
+      const config = componentMenuConfigs[componentId];
+      const card = getComponentCard(componentId);
+      const hash = '#component-' + componentId;
+      const url = window.location.href.split('#')[0] + hash;
+      history.replaceState(null, '', hash);
+      if (card) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(url)
+          .then(() => showStatus('Copied link to ' + (config ? config.title : 'component') + '.', 'good'))
+          .catch(() => showStatus('Component link: ' + url, 'warn'));
+      } else {
+        showStatus('Component link: ' + url, 'warn');
+      }
+      closeComponentMenu();
+    }
+
+    function getComponentCard(componentId) {
+      const config = componentMenuConfigs[componentId];
+      if (!config) return null;
+      if (config.canvasId) {
+        const canvas = document.getElementById(config.canvasId);
+        return canvas ? canvas.closest('.card') : null;
+      }
+      if (config.tableSelector) {
+        const tableBody = document.querySelector(config.tableSelector);
+        return tableBody ? tableBody.closest('.card') : null;
+      }
+      return null;
+    }
+
+    function scrollToLinkedComponent() {
+      const hash = String(window.location.hash || '');
+      if (!hash.startsWith('#component-')) return;
+      const componentId = hash.replace('#component-', '');
+      const card = getComponentCard(componentId);
+      if (card) {
+        card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        card.classList.add('chartFocusActive');
+        setTimeout(() => card.classList.remove('chartFocusActive'), 1800);
+      }
+    }
+
+    function slugify(value) {
+      return String(value || 'component')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '') || 'component';
+    }
+
+
+    function destroyChartsForTab(tabKey) {
+      (visibleChartIdsByTab[tabKey] || []).forEach(canvasId => {
+        if (charts[canvasId]) {
+          charts[canvasId].destroy();
+          delete charts[canvasId];
+        }
+      });
+    }
+
+    function drawChart(canvasId, config) {
+      const canvas = document.getElementById(canvasId);
+      if (!canvas) return;
+      if (charts[canvasId]) charts[canvasId].destroy();
+      const card = canvas.closest('.card');
+      if (card) card.classList.add('chartFocusCard');
+      charts[canvasId] = new Chart(canvas.getContext('2d'), config);
+    }
+
+    function bumpSelectedRowsToTop(rows, keyFn, selectedSet) {
+      if (!selectedSet || !selectedSet.size || !Array.isArray(rows)) return rows;
+      rows.forEach((row, index) => { row.__selectedSortIndex = index; });
+      rows.sort((a, b) => {
+        const aSelected = selectedSet.has(keyFn(a)) ? 1 : 0;
+        const bSelected = selectedSet.has(keyFn(b)) ? 1 : 0;
+        const selectedDiff = bSelected - aSelected;
+        if (selectedDiff) return selectedDiff;
+        return (a.__selectedSortIndex || 0) - (b.__selectedSortIndex || 0);
+      });
+      rows.forEach(row => { delete row.__selectedSortIndex; });
+      return rows;
+    }
+
+    function renderTables() {
+      renderCustomerTable();
+      renderProductTable();
+    }
+
+    function renderCustomerTable() {
+      // Keep the Customer Movers inventory visible when customers are selected.
+      // Selected customers are bumped to the top, while product/department/year/month filters
+      // still cross-filter this table.
+      const rows = groupBy(getFilteredFacts({ customer: true }), row => row.customerId, row => ({
+        customerId: row.customerId,
+        customerName: row.customerName,
+        customerActive: true,
+        currentRevenue: 0,
+        priorRevenue: 0,
+        currentUnits: 0,
+        priorUnits: 0
+      }), (acc, row) => {
+        if (row.customerActive === false) acc.customerActive = false;
+        if (row.year === (payload.config.currentYear || 2026)) {
+          acc.currentRevenue += row.netRevenue;
+          acc.currentUnits += row.units;
+        }
+        if (row.year === (payload.config.priorYear || 2025)) {
+          acc.priorRevenue += row.netRevenue;
+          acc.priorUnits += row.units;
+        }
+      }).map(row => ({
+        ...row,
+        gap: row.currentRevenue - row.priorRevenue,
+        unitGap: row.currentUnits - row.priorUnits
+      }));
+
+      updateMoverMetricHeaders('customer');
+      sortCustomerRows(rows);
+      bumpSelectedRowsToTop(rows, row => row.customerId, state.tableSelectedCustomerIds);
+
+      const visibleRows = rows.slice(0, 500);
+      state.lastCustomerTableIds = visibleRows.map(row => row.customerId);
+      const unitsMode = state.customerMetric === 'units';
+
+      document.getElementById('customerTable').innerHTML = visibleRows.map(row => {
+        const priorValue = unitsMode ? row.priorUnits : row.priorRevenue;
+        const currentValue = unitsMode ? row.currentUnits : row.currentRevenue;
+        const gapValue = unitsMode ? row.unitGap : row.gap;
+        return `
+          <tr class="clickable ${state.tableSelectedCustomerIds && state.tableSelectedCustomerIds.has(row.customerId) ? 'active' : ''}" onclick="setCustomer('${escapeJs(row.customerId)}', event)">
+            <td>${escapeHtml(row.customerId)}</td>
+            <td class="customerNameCell"><span class="customerNameText">${escapeHtml(row.customerName)}</span>${row.customerActive === false ? ' <span class="inactiveBadge">Inactive</span>' : ''}</td>
+            <td>${formatMoverValue(priorValue, unitsMode)}</td>
+            <td>${formatMoverValue(currentValue, unitsMode)}</td>
+            <td class="${gapValue < 0 ? 'negative' : 'positive'}">${formatMoverValue(gapValue, unitsMode)}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function renderProductTable() {
+      // Keep the Product Movers inventory visible when products are selected.
+      // Selected products are bumped to the top, while customer/department/year/month filters
+      // still cross-filter this table.
+      const rows = groupBy(getFilteredFacts({ product: true }), row => productKey(row), row => ({
+        key: productKey(row),
+        productId: row.productId,
+        productsDescription: row.productsDescription,
+        productsDepartment: row.productsDepartment,
+        currentRevenue: 0,
+        priorRevenue: 0,
+        currentUnits: 0,
+        priorUnits: 0
+      }), (acc, row) => {
+        if (row.year === (payload.config.currentYear || 2026)) {
+          acc.currentRevenue += row.netRevenue;
+          acc.currentUnits += row.units;
+        }
+        if (row.year === (payload.config.priorYear || 2025)) {
+          acc.priorRevenue += row.netRevenue;
+          acc.priorUnits += row.units;
+        }
+      }).map(row => ({
+        ...row,
+        gap: row.currentRevenue - row.priorRevenue,
+        unitGap: row.currentUnits - row.priorUnits
+      }));
+
+      updateMoverMetricHeaders('product');
+      sortProductRows(rows);

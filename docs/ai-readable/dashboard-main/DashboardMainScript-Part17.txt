@@ -1,1359 +1,1040 @@
-    function caseListTextV6349(values) {
-      const list = Array.isArray(values) ? values : [];
-      if (!list.length) return 'No case numbers recorded';
-      const visible = list.slice(0, 25);
-      return visible.join(', ') + (list.length > visible.length ? ' +' + (list.length - visible.length) + ' more' : '');
-    }
-
-    const detailFilterKindV6370 = detailFilterKindV6371;
-    const activeDetailValuesV6370 = activeDetailValuesV6371;
-    detailTable.innerHTML = detailHeader + '<tbody>' + (detailRows.length ? detailRows.map(function(row) {
-      const titleParts = [row.label || row.key];
-      if (selectedCeramist === '[Unattributed]') {
-        if (row.noCeramicsTaskCaseNumbers && row.noCeramicsTaskCaseNumbers.length) {
-          titleParts.push('No CERAMICS task assigned: ' + caseListTextV6349(row.noCeramicsTaskCaseNumbers));
-        }
-        if (row.noRemakeCaseIdCaseNumbers && row.noRemakeCaseIdCaseNumbers.length) {
-          titleParts.push('No remake case ID found: ' + caseListTextV6349(row.noRemakeCaseIdCaseNumbers));
-        }
-        if (titleParts.length === 1) titleParts.push('Remake cases: ' + caseListTextV6349(row.caseNumbers));
-      } else {
-        titleParts.push('Remake cases: ' + caseListTextV6349(row.caseNumbers));
-        if (row.noteTokens && row.noteTokens.length) titleParts.push('Prior/root invoice-note details: ' + row.noteTokens.join(' | '));
-      }
-      const rowTooltip = titleParts.join(' | ');
-      const badgeCount = row.noteCompletedCases || row.noteEvidenceCases;
-      const badgeLabel = row.noteCompletedCases ? ' VIA NOTE' : ' NOTE REVIEW';
-      const badge = badgeCount ? '<span class="ceramistNoteBadgeV6343">' + escV6230(fmtCountV6230(badgeCount)) + badgeLabel + '</span>' : '';
-      const detailLabelV6368 = textV6230(row.label || row.key, 'Detail');
-      const detailFilterValueV6370 = String(row.key == null ? '' : row.key);
-      const isDetailSelectedV6370 = activeDetailValuesV6370.has(detailFilterValueV6370);
-      const detailSelectedClassV6370 = isDetailSelectedV6370 ? ' selectedV6230' : '';
-      const detailDimClassV6370 = activeDetailValuesV6370.size && !isDetailSelectedV6370 ? ' dimmedV6266' : '';
-      return '<tr class="clickable ceramistDetailClickableV6368' + detailSelectedClassV6370 + detailDimClassV6370 + '" tabindex="0" aria-selected="' + (isDetailSelectedV6370 ? 'true' : 'false') + '" title="' + escV6230(rowTooltip) + '"'
-        + ' data-detail-filter-kind="' + escV6230(detailFilterKindV6370) + '"'
-        + ' data-detail-filter-value="' + escV6230(detailFilterValueV6370) + '"'
-        + ' onclick="selectCeramistDetailV6368(this,event)"'
-        + ' onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();selectCeramistDetailV6368(this,event);}">'
-        + '<td><span class="ceramistDetailLabelV6368">' + escV6230(detailLabelV6368) + badge + '</span></td>'
-        + '<td class="num">' + escV6230(fmtCountV6230(row.remakeCases)) + '</td>'
-        + '<td class="num">' + escV6230(fmtCountV6230(row.remakeUnits, 1)) + '</td>'
-        + '<td class="num">' + escV6230(fmtPctV6230(row.shareUnits)) + '</td>'
-        + '<td class="num">' + escV6230(fmtCurrencyV6230(row.remakeDiscount)) + '</td>'
-        + '</tr>';
-    }).join('') : '<tr><td colspan="5">No detail rows for this selection.</td></tr>') + '</tbody>';
-    if (typeof window.clearCeramistDetailSelectionV6368 === 'function') window.clearCeramistDetailSelectionV6368(detailTable);
-    scheduleRemakePopoutSyncV6339(120);
+    try { axisTitle = String(chart.options.scales.y.title.text || ''); } catch (error) {}
+    return {
+      chartType: (chart.config && chart.config.type) || (component === 'customer' ? 'bar' : 'line'),
+      labels: (chart.data.labels || []).map(String),
+      datasets: datasets,
+      axisTitle: axisTitle
+    };
   }
 
-  window.clearCeramistDetailSelectionV6368 = function clearCeramistDetailSelectionV6368() {
-    const overlay = document.getElementById('ceramistCaseDialogOverlayV6369');
-    if (overlay) overlay.remove();
+  window.getRemakePopoutSnapshotV6339 = function getRemakePopoutSnapshotV6339(component) {
+    const meta = remakePopoutMetaV6339(component);
+    if (!meta) return { ok:false, component:component, message:'Unknown Remake panel.' };
+    const scope = comparisonScopeV6295(normalizedRowsV6230());
+    const chart = meta.type === 'trend' || meta.type === 'customer' ? popupChartSnapshotV6339(component) : null;
+    const valueMode = uiV6230.trendValueMode === 'percent' ? 'percent' : 'total';
+    const measure = uiV6230.trendMeasure === 'units' ? 'units' : 'cases';
+    const mode = uiV6230.mode || 'line';
+    const valueFormat = valueMode === 'percent'
+      ? (mode === 'mom' ? 'points' : 'percent')
+      : (measure === 'units' ? 'count1' : 'count0');
+    return {
+      ok: (meta.type === 'table' || meta.type === 'ceramist') ? !!(meta.tableId || meta.containerId) : !!chart,
+      component: component,
+      type: meta.type,
+      title: meta.title,
+      chart: chart,
+      tableHtml: (meta.tableId || meta.containerId) ? popupTableHtmlV6339(component) : '',
+      updatedAt: new Date().toLocaleTimeString(),
+      compareYear: scope.priorYear || 'Prior',
+      controls: {
+        mode: mode,
+        measure: measure,
+        valueMode: valueMode,
+        cumulative: uiV6230.trendCumulative === true,
+        cumulativeAllowed: mode === 'line' && valueMode === 'total',
+        valueFormat: valueFormat,
+        compare: meta.tableId ? tableCompareOnV6297(component) : false,
+        productMode: uiV6230.productTableMode === 'group' ? 'group' : 'product',
+        customerMode: uiV6230.customerTableMode === 'all' ? 'all' : 'highest',
+        ceramistCaseStatus: ceramistStateV6342.caseStatus || 'all',
+        ceramistDiagnostic: ceramistStateV6342.diagnosticFlag || 'none',
+        ceramistBreakdown: ceramistStateV6342.breakdown || 'product',
+        selectedCeramist: ceramistStateV6342.selectedCeramist || ''
+      },
+      message: chart || meta.type === 'table' || meta.type === 'ceramist' ? '' : 'Chart is not ready yet.'
+    };
   };
 
-  window.selectCeramistDetailV6368 = function selectCeramistDetailV6368(row, event) {
-    if (!row || !row.dataset) return;
-    const kind = String(row.dataset.detailFilterKind || '');
-    const value = String(row.dataset.detailFilterValue || '');
-    if (!kind || !value) return;
-    window.clearCeramistDetailSelectionV6368();
-    window.applyRemakeTableFilterV6230(kind, value, event || window.event);
-  };
-
-  function disconnectCeramistLazyLoadV6346() {
-    if (ceramistLazyObserverV6346) {
-      try { ceramistLazyObserverV6346.disconnect(); } catch (error) {}
-      ceramistLazyObserverV6346 = null;
-    }
-    if (ceramistLazyFallbackHandlerV6346) {
-      try { window.removeEventListener('scroll', ceramistLazyFallbackHandlerV6346); } catch (error) {}
-      ceramistLazyFallbackHandlerV6346 = null;
-      ceramistLazyFallbackBoundV6346 = false;
-    }
-  }
-
-  function armCeramistLazyLoadV6346() {
-    if (ceramistStateV6342.loaded || ceramistStateV6342.loading || ceramistLazyRequestedV6346) return;
-    const status = idV6230('remakeCeramistStatusV6342');
-    if (mainCacheSwapActiveV6346 || browserCacheWriteScheduledV6346) {
-      if (status) status.textContent = 'Worker cache: waiting for the main Remake cache...';
-      return;
-    }
-    const card = idV6230('remakeCeramistCardV6342');
-    if (!card) return;
-    if (status) status.textContent = 'Worker cache: loads when the worker section comes into view.';
-    disconnectCeramistLazyLoadV6346();
-    const requestLoad = function requestLazyCeramistLoadV6346() {
-      if (ceramistStateV6342.loaded || ceramistStateV6342.loading || ceramistLazyRequestedV6346) return;
-      ceramistLazyRequestedV6346 = true;
-      window.setTimeout(function startLazyCeramistLoadV6346() {
-        ceramistLazyRequestedV6346 = false;
-        if (mainCacheSwapActiveV6346 || browserCacheWriteScheduledV6346) {
-          armCeramistLazyLoadV6346();
+  function scheduleRemakePopoutSyncV6339(delay) {
+    if (remakePopoutSyncTimerV6339) window.clearTimeout(remakePopoutSyncTimerV6339);
+    remakePopoutSyncTimerV6339 = window.setTimeout(function() {
+      remakePopoutSyncTimerV6339 = 0;
+      Object.keys(remakePopoutRefsV6339).forEach(function(component) {
+        const ref = remakePopoutRefsV6339[component];
+        if (!ref || !ref.win || ref.win.closed) {
+          delete remakePopoutRefsV6339[component];
           return;
         }
-        loadCeramistRemakeAnalysisV6342(false);
-      }, 160);
+        const snapshot = window.getRemakePopoutSnapshotV6339(component);
+        try {
+          if (typeof ref.win.__receiveRemakeSnapshotV6339 === 'function') ref.win.__receiveRemakeSnapshotV6339(snapshot);
+          else ref.win.postMessage({ type:'remakeSnapshotV6339', snapshot:snapshot }, '*');
+        } catch (error) {}
+      });
+    }, delay || 220);
+  }
+  window.scheduleRemakePopoutSyncV6339 = scheduleRemakePopoutSyncV6339;
+
+  function popupActionEventV6339(payload) {
+    return {
+      ctrlKey: !!(payload && (payload.ctrlKey || payload.metaKey)),
+      metaKey: !!(payload && payload.metaKey),
+      shiftKey: !!(payload && payload.shiftKey),
+      preventDefault: function(){},
+      stopPropagation: function(){}
     };
-    if (typeof window.IntersectionObserver === 'function') {
-      ceramistLazyObserverV6346 = new IntersectionObserver(function(entries) {
-        if (!entries.some(entry => entry && entry.isIntersecting)) return;
-        disconnectCeramistLazyLoadV6346();
-        requestLoad();
-      }, { root: null, rootMargin: '240px 0px', threshold: 0.01 });
-      ceramistLazyObserverV6346.observe(card);
-      return;
+  }
+
+  window.applyRemakePopoutActionV6339 = function applyRemakePopoutActionV6339(payload) {
+    const action = payload || {};
+    const event = popupActionEventV6339(action);
+    try {
+      if (action.kind === 'month' && action.value) {
+        toggleMonthV6230(String(action.value), event);
+      } else if (action.kind === 'monthRange') {
+        const values = Array.isArray(action.values) ? action.values.map(String).filter(Boolean) : [];
+        pushRemakeUndoV6266();
+        const next = action.additive ? new Set(uiV6230.selectedMonths || []) : new Set();
+        values.forEach(function(value){ next.add(value); });
+        uiV6230.selectedMonths = next;
+        persistUiV6230();
+        renderDashboardV6230();
+      } else if (action.kind === 'tableFilter' && action.filterKind && action.value !== undefined) {
+        window.applyRemakeTableFilterV6230(String(action.filterKind), String(action.value), event);
+      } else if (action.kind === 'sort' && action.component && action.field) {
+        window.setRemakeSortV6230(String(action.component), String(action.field));
+      } else if (action.kind === 'trendMode') {
+        window.setRemakeChartModeV6230(action.value);
+      } else if (action.kind === 'trendMeasure') {
+        window.setRemakeTrendMeasureV6245(action.value);
+      } else if (action.kind === 'trendValue') {
+        window.setRemakeTrendValueModeV6247(action.value);
+      } else if (action.kind === 'trendCumulative') {
+        window.setRemakeTrendCumulativeV6304(action.value === true);
+      } else if (action.kind === 'compare' && action.component) {
+        window.toggleRemakeTableCompareV6297(String(action.component));
+      } else if (action.kind === 'productMode') {
+        window.setRemakeProductTableModeV6264(action.value);
+      } else if (action.kind === 'customerMode') {
+        window.setRemakeCustomerTableModeV6251(action.value);
+      } else if (action.kind === 'ceramistCaseStatus') {
+        window.setCeramistCaseStatusV6343(action.value);
+      } else if (action.kind === 'ceramistDiagnostic') {
+        window.setCeramistDiagnosticV6343(action.value);
+      } else if (action.kind === 'ceramistBreakdown') {
+        window.setCeramistBreakdownV6343(action.value);
+      } else if (action.kind === 'ceramistSelect') {
+        window.selectCeramistV6343(action.value);
+      } else if (action.kind === 'ceramistFlag') {
+        window.setCeramistFlagV6342(action.value);
+      } else if (action.kind === 'export' && action.component) {
+        window.exportRemakeComponentV6230(String(action.component));
+      } else if (action.kind === 'clear' && action.component) {
+        window.clearRemakeComponentV6230(String(action.component));
+      }
+    } catch (error) {
+      console.error('Remake pop-out action failed', error);
     }
-    const checkFallback = function checkCeramistViewportV6346() {
-      const rect = card.getBoundingClientRect();
-      if (rect.top <= (window.innerHeight || document.documentElement.clientHeight || 0) + 240 && rect.bottom >= -240) {
-        disconnectCeramistLazyLoadV6346();
-        requestLoad();
+    scheduleRemakePopoutSyncV6339(360);
+  };
+
+  window.__remakePopoutClosedV6339 = function remakePopoutClosedV6339(component) {
+    delete remakePopoutRefsV6339[component];
+  };
+
+  function remakePopupRuntimeV6339(componentId) {
+    'use strict';
+    var currentSnapshot = null;
+    var currentChart = null;
+    var retryTimer = 0;
+    var lastRenderSignature = '';
+
+    function byId(id) { return document.getElementById(id); }
+    function setStatus(text) { var node = byId('statusV6339'); if (node) node.textContent = text || ''; }
+    function show(id, visible) { var node = byId(id); if (node) node.hidden = !visible; }
+    function setActive(groupId, value) {
+      var group = byId(groupId);
+      if (!group) return;
+      Array.prototype.forEach.call(group.querySelectorAll('button[data-value]'), function(button) {
+        var active = String(button.getAttribute('data-value')) === String(value);
+        button.classList.toggle('active', active);
+        button.setAttribute('aria-pressed', active ? 'true' : 'false');
+      });
+    }
+    function send(payload, event) {
+      payload = payload || {};
+      payload.component = payload.component || componentId;
+      if (event) {
+        payload.ctrlKey = !!event.ctrlKey;
+        payload.metaKey = !!event.metaKey;
+        payload.shiftKey = !!event.shiftKey;
+        if (event.preventDefault) event.preventDefault();
+        if (event.stopPropagation) event.stopPropagation();
+      }
+      try {
+        if (window.opener && !window.opener.closed && typeof window.opener.applyRemakePopoutActionV6339 === 'function') {
+          window.opener.applyRemakePopoutActionV6339(payload);
+          window.setTimeout(requestSnapshot, 360);
+          window.setTimeout(requestSnapshot, 760);
+        } else setStatus('Main dashboard disconnected');
+      } catch (error) {
+        setStatus('Action failed');
+        console.error(error);
+      }
+    }
+    function requestSnapshot() {
+      try {
+        if (window.opener && !window.opener.closed && typeof window.opener.getRemakePopoutSnapshotV6339 === 'function') {
+          applySnapshot(window.opener.getRemakePopoutSnapshotV6339(componentId));
+        } else setStatus('Main dashboard disconnected');
+      } catch (error) {
+        setStatus('Could not synchronize');
+      }
+    }
+    function cloneData(value) {
+      try { return JSON.parse(JSON.stringify(value)); }
+      catch (error) { return value; }
+    }
+    function snapshotSignature(snapshot) {
+      try {
+        return JSON.stringify({
+          ok:!!snapshot.ok,
+          component:snapshot.component,
+          type:snapshot.type,
+          title:snapshot.title,
+          compareYear:snapshot.compareYear,
+          message:snapshot.message,
+          controls:snapshot.controls,
+          chart:snapshot.chart,
+          tableHtml:snapshot.tableHtml
+        });
+      } catch (error) { return String(Date.now()); }
+    }
+    function monthTitle(key, fallback) {
+      var text = String(key || '');
+      var match = /^(\d{4})-(\d{2})$/.exec(text);
+      if (!match) return String(fallback || text);
+      var names = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      return names[Math.max(0, Math.min(11, Number(match[2]) - 1))] + ' ' + match[1];
+    }
+    function formatValue(value, format) {
+      var number = Number(value || 0);
+      if (format === 'percent') return number.toFixed(1) + '%';
+      if (format === 'points') return (number > 0 ? '+' : '') + number.toFixed(1) + ' pp';
+      if (format === 'count1') return number.toLocaleString(undefined, { minimumFractionDigits:1, maximumFractionDigits:1 });
+      return Math.round(number).toLocaleString();
+    }
+    function rangeKeys(chart, start, end) {
+      var keys = new Set();
+      var from = Math.min(start, end);
+      var to = Math.max(start, end);
+      (chart.data.datasets || []).forEach(function(dataset) {
+        var monthKeys = dataset.monthKeys || [];
+        for (var index = from; index <= to; index += 1) {
+          if (monthKeys[index]) keys.add(String(monthKeys[index]));
+        }
+      });
+      return Array.from(keys);
+    }
+    function installTrendDrag(canvas, chart) {
+      var dragging = false;
+      var moved = false;
+      var startIndex = -1;
+      var lastIndex = -1;
+      function pointerIndex(event) {
+        if (!chart || !chart.scales || !chart.scales.x) return -1;
+        var rect = canvas.getBoundingClientRect();
+        var value = chart.scales.x.getValueForPixel(event.clientX - rect.left);
+        var index = Math.round(Number(value));
+        if (!Number.isFinite(index)) return -1;
+        return Math.max(0, Math.min((chart.data.labels || []).length - 1, index));
+      }
+      canvas.addEventListener('pointerdown', function(event) {
+        if (event.button !== undefined && event.button !== 0) return;
+        var index = pointerIndex(event);
+        if (index < 0) return;
+        dragging = true;
+        moved = false;
+        startIndex = index;
+        lastIndex = index;
+        try { canvas.setPointerCapture(event.pointerId); } catch (error) {}
+      });
+      canvas.addEventListener('pointermove', function(event) {
+        if (!dragging) return;
+        var index = pointerIndex(event);
+        if (index < 0) return;
+        if (index !== lastIndex) moved = true;
+        lastIndex = index;
+      });
+      canvas.addEventListener('pointerup', function(event) {
+        if (!dragging) return;
+        dragging = false;
+        var index = pointerIndex(event);
+        if (index >= 0) lastIndex = index;
+        if (moved && startIndex >= 0 && lastIndex >= 0) {
+          chart.$remakeSuppressNextClickV6339 = true;
+          send({ kind:'monthRange', values:rangeKeys(chart, startIndex, lastIndex), additive:!!(event.ctrlKey || event.metaKey) }, event);
+        }
+      });
+      canvas.addEventListener('pointercancel', function(){ dragging = false; });
+    }
+    function renderChart(snapshot, canvasId, isCustomer) {
+      if (!window.Chart) {
+        window.clearTimeout(retryTimer);
+        retryTimer = window.setTimeout(function(){ if (currentSnapshot === snapshot) renderContent(snapshot); }, 180);
         return;
       }
-      if (!ceramistLazyFallbackBoundV6346) {
-        ceramistLazyFallbackBoundV6346 = true;
-        ceramistLazyFallbackHandlerV6346 = function recheckCeramistViewportV6346() {
-          ceramistLazyFallbackBoundV6346 = false;
-          ceramistLazyFallbackHandlerV6346 = null;
-          checkFallback();
-        };
-        window.addEventListener('scroll', ceramistLazyFallbackHandlerV6346, { passive: true, once: true });
+      if (currentChart) {
+        try { currentChart.destroy(); } catch (error) {}
+        currentChart = null;
       }
-    };
-    checkFallback();
-  }
-
-  function applyCeramistPayloadV6364(data, fromBrowser) {
-    const receivedRows = data && Array.isArray(data.rows) ? data.rows : [];
-    const rowShapeReady = !receivedRows.length || receivedRows.every(function(row) {
-      return row && typeof row === 'object';
-    });
-    const emptySavedBrowserPayloadV6570 = fromBrowser === true && receivedRows.length === 0;
-    const ok = !!(data && data.ok && Array.isArray(data.rows) && rowShapeReady && !emptySavedBrowserPayloadV6570);
-    if (receivedRows.length) {
-      ceramistPopulationMemoV6569.signature = '';
-      ceramistPopulationSidecarRefreshQueuedV6570 = false;
+      var canvas = byId(canvasId);
+      if (!canvas || !snapshot.chart) return;
+      var data = {
+        labels: cloneData(snapshot.chart.labels || []),
+        datasets: cloneData(snapshot.chart.datasets || [])
+      };
+      var controls = snapshot.controls || {};
+      var options = {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: { duration:90, easing:'easeOutQuad' },
+        interaction: isCustomer ? { mode:'nearest', axis:'y', intersect:true } : { mode:'index', intersect:false },
+        plugins: {
+          legend: { display:!isCustomer, position:'top', align:'start', labels:{ boxWidth:18, boxHeight:2, color:'#475569', font:{ size:11, weight:'700' }, padding:8 } },
+          tooltip: {
+            enabled:true,
+            backgroundColor:'rgba(17,24,39,.94)',
+            titleColor:'#fff',
+            bodyColor:'#fff',
+            padding:10,
+            callbacks: {
+              title: function(items) {
+                if (!items || !items.length) return '';
+                var item = items[0];
+                var dataset = item.dataset || {};
+                return isCustomer ? String(item.label || '') : monthTitle((dataset.monthKeys || [])[item.dataIndex], item.label);
+              },
+              label: function(context) {
+                if (isCustomer) return 'Case rate: ' + Number(context.raw || 0).toFixed(1) + '%';
+                return (context.dataset && context.dataset.label ? context.dataset.label + ': ' : '') + formatValue(context.raw, controls.valueFormat);
+              },
+              footer: function(items) {
+                if (isCustomer || !items || items.length < 2) return '';
+                var numeric = items.filter(function(item){ return Number.isFinite(Number(item.raw)); });
+                if (numeric.length < 2) return '';
+                numeric.sort(function(a,b){ return Number(b.dataset && b.dataset.label) - Number(a.dataset && a.dataset.label); });
+                var delta = Number(numeric[0].raw) - Number(numeric[1].raw);
+                return 'Change: ' + formatValue(delta, controls.valueFormat === 'percent' ? 'points' : controls.valueFormat);
+              }
+            }
+          }
+        },
+        onClick: function(event, elements, chart) {
+          if (chart.$remakeSuppressNextClickV6339) {
+            chart.$remakeSuppressNextClickV6339 = false;
+            return;
+          }
+          var points = elements && elements.length ? elements : chart.getElementsAtEventForMode(event, 'nearest', { intersect:false }, true);
+          if (!points || !points.length) return;
+          var point = points[0];
+          var dataset = chart.data.datasets[point.datasetIndex] || {};
+          var nativeEvent = event && event.native ? event.native : event;
+          if (isCustomer) {
+            var customerKey = (dataset.customerKeys || [])[point.index];
+            if (customerKey) send({ kind:'tableFilter', filterKind:'customer', value:customerKey }, nativeEvent);
+          } else {
+            var monthKey = (dataset.monthKeys || [])[point.index];
+            if (monthKey) send({ kind:'month', value:monthKey }, nativeEvent);
+          }
+        },
+        scales: isCustomer
+          ? {
+              x:{ beginAtZero:true, grid:{ color:'#edf0f5' }, ticks:{ color:'#667085', callback:function(value){ return Number(value || 0).toFixed(0) + '%'; } } },
+              y:{ grid:{ display:false }, ticks:{ color:'#334155', font:{ size:10.5, weight:'700' } } }
+            }
+          : {
+              x:{ grid:{ display:false }, ticks:{ color:'#334155', font:{ size:11, weight:'700' }, maxRotation:0, autoSkip:false } },
+              y:{ beginAtZero:controls.mode !== 'mom', grid:{ color:'rgba(148,163,184,.22)' }, ticks:{ color:'#667085', maxTicksLimit:5, callback:function(value){ return formatValue(value, controls.valueFormat); } }, title:{ display:!!snapshot.chart.axisTitle, text:snapshot.chart.axisTitle || '', color:'#202124', font:{ size:11, weight:'700' } } }
+            }
+      };
+      if (isCustomer) options.indexAxis = 'y';
+      currentChart = new Chart(canvas.getContext('2d'), { type:snapshot.chart.chartType || (isCustomer ? 'bar' : 'line'), data:data, options:options });
+      if (!isCustomer) installTrendDrag(canvas, currentChart);
     }
-    ceramistStateV6342.loading = false;
-    ceramistStateV6342.loaded = true;
-    ceramistStateV6342.ok = ok;
-    ceramistStateV6342.rows = ok ? receivedRows : [];
-    ceramistStateV6342.stats = data && data.stats || {};
-    ceramistStateV6342.version = data && data.version || '';
-    ceramistStateV6342.generatedAt = data && data.generatedAt || '';
-    ceramistStateV6342.caseLevelRefreshedAt = data && data.caseLevelRefreshedAt || '';
-    ceramistStateV6342.cacheToken = data && data.cacheToken || '';
-    ceramistStateV6342.driveUpdatedAt = data && data.driveUpdatedAt || '';
-    ceramistStateV6342.badgeUpdatedAt = data && data.badgeUpdatedAt || '';
-    ceramistStateV6342.browserCached = fromBrowser === true;
-    ceramistStateV6342.syncing = false;
-    ceramistStateV6342.message = emptySavedBrowserPayloadV6570
-      ? 'The saved technician browser cache was empty and is being replaced from the nightly source.'
-      : (rowShapeReady
-        ? (data && data.message || '')
-        : 'The technician attribution cache contains an invalid row and could not be reconciled with the Remake population.');
-    if (ok) {
-      const stamp = ceramistStateV6342.caseLevelRefreshedAt || ceramistStateV6342.generatedAt || ceramistStateV6342.driveUpdatedAt;
-      ceramistStateV6342.statusText = 'Worker cache updated: ' + (stamp ? ceramistCacheStampV6342(stamp) : 'date unavailable') + (fromBrowser ? ' · saved browser copy' : ' · nightly source');
-    } else {
-      ceramistStateV6342.statusText = '';
-    }
-    renderCeramistAnalysisV6342();
-    return ok;
-  }
-
-  function setCeramistStatusTextV6364(value) {
-    ceramistStateV6342.statusText = String(value || '');
-    const status = idV6230('remakeCeramistStatusV6342');
-    if (status && ceramistStateV6342.loaded && ceramistStateV6342.ok) status.textContent = ceramistStateV6342.statusText;
-  }
-
-  function requestCeramistServerPayloadV6364(loadGenerationV6346, keepCachedVisibleV6364) {
-    if (!window.google || !google.script || !google.script.run) {
-      if (keepCachedVisibleV6364 && ceramistStateV6342.ok) {
-        ceramistStateV6342.syncing = false;
-        setCeramistStatusTextV6364('Worker cache: saved copy · server check unavailable');
+    function renderContent(snapshot) {
+      var content = byId('contentV6339');
+      if (!content) return;
+      if (!snapshot.ok) {
+        content.innerHTML = '<div class="emptyV6339">' + String(snapshot.message || 'Nothing to display yet.') + '</div>';
         return;
       }
-      ceramistStateV6342.loading = false;
-      ceramistStateV6342.loaded = true;
-      ceramistStateV6342.ok = false;
-      ceramistStateV6342.message = 'Apps Script bridge is unavailable for the Ceramist preview.';
-      renderCeramistAnalysisV6342();
-      return;
-    }
-    if (keepCachedVisibleV6364) {
-      ceramistStateV6342.syncing = true;
-      setCeramistStatusTextV6364('Worker cache: updating from nightly source...');
-    }
-    google.script.run
-      .withSuccessHandler(function(data) {
-        if (loadGenerationV6346 !== ceramistLoadGenerationV6346 || mainCacheSwapActiveV6346) return;
-        const applied = applyCeramistPayloadV6364(data, false);
-        if (applied) scheduleCeramistBrowserCacheWriteV6364(data);
-      })
-      .withFailureHandler(function(error) {
-        if (loadGenerationV6346 !== ceramistLoadGenerationV6346 || mainCacheSwapActiveV6346) return;
-        ceramistStateV6342.syncing = false;
-        if (keepCachedVisibleV6364 && ceramistStateV6342.ok) {
-          setCeramistStatusTextV6364('Worker cache: saved copy · nightly check failed');
-          console.warn('Ceramist nightly payload refresh failed', error);
-          return;
-        }
-        ceramistStateV6342.loading = false;
-        ceramistStateV6342.loaded = true;
-        ceramistStateV6342.ok = false;
-        ceramistStateV6342.rows = [];
-        ceramistStateV6342.message = 'Ceramist preview could not load. Replace CeramistRemakeProfiler.gs with v7.6 and set its cache file property. ' + (error && error.message ? error.message : String(error || ''));
-        renderCeramistAnalysisV6342();
-      })
-      .getCeramistRemakeAnalysisData();
-  }
-
-  function checkCeramistServerMetaV6364(loadGenerationV6346, cachedTokenV6364) {
-    if (!window.google || !google.script || !google.script.run) {
-      setCeramistStatusTextV6364('Worker cache: saved copy · server check unavailable');
-      return;
-    }
-    ceramistStateV6342.syncing = true;
-    setCeramistStatusTextV6364('Loading...');
-    google.script.run
-      .withSuccessHandler(function(meta) {
-        if (loadGenerationV6346 !== ceramistLoadGenerationV6346 || mainCacheSwapActiveV6346) return;
-        ceramistStateV6342.syncing = false;
-        const serverToken = meta && meta.cacheToken || '';
-        ceramistStateV6342.driveUpdatedAt = meta && meta.driveUpdatedAt || ceramistStateV6342.driveUpdatedAt;
-        ceramistStateV6342.badgeUpdatedAt = meta && meta.badgeUpdatedAt || ceramistStateV6342.badgeUpdatedAt;
-        if (meta && meta.ok && serverToken && cachedTokenV6364 && serverToken === cachedTokenV6364) {
-          const stamp = ceramistStateV6342.caseLevelRefreshedAt || ceramistStateV6342.generatedAt || ceramistStateV6342.driveUpdatedAt;
-          setCeramistStatusTextV6364('Worker cache updated: ' + (stamp ? ceramistCacheStampV6342(stamp) : 'date unavailable') + ' · saved copy is current');
-          return;
-        }
-        requestCeramistServerPayloadV6364(loadGenerationV6346, true);
-      })
-      .withFailureHandler(function(error) {
-        if (loadGenerationV6346 !== ceramistLoadGenerationV6346 || mainCacheSwapActiveV6346) return;
-        ceramistStateV6342.syncing = false;
-        setCeramistStatusTextV6364('Worker cache: saved copy · nightly check failed');
-        console.warn('Ceramist cache metadata check failed', error);
-      })
-      .getCeramistRemakeAnalysisCacheMeta();
-  }
-
-  function loadCeramistRemakeAnalysisV6342(force) {
-    if (ceramistStateV6342.loading || (ceramistStateV6342.loaded && !force)) return;
-    if (mainCacheSwapActiveV6346 || browserCacheWriteScheduledV6346) {
-      armCeramistLazyLoadV6346();
-      return;
-    }
-    disconnectCeramistLazyLoadV6346();
-    const loadGenerationV6346 = ++ceramistLoadGenerationV6346;
-    ceramistStateV6342.loading = true;
-    ceramistStateV6342.loaded = false;
-    ceramistStateV6342.ok = false;
-    ceramistStateV6342.statusText = '';
-    renderCeramistAnalysisV6342();
-
-    if (force) {
-      requestCeramistServerPayloadV6364(loadGenerationV6346, false);
-      return;
-    }
-
-    readCeramistFastCacheV6364()
-      .then(function(cached) {
-        if (loadGenerationV6346 !== ceramistLoadGenerationV6346 || mainCacheSwapActiveV6346) return;
-        if (cached && applyCeramistPayloadV6364(cached, true)) {
-          checkCeramistServerMetaV6364(loadGenerationV6346, cached.cacheToken || '');
-          return;
-        }
-        if (cached) deleteCeramistFastCacheV6364().catch(function(){});
-        ceramistStateV6342.loading = true;
-        ceramistStateV6342.loaded = false;
-        renderCeramistAnalysisV6342();
-        requestCeramistServerPayloadV6364(loadGenerationV6346, false);
-      })
-      .catch(function() {
-        if (loadGenerationV6346 !== ceramistLoadGenerationV6346 || mainCacheSwapActiveV6346) return;
-        requestCeramistServerPayloadV6364(loadGenerationV6346, false);
-      });
-  }
-
-  window.setCeramistCaseStatusV6343 = function setCeramistCaseStatusV6343(value) {
-    const allowed = ['all','full','partial','unattributed'];
-    ceramistStateV6342.caseStatus = allowed.indexOf(String(value)) >= 0 ? String(value) : 'all';
-    renderCeramistAnalysisV6342();
-  };
-  window.setCeramistDiagnosticV6343 = function setCeramistDiagnosticV6343(value) {
-    const allowed = ['none','multi','rootMissing','noteEvidence'];
-    ceramistStateV6342.diagnosticFlag = allowed.indexOf(String(value)) >= 0 ? String(value) : 'none';
-    renderCeramistAnalysisV6342();
-  };
-  window.setCeramistBreakdownV6343 = function setCeramistBreakdownV6343(value) {
-    const allowed = ['product','group','department','customer','reason'];
-    ceramistStateV6342.breakdown = allowed.indexOf(String(value)) >= 0 ? String(value) : 'product';
-    renderCeramistAnalysisV6342();
-  };
-  window.selectCeramistV6343 = function selectCeramistV6343(value) {
-    const next = String(value || '');
-    if (next && next === String(ceramistStateV6342.selectedCeramist || '')) {
-      ceramistStateV6342.selectedCeramist = '';
-      ceramistStateV6342.selectionCleared = true;
-    } else {
-      ceramistStateV6342.selectedCeramist = next;
-      ceramistStateV6342.selectionCleared = !next;
-    }
-    renderCeramistAnalysisV6342();
-  };
-  window.setCeramistFlagV6342 = function setCeramistFlagV6342(flag) {
-    if (flag === 'unattributed') window.setCeramistCaseStatusV6343('unattributed');
-    else window.setCeramistDiagnosticV6343(flag === 'all' ? 'none' : flag);
-  };
-
-
-  function renderCustomerChartV6230() {
-    const canvas = idV6230('remakeCustomerChartV6230');
-    const empty = idV6230('remakeCustomerDetailEmptyV6503');
-    if (!canvas || !window.Chart) return;
-    const item = responsibilityItemV6504();
-    if (item.state !== 'ready') {
-      if (empty) {
-        empty.textContent = item.state === 'multiple' ? 'Choose one selected item to compare its case, unit, and discount shares.' : 'Select an item to compare its share of remake cases, units, and discount.';
-        empty.style.display = 'flex';
+      if (snapshot.type === 'trend') {
+        content.innerHTML = '<div class="chartShellV6339"><canvas id="trendCanvasV6339"></canvas></div><div class="hintV6339">Hover for details. Click a month to filter; Ctrl/Cmd-click adds or removes. Drag across months to select a range.</div>';
+        renderChart(snapshot, 'trendCanvasV6339', false);
+      } else if (snapshot.type === 'customer') {
+        content.innerHTML = '<div class="customerSplitV6339"><div class="chartShellV6339 customerChartV6339"><canvas id="customerCanvasV6339"></canvas></div><div class="tableShellV6339">' + (snapshot.tableHtml || '<div class="emptyV6339">No customer rows.</div>') + '</div></div><div class="hintV6339">Hover for details; click a bar or row to filter the main dashboard.</div>';
+        renderChart(snapshot, 'customerCanvasV6339', true);
+      } else if (snapshot.type === 'ceramist') {
+        content.innerHTML = '<div class="ceramistShellV6343">' + (snapshot.tableHtml || '<div class="emptyV6339">No ceramics attribution rows are available for this view.</div>') + '</div>';
+      } else {
+        var hint = 'Click a row to filter. Click a column header to sort.';
+        content.innerHTML = '<div class="tableShellV6339">' + (snapshot.tableHtml || '<div class="emptyV6339">No rows.</div>') + '</div><div class="hintV6339">' + hint + '</div>';
       }
-      if (customerChartV6230) { try { customerChartV6230.destroy(); } catch (error) {} customerChartV6230 = null; }
-      const context = canvas.getContext && canvas.getContext('2d');
-      if (context) context.clearRect(0,0,canvas.width || 0,canvas.height || 0);
-      return;
     }
-    if (empty) empty.style.display = 'none';
-    const config = {
-      type:'bar',
-      data:{labels:['Case share','Unit share','Discount share'],datasets:[{label:item.label,data:[item.caseShare,item.unitShare,item.discountShare].map(function(value){return numV6230(value)*100;}),backgroundColor:['rgba(242,201,76,.52)','rgba(148,163,184,.40)','rgba(71,84,103,.30)'],borderColor:['#d89b00','#64748b','#344054'],borderWidth:1.2,maxBarThickness:30}]},
-      options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,animation:{duration:95,easing:'easeOutQuad'},plugins:{legend:{display:false},tooltip:{callbacks:{label:function(ctx){return Number(ctx.raw||0).toFixed(1)+'%';}}}},scales:{x:{beginAtZero:true,ticks:{callback:function(value){return Number(value||0).toFixed(0)+'%';},color:'#667085'},grid:{color:'#edf0f5'}},y:{grid:{display:false},ticks:{color:'#334155',font:{size:10.5,weight:'700'}}}}}
+    function renderControls(snapshot) {
+      var controls = snapshot.controls || {};
+      show('trendControlsV6339', snapshot.type === 'trend');
+      show('viewControlsV6339', snapshot.type === 'trend' && !!controls.cumulativeAllowed);
+      show('compareControlV6339', snapshot.type === 'table' || snapshot.type === 'customer');
+      show('productControlsV6339', snapshot.component === 'product');
+      show('customerControlsV6339', snapshot.component === 'customer');
+      show('ceramistCaseStatusV6343', false);
+      show('ceramistDiagnosticV6343', false);
+      show('ceramistBreakdownV6343', false);
+      setActive('trendModeV6339', controls.mode || 'line');
+      setActive('trendMeasureV6339', controls.measure || 'cases');
+      setActive('trendValueV6339', controls.valueMode || 'total');
+      setActive('viewControlsV6339', controls.cumulative ? 'cumulative' : 'monthly');
+      setActive('productControlsV6339', controls.productMode || 'product');
+      setActive('customerControlsV6339', controls.customerMode || 'highest');
+      setActive('ceramistCaseStatusV6343', controls.ceramistCaseStatus || 'all');
+      setActive('ceramistDiagnosticV6343', controls.ceramistDiagnostic || 'none');
+      setActive('ceramistBreakdownV6343', controls.ceramistBreakdown || 'product');
+      var compare = byId('compareControlV6339');
+      if (compare) {
+        compare.textContent = String(snapshot.compareYear || 'Compare');
+        compare.classList.toggle('active', !!controls.compare);
+        compare.setAttribute('aria-pressed', controls.compare ? 'true' : 'false');
+      }
+    }
+    function applySnapshot(snapshot) {
+      currentSnapshot = snapshot || {};
+      var title = currentSnapshot.title || 'Remake panel';
+      document.title = title + ' - Pop out';
+      var titleNode = byId('titleV6339');
+      if (titleNode) titleNode.textContent = title;
+      var nextSignature = snapshotSignature(currentSnapshot);
+      if (nextSignature !== lastRenderSignature) {
+        lastRenderSignature = nextSignature;
+        renderControls(currentSnapshot);
+        renderContent(currentSnapshot);
+      }
+      setStatus(currentSnapshot.ok ? 'Live | ' + (currentSnapshot.updatedAt || 'updated') : 'Waiting for dashboard');
+    }
+
+    window.__receiveRemakeSnapshotV6339 = applySnapshot;
+    window.addEventListener('message', function(event) {
+      var data = event && event.data ? event.data : {};
+      if (data.type === 'remakeSnapshotV6339') applySnapshot(data.snapshot);
+    });
+    window.addEventListener('beforeunload', function() {
+      try {
+        if (window.opener && !window.opener.closed && typeof window.opener.__remakePopoutClosedV6339 === 'function') window.opener.__remakePopoutClosedV6339(componentId);
+      } catch (error) {}
+    });
+
+    window.setTrendModeV6339 = function(value){ send({ kind:'trendMode', value:value }); };
+    window.setTrendMeasureV6339 = function(value){ send({ kind:'trendMeasure', value:value }); };
+    window.setTrendValueV6339 = function(value){ send({ kind:'trendValue', value:value }); };
+    window.setTrendViewV6339 = function(value){ send({ kind:'trendCumulative', value:value === 'cumulative' }); };
+    window.toggleCompareV6339 = function(){ send({ kind:'compare' }); };
+    window.setProductModeV6339 = function(value){ send({ kind:'productMode', value:value }); };
+    window.setCustomerModeV6339 = function(value){ send({ kind:'customerMode', value:value }); };
+    window.setCeramistCaseStatusV6343 = function(value){ send({ kind:'ceramistCaseStatus', value:value }); };
+    window.setCeramistDiagnosticV6343 = function(value){ send({ kind:'ceramistDiagnostic', value:value }); };
+    window.setCeramistBreakdownV6343 = function(value){ send({ kind:'ceramistBreakdown', value:value }); };
+    window.selectCeramistV6343 = function(value){ send({ kind:'ceramistSelect', value:value }); };
+    window.clearCeramistDetailSelectionV6368 = function(){
+      var overlay = byId('ceramistCaseDialogOverlayV6369');
+      if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
     };
-    if (customerChartV6230) { customerChartV6230.data=config.data; customerChartV6230.options=config.options; customerChartV6230.update(); }
-    else customerChartV6230 = new Chart(canvas.getContext('2d'),config);
+    window.selectCeramistDetailV6368 = function(row, event) {
+      if (!row || !row.dataset) return;
+      var kind = String(row.dataset.detailFilterKind || '');
+      var value = String(row.dataset.detailFilterValue || '');
+      if (!kind || !value) return;
+      window.clearCeramistDetailSelectionV6368();
+      send({ kind:'tableFilter', filterKind:kind, value:value }, event);
+    };
+    window.setCeramistFlagV6342 = function(value){ send({ kind:'ceramistFlag', value:value }); };
+    window.exportPanelV6339 = function(){ send({ kind:'export' }); };
+    window.clearPanelV6339 = function(){ send({ kind:'clear' }); };
+    window.setRemakeSortV6230 = function(component, field){ send({ kind:'sort', component:component, field:field }); };
+    window.applyRemakeTableFilterV6230 = function(filterKind, value, event){ send({ kind:'tableFilter', filterKind:filterKind, value:value }, event); };
+
+    window.setTimeout(requestSnapshot, 60);
   }
 
-  /* v6.300 local FLIP/canvas transition controller.
-     It takes a lightweight visual snapshot before a cross-filter render, lets
-     the existing calculations and renderers run unchanged, then animates only
-     the affected rows, KPI values, and chart canvases into their new geometry. */
-  /*
-   * APPROVED TRANSITION PRESERVATION NOTE (v6.301+)
-   * Summer explicitly approved the staged local FLIP/table and Chart.js transition
-   * system as the desired interaction baseline. Preserve this architecture in future
-   * edits. Do not replace it with a full-dashboard fade, blur, view transition, or a
-   * synchronous redraw that blocks the click frame. Local component updates should
-   * keep the current content visible, paint click feedback first, then morph in place.
-   */
-  const dashboardMorphStateV6300 = { sequence: 0, active: null, lastStartedV6398: 0 };
-  const SNAPPY_TRANSITIONS_V6398 = true;
-  function reducedMotionV6300() {
-    try { return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); }
-    catch (error) { return false; }
+  function popupHtmlV6339(component, title) {
+    const scriptOpen = '<scr' + 'ipt>';
+    const scriptClose = '</scr' + 'ipt>';
+    const chartScript = '<scr' + 'ipt src="https://cdn.jsdelivr.net/npm/chart.js"></scr' + 'ipt>';
+    const runtime = '(' + remakePopupRuntimeV6339.toString() + ')(' + JSON.stringify(component) + ');';
+    const styles = [
+      'html,body{height:100%;margin:0;background:#ebe9ed;color:#202124;font-family:Roboto,Arial,sans-serif;overflow:hidden}',
+      '*{box-sizing:border-box}',
+      '.headerV6339{min-height:48px;display:flex;align-items:center;gap:9px;padding:7px 10px;background:#fff;border-bottom:1px solid #d7dce2}',
+      '#titleV6339{font-weight:900;font-size:15px;min-width:150px;max-width:32vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+      '.controlsV6339{display:flex;align-items:center;gap:5px;min-width:0;flex:1 1 auto;overflow-x:auto;scrollbar-width:thin}',
+      '.groupV6339{display:inline-flex;align-items:center;gap:3px;padding:2px;border:1px solid #d7dce2;border-radius:999px;background:#f8fafc;flex:0 0 auto}',
+      'button{height:29px;border:1px solid #cfd6df;border-radius:999px;background:#fff;color:#344054;font:900 11px/1 Roboto,Arial,sans-serif;cursor:pointer;padding:0 10px;white-space:nowrap}',
+      'button:hover,button.active{background:#fff7d6;color:#7a4a00;border-color:#f2c94c}',
+      '.closeV6339{border-radius:7px}.exportV6339{margin-left:auto}',
+      '#statusV6339{color:#667085;font:800 10.5px/1 Roboto,Arial,sans-serif;white-space:nowrap}',
+      '#contentV6339{height:calc(100% - 48px);overflow:auto;padding:10px}',
+      '.chartShellV6339,.tableShellV6339{background:#fff;border:1px solid #d7dce2;border-radius:8px;box-shadow:0 1px 3px rgba(20,32,42,.14);overflow:auto}',
+      '.chartShellV6339{height:calc(100vh - 108px);min-height:340px;padding:12px}',
+      '.customerSplitV6339{height:calc(100vh - 108px);display:grid;grid-template-columns:minmax(360px,.8fr) minmax(520px,1.2fr);gap:10px}',
+      '.customerSplitV6339 .chartShellV6339,.customerSplitV6339 .tableShellV6339{height:100%;min-height:340px}',
+      '.customerSplitV6339 .tableShellV6339{padding:0}',
+      '.ceramistShellV6343{height:calc(100vh - 108px);min-height:430px;background:#fff;border:1px solid #d7dce2;border-radius:8px;box-shadow:0 1px 3px rgba(20,32,42,.14);overflow:hidden}',
+      '.ceramistWorkspaceV6343{height:100%;display:grid;grid-template-columns:minmax(0,38%) minmax(0,62%)}',
+      '.ceramistPanelV6343{min-width:0;overflow:hidden}.ceramistPanelV6343+.ceramistPanelV6343{border-left:1px solid #dfe4eb}',
+      '.ceramistPanelHeaderV6343{height:39px;padding:6px 9px;display:flex;align-items:center;justify-content:space-between;gap:8px;border-bottom:1px solid #e5e7eb}',
+      '.ceramistPanelTitleV6343{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:900;font-size:11.5px}',
+      '.ceramistPanelHintV6343{color:#667085;font-size:9.5px;font-weight:800;white-space:nowrap}',
+      '.ceramistBreakdownBarV6343{display:inline-flex;gap:2px;padding:2px;border:1px solid #d8dde6;border-radius:999px;background:#eef1f5}',
+      '.ceramistBreakdownBarV6343 button{height:25px;padding:0 8px;border:0}.ceramistBreakdownBarV6343 button.active{border:1px solid #f2c94c}',
+      '.ceramistPreviewTableWrapV6342{height:calc(100% - 39px);overflow-y:auto;overflow-x:hidden;scrollbar-gutter:stable}',
+      '.ceramistWorkspaceV6343 table{table-layout:fixed;min-width:0;width:100%}.ceramistWorkspaceV6343 th,.ceramistWorkspaceV6343 td{min-width:0;max-width:none;padding:6px 7px}',
+      '.ceramistWorkspaceV6343 .ceramistPanelV6343:first-child th:nth-child(1),.ceramistWorkspaceV6343 .ceramistPanelV6343:first-child td:nth-child(1){width:29%}',
+      '.ceramistWorkspaceV6343 .ceramistPanelV6343:first-child th:nth-child(2),.ceramistWorkspaceV6343 .ceramistPanelV6343:first-child td:nth-child(2){width:12%}',
+      '.ceramistWorkspaceV6343 .ceramistPanelV6343:first-child th:nth-child(3),.ceramistWorkspaceV6343 .ceramistPanelV6343:first-child td:nth-child(3){width:15%}',
+      '.ceramistWorkspaceV6343 .ceramistPanelV6343:first-child th:nth-child(4),.ceramistWorkspaceV6343 .ceramistPanelV6343:first-child td:nth-child(4){width:13%}',
+      '.ceramistWorkspaceV6343 .ceramistPanelV6343:first-child th:nth-child(5),.ceramistWorkspaceV6343 .ceramistPanelV6343:first-child td:nth-child(5){width:15%}',
+      '.ceramistWorkspaceV6343 .ceramistPanelV6343:first-child th:nth-child(6),.ceramistWorkspaceV6343 .ceramistPanelV6343:first-child td:nth-child(6){width:16%}',
+      '.ceramistWorkspaceV6343 .ceramistPanelV6343:last-child th:nth-child(1),.ceramistWorkspaceV6343 .ceramistPanelV6343:last-child td:nth-child(1){width:38%;text-align:left}',
+      '.ceramistWorkspaceV6343 .ceramistPanelV6343:last-child th:nth-child(2),.ceramistWorkspaceV6343 .ceramistPanelV6343:last-child td:nth-child(2){width:25%;text-align:left}',
+      '.ceramistWorkspaceV6343 .ceramistPanelV6343:last-child th:nth-child(3),.ceramistWorkspaceV6343 .ceramistPanelV6343:last-child td:nth-child(3){width:10%}',
+      '.ceramistWorkspaceV6343 .ceramistPanelV6343:last-child th:nth-child(4),.ceramistWorkspaceV6343 .ceramistPanelV6343:last-child td:nth-child(4){width:12%}',
+      '.ceramistWorkspaceV6343 .ceramistPanelV6343:last-child th:nth-child(5),.ceramistWorkspaceV6343 .ceramistPanelV6343:last-child td:nth-child(5){width:15%}',
+      '.ceramistSelectedV6343 td{background:#fff7d6!important;border-color:#f2c94c!important;font-weight:900}.ceramistUnattributedV6342{color:#b42318!important;font-weight:900}',
+      '.popupComponentCeramistV6352 #remakeCeramistTableV6342 thead th{z-index:8!important}',
+      '.popupComponentCeramistV6352 #remakeCeramistTableV6342 tbody tr.ceramistSelectedV6343 td{position:sticky!important;top:29px!important;z-index:6!important;background:#fff7d6!important;box-shadow:inset 0 -1px 0 rgba(217,119,6,.28),0 3px 6px rgba(15,23,42,.10)!important}',
+      '.popupComponentCeramistV6352 #remakeCeramistTableV6342 tbody tr.ceramistSelectedV6343 td:first-child{z-index:7!important;background:#fff7d6!important}',
+      '.popupComponentCeramistV6352 #remakeCeramistTableV6342 tbody tr.ceramistSectionRowV6348,.popupComponentCeramistV6352 #remakeCeramistTableV6342 tbody tr.ceramistSectionRowV6348 td{position:static!important;left:auto!important;top:auto!important;z-index:1!important;background:#eef2f6!important;box-shadow:none!important}',
+      '.ceramistNoteBadgeV6343{display:inline-flex;margin-left:5px;padding:1px 5px;border:1px solid #f3c86a;border-radius:999px;background:#fff8df;color:#8a5300;font-size:8.5px;font-weight:900;vertical-align:middle}',
+      '.hintV6339{color:#667085;font:800 10.5px/1.3 Roboto,Arial,sans-serif;margin-top:5px}',
+      '.emptyV6339{background:#fff;border:1px solid #d7dce2;border-radius:8px;padding:16px;color:#667085;font-weight:800}',
+      'table{width:100%;border-collapse:collapse;font-size:10.5px;background:#fff;table-layout:fixed}',
+      'th{position:sticky;top:0;z-index:3;background:#203038;color:#fff;border:1px solid #34454f;padding:6px;text-align:center;font-size:10px;line-height:1.2;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}',
+      'th:first-child,td:first-child{text-align:left;width:42%}',
+      'td{border:1px solid #e5e7eb;padding:6px;text-align:right;font-size:10.5px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#3c4043;background:#fff}',
+      'tr:nth-child(even) td{background:#fafafa}',
+      'tr.clickable:hover td{background:#eef4ff;cursor:pointer}',
+      'tr.selectedV6230 td,tr.selectedPinnedV6311 td{background:#fff7d6!important;border-color:#f2c94c!important;font-weight:900}',
+      'tr.dimmedV6266 td{color:#98a2b3!important;background:#f5f6f8!important;opacity:.72}',
+      '.sortGlyphV6230{position:absolute;right:5px;color:#fed7aa}',
+      '.priorYearHeaderV6301{background:#334852!important}.deltaHeaderV6301{background:#415762!important}',
+      '.deltaGoodV6295{color:#047857!important;font-weight:900}.deltaBadV6295{color:#b91c1c!important;font-weight:900}.deltaNeutralV6295{color:#667085!important;font-weight:800}',
+      '.inactiveBadge{display:inline-flex;border:1px solid #fecaca;background:#fff1f1;color:#b42318;border-radius:999px;padding:2px 6px;font-size:10px;font-weight:900;margin-left:6px}',
+      '.popupComponentCeramistV6352 .headerV6339{min-height:40px;height:40px;justify-content:flex-end;padding:5px 10px;background:#f8fafc;border-bottom:1px solid #d7dce2}',
+      '.popupComponentCeramistV6352 #titleV6339{display:none}',
+      '.popupComponentCeramistV6352 .controlsV6339{flex:0 1 auto;margin-left:auto;overflow:visible}',
+      '.popupComponentCeramistV6352 .controlsV6339>.groupV6339,.popupComponentCeramistV6352 #compareControlV6339{display:none!important}',
+      '.popupComponentCeramistV6352 .exportV6339{margin-left:0}',
+      '.popupComponentCeramistV6352 #contentV6339{height:calc(100% - 40px);padding:8px 10px 10px;overflow:hidden}',
+      '.popupComponentCeramistV6352 .ceramistShellV6343{height:100%;min-height:0;background:transparent;border:0;border-radius:0;box-shadow:none;overflow:auto}',
+      '.popupComponentCeramistV6352 .remakeCard{height:100%;min-height:560px;background:#fff;border:1px solid #d7dce2;border-radius:8px;box-shadow:0 1px 3px rgba(20,32,42,.14);overflow:hidden;display:flex;flex-direction:column}',
+      '.popupComponentCeramistV6352 .remakeCardHeader{min-height:35px;padding:8px 10px;border-bottom:1px solid #d7dce2;display:flex;align-items:center;justify-content:space-between;gap:8px;flex:0 0 auto}',
+      '.popupComponentCeramistV6352 .remakeCardTitle{font-size:12px;font-weight:900;color:#202124}.popupComponentCeramistV6352 .mutedSmallV6230{font-size:9.5px;color:#667085;font-weight:800}',
+      '.popupComponentCeramistV6352 .remakeCardActionsV6230{display:none!important}',
+      '.popupComponentCeramistV6352 .ceramistTopControlsV6351{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding:7px 10px;border-bottom:1px solid #edf0f5;flex:0 0 auto}',
+      '.popupComponentCeramistV6352 .ceramistPreviewKpisV6342{display:flex;align-items:stretch;justify-content:flex-start;flex-wrap:wrap;gap:6px;padding:0;border:0}',
+      '.popupComponentCeramistV6352 .ceramistPreviewKpiV6342{min-width:112px;max-width:160px;padding:6px 10px;background:#f7f9fc;border:1px solid #e1e6ee;border-radius:7px}',
+      '.popupComponentCeramistV6352 .ceramistPreviewKpiV6342 .label{color:#667085;font-size:8.5px;font-weight:900;letter-spacing:.5px;text-transform:uppercase;white-space:nowrap}',
+      '.popupComponentCeramistV6352 .ceramistPreviewKpiV6342 .value{color:#101828;font-size:17px;line-height:1.15;font-weight:900;margin-top:2px}',
+      '.popupComponentCeramistV6352 .ceramistPreviewMetaV6342{display:none!important}',
+      '.popupComponentCeramistV6352 .ceramistTopControlsV6351{justify-content:flex-start!important}',
+      '.popupComponentCeramistV6352 .ceramistDetailSelectionV6368{padding:8px 10px;border-bottom:1px solid #dfe4eb;background:#f8fafc;max-height:118px;overflow:auto}',
+      '.popupComponentCeramistV6352 .ceramistDetailSelectionHeaderV6368{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}',
+      '.popupComponentCeramistV6352 .ceramistDetailSelectionHeadingV6368{display:flex;align-items:baseline;gap:7px;min-width:0}.popupComponentCeramistV6352 .ceramistDetailSelectionHeadingV6368 strong{font-size:11px;color:#172033}.popupComponentCeramistV6352 .ceramistDetailSelectionHeadingV6368 span{font-size:9px;color:#667085;font-weight:800}',
+      '.popupComponentCeramistV6352 .ceramistDetailSelectionCloseV6368{width:24px;height:24px;min-width:24px;padding:0;border-radius:50%;font-size:16px}',
+      '.popupComponentCeramistV6352 .ceramistDetailSelectionMetricsV6368{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin-top:6px}.popupComponentCeramistV6352 .ceramistDetailSelectionMetricsV6368 div{display:flex;justify-content:space-between;gap:5px;padding:4px 6px;background:#fff;border:1px solid #e1e6ee;border-radius:5px}.popupComponentCeramistV6352 .ceramistDetailSelectionMetricsV6368 span{color:#667085;font-size:8.5px;font-weight:800}.popupComponentCeramistV6352 .ceramistDetailSelectionMetricsV6368 strong{font-size:9.5px;color:#172033}',
+      '.popupComponentCeramistV6352 .ceramistDetailSelectionContextV6368{margin-top:5px;color:#475467;font-size:9px;line-height:1.35;white-space:normal}',
+      '.popupComponentCeramistV6352 .ceramistDetailClickableV6368{cursor:pointer}.popupComponentCeramistV6352 .ceramistDetailClickableV6368:nth-child(odd):hover td{background:#fff!important}.popupComponentCeramistV6352 .ceramistDetailClickableV6368:nth-child(even):hover td{background:#fafafa!important}',
+      '.popupComponentCeramistV6352 .ceramistDetailClickableV6368 .ceramistDetailChevronV6368{float:right;color:#98a2b3;font-size:15px;line-height:1}.popupComponentCeramistV6352 .ceramistDetailClickableV6368:hover .ceramistDetailChevronV6368{color:#b7791f}',
+      '.popupComponentCeramistV6352 .ceramistDetailSelectedV6368 td{background:#fff7d6!important;border-color:#f2c94c!important}.popupComponentCeramistV6352 .detailOpenV6368 .ceramistPreviewTableWrapV6342{min-height:0}',
+      '.popupComponentCeramistV6352 .ceramistFilterStackV6343,.popupComponentCeramistV6352 .ceramistFilterRowV6343{display:flex;align-items:center;justify-content:flex-end;gap:5px;flex-wrap:wrap}',
+      '.popupComponentCeramistV6352 .ceramistFlagBarV6342{display:flex;align-items:center;gap:3px;flex-wrap:wrap}',
+      '.popupComponentCeramistV6352 .ceramistFlagButtonV6342{height:25px;padding:0 8px;border:1px solid #d7dce2;border-radius:999px;background:#fff;color:#475467;font-size:9.5px;font-weight:900}',
+      '.popupComponentCeramistV6352 .ceramistFlagButtonV6342.active,.popupComponentCeramistV6352 .ceramistFlagButtonV6342[aria-pressed=true]{background:#fff7d6;color:#7a4a00;border-color:#f2c94c}',
+      '.popupComponentCeramistV6352 .ceramistFilterSeparatorV6347{display:block;width:1px;height:22px;background:#d7dce2;margin:0 2px}',
+      '.popupComponentCeramistV6352 .ceramistPreviewStatusV6342{max-width:620px;color:#667085;font-size:9px;font-weight:800;text-align:right;white-space:normal}',
+      '.popupComponentCeramistV6352 .ceramistWorkspaceV6343{height:auto;min-height:0;flex:1 1 auto;display:grid;grid-template-columns:minmax(0,38%) minmax(0,62%)}',
+      '.popupComponentCeramistV6352 .ceramistPanelV6343{height:100%;min-height:0;display:flex;flex-direction:column}',
+      '.popupComponentCeramistV6352 .ceramistPreviewTableWrapV6342{height:auto;min-height:0;flex:1 1 auto;overflow:auto;scrollbar-gutter:stable}',
+      '.popupComponentCeramistV6352 .ceramistPanelHeaderV6343{height:39px;min-height:39px}',
+      '.popupComponentCeramistV6352 .ceramistWorkspaceV6343 .ceramistPanelV6343:first-child th:nth-child(1),.popupComponentCeramistV6352 .ceramistWorkspaceV6343 .ceramistPanelV6343:first-child td:nth-child(1){width:28%;text-align:left}',
+      '.popupComponentCeramistV6352 .ceramistWorkspaceV6343 .ceramistPanelV6343:first-child th:nth-child(2),.popupComponentCeramistV6352 .ceramistWorkspaceV6343 .ceramistPanelV6343:first-child td:nth-child(2){width:20%;text-align:left}',
+      '.popupComponentCeramistV6352 .ceramistWorkspaceV6343 .ceramistPanelV6343:first-child th:nth-child(3),.popupComponentCeramistV6352 .ceramistWorkspaceV6343 .ceramistPanelV6343:first-child td:nth-child(3){width:10%;text-align:right}',
+      '.popupComponentCeramistV6352 .ceramistWorkspaceV6343 .ceramistPanelV6343:first-child th:nth-child(4),.popupComponentCeramistV6352 .ceramistWorkspaceV6343 .ceramistPanelV6343:first-child td:nth-child(4){width:12%;text-align:right}',
+      '.popupComponentCeramistV6352 .ceramistWorkspaceV6343 .ceramistPanelV6343:first-child th:nth-child(5),.popupComponentCeramistV6352 .ceramistWorkspaceV6343 .ceramistPanelV6343:first-child td:nth-child(5){width:13%;text-align:right}',
+      '.popupComponentCeramistV6352 .ceramistWorkspaceV6343 .ceramistPanelV6343:first-child th:nth-child(6),.popupComponentCeramistV6352 .ceramistWorkspaceV6343 .ceramistPanelV6343:first-child td:nth-child(6){width:17%;text-align:right}',
+      '.popupComponentCeramistV6352 .ceramistWorkspaceV6343 .ceramistPanelV6343:last-child th:nth-child(1),.popupComponentCeramistV6352 .ceramistWorkspaceV6343 .ceramistPanelV6343:last-child td:nth-child(1){width:44%;text-align:left}',
+      '.popupComponentCeramistV6352 .ceramistWorkspaceV6343 .ceramistPanelV6343:last-child th:nth-child(2),.popupComponentCeramistV6352 .ceramistWorkspaceV6343 .ceramistPanelV6343:last-child td:nth-child(2){width:12%;text-align:right}',
+      '.popupComponentCeramistV6352 .ceramistWorkspaceV6343 .ceramistPanelV6343:last-child th:nth-child(3),.popupComponentCeramistV6352 .ceramistWorkspaceV6343 .ceramistPanelV6343:last-child td:nth-child(3){width:14%;text-align:right}',
+      '.popupComponentCeramistV6352 .ceramistWorkspaceV6343 .ceramistPanelV6343:last-child th:nth-child(4),.popupComponentCeramistV6352 .ceramistWorkspaceV6343 .ceramistPanelV6343:last-child td:nth-child(4){width:14%;text-align:right}',
+      '.popupComponentCeramistV6352 .ceramistWorkspaceV6343 .ceramistPanelV6343:last-child th:nth-child(5),.popupComponentCeramistV6352 .ceramistWorkspaceV6343 .ceramistPanelV6343:last-child td:nth-child(5){width:16%;text-align:right}',
+      '.popupComponentCeramistV6352 .ceramistWorkspaceV6343 th{height:29px;padding:6px 7px}.popupComponentCeramistV6352 .ceramistWorkspaceV6343 td{padding:6px 7px}',
+      '.popupComponentCeramistV6352 .ceramistDetailSelectionV6368{display:none!important}',
+      '.ceramistCaseDialogOverlayV6369{position:fixed;inset:0;z-index:100000;display:flex;align-items:center;justify-content:center;padding:22px;background:rgba(15,23,42,.38)}',
+      '.ceramistCaseDialogV6369{width:min(720px,calc(100vw - 32px));max-height:min(76vh,680px);display:flex;flex-direction:column;background:#fff;border:1px solid #d7dce2;border-radius:12px;box-shadow:0 20px 50px rgba(15,23,42,.28);overflow:hidden}',
+      '.ceramistCaseDialogHeaderV6369{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:14px 16px;border-bottom:1px solid #e5e7eb}.ceramistCaseDialogHeadingV6369{display:flex;flex-direction:column;gap:3px;min-width:0}.ceramistCaseDialogHeadingV6369 strong{font-size:14px;color:#172033;white-space:normal}.ceramistCaseDialogHeadingV6369 span{font-size:10px;color:#667085;font-weight:800}.ceramistCaseDialogCloseV6369{width:30px;height:30px;min-width:30px;padding:0;border-radius:50%;font-size:18px}',
+      '.ceramistCaseDialogBodyV6369{padding:14px 16px;overflow:auto}.ceramistCaseDialogSectionV6369+.ceramistCaseDialogSectionV6369{margin-top:14px}.ceramistCaseDialogSectionTitleV6369{margin-bottom:7px;color:#475467;font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.4px}.ceramistCaseDialogChipsV6369{display:flex;flex-wrap:wrap;gap:6px}.ceramistCaseDialogChipV6369{display:inline-flex;align-items:center;min-height:25px;padding:4px 8px;border:1px solid #d7dce2;border-radius:999px;background:#f8fafc;color:#344054;font-size:10px;font-weight:800}.ceramistCaseDialogTextV6369{padding:9px 10px;border:1px solid #e1e6ee;border-radius:7px;background:#f8fafc;color:#475467;font-size:10px;line-height:1.4;white-space:normal}.ceramistCaseDialogEmptyV6369{color:#667085;font-size:11px}',
+      '.ceramistCaseDialogFooterV6369{display:flex;justify-content:flex-end;gap:8px;padding:10px 16px;border-top:1px solid #e5e7eb;background:#f8fafc}.ceramistCaseDialogCopyV6369:disabled{opacity:.45;cursor:default}',
+      '[hidden]{display:none!important}',
+      '@media(max-width:1180px){.headerV6339{align-items:flex-start;flex-wrap:wrap}#titleV6339{max-width:65vw}.controlsV6339{order:3;flex-basis:100%}#contentV6339{height:calc(100% - 86px)}.customerSplitV6339{height:auto;grid-template-columns:1fr}.customerSplitV6339 .chartShellV6339{height:420px}.customerSplitV6339 .tableShellV6339{height:520px}.popupComponentCeramistV6352 .headerV6339{height:40px;min-height:40px;align-items:center;flex-wrap:nowrap}.popupComponentCeramistV6352 .controlsV6339{order:initial;flex-basis:auto}.popupComponentCeramistV6352 #contentV6339{height:calc(100% - 40px)}.popupComponentCeramistV6352 .ceramistTopControlsV6351{align-items:flex-start}.popupComponentCeramistV6352 .ceramistWorkspaceV6343{grid-template-columns:minmax(0,38%) minmax(0,62%)}.popupComponentCeramistV6352 .ceramistPanelV6343{min-height:0}.popupComponentCeramistV6352 .ceramistPanelV6343+.ceramistPanelV6343{border-left:1px solid #dfe4eb;border-top:0}}@media(max-width:820px){.popupComponentCeramistV6352 #contentV6339{overflow:auto}.popupComponentCeramistV6352 .remakeCard{height:auto;min-height:760px}.popupComponentCeramistV6352 .ceramistTopControlsV6351{flex-direction:column}.popupComponentCeramistV6352 .ceramistPreviewMetaV6342{margin-left:0;align-items:flex-start}.popupComponentCeramistV6352 .ceramistFilterRowV6343{justify-content:flex-start}.popupComponentCeramistV6352 .ceramistPreviewStatusV6342{text-align:left}.popupComponentCeramistV6352 .ceramistWorkspaceV6343{grid-template-columns:1fr}.popupComponentCeramistV6352 .ceramistPanelV6343{min-height:360px}.popupComponentCeramistV6352 .ceramistPanelV6343+.ceramistPanelV6343{border-left:0;border-top:1px solid #dfe4eb}}'
+    ].join('');
+    return '<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>' + escV6230(title) + ' - Pop out</title>' + chartScript + '<style>' + styles + '</style></head><body class="popupComponent' + (component === 'ceramist' ? ' popupComponentCeramistV6352' : '') + '">'
+      + '<div class="headerV6339"><div id="titleV6339">' + escV6230(title) + '</div><div class="controlsV6339">'
+      + '<div id="trendControlsV6339" class="groupV6339" hidden><span id="trendModeV6339" class="groupV6339"><button data-value="line" onclick="setTrendModeV6339(\'line\')">Line</button><button data-value="bar" onclick="setTrendModeV6339(\'bar\')">Bar</button></span><span id="trendMeasureV6339" class="groupV6339"><button data-value="cases" onclick="setTrendMeasureV6339(\'cases\')">Cases</button><button data-value="units" onclick="setTrendMeasureV6339(\'units\')">Units</button></span><span id="trendValueV6339" class="groupV6339"><button data-value="total" onclick="setTrendValueV6339(\'total\')">Total</button><button data-value="percent" onclick="setTrendValueV6339(\'percent\')">%</button></span></div>'
+      + '<div id="viewControlsV6339" class="groupV6339" hidden><button data-value="monthly" onclick="setTrendViewV6339(\'monthly\')">Monthly</button><button data-value="cumulative" onclick="setTrendViewV6339(\'cumulative\')">Cumulative</button></div>'
+      + '<div id="productControlsV6339" class="groupV6339" hidden><button data-value="product" onclick="setProductModeV6339(\'product\')">Products</button><button data-value="group" onclick="setProductModeV6339(\'group\')">Groups</button></div>'
+      + '<div id="customerControlsV6339" class="groupV6339" hidden><button data-value="highest" onclick="setCustomerModeV6339(\'highest\')">Highest</button><button data-value="all" onclick="setCustomerModeV6339(\'all\')">All customers</button></div>'
+      + '<div id="ceramistCaseStatusV6343" class="groupV6339" hidden><button data-value="all" onclick="setCeramistCaseStatusV6343(\'all\')">All</button><button data-value="full" onclick="setCeramistCaseStatusV6343(\'full\')">Fully attributed</button><button data-value="partial" onclick="setCeramistCaseStatusV6343(\'partial\')">Partial</button><button data-value="unattributed" onclick="setCeramistCaseStatusV6343(\'unattributed\')">Unattributed</button></div>'
+      + '<div id="ceramistDiagnosticV6343" class="groupV6339" hidden><button data-value="none" onclick="setCeramistDiagnosticV6343(\'none\')">No flag</button><button data-value="multi" onclick="setCeramistDiagnosticV6343(\'multi\')">Multi-chain</button><button data-value="rootMissing" onclick="setCeramistDiagnosticV6343(\'rootMissing\')">No prior match</button><button data-value="noteEvidence" onclick="setCeramistDiagnosticV6343(\'noteEvidence\')">Note evidence</button></div>'
+      + '<div id="ceramistBreakdownV6343" class="groupV6339" hidden><button data-value="product" onclick="setCeramistBreakdownV6343(\'product\')">Product</button><button data-value="group" onclick="setCeramistBreakdownV6343(\'group\')">Group</button><button data-value="department" onclick="setCeramistBreakdownV6343(\'department\')">Dept</button><button data-value="customer" onclick="setCeramistBreakdownV6343(\'customer\')">Customer</button><button data-value="reason" onclick="setCeramistBreakdownV6343(\'reason\')">Reason</button></div>'
+      + '<button id="compareControlV6339" hidden onclick="toggleCompareV6339()">Compare</button>'
+      + '<button class="exportV6339" onclick="exportPanelV6339()">Export</button><button onclick="clearPanelV6339()">Clear selection</button></div>'
+      + '<div id="statusV6339">Connecting...</div><button class="closeV6339" onclick="window.close()">Close</button></div>'
+      + '<div id="contentV6339"><div class="emptyV6339">Connecting to the main dashboard...</div></div>'
+      + scriptOpen + runtime + scriptClose + '</body></html>';
   }
-  function rowIdentityV6300(row, tableId, index) {
-    const cells = row && row.cells ? Array.from(row.cells) : [];
-    const take = tableId === 'remakeCustomerTable' ? 2 : 1;
-    const parts = cells.slice(0, take).map(cell => String(cell.textContent || '').replace(/\s+/g, ' ').trim());
-    return tableId + '|' + (parts.join('|') || String(index));
-  }
-  function captureTableV6300(tableId) {
-    const table = idV6230(tableId);
-    if (!table) return null;
-    const wrap = table.closest('.remakeTableWrap');
-    const rows = Array.from(table.querySelectorAll('tbody tr'));
-    const wrapRect = wrap ? wrap.getBoundingClientRect() : null;
-    const positions = new Map();
-    rows.forEach((row, index) => {
-      if (positions.size >= (SNAPPY_TRANSITIONS_V6398 ? 8 : 18)) return;
-      const rect = row.getBoundingClientRect();
-      if (wrapRect && (rect.bottom < wrapRect.top - 36 || rect.top > wrapRect.bottom + 36)) return;
-      positions.set(rowIdentityV6300(row, tableId, index), { top: rect.top, left: rect.left, height: rect.height });
-    });
-    return { tableId, positions, scrollTop: wrap ? wrap.scrollTop : 0 };
-  }
-  function captureCanvasV6300(canvasId) {
-    const canvas = idV6230(canvasId);
-    if (!canvas || !canvas.parentElement || !canvas.width || !canvas.height) return null;
-    const host = canvas.parentElement;
-    const canvasRect = canvas.getBoundingClientRect();
-    const hostRect = host.getBoundingClientRect();
-    const overlay = document.createElement('canvas');
-    overlay.className = 'remakeCanvasOverlayV6300';
-    overlay.width = canvas.width;
-    overlay.height = canvas.height;
+
+  window.popoutRemakeComponentV6230 = function popoutRemakeComponentV6339(component) {
+    const meta = remakePopoutMetaV6339(component);
+    if (!meta) return;
+    const existing = remakePopoutRefsV6339[component];
+    if (existing && existing.win && !existing.win.closed) {
+      try { existing.win.focus(); } catch (error) {}
+      scheduleRemakePopoutSyncV6339(20);
+      return;
+    }
+    const width = Math.max(880, Math.min(Math.round(screen.width * .82), 1540));
+    const height = Math.max(600, Math.min(Math.round(screen.height * .82), 940));
+    const left = Math.max(18, Math.round((window.screenX || window.screenLeft || 0) + 56));
+    const top = Math.max(18, Math.round((window.screenY || window.screenTop || 0) + 46));
+    const win = window.open('', 'cdaRemakePopout_' + slugV6230(component), 'popup=yes,width=' + width + ',height=' + height + ',left=' + left + ',top=' + top + ',resizable=yes,scrollbars=yes');
+    if (!win) {
+      setNoticeV6230('Browser blocked the pop-out. Allow pop-ups for this dashboard.', 'warn');
+      return;
+    }
+    remakePopoutRefsV6339[component] = { win:win, component:component };
     try {
-      const context = overlay.getContext('2d');
-      if (!context) return null;
-      context.drawImage(canvas, 0, 0);
-    } catch (error) { return null; }
-    if (window.getComputedStyle && getComputedStyle(host).position === 'static') host.style.position = 'relative';
-    Object.assign(overlay.style, {
-      position: 'absolute',
-      left: (canvasRect.left - hostRect.left) + 'px',
-      top: (canvasRect.top - hostRect.top) + 'px',
-      width: canvasRect.width + 'px',
-      height: canvasRect.height + 'px',
-      pointerEvents: 'none',
-      zIndex: '8',
-      opacity: '1',
-      transformOrigin: '50% 50%'
-    });
-    host.appendChild(overlay);
-    return { canvasId, overlay };
-  }
-  function captureKpisV6300() {
-    const ids = ['remakeTotalCases','remakeCases','remakeCaseRate','remakeTotalUnits','remakeUnits','remakeUnitRate','remakeDiscount'];
-    const values = {};
-    ids.forEach(id => { const el = idV6230(id); values[id] = el ? String(el.textContent || '') : ''; });
-    return values;
-  }
-  function removeOldMorphOverlaysV6300() {
-    document.querySelectorAll('#remakeFactorPage .remakeCanvasOverlayV6300').forEach(node => { try { node.remove(); } catch (error) {} });
-  }
-  function beginDashboardMorphV6300(scope) {
-    removeOldMorphOverlaysV6300();
-    dashboardMorphStateV6300.active = null;
-    return null;
-  }
-  function animateTableFromSnapshotV6300(snapshot) {
-    const table = idV6230(snapshot.tableId);
-    if (!table) return;
-    const wrap = table.closest('.remakeTableWrap');
-    if (wrap) {
-      const maxScroll = Math.max(0, wrap.scrollHeight - wrap.clientHeight);
-      wrap.scrollTop = Math.min(snapshot.scrollTop || 0, maxScroll);
-      if (typeof wrap.animate === 'function') {
-        wrap.animate([
-          { opacity: .90, transform: 'translateY(2px)' },
-          { opacity: 1, transform: 'translateY(0)' }
-        ], { duration: 75, easing: 'ease-out' });
-      }
+      win.document.open();
+      win.document.write(popupHtmlV6339(component, meta.title));
+      win.document.close();
+      win.focus();
+      scheduleRemakePopoutSyncV6339(140);
+    } catch (error) {
+      console.error('Interactive Remake pop-out failed', error);
     }
-    const rows = Array.from(table.querySelectorAll('tbody tr'));
-    const wrapRect = wrap ? wrap.getBoundingClientRect() : null;
-    let animated = 0;
-    rows.forEach((row, index) => {
-      if (animated >= (SNAPPY_TRANSITIONS_V6398 ? 8 : 18) || typeof row.animate !== 'function') return;
-      const rect = row.getBoundingClientRect();
-      if (wrapRect && (rect.bottom < wrapRect.top - 36 || rect.top > wrapRect.bottom + 36)) return;
-      const prior = snapshot.positions.get(rowIdentityV6300(row, snapshot.tableId, index));
-      const delay = SNAPPY_TRANSITIONS_V6398 ? 0 : Math.min(24, animated * 2);
-      if (prior) {
-        const dx = prior.left - rect.left;
-        const dy = prior.top - rect.top;
-        row.animate([
-          { opacity: .78, transform: 'translate(' + dx.toFixed(1) + 'px,' + dy.toFixed(1) + 'px)' },
-          { opacity: 1, transform: 'translate(0,0)' }
-        ], { duration: 90, delay, easing: 'ease-out' });
-      } else {
-        row.animate([
-          { opacity: 0, transform: 'translateY(7px)' },
-          { opacity: 1, transform: 'translateY(0)' }
-        ], { duration: 85, delay, easing: 'ease-out' });
-      }
-      animated += 1;
-    });
-  }
-  function animateCanvasFromSnapshotV6300(snapshot) {
-    const overlay = snapshot && snapshot.overlay;
-    const canvas = snapshot ? idV6230(snapshot.canvasId) : null;
-    if (canvas && typeof canvas.animate === 'function') {
-      canvas.animate([
-        { opacity: .42, transform: 'translateY(4px) scale(.996)' },
-        { opacity: 1, transform: 'translateY(0) scale(1)' }
-      ], { duration: 80, easing: 'ease-out' });
-    }
-    if (!overlay) return;
-    if (typeof overlay.animate !== 'function') { overlay.remove(); return; }
-    const animation = overlay.animate([
-      { opacity: 1, transform: 'translateY(0) scale(1)' },
-      { opacity: 0, transform: 'translateY(-3px) scale(.994)' }
-    ], { duration: 80, easing: 'ease-out' });
-    animation.finished.catch(function(){}).then(function(){ try { overlay.remove(); } catch (error) {} });
-  }
-  function finishDashboardMorphV6300(snapshot) {
-    removeOldMorphOverlaysV6300();
-    dashboardMorphStateV6300.active = null;
-  }
-  let trendRenderTimerV6301 = 0;
-  function clearPendingTransitionV6301(page, delay) {
-    if (!page) return;
-    window.setTimeout(function(){ page.classList.remove('remakeRenderPendingV6301'); }, delay || 120);
-  }
-  function renderTrendSectionOnlyV6300() {
-    if (!window.remakeFactorState || !window.remakeFactorState.loaded) return;
-    if (trendRenderTimerV6301) cancelAnimationFrame(trendRenderTimerV6301);
-    const page = idV6230('remakeFactorPage');
-    if (page) page.classList.add('remakeRenderPendingV6301');
-    trendRenderTimerV6301 = requestAnimationFrame(function(){
-      const snapshot = beginDashboardMorphV6300('trend');
-      trendRenderTimerV6301 = requestAnimationFrame(function(){
-        const allRows = normalizedRowsV6230();
-        const baseRows = rowsForBaseFiltersV6252(allRows, { months: false });
-        const remakeBaseRows = rowsForRemakeFiltersV6252(allRows, { months: false });
-        setModeButtonsV6230();
-        renderTrendV6230(allRows, baseRows, remakeBaseRows);
-        finishDashboardMorphV6300(snapshot);
-        clearPendingTransitionV6301(page, 100);
-        trendRenderTimerV6301 = 0;
-      });
-    });
-  }
-
-
-  /* v6.413 smooth interaction scheduler.
-     Keep the approved local component-morph design, but split the expensive
-     Remake Factor refresh into smaller paintable phases. Rapid clicks are
-     coalesced so only the newest filter state finishes rendering. */
-  const smoothRenderStateV6413 = {
-    generation: 0,
-    running: false,
-    rerun: false,
-    idleHandle: 0,
-    idleHandleType: ''
   };
 
-  function installSmoothInteractionStylesV6413() {
-    if (idV6230('remakeSmoothInteractionStylesV6413')) return;
-    const style = document.createElement('style');
-    style.id = 'remakeSmoothInteractionStylesV6413';
-    style.textContent =       '#remakeFactorPage.cleanRemakeV6230 button,' +
-      '#remakeFactorPage.cleanRemakeV6230 .remakeTable tbody tr{' +
-        'transition:transform 70ms ease-out,box-shadow 90ms ease-out,background-color 90ms ease-out;' +
-        'transform-origin:center;' +
-      '}' +
-      '#remakeFactorPage.cleanRemakeV6230 button.remakePressedV6413{' +
-        'transform:translateY(1px) scale(.985)!important;' +
-      '}' +
-      '#remakeFactorPage.cleanRemakeV6230 .remakeTable tbody tr.remakePressedV6413{' +
-        'transform:translateY(1px);' +
-      '}' +
-      '#remakeFactorPage.remakeRenderPendingV6301 .remakeStickyTopV6245::after{' +
-        'content:"";position:absolute;left:0;right:0;bottom:-2px;height:2px;' +
-        'background:linear-gradient(90deg,transparent,#f4b400,transparent);' +
-        'transform:translateX(-100%);animation:remakeWorkingLineV6413 900ms linear infinite;' +
-        'pointer-events:none;z-index:40;' +
-      '}' +
-      '#remakeFactorPage.cleanRemakeV6230 .remakeStickyTopV6245{position:sticky;}' +
-            '@keyframes remakeWorkingLineV6413{' +
-        '0%{transform:translateX(-100%)}100%{transform:translateX(100%)}' +
-      '}' +
-      '@media (prefers-reduced-motion:reduce){' +
-        '#remakeFactorPage.cleanRemakeV6230 button,' +
-        '#remakeFactorPage.cleanRemakeV6230 .remakeTable tbody tr{transition:none!important;}' +
-        '#remakeFactorPage.remakeRenderPendingV6301 .remakeStickyTopV6245::after{animation:none;opacity:.55;}' +
-      '}';
-    document.head.appendChild(style);
+  const remakePopoutObservedPageV6339 = idV6230('remakeFactorPage');
+  if (remakePopoutObservedPageV6339 && typeof MutationObserver === 'function') {
+    const remakePopoutObserverV6339 = new MutationObserver(function(){ scheduleRemakePopoutSyncV6339(180); });
+    remakePopoutObserverV6339.observe(remakePopoutObservedPageV6339, { childList:true, subtree:true, attributes:true, attributeFilter:['class','aria-pressed'] });
+  }
 
-    if (!window.__remakePressFeedbackV6413) {
-      window.__remakePressFeedbackV6413 = true;
-      document.addEventListener('pointerdown', function(event) {
-        const page = idV6230('remakeFactorPage');
-        if (!page || !page.classList.contains('active')) return;
-        const target = event.target && event.target.closest
-          ? event.target.closest('#remakeFactorPage button, #remakeFactorPage .remakeTable tbody tr')
-          : null;
-        if (!target) return;
-        target.classList.add('remakePressedV6413');
-        window.setTimeout(function() { target.classList.remove('remakePressedV6413'); }, 130);
-      }, true);
+  function slimDataV6230(data) {
+    const sourceRows = (data && (data.rows || data.detailRows)) || rawRowsV6230();
+    const sample = sourceRows && sourceRows.length ? sourceRows[0] : null;
+    const alreadyNormalized = !!(
+      data && data.browserRowsNormalized === true ||
+      sample && sample.customerKey !== undefined && sample.productKey !== undefined && sample.units !== undefined
+    );
+    const rows = alreadyNormalized ? sourceRows : normalizeRowsV6230(sourceRows);
+    return {
+      ok: true,
+      generatedAt: data && (data.generatedAt || data.lastRefreshAt || ''),
+      source: data && data.source || '',
+      message: data && data.message || '',
+      dateRange: data && data.dateRange || {},
+      stats: data && data.stats || {},
+      cacheToken: data && data.cacheToken || '',
+      sourceGeneratedAt: data && (data.sourceGeneratedAt || data.generatedAt || data.lastRefreshAt || ''),
+      currentSourceGeneratedAt: data && data.currentSourceGeneratedAt || '',
+      browserReadyBuiltAt: data && (data.browserReadyBuiltAt || data.builtAt || ''),
+      browserReadyFileSizeBytes: Number(data && (data.browserReadyFileSizeBytes || data.fileSizeBytes) || 0),
+      browserReadyRowCount: Number(data && (data.browserReadyRowCount || data.rowCount) || rows.length || 0),
+      browserRowsNormalized: true,
+      browserRowSchema: 'remakeBrowserRowV1323',
+      rows: rows
+    };
+  }
+
+  function cancelScheduledBrowserCacheWriteV6346() {
+    if (browserCacheWriteHandleV6346) {
+      try {
+        if (browserCacheWriteHandleTypeV6346 === 'idle' && typeof window.cancelIdleCallback === 'function') {
+          window.cancelIdleCallback(browserCacheWriteHandleV6346);
+        } else {
+          window.clearTimeout(browserCacheWriteHandleV6346);
+        }
+      } catch (error) {}
+    }
+    browserCacheWriteHandleV6346 = 0;
+    browserCacheWriteHandleTypeV6346 = '';
+    if (!browserCacheWriteRunningV6346) {
+      browserCacheWriteScheduledV6346 = false;
+      if (finishBrowserCacheWriteCompletionV6568) {
+        const finish = finishBrowserCacheWriteCompletionV6568;
+        finishBrowserCacheWriteCompletionV6568 = null;
+        finish(false);
+      }
     }
   }
 
-  function yieldRenderPhaseV6413(callback) {
-    if (typeof callback !== 'function') return;
-    if (typeof queueMicrotask === 'function') queueMicrotask(callback);
-    else Promise.resolve().then(callback);
-  }
-
-  function captureKpiValuesV6413() {
-    return captureKpisV6300();
-  }
-
-  function animateKpiValuesV6413(before) {}
-
-  function captureTableSetV6413(ids) {
-    return (ids || []).map(captureTableV6300).filter(Boolean);
-  }
-
-  function animateTableSetV6413(snapshots) {}
-
-  function animateCardV6413(id) {}
-
-  function cancelCeramistIdleV6413() {
-    if (!smoothRenderStateV6413.idleHandle) return;
-    try {
-      if (smoothRenderStateV6413.idleHandleType === 'idle' && typeof window.cancelIdleCallback === 'function') {
-        window.cancelIdleCallback(smoothRenderStateV6413.idleHandle);
-      } else {
-        window.clearTimeout(smoothRenderStateV6413.idleHandle);
-      }
-    } catch (error) {}
-    smoothRenderStateV6413.idleHandle = 0;
-    smoothRenderStateV6413.idleHandleType = '';
-  }
-
-  function scheduleCeramistRenderV6413(generation) {
-    cancelCeramistIdleV6413();
-    const run = function() {
-      smoothRenderStateV6413.idleHandle = 0;
-      smoothRenderStateV6413.idleHandleType = '';
-      if (generation !== smoothRenderStateV6413.generation) return;
-      renderCeramistAnalysisV6342();
-      if (!ceramistStateV6342.loaded && !ceramistStateV6342.loading) armCeramistLazyLoadV6346();
+  function writeCacheV6230(data) {
+    cancelScheduledBrowserCacheWriteV6346();
+    const slim = slimDataV6230(data);
+    browserCacheWriteScheduledV6346 = true;
+    let finishCurrentBrowserCacheWriteV6568 = null;
+    browserCacheWriteCompletionV6568 = new Promise(function(resolve) {
+      finishCurrentBrowserCacheWriteV6568 = resolve;
+      finishBrowserCacheWriteCompletionV6568 = resolve;
+    });
+    const save = function saveChunkedRemakeBrowserCacheV6346() {
+      browserCacheWriteHandleV6346 = 0;
+      browserCacheWriteHandleTypeV6346 = '';
+      browserCacheWriteRunningV6346 = true;
+      browserCacheWritePromiseV6346 = writeRemakeFastCacheV6261(slim)
+        .catch(error => { console.warn('Remake browser cache write skipped', error); return false; })
+        .finally(function finishChunkedRemakeCacheWriteV6346() {
+          browserCacheWriteRunningV6346 = false;
+          browserCacheWriteScheduledV6346 = false;
+          if (finishCurrentBrowserCacheWriteV6568) {
+            const finish = finishCurrentBrowserCacheWriteV6568;
+            finishCurrentBrowserCacheWriteV6568 = null;
+            if (finishBrowserCacheWriteCompletionV6568 === finish) finishBrowserCacheWriteCompletionV6568 = null;
+            finish(true);
+          }
+          if (!mainCacheSwapActiveV6346) armCeramistLazyLoadV6346();
+        });
     };
     if (typeof window.requestIdleCallback === 'function') {
-      smoothRenderStateV6413.idleHandleType = 'idle';
-      smoothRenderStateV6413.idleHandle = window.requestIdleCallback(run, { timeout: 450 });
+      browserCacheWriteHandleTypeV6346 = 'idle';
+      browserCacheWriteHandleV6346 = window.requestIdleCallback(save, { timeout: 8000 });
     } else {
-      smoothRenderStateV6413.idleHandleType = 'timeout';
-      smoothRenderStateV6413.idleHandle = window.setTimeout(run, 120);
+      browserCacheWriteHandleTypeV6346 = 'timeout';
+      browserCacheWriteHandleV6346 = window.setTimeout(save, 1200);
     }
+    return browserCacheWriteCompletionV6568;
   }
 
-  function renderDashboardV6230() {
-    const requestedGeneration = ++smoothRenderStateV6413.generation;
-    smoothRenderStateV6413.rerun = true;
-    if (smoothRenderStateV6413.running) return;
-
-    smoothRenderStateV6413.running = true;
-    smoothRenderStateV6413.rerun = false;
-    const generation = requestedGeneration;
-    const pageV6301 = idV6230('remakeFactorPage');
-    if (pageV6301) pageV6301.classList.add('remakeRenderPendingV6301');
-    installSmoothInteractionStylesV6413();
-
-    const context = {
-      started: (window.performance && performance.now) ? performance.now() : Date.now(),
-      allRows: [],
-      currentYearRows: [],
-      priorYearRows: [],
-      reasonTotals: null,
-      reasonGroups: [],
-      departmentGroups: [],
-      productGroups: [],
-      customerGroups: [],
-      totalRows: []
-    };
-
-    function supersededV6413() {
-      return generation !== smoothRenderStateV6413.generation;
-    }
-
-    function completeV6413(aborted) {
-      smoothRenderStateV6413.running = false;
-      renderTimerV6230 = 0;
-      if (!aborted) clearPendingTransitionV6301(pageV6301, 90);
-      if (smoothRenderStateV6413.rerun || supersededV6413()) {
-        smoothRenderStateV6413.rerun = false;
-        window.setTimeout(renderDashboardV6230, 0);
-      }
-    }
-
-    function phaseTopV6413() {
-      if (supersededV6413()) { completeV6413(true); return; }
-      installStylesV6230();
-      buildShellV6230(false);
-      setBannerV6230();
-      syncFiltersFromControlsV6230();
-
-      if (!window.remakeFactorState || !window.remakeFactorState.loaded) {
-        setKpisV6230({ totalCases: 0, remakeCases: 0, totalUnits: 0, remakeUnits: 0, remakeDiscount: 0, remakeCaseRate: 0, remakeUnitRate: 0 });
-        setPerfV6230(0, 0, 0);
-        completeV6413(false);
-        return;
-      }
-
-      const kpisBeforeV6413 = captureKpiValuesV6413();
-      context.allRows = normalizedRowsV6230();
-      populateFiltersV6230(context.allRows);
-      context.comparisonScope = comparisonScopeV6295(context.allRows);
-      context.currentYearRows = rowsInComparisonYearV6295(context.allRows, context.comparisonScope.currentYear, context.comparisonScope.months, context.comparisonScope);
-      context.priorYearRows = rowsInComparisonYearV6295(context.allRows, context.comparisonScope.priorYear, context.comparisonScope.months, context.comparisonScope);
-      context.baseRows = rowsForBaseFiltersV6252(context.allRows, { months: false });
-      context.remakeBaseRows = rowsForRemakeFiltersV6252(context.allRows, { months: false });
-      context.totalRows = rowsForBaseFiltersV6252(context.allRows, { months: true });
-      context.remakeRows = rowsForRemakeFiltersV6252(context.allRows, { months: true });
-      context.summary = summarizeSplitV6252(context.totalRows, context.remakeRows);
-      context.kpiPack = comparisonPackV6301(context.allRows);
-
-      setKpisV6230(context.kpiPack.current || context.summary, context.kpiPack.prior || {}, context.kpiPack);
-      renderPillsV6230();
-      setModeButtonsV6230();
-      renderTrendV6230(context.allRows, context.baseRows, context.remakeBaseRows);
-      animateKpiValuesV6413(kpisBeforeV6413);
-      animateCardV6413('remakeTrendCardV6230');
-      yieldRenderPhaseV6413(phaseReasonDepartmentV6413);
-    }
-
-    function phaseReasonDepartmentV6413() {
-      if (supersededV6413()) { completeV6413(true); return; }
-      const tableSnapshotsV6413 = captureTableSetV6413(['remakeReasonTable', 'remakeDepartmentTable']);
-
-      const reasonTotalRows = rowsForBaseFiltersV6252(context.currentYearRows, { year: false, months: false });
-      const priorReasonTotalRows = rowsForBaseFiltersV6252(context.priorYearRows, { year: false, months: false });
-      const reasonRemakeRows = rowsForRemakeFiltersV6252(context.currentYearRows, { year: false, months: false, reason: false });
-      const priorReasonRemakeRows = rowsForRemakeFiltersV6252(context.priorYearRows, { year: false, months: false, reason: false });
-      const departmentTotalRows = rowsForBaseFiltersV6252(context.currentYearRows, { year: false, months: false, department: false });
-      const priorDepartmentTotalRows = rowsForBaseFiltersV6252(context.priorYearRows, { year: false, months: false, department: false });
-      const departmentRemakeRows = rowsForRemakeFiltersV6252(context.currentYearRows, { year: false, months: false, department: false });
-      const priorDepartmentRemakeRows = rowsForRemakeFiltersV6252(context.priorYearRows, { year: false, months: false, department: false });
-
-      context.reasonTotals = summarizeSplitV6252(reasonTotalRows, reasonRemakeRows);
-      const priorReasonTotals = summarizeSplitV6252(priorReasonTotalRows, priorReasonRemakeRows);
-      const rawReasonGroups = withReasonSharesV6301(groupV6230(reasonRemakeRows.filter(isRemakeV6230), row => row.remakeReason || 'Not specified', row => row.remakeReason || 'Not specified'), context.reasonTotals);
-      const priorReasonGroups = withReasonSharesV6301(groupV6230(priorReasonRemakeRows.filter(isRemakeV6230), row => row.remakeReason || 'Not specified', row => row.remakeReason || 'Not specified'), priorReasonTotals);
-      context.reasonGroups = attachPriorGroupsV6295(rawReasonGroups, priorReasonGroups);
-      const priorDepartmentGroups = groupSplitV6252(priorDepartmentTotalRows, priorDepartmentRemakeRows, row => row.department || 'Unassigned', row => row.department || 'Unassigned');
-      context.departmentGroups = attachPriorGroupsV6295(groupSplitV6252(departmentTotalRows, departmentRemakeRows, row => row.department || 'Unassigned', row => row.department || 'Unassigned'), priorDepartmentGroups)
-        .filter(row => numV6230(row.remakeCases) > 0 || numV6230(row.remakeUnits) > 0 || numV6230(row.remakeDiscount) > 0);
-
-      uiV6230.lastReasonGroupsV6297 = context.reasonGroups;
-      uiV6230.lastReasonTotalsV6297 = context.reasonTotals;
-      uiV6230.lastDepartmentGroupsV6297 = context.departmentGroups;
-      syncTableCompareButtonsV6297();
-      renderRemakeReasonTableV6241('remakeReasonTable', 'reason', context.reasonGroups, 'Reason', 'reason', 150, context.reasonTotals);
-      renderStandardTableV6230('remakeDepartmentTable', 'department', context.departmentGroups, 'Department', 'department', 150);
-      animateTableSetV6413(tableSnapshotsV6413);
-      yieldRenderPhaseV6413(phaseProductV6413);
-    }
-
-    function phaseProductV6413() {
-      if (supersededV6413()) { completeV6413(true); return; }
-      const tableSnapshotsV6413 = captureTableSetV6413(['remakeProductTable']);
-      const productMode = uiV6230.productTableMode === 'group' ? 'group' : 'product';
-      const productIgnore = productMode === 'group' ? { productGroup: false } : { product: false };
-      const productTotalRows = rowsForBaseFiltersV6252(context.currentYearRows, Object.assign({ year: false, months: false }, productIgnore));
-      const priorProductTotalRows = rowsForBaseFiltersV6252(context.priorYearRows, Object.assign({ year: false, months: false }, productIgnore));
-      const productRemakeRows = rowsForRemakeFiltersV6252(context.currentYearRows, Object.assign({ year: false, months: false }, productIgnore));
-      const priorProductRemakeRows = rowsForRemakeFiltersV6252(context.priorYearRows, Object.assign({ year: false, months: false }, productIgnore));
-      const rawProductGroups = productMode === 'group'
-        ? groupSplitV6252(productTotalRows, productRemakeRows, row => row.productGroup || row.department || 'Unassigned', row => row.productGroup || row.department || 'Unassigned')
-        : groupSplitV6252(productTotalRows, productRemakeRows, row => row.productKey, row => row.productName);
-      const priorProductGroups = productMode === 'group'
-        ? groupSplitV6252(priorProductTotalRows, priorProductRemakeRows, row => row.productGroup || row.department || 'Unassigned', row => row.productGroup || row.department || 'Unassigned')
-        : groupSplitV6252(priorProductTotalRows, priorProductRemakeRows, row => row.productKey, row => row.productName);
-      context.productGroups = attachPriorGroupsV6295(rawProductGroups, priorProductGroups)
-        .filter(row => numV6230(row.remakeCases) > 0 || numV6230(row.remakeUnits) > 0 || numV6230(row.remakeDiscount) > 0);
-
-      uiV6230.lastProductGroupsV6297 = context.productGroups;
-      syncTableCompareButtonsV6297();
-      const productTitle = idV6230('remakeProductTitleV6264');
-      if (productTitle) productTitle.textContent = productMode === 'group' ? 'Product Groups' : 'Products';
-      const productBtn = idV6230('remakeProductModeProductBtnV6264');
-      const groupBtn = idV6230('remakeProductModeGroupBtnV6264');
-      if (productBtn) productBtn.classList.toggle('active', productMode !== 'group');
-      if (groupBtn) groupBtn.classList.toggle('active', productMode === 'group');
-      renderStandardTableV6230('remakeProductTable', 'product', context.productGroups, productMode === 'group' ? 'Group' : 'Product', productMode === 'group' ? 'productGroup' : 'product', 150);
-      animateTableSetV6413(tableSnapshotsV6413);
-      yieldRenderPhaseV6413(phaseCustomerV6413);
-    }
-
-    function phaseCustomerV6413() {
-      if (supersededV6413()) { completeV6413(true); return; }
-      const tableSnapshotsV6413 = captureTableSetV6413(['remakeCustomerTable']);
-      const customerTotalRows = rowsForBaseFiltersV6252(context.currentYearRows, { year: false, months: false, customer: false });
-      const priorCustomerTotalRows = rowsForBaseFiltersV6252(context.priorYearRows, { year: false, months: false, customer: false });
-      const customerRemakeRows = rowsForRemakeFiltersV6252(context.currentYearRows, { year: false, months: false, customer: false });
-      const priorCustomerRemakeRows = rowsForRemakeFiltersV6252(context.priorYearRows, { year: false, months: false, customer: false });
-      const customerTotalsV6502 = summarizeSplitV6252(customerTotalRows, customerRemakeRows);
-      const priorCustomerTotalsV6502 = summarizeSplitV6252(priorCustomerTotalRows, priorCustomerRemakeRows);
-      const priorCustomerGroups = withReasonSharesV6301(groupSplitV6252(priorCustomerTotalRows, priorCustomerRemakeRows, row => row.customerKey, row => customerLabelV6246(row), (group, row) => {
-        group.customerId = row.customerId || row.customerKey;
-        group.customerName = row.customerName || row.customerKey;
-        group.practiceName = row.practiceName || '';
-        group.customerDisplayLabel = customerLabelV6246(row);
-        if (row.customerActive === false) group.customerActive = false;
-      }), priorCustomerTotalsV6502);
-      context.customerGroups = attachPriorGroupsV6295(withReasonSharesV6301(groupSplitV6252(customerTotalRows, customerRemakeRows, row => row.customerKey, row => customerLabelV6246(row), (group, row) => {
-        group.customerId = row.customerId || row.customerKey;
-        group.customerName = row.customerName || row.customerKey;
-        group.practiceName = row.practiceName || '';
-        group.customerDisplayLabel = customerLabelV6246(row);
-        if (row.customerActive === false) group.customerActive = false;
-      }), customerTotalsV6502), priorCustomerGroups).filter(row => numV6230(row.remakeCases) > 0 || numV6230(row.remakeUnits) > 0 || numV6230(row.remakeDiscount) > 0);
-
-      uiV6230.lastCustomerGroupsV6291 = context.customerGroups;
-      syncTableCompareButtonsV6297();
-      renderCustomerChartV6230(context.customerGroups);
-      renderCustomerTableV6230(context.customerGroups);
-      animateTableSetV6413(tableSnapshotsV6413);
-      animateCardV6413('remakeCustomerCardV6230');
-      scheduleCeramistRenderV6413(generation);
-
-      setNoticeV6230(context.totalRows.length ? '' : 'No matching rows.', context.totalRows.length ? '' : 'warn');
-      const ended = (window.performance && performance.now) ? performance.now() : Date.now();
-      setPerfV6230(Math.round(ended - context.started), context.totalRows.length, context.allRows.length);
-      completeV6413(false);
-    }
-
-    if (renderTimerV6230) cancelAnimationFrame(renderTimerV6230);
-    renderTimerV6230 = requestAnimationFrame(function() {
-      requestAnimationFrame(phaseTopV6413);
-    });
-  }
-
-  function persistUiV6230() {
-    writeLocalTextV6230(MODE_KEY_V6230, uiV6230.mode || 'line');
-    writeLocalTextV6230(TREND_MEASURE_KEY_V6245, uiV6230.trendMeasure || 'cases');
-    writeLocalTextV6230(TREND_VALUE_KEY_V6247, uiV6230.trendValueMode || 'total');
-    writeLocalTextV6230(TREND_CUMULATIVE_KEY_V6302, uiV6230.trendCumulative === true ? '1' : '0');
-    writeLocalTextV6230(CUSTOMER_TABLE_MODE_KEY_V6251, uiV6230.customerTableMode === 'all' ? 'all' : 'highest');
-    writeLocalTextV6230(PRODUCT_TABLE_MODE_KEY_V6264, uiV6230.productTableMode === 'group' ? 'group' : 'product');
-    writeLocalJsonV6230(TABLE_COMPARE_KEY_V6297, uiV6230.tableCompareV6297 || {});
-    writeLocalJsonV6230(MONTHS_KEY_V6230, Array.from(uiV6230.selectedMonths || []));
-    writeLocalJsonV6230(FILTERS_KEY_V6230, uiV6230.filters || {});
-    writeLocalJsonV6230(FILTER_EXCLUSIONS_KEY_V6389, uiV6230.filterExclusionsV6389 || {});
-    writeLocalJsonV6230(SORT_KEY_V6230, uiV6230.sorts || {});
-  }
-
-  window.setRemakeChartModeV6230 = function setRemakeChartModeV6230(mode) {
-    const nextMode = mode === 'bar' ? 'bar' : 'line';
-    if ((uiV6230.mode || 'line') === nextMode) return;
-    pushRemakeUndoV6266();
-    uiV6230.mode = nextMode;
-    persistUiV6230();
-    setModeButtonsV6230();
-    // Chart mode is presentation-only: transform the chart locally instead of
-    // rebuilding every KPI and table.
-    renderTrendSectionOnlyV6300();
-  };
-
-  window.setRemakeTrendMeasureV6245 = function setRemakeTrendMeasureV6245(measure) {
-    const nextMeasure = measure === 'units' ? 'units' : 'cases';
-    if ((uiV6230.trendMeasure || 'cases') === nextMeasure) return;
-    pushRemakeUndoV6266();
-    uiV6230.trendMeasure = nextMeasure;
-    persistUiV6230();
-    setModeButtonsV6230();
-    renderTrendSectionOnlyV6300();
-  };
-  window.setRemakeTrendValueModeV6247 = function setRemakeTrendValueModeV6247(mode) {
-    const nextMode = mode === 'percent' ? 'percent' : 'total';
-    if ((uiV6230.trendValueMode || 'total') === nextMode) return;
-    pushRemakeUndoV6266();
-    uiV6230.trendValueMode = nextMode;
-    persistUiV6230();
-    setModeButtonsV6230();
-    renderTrendSectionOnlyV6300();
-  };
-  window.setRemakeTrendCumulativeV6304 = function setRemakeTrendCumulativeV6304(value) {
-    const allowed = (uiV6230.mode || 'line') === 'line' && (uiV6230.trendValueMode || 'total') === 'total';
-    if (!allowed) return;
-    const nextValue = value === true;
-    if (uiV6230.trendCumulative === nextValue) return;
-    pushRemakeUndoV6266();
-    uiV6230.trendCumulative = nextValue;
-    persistUiV6230();
-    setModeButtonsV6230();
-    renderTrendSectionOnlyV6300();
-  };
-  window.toggleRemakeTrendCumulativeV6302 = function toggleRemakeTrendCumulativeV6302() {
-    window.setRemakeTrendCumulativeV6304(uiV6230.trendCumulative !== true);
-  };
-
-  function renderCustomerSectionOnlyV6291() {
-    const customerGroups = Array.isArray(uiV6230.lastCustomerGroupsV6291)
-      ? uiV6230.lastCustomerGroupsV6291
-      : [];
-    renderCustomerChartV6230(customerGroups);
-    renderCustomerTableV6230(customerGroups);
-  }
-  function renderCustomerTableOnlyV6303() {
-    const customerGroups = Array.isArray(uiV6230.lastCustomerGroupsV6291)
-      ? uiV6230.lastCustomerGroupsV6291
-      : [];
-    renderCustomerTableV6230(customerGroups);
-  }
-
-
-  function renderTableSectionOnlyV6297(kind) {
-    syncTableCompareButtonsV6297();
-    if (kind === 'reason') {
-      renderRemakeReasonTableV6241('remakeReasonTable','reason',uiV6230.lastReasonGroupsV6297 || [],'Reason','reason',150,uiV6230.lastReasonTotalsV6297 || {});
-      return;
-    }
-    if (kind === 'department') {
-      renderStandardTableV6230('remakeDepartmentTable','department',uiV6230.lastDepartmentGroupsV6297 || [],'Department','department',150);
-      return;
-    }
-    if (kind === 'product') { renderProductSectionOnlyV6296(); return; }
-    if (kind === 'customer') { renderCustomerTableOnlyV6303(); }
-  }
-  window.toggleRemakeTableCompareV6297 = function toggleRemakeTableCompareV6297(kind) {
-    if (!uiV6230.tableCompareV6297) uiV6230.tableCompareV6297 = { reason:false, department:false, product:false, customer:false };
-    uiV6230.tableCompareV6297[kind] = !uiV6230.tableCompareV6297[kind];
-    if (!uiV6230.tableCompareV6297[kind]) {
-      const activeSort = uiV6230.sorts && uiV6230.sorts[kind];
-      if (activeSort && isComparisonSortFieldV6303(activeSort.field)) {
-        uiV6230.sorts[kind] = Object.assign({}, defaultSortsV6230[kind]);
-        writeLocalJsonV6230(SORT_KEY_V6230, uiV6230.sorts);
-      }
-    }
-    persistUiV6230();
-    runGentleTableMorphV6297(kind, function(){ renderTableSectionOnlyV6297(kind); }, kind === 'customer' ? { preserveChart: true } : null);
-  };
-
-  window.setRemakeCustomerTableModeV6251 = function setRemakeCustomerTableModeV6251(mode) {
-    pushRemakeUndoV6266();
-    uiV6230.customerTableMode = mode === 'all' ? 'all' : 'highest';
-    persistUiV6230();
-    // v6.291: Highest/All customers is only a presentation toggle for the
-    // customer section. Do not rebuild the KPI, trend, reason, department,
-    // or product components because their data and filters did not change.
-    runGentleTableMorphV6297('customer', renderCustomerTableOnlyV6303, { preserveChart: true });
-  };
-
-  function renderProductSectionOnlyV6296() {
-    if (!window.remakeFactorState || !window.remakeFactorState.loaded) return;
-    const allRows = normalizedRowsV6230();
-    const comparisonScope = comparisonScopeV6295(allRows);
-    const currentYearRows = rowsInComparisonYearV6295(allRows, comparisonScope.currentYear, comparisonScope.months, comparisonScope);
-    const priorYearRows = rowsInComparisonYearV6295(allRows, comparisonScope.priorYear, comparisonScope.months, comparisonScope);
-    const productMode = uiV6230.productTableMode === 'group' ? 'group' : 'product';
-    const productIgnore = productMode === 'group' ? { productGroup: false } : { product: false };
-    const productTotalRows = rowsForBaseFiltersV6252(currentYearRows, Object.assign({ year: false, months: false }, productIgnore));
-    const priorProductTotalRows = rowsForBaseFiltersV6252(priorYearRows, Object.assign({ year: false, months: false }, productIgnore));
-    const productRemakeRows = rowsForRemakeFiltersV6252(currentYearRows, Object.assign({ year: false, months: false }, productIgnore));
-    const priorProductRemakeRows = rowsForRemakeFiltersV6252(priorYearRows, Object.assign({ year: false, months: false }, productIgnore));
-    const rawProductGroups = productMode === 'group'
-      ? groupSplitV6252(productTotalRows, productRemakeRows, row => row.productGroup || row.department || 'Unassigned', row => row.productGroup || row.department || 'Unassigned')
-      : groupSplitV6252(productTotalRows, productRemakeRows, row => row.productKey, row => row.productName);
-    const priorProductGroups = productMode === 'group'
-      ? groupSplitV6252(priorProductTotalRows, priorProductRemakeRows, row => row.productGroup || row.department || 'Unassigned', row => row.productGroup || row.department || 'Unassigned')
-      : groupSplitV6252(priorProductTotalRows, priorProductRemakeRows, row => row.productKey, row => row.productName);
-    const productGroups = attachPriorGroupsV6295(rawProductGroups, priorProductGroups)
-      .filter(row => numV6230(row.remakeCases) > 0 || numV6230(row.remakeUnits) > 0 || numV6230(row.remakeDiscount) > 0);
-    const productTitle = idV6230('remakeProductTitleV6264');
-    if (productTitle) productTitle.textContent = productMode === 'group' ? 'Product Groups' : 'Products';
-    const productBtn = idV6230('remakeProductModeProductBtnV6264');
-    const groupBtn = idV6230('remakeProductModeGroupBtnV6264');
-    if (productBtn) productBtn.classList.toggle('active', productMode !== 'group');
-    if (groupBtn) groupBtn.classList.toggle('active', productMode === 'group');
-    renderStandardTableV6230('remakeProductTable', 'product', productGroups, productMode === 'group' ? 'Group' : 'Product', productMode === 'group' ? 'productGroup' : 'product', 150);
-  }
-
-  window.setRemakeProductTableModeV6264 = function setRemakeProductTableModeV6264(mode) {
-    pushRemakeUndoV6266();
-    uiV6230.productTableMode = mode === 'group' ? 'group' : 'product';
-    persistUiV6230();
-    // v6.296: Products/Groups is a presentation-only switch. Rebuild only
-    // the product card so the same smooth transition used by Customers can
-    // animate without freezing or redrawing the rest of the dashboard.
-    runGentleTableMorphV6297('product', renderProductSectionOnlyV6296);
-  };
-
-  function toggleMonthV6230(month, event) {
-    if (!month || month === 'Unknown') return;
-    pushRemakeUndoV6266();
-    const additive = additiveV6230(event);
-    const set = new Set(uiV6230.selectedMonths || []);
-    const monthSuffix = String(month).slice(4);
-    const matchingMonthKeys = (uiV6230.lastTrendRows || [])
-      .map(row => String(row && row.key ? row.key : ''))
-      .filter(key => /^\d{4}-\d{2}$/.test(key) && key.slice(4) === monthSuffix);
-    const keys = matchingMonthKeys.length ? matchingMonthKeys : [String(month)];
-    const allSelected = keys.every(key => set.has(key));
-
-    if (!additive) set.clear();
-    keys.forEach(key => {
-      if (additive && allSelected) set.delete(key);
-      else set.add(key);
-    });
-    if (!additive && allSelected) set.clear();
-
-    uiV6230.selectedMonths = set;
-    persistUiV6230();
-    renderDashboardV6230();
-  }
-
-  function showRemakeClickFeedbackV6301(event) {
-    const native = nativeEventV6230(event);
-    const row = native && native.currentTarget && native.currentTarget.tagName === 'TR' ? native.currentTarget : null;
-    if (!row) return;
-    row.classList.add('remakeClickPendingV6301');
-    window.setTimeout(function(){ try { row.classList.remove('remakeClickPendingV6301'); } catch (error) {} }, 420);
-  }
-
-  /* v6.400 table Ctrl/Cmd multi-select fix.
-     Row multi-select must begin from rows the user explicitly clicked, not from
-     the effective "All" filter universe. Using effectiveSelectionSetV6250
-     here caused the first Ctrl/Cmd-click to convert an unfiltered table into an
-     all-but-one selection, which visually highlighted many rows at once. */
-  window.applyRemakeTableFilterV6230 = function applyRemakeTableFilterV6230(kind, value, event) {
-    if (!kind) return;
-    showRemakeClickFeedbackV6301(event);
-    pushRemakeUndoV6266();
-    syncFiltersFromControlsV6230();
-
-    const val = String(value);
-    const explicitValues = filterValuesV6245(kind).map(String);
-    const current = new Set(explicitValues);
-
-    if (additiveV6230(event)) {
-      if (current.has(val)) current.delete(val);
-      else current.add(val);
-      setFilterValuesV6245(kind, Array.from(current));
-    } else {
-      if (current.size === 1 && current.has(val)) setFilterValuesV6245(kind, []);
-      else setFilterValuesV6245(kind, [val]);
-    }
-
-    persistUiV6230();
-    syncFilterControlsV6230();
-    renderDashboardV6230();
-  };
-
-  function resetTechnicianAnalysisV6386(renderNow) {
-    ceramistStateV6342.caseStatus = 'all';
-    ceramistStateV6342.diagnosticFlag = 'none';
+  function clearCeramistMemoryV6346() {
+    disconnectCeramistLazyLoadV6346();
+    cancelScheduledCeramistBrowserCacheWriteV6364();
+    ceramistLoadGenerationV6346 += 1;
+    ceramistLazyRequestedV6346 = false;
+    ceramistStateV6342.loading = false;
+    ceramistStateV6342.loaded = false;
+    ceramistStateV6342.ok = false;
+    ceramistStateV6342.rows = [];
+    ceramistStateV6342.stats = {};
+    ceramistStateV6342.version = '';
+    ceramistStateV6342.generatedAt = '';
+    ceramistStateV6342.caseLevelRefreshedAt = '';
+    ceramistStateV6342.cacheToken = '';
+    ceramistStateV6342.driveUpdatedAt = '';
+    ceramistStateV6342.badgeUpdatedAt = '';
+    ceramistStateV6342.browserCached = false;
+    ceramistStateV6342.syncing = false;
+    ceramistStateV6342.statusText = '';
+    ceramistStateV6342.message = '';
     ceramistStateV6342.selectedCeramist = '';
-    // Keep the worker table unselected after Reset instead of immediately
-    // auto-selecting the first worker again.
-    ceramistStateV6342.selectionCleared = true;
-    ceramistStateV6342.breakdown = 'product';
-    uiV6230.sorts.ceramist = Object.assign({}, defaultSortsV6230.ceramist);
-    uiV6230.sorts.ceramistDetail = Object.assign({}, defaultSortsV6230.ceramistDetail);
-    uiV6230.lastTables.ceramistDetail = [];
-    try {
-      if (typeof window.clearCeramistDetailSelectionV6368 === 'function') {
-        window.clearCeramistDetailSelectionV6368();
-      }
-    } catch (error) {}
-    if (renderNow !== false && (ceramistStateV6342.loaded || ceramistStateV6342.loading)) {
-      renderCeramistAnalysisV6342();
-    }
-  }
-  window.resetTechnicianAnalysisV6386 = resetTechnicianAnalysisV6386;
-
-  window.clearRemakeFilterV6230 = function clearRemakeFilterV6230(kind) {
-    pushRemakeUndoV6266();
-    syncFiltersFromControlsV6230();
-    if (kind === 'all') {
-      uiV6230.filters = { year: [], department: [], product: [], productGroup: [], customer: [], reason: [] };
-      uiV6230.filterExclusionsV6389 = { year: [], department: [], product: [], productGroup: [], customer: [], reason: [] };
-      uiV6230.selectedMonths = new Set();
-      resetTechnicianAnalysisV6386(false);
-    }
-    else if (kind && kind.indexOf('months:') === 0) { const month = kind.slice('months:'.length); const set = new Set(uiV6230.selectedMonths || []); set.delete(month); uiV6230.selectedMonths = set; }
-    else if (kind === 'months') uiV6230.selectedMonths = new Set();
-    else if (kind && kind.indexOf(':') > 0) { const parts = kind.split(':'); const filterKind = parts.shift(); const value = parts.join(':'); setFilterValuesV6245(filterKind, filterValuesV6245(filterKind).filter(item => String(item) !== String(value))); }
-    else if (uiV6230.filters.hasOwnProperty(kind)) setFilterValuesV6245(kind, []);
-    persistUiV6230(); syncFilterControlsV6230(); renderDashboardV6230();
-  };
-
-  /* v6.398 interaction performance tune.
-     Keep the approved local component-morph architecture, but avoid expensive
-     canvas bitmap overlays, cap row FLIP work, shorten chart/control motion,
-     and suppress stacked morphs during rapid filter clicks. */
-
-  /*
-   * v6.398 current-view Remake exports.
-   *
-   * Export only line-level records represented by the panel's current view.
-   * Active dashboard filters, visible comparison periods, selected months,
-   * and visible table/chart buckets are honored. Hidden categories are not
-   * included. A separate all-data export can be added later without changing
-   * this button's current-view behavior. The explicit _self target is required because this file has
-   * <base target="_top">; without it, Blob downloads can be treated as a
-   * blocked top-frame navigation inside the Apps Script iframe.
-   */
-  function rowsToCsvV6230(rows) {
-    return (Array.isArray(rows) ? rows : []).map(function(row) {
-      return (Array.isArray(row) ? row : [row]).map(function(cell) {
-        const value = cell === null || cell === undefined ? '' : String(cell);
-        return '"' + value.replace(/"/g, '""') + '"';
-      }).join(',');
-    }).join('\r\n');
   }
 
-  function downloadTextFileV6230(fileName, text, mimeType) {
-    const name = textV6230(fileName, 'remake-current-view.csv');
-    const type = mimeType || 'text/plain;charset=utf-8';
-    const content = text === null || text === undefined ? '' : String(text);
-    const blob = new Blob([content], { type: type });
-
-    if (window.navigator && typeof window.navigator.msSaveOrOpenBlob === 'function') {
-      window.navigator.msSaveOrOpenBlob(blob, name);
-      return true;
-    }
-
-    const link = document.createElement('a');
-    link.download = name;
-    link.target = '_self';
-    link.rel = 'noopener';
-    link.style.position = 'fixed';
-    link.style.left = '-9999px';
-    link.style.top = '-9999px';
-    document.body.appendChild(link);
-
-    let objectUrl = '';
-    try {
-      const urlApi = window.URL || window.webkitURL;
-      if (!urlApi || typeof urlApi.createObjectURL !== 'function') throw new Error('Object URL API unavailable');
-      objectUrl = urlApi.createObjectURL(blob);
-      link.href = objectUrl;
-      link.click();
-      window.setTimeout(function(){
-        try { urlApi.revokeObjectURL(objectUrl); } catch (error) {}
-      }, 2500);
-      return true;
-    } catch (primaryError) {
-      try {
-        link.href = 'data:' + type + ',' + encodeURIComponent(content);
-        link.click();
-        return true;
-      } catch (fallbackError) {
-        console.error('Remake CSV download failed', primaryError, fallbackError);
-        return false;
-      }
-    } finally {
-      link.remove();
-    }
+  function releaseRemakeBrowserMemoryV6346() {
+    cancelScheduledBrowserCacheWriteV6346();
+    disconnectCeramistLazyLoadV6346();
+    if (renderTimerV6230) { try { cancelAnimationFrame(renderTimerV6230); } catch (error) {} renderTimerV6230 = 0; }
+    if (trendRenderTimerV6301) { try { cancelAnimationFrame(trendRenderTimerV6301); } catch (error) {} trendRenderTimerV6301 = 0; }
+    removeOldMorphOverlaysV6300();
+    dashboardMorphStateV6300.active = null;
+    if (remakeChartV6230) { try { remakeChartV6230.destroy(); } catch (error) {} remakeChartV6230 = null; }
+    if (customerChartV6230) { try { customerChartV6230.destroy(); } catch (error) {} customerChartV6230 = null; }
+    uiV6230.lastTables = {};
+    uiV6230.lastTrendRows = [];
+    uiV6230.lastCeramistRowsV6342 = [];
+    uiV6230.lastReasonGroupsV6297 = [];
+    uiV6230.lastDepartmentGroupsV6297 = [];
+    uiV6230.lastProductGroupsV6297 = [];
+    uiV6230.lastCustomerGroupsV6291 = [];
+    if (!window.remakeFactorState) window.remakeFactorState = {};
+    const state = window.remakeFactorState;
+    state.loaded = false;
+    state.data = null;
+    state.rows = [];
+    state.normalizedRowsV6230 = null;
+    state.normalizedRowsSignatureV6230 = '';
+    state.normalizedRowsV6229 = null;
+    clearCeramistMemoryV6346();
   }
 
-  function exportPanelTitleV6394(component) {
-    const titles = {
-      trend: 'Monthly Remake Comparison',
-      reason: 'Remake Reasons',
-      department: 'Departments',
-      product: uiV6230.productTableMode === 'group' ? 'Product Groups' : 'Products',
-      customer: 'Customers',
-      ceramist: 'Technicians'
-    };
-    return titles[component] || 'Remake Factor';
-  }
-
-  function exportPanelFilterOptionsV6397() {
-    // Year and month are already resolved by comparisonScopeV6295 so both the
-    // displayed current period and its displayed prior-period comparison remain
-    // available. Every other active filter must be honored exactly.
-    return { year:false, months:false };
-  }
-
-  function exportVisibleGroupKeysV6397(component) {
-    let rows = [];
-    if (component === 'trend') rows = uiV6230.lastTrendRows || [];
-    else rows = (uiV6230.lastTables && uiV6230.lastTables[component]) || [];
-    return new Set((rows || []).map(function(row) {
-      return String(row && row.key !== undefined && row.key !== null ? row.key : '');
-    }).filter(Boolean));
-  }
-
-  function exportPanelRowKeyV6397(component, row) {
-    if (!row) return '';
-    if (component === 'trend') return String(row.month || '');
-    if (component === 'reason') return String(row.remakeReason || 'Not specified');
-    if (component === 'department') return String(row.department || 'Unassigned');
-    if (component === 'product') {
-      return uiV6230.productTableMode === 'group'
-        ? String(row.productGroup || row.department || 'Unassigned')
-        : String(row.productKey || '');
-    }
-    if (component === 'customer') return String(row.customerKey || '');
-    return '';
-  }
-
-  function exportRowsShownByPanelV6397(component, rows) {
-    const source = Array.isArray(rows) ? rows : [];
-    const visibleKeys = exportVisibleGroupKeysV6397(component);
-    // Current-view export must fail closed. If the panel has no rendered keys,
-    // export no rows rather than falling back to the full filtered dataset.
-    if (!visibleKeys.size) return [];
-    return source.filter(function(row) {
-      return visibleKeys.has(exportPanelRowKeyV6397(component, row));
+  function afterMemoryReleaseV6346() {
+    return new Promise(resolve => {
+      window.requestAnimationFrame(function firstReleaseFrameV6346() {
+        window.requestAnimationFrame(function secondReleaseFrameV6346() {
+          window.setTimeout(resolve, 0);
+        });
+      });
     });
   }
 
-  function exportPanelScopeV6397(component) {
-    const allRows = normalizedRowsV6230();
-    if (!allRows.length) return { totalRows:[], numeratorRows:[], currentYear:'', priorYear:'' };
+  function prepareMainCacheSwapV6346(noticeText) {
+    mainCacheSwapActiveV6346 = true;
+    suppressNextMorphV6346 = true;
+    setLoadingV6230(true);
+    setNoticeV6230(noticeText || 'Loading...', 'warn');
+    cancelScheduledBrowserCacheWriteV6346();
+    cancelScheduledCeramistBrowserCacheWriteV6364();
+    return Promise.all([
+      Promise.resolve(browserCacheWritePromiseV6346).catch(() => false),
+      Promise.resolve(ceramistBrowserCacheWritePromiseV6364).catch(() => false)
+    ])
+      .then(function releasePriorRemakeRowsV6346() {
+        releaseRemakeBrowserMemoryV6346();
+        return afterMemoryReleaseV6346();
+      });
+  }
 
-    const scope = comparisonScopeV6295(allRows);
-    const currentRows = rowsInComparisonYearV6295(allRows, scope.currentYear, scope.months, scope);
-    const priorRows = rowsInComparisonYearV6295(allRows, scope.priorYear, scope.months, scope);
-    const comparisonRows = currentRows.concat(priorRows);
-    const options = exportPanelFilterOptionsV6397();
+  function readCacheV6230() {
+    // v6.261: Remake Factor browser cache now mirrors Overview and uses IndexedDB.
+    // This sync function is kept only so older internal references do not crash.
+    return null;
+  }
 
-    // Apply the exact active dashboard filters. Unlike the previous build, the
-    // panel's own selected department/product/customer/reason is not ignored.
-    const filteredTotalRows = rowsForBaseFiltersV6252(comparisonRows, options);
-    const filteredNumeratorRows = rowsForRemakeFiltersV6252(comparisonRows, options).filter(isRemakeV6230);
-
-    // Then intersect with the buckets actually rendered in the panel. This is
-    // what keeps Highest Customers, table row limits, and the 24-month trend
-    // from exporting categories/months that are not currently shown.
-    const visibleTotalRows = exportRowsShownByPanelV6397(component, filteredTotalRows);
-    const visibleNumeratorRows = exportRowsShownByPanelV6397(component, filteredNumeratorRows);
-
-    return {
-      totalRows: component === 'reason' ? visibleNumeratorRows.slice() : visibleTotalRows,
-      numeratorRows: visibleNumeratorRows,
-      currentYear: scope.currentYear || '',
-      priorYear: scope.priorYear || ''
+  function handleDataV6230(data, fromBrowser) {
+    if (!window.remakeFactorState) window.remakeFactorState = {};
+    if (!data || !data.ok) {
+      mainCacheSwapActiveV6346 = false;
+      window.remakeFactorState.loaded = false;
+      setNoticeV6230((data && data.message) || 'Remake cache could not load.', 'error');
+      return false;
+    }
+    const sourceRows = data.rows || data.detailRows || [];
+    const sample = sourceRows.length ? sourceRows[0] : null;
+    const alreadyNormalized = !!(
+      data.browserRowsNormalized === true ||
+      sample && sample.customerKey !== undefined && sample.productKey !== undefined && sample.units !== undefined
+    );
+    if (!alreadyNormalized && sourceRows.length > 50000) {
+      mainCacheSwapActiveV6346 = false;
+      window.remakeFactorState.loaded = false;
+      window.remakeFactorState.loading = false;
+      setNoticeV6230('The server returned the old full-row cache format. Replace RemakeFactorCache.gs with v1.32.4 before loading this cache.', 'error');
+      return false;
+    }
+    const rows = alreadyNormalized ? sourceRows : normalizeRowsV6230(sourceRows);
+    const compactData = {
+      ok: true,
+      generatedAt: data.generatedAt || data.lastRefreshAt || '',
+      source: data.source || '',
+      message: data.message || '',
+      dateRange: data.dateRange || {},
+      stats: data.stats || {},
+      cacheToken: data.cacheToken || '',
+      sourceGeneratedAt: data.sourceGeneratedAt || data.generatedAt || data.lastRefreshAt || '',
+      currentSourceGeneratedAt: data.currentSourceGeneratedAt || '',
+      browserReadyBuiltAt: data.browserReadyBuiltAt || data.builtAt || '',
+      browserReadyFileSizeBytes: Number(data.browserReadyFileSizeBytes || data.fileSizeBytes || 0),
+      browserReadyRowCount: Number(data.browserReadyRowCount || data.rowCount || rows.length || 0),
+      browserReadyStale: data.browserReadyStale === true || data.stale === true,
+      browserRowsNormalized: true,
+      browserRowSchema: data.browserRowSchema || 'remakeBrowserRowV1323'
     };
-  }
-
-  function exportVisibleRowsV6397(component) {
-    const scope = exportPanelScopeV6397(component);
-    const numeratorSet = new Set(scope.numeratorRows || []);
-    const title = exportPanelTitleV6394(component);
-    const rows = (scope.totalRows || []).slice().sort(function(a, b) {
-      const byMonth = String(a.month || '').localeCompare(String(b.month || ''));
-      if (byMonth) return byMonth;
-      const byDate = String(a.invoiceDate || '').localeCompare(String(b.invoiceDate || ''));
-      if (byDate) return byDate;
-      const byCase = String(a.caseId || '').localeCompare(String(b.caseId || ''), undefined, { numeric:true, sensitivity:'base' });
-      if (byCase) return byCase;
-      return String(a.productName || '').localeCompare(String(b.productName || ''), undefined, { numeric:true, sensitivity:'base' });
+    window.remakeFactorState.data = compactData;
+    window.remakeFactorState.rows = rows;
+    window.remakeFactorState.normalizedRowsV6230 = rows;
+    const overviewSignature = typeof facts !== 'undefined' && Array.isArray(facts) ? facts.length : 0;
+    window.remakeFactorState.normalizedRowsSignatureV6230 = String(rows.length) + '|' + String(overviewSignature);
+    window.remakeFactorState.normalizedRowsV6229 = null;
+    window.remakeFactorState.loaded = true;
+    window.remakeFactorState.loading = false;
+    mainCacheSwapActiveV6346 = false;
+    suppressNextMorphV6346 = true;
+    const stamp = data.generatedAt || data.lastRefreshAt || '';
+    setStampV6230((fromBrowser ? 'Browser cache: ' : 'Last refreshed: ') + (stamp || 'Loaded'));
+    if (!fromBrowser) writeCacheV6230(Object.assign({}, compactData, { rows: rows }));
+    window.remakeFactorState.cacheToken = compactData.cacheToken || '';
+    window.remakeFactorState.sourceGeneratedAt = compactData.sourceGeneratedAt || compactData.generatedAt || '';
+    window.remakeFactorState.browserReadyBuiltAt = compactData.browserReadyBuiltAt || '';
+    window.remakeFactorState.browserReadyStale = compactData.browserReadyStale === true;
+    setNoticeV6230('', '');
+    window.requestAnimationFrame(function renderCompactRemakeDataV6340() {
+      renderDashboardV6230();
     });
-
-    const header = [
-      'Export Panel',
-      'Comparison Role',
-      'Invoice Month',
-      'Invoice Date',
-      'Year',
-      'Case ID / Number',
-      'Customer ID',
-      'Customer Name',
-      'Practice Name',
-      'Customer Active',
-      'Department',
-      'Product ID',
-      'Product',
-      'Product Group',
-      'Quantity / Total Units',
-      'Is Remake',
-      'Included In Active Remake Numerator',
-      'Remake Reason',
-      'Remake Units',
-      'Remake Discount',
-      'Case Status',
-      'Invoice Date TryIn',
-      'Real Invoiced Charge',
-      'Credit / Debit Reason',
-      'Charge Amount',
-      'Credit Amount',
-      'Net Amount',
-      'Sales Logic Class',
-      'Remake Discount Source'
-    ];
-
-    return [header].concat(rows.map(function(row) {
-      const year = Number(row.year);
-      const role = year === Number(scope.currentYear)
-        ? 'Current'
-        : (year === Number(scope.priorYear) ? 'Prior' : 'Other');
-      const inNumerator = numeratorSet.has(row);
-      return [
-        title,
-        role,
-        row.month || '',
-        row.invoiceDate || '',
-        row.year || '',
-        row.caseId || '',
-        row.customerId || '',
-        row.customerName || '',
-        row.practiceName || '',
-        row.customerActive === false ? 'No' : 'Yes',
-        row.department || '',
-        row.productId || '',
-        row.productName || '',
-        row.productGroup || '',
-        Number(numV6230(row.quantity !== undefined ? row.quantity : row.units).toFixed(2)),
-        isRemakeV6230(row) ? 'Yes' : 'No',
-        inNumerator ? 'Yes' : 'No',
-        row.remakeReason || '',
-        Number(numV6230(row.remakeUnits).toFixed(2)),
-        Number(numV6230(row.remakeDiscount).toFixed(2)),
-        row.caseStatus || '',
-        row.invoiceDateTryIn || '',
-        row.isRealInvoicedCharge === false ? 'No' : 'Yes',
-        row.creditDebitReason || '',
-        Number(numV6230(row.chargeAmount).toFixed(2)),
-        Number(numV6230(row.creditAmount).toFixed(2)),
-        Number(numV6230(row.netAmount).toFixed(2)),
-        row.salesLogicClass || '',
-        row.remakeDiscountSource || ''
-      ];
-    }));
+    return true;
   }
 
-  function exportTrendSummaryRowsV6399() {
-    const rows = (uiV6230.lastTrendRows || []).slice().sort(function(a,b){ return String(a.key || '').localeCompare(String(b.key || '')); });
-    const selected = uiV6230.selectedMonths || new Set();
-    const scope = comparisonScopeV6295(normalizedRowsV6230());
-    const header = ['Invoice Month','Comparison Role','Highlighted','Total Cases','Remake Cases','Case Rate','Total Units','Remake Units','Unit Rate','Remake Discount'];
-    return [header].concat(rows.map(function(row){
-      const year = Number(String(row.key || '').slice(0,4));
-      const role = year === Number(scope.currentYear) ? 'Current' : (year === Number(scope.priorYear) ? 'Prior' : 'Other');
-      return [
-        row.key || '', role, selected.has(String(row.key || '')) ? 'Yes' : 'No',
-        Number(numV6230(row.totalCases).toFixed(0)), Number(numV6230(row.remakeCases).toFixed(0)), Number((numV6230(row.remakeCaseRate)*100).toFixed(2)),
-        Number(numV6230(row.totalUnits).toFixed(2)), Number(numV6230(row.remakeUnits).toFixed(2)), Number((numV6230(row.remakeUnitRate)*100).toFixed(2)),
-        Number(numV6230(row.remakeDiscount).toFixed(2))
-      ];
-    }));
+  /* v6.568 native combined cache refresh.
+     The existing Remake refresh owns the complete sequence: refresh the main
+     cache, rebuild Ceramist responsibility, fetch the rebuilt worker payload,
+     replace the worker browser cache, and only then release the Refresh button. */
+  function setCombinedCeramistStatusV6568(message) {
+    const status = idV6230('remakeCeramistStatusV6342');
+    const text = String(message || '');
+    ceramistStateV6342.statusText = text;
+    if (status) status.textContent = text;
   }
 
-  window.exportRowsForV6230 = function exportRowsForV6230(component) {
-    if (component === 'trend') return exportTrendSummaryRowsV6399();
-    if (component === 'ceramist') {
-      const ceramistRows = uiV6230.lastTables.ceramistDetail || [];
-      const selectedSummary = (uiV6230.lastTables.ceramist || []).find(function(row){ return String(row.key) === String(ceramistStateV6342.selectedCeramist || ''); });
-      const selectedLabel = ceramistCleanWorkerLabelV6349(selectedSummary && selectedSummary.label, ceramistStateV6342.selectedCeramist || '');
-      return [[
-        'Responsible Worker','Worker Type','Breakdown','Breakdown Value',
-        'Remake Cases','Remake Case Numbers','Remake Units','Unit Share %','Remake Discount',
-        'Prior/Root Note Evidence Cases','Review Reason','Product Rows'
-      ]].concat(ceramistRows.map(function(row) {
-        return [
-          selectedLabel,
-          textV6230(selectedSummary && (selectedSummary.workerCategory || selectedSummary.workerType), ''),
-          ceramistStateV6342.breakdown || 'product',
-          row.label || row.key,
-          numV6230(row.remakeCases),
-          (row.caseNumbers || []).join(', '),
-          Number(numV6230(row.remakeUnits).toFixed(1)),
-          fmtPctV6230(row.shareUnits),
-          Number(numV6230(row.remakeDiscount).toFixed(2)),
-          numV6230(row.noteEvidenceCases),
-          (row.reviewReasons || []).join('; '),
-          numV6230(row.productRows)
-        ];
-      }));
-    }
-    return exportVisibleRowsV6397(component);
-  };
-
-  window.exportRemakeAllDataV6399 = function exportRemakeAllDataV6399(component) {
-    try {
-      const rows = component === 'ceramist' ? window.exportRowsForV6230(component) : exportVisibleRowsV6397(component);
-      const dataRowCount = Array.isArray(rows) ? Math.max(0, rows.length - 1) : 0;
-      if (!dataRowCount) { setNoticeV6230('No detailed rows are available for this panel.', 'warn'); return; }
-      const fileName = 'remake-' + slugV6230(exportPanelTitleV6394(component)) + '-all-data.csv';
-      const started = downloadTextFileV6230(fileName, '\ufeff' + rowsToCsvV6230(rows), 'text/csv;charset=utf-8');
-      if (!started) throw new Error('Browser download could not be started');
-      setNoticeV6230('Exported ' + dataRowCount.toLocaleString() + ' detailed rows.', 'success');
-      window.setTimeout(function(){ setNoticeV6230('', ''); }, 2200);
-    } catch (error) {
-      console.error('Remake all-data export failed', error);
-      setNoticeV6230('The all-data export could not be created. Please reload and try again.', 'warn');
-    }
-  };
-
-  window.exportRemakeComponentV6230 = function exportRemakeComponentV6230(component) {
-    try {
-      const rows = window.exportRowsForV6230(component);
-      const dataRowCount = Array.isArray(rows) ? Math.max(0, rows.length - 1) : 0;
-      if (!dataRowCount) {
-        setNoticeV6230('No rows are visible to export for this panel.', 'warn');
+  function refreshCeramistResponsibilityServerV6568() {
+    return new Promise(function(resolve, reject) {
+      if (!window.google || !google.script || !google.script.run) {
+        reject(new Error('Apps Script bridge is unavailable for the technician cache refresh.'));
         return;
       }
-      const fileName = 'remake-' + slugV6230(exportPanelTitleV6394(component)) + '-current.csv';
-      const started = downloadTextFileV6230(fileName, '\ufeff' + rowsToCsvV6230(rows), 'text/csv;charset=utf-8');
+      google.script.run
+        .withSuccessHandler(function(result) {
+          if (!result || result.ok !== true) {
+            reject(new Error(result && result.message || 'Technician responsibility refresh returned an invalid result.'));
+            return;
+          }
+          resolve(result);
+        })
+        .withFailureHandler(function(error) {
+          reject(error instanceof Error ? error : new Error((error && error.message) || String(error || 'Technician responsibility refresh failed.')));
+        })
+        .refreshCeramistCaseLevelResponsibilityNightlyV75();
+    });
+  }
+
+  function fetchFreshCeramistPayloadV6568() {
+    return new Promise(function(resolve, reject) {
+      if (!window.google || !google.script || !google.script.run) {
+        reject(new Error('Apps Script bridge is unavailable for the technician cache download.'));
+        return;
+      }
+      google.script.run
+        .withSuccessHandler(function(data) {
+          const receivedRows = data && Array.isArray(data.rows) ? data.rows : null;
+          if (!data || data.ok !== true || !receivedRows) {
+            reject(new Error(data && data.message || 'The refreshed technician cache returned an invalid payload.'));
+            return;
+          }
+          resolve(data);
+        })
+        .withFailureHandler(function(error) {
+          reject(error instanceof Error ? error : new Error((error && error.message) || String(error || 'Technician cache download failed.')));
+        })
+        .getCeramistRemakeAnalysisData();
+    });
+  }
+
+  function refreshCeramistAfterRemakeV6568() {
+    mainCacheSwapActiveV6346 = true;
+    clearCeramistMemoryV6346();
+    ceramistStateV6342.loading = true;
+    ceramistStateV6342.loaded = false;
+    setCombinedCeramistStatusV6568('Worker cache: rebuilding responsibility from BigQuery...');
+    renderCeramistAnalysisV6342();
+
+    return refreshCeramistResponsibilityServerV6568()
+      .then(function waitForRemakeBrowserCacheV6568() {
+        setCombinedCeramistStatusV6568('Worker cache: waiting for the refreshed Remake browser cache...');
+        return Promise.resolve(browserCacheWriteCompletionV6568).catch(function() { return false; });
+      })
+      .then(function downloadRebuiltCeramistPayloadV6568() {
+        setCombinedCeramistStatusV6568('Worker cache: downloading rebuilt responsibility...');
+        return fetchFreshCeramistPayloadV6568();
+      })
+      .then(function applyRebuiltCeramistPayloadV6568(data) {
+        const applied = applyCeramistPayloadV6364(data, false);
+        if (!applied) {
+          throw new Error(ceramistStateV6342.message || 'The refreshed technician payload did not pass the dashboard eligibility contract.');
+        }
+
+        cancelScheduledCeramistBrowserCacheWriteV6364();
+        return Promise.resolve(ceramistBrowserCacheWritePromiseV6364)
+          .catch(function() { return false; })
+          .then(function replaceCeramistBrowserCacheV6568() {
+            ceramistBrowserCacheWriteScheduledV6364 = true;
+            ceramistBrowserCacheWriteRunningV6364 = true;
+            ceramistBrowserCacheWritePromiseV6364 = writeCeramistFastCacheV6364(data)
+              .finally(function finishNativeCeramistBrowserCacheWriteV6568() {
+                ceramistBrowserCacheWriteRunningV6364 = false;
+                ceramistBrowserCacheWriteScheduledV6364 = false;
+              });
+            return ceramistBrowserCacheWritePromiseV6364;
+          })
+          .then(function finishCeramistBrowserCacheV6568() {
+            ceramistStateV6342.browserCached = true;
+            const stamp = ceramistStateV6342.caseLevelRefreshedAt || ceramistStateV6342.generatedAt || ceramistStateV6342.driveUpdatedAt;
+            setCombinedCeramistStatusV6568('Worker cache updated: ' + (stamp ? ceramistCacheStampV6342(stamp) : 'date unavailable') + ' · refreshed with Remake cache');
+            return data;
+          });
+      });
+  }
+
+  function restoreCeramistAfterCombinedFailureV6568(error) {
+    const message = (error && error.message) || String(error || 'Technician cache refresh failed.');
+    setNoticeV6230('Remake cache refreshed, but the technician cache could not refresh. The previous saved technician cache will be restored. ' + message, 'warn');
+    setCombinedCeramistStatusV6568('Worker cache: waiting to restore the previous saved copy...');
+    console.warn('Native combined Remake and technician refresh completed with a technician warning.', error);
+    return Promise.resolve(browserCacheWriteCompletionV6568)
+      .catch(function() { return false; })
+      .then(function restorePriorCeramistBrowserCacheV6568() {
+        mainCacheSwapActiveV6346 = false;
+        setLoadingV6230(false);
+        clearCeramistMemoryV6346();
+        setCombinedCeramistStatusV6568('Worker cache: restoring the previous saved copy...');
+        loadCeramistRemakeAnalysisV6342(false);
+      });
+  }
+
+  function callRemakeFactorServerV6254(request, noticeText, allowBrowserFallback, refreshTechnicianAfterSuccess) {
+    request = Object.assign({}, request || {}, { compactForBrowser: true });
+    setLoadingV6230(true);
+    setNoticeV6230(noticeText || 'Loading...', 'warn');
+    google.script.run
+      .withSuccessHandler(data => {
+        const applied = handleDataV6230(data, false);
+        if (!applied) {
+          setLoadingV6230(false);
+          return;
+        }
+        if (refreshTechnicianAfterSuccess !== true) {
+          setLoadingV6230(false);
+          return;
+        }
+
+        mainCacheSwapActiveV6346 = true;
+        setLoadingV6230(true);
+        setNoticeV6230('Remake cache refreshed. Rebuilding technician responsibility...', 'warn');
+        refreshCeramistAfterRemakeV6568()
+          .then(function finishNativeCombinedRefreshV6568() {
+            mainCacheSwapActiveV6346 = false;
+            setLoadingV6230(false);
+            setNoticeV6230('', '');
+            if (typeof window.refreshCdaSharedCacheFooterV6567 === 'function') {
+              window.refreshCdaSharedCacheFooterV6567();
+            }
+          })
+          .catch(restoreCeramistAfterCombinedFailureV6568);
+      })
+      .withFailureHandler(error => {
+        setLoadingV6230(false);
+        mainCacheSwapActiveV6346 = false;
+        if (allowBrowserFallback) {
+          readRemakeFastCacheV6261()
+            .then(cached => {
+              if (cached && cached.ok) handleDataV6230(cached, true);
+              else setNoticeV6230((error && error.message) || String(error || 'Remake cache failed.'), 'error');
+            })
+            .catch(() => setNoticeV6230((error && error.message) || String(error || 'Remake cache failed.'), 'error'));
+        } else {
+          setNoticeV6230((error && error.message) || String(error || 'Remake cache failed.'), 'error');
+        }
+      })
+      .getRemakeFactorData(request);
+  }
+
+
+  /* v6.388 first-open optimization: use the nightly browser-ready consolidated gzip cache before falling back to monthly Drive shards. */
+  function remakeDictionaryValueV6388(values, index, fallback) {
+    const numericIndex = Number(index);
+    if (!Array.isArray(values) || !Number.isFinite(numericIndex) || numericIndex < 0 || numericIndex >= values.length) return fallback;
+    const value = values[numericIndex];
+    return value === undefined || value === null ? fallback : value;
+  }
+
+  function remakeCustomerLabelV6388(customerId, customerName, practiceName) {
+    const id = String(customerId || '').trim();
+    const name = String(customerName || '').trim();
+    const practice = String(practiceName || '').trim();
+    const cleanName = name && name !== id ? name : '';

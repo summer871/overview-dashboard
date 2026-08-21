@@ -1,1286 +1,395 @@
-          linear-gradient(90deg, rgba(35, 91, 142, .14) 1px, transparent 1px) !important;
-        background-size: var(--kpiSnapGridV6188) var(--kpiSnapGridV6188) !important;
-        background-position: 0 0 !important;
-        outline: 2px solid rgba(35, 91, 142, .28) !important;
-        outline-offset: 5px !important;
-      }
-
-      #overviewOne .topBar.executiveTop .comparisonKpi.kpiCardEditableV6188 {
-        position: relative !important;
-        transform-origin: top left !important;
-      }
-
-      #overviewOne.kpiCardLayoutTunedV6188 .topBar.executiveTop .comparisonKpi.kpiCardMovedV6188,
-      body.layoutEditModeV6183 #overviewOne .topBar.executiveTop .comparisonKpi.kpiCardMovedV6188 {
-        width: var(--kpiCardW) !important;
-        height: var(--kpiCardH) !important;
-        transform: translate(var(--kpiCardX), var(--kpiCardY)) !important;
-        z-index: var(--kpiCardZ) !important;
-      }
-
-      body.layoutEditModeV6183 #overviewOne .topBar.executiveTop .comparisonKpi.kpiCardEditableV6188 {
-        outline: 1.5px dashed rgba(35, 91, 142, .72) !important;
-        outline-offset: 2px !important;
-        cursor: move !important;
-        user-select: none !important;
-      }
-
-      body.layoutEditModeV6183 #overviewOne .topBar.executiveTop .comparisonKpi.kpiSelectedCardV6188 {
-        outline-color: rgba(245, 158, 11, .95) !important;
-        box-shadow: 0 0 0 3px rgba(245, 158, 11, .15), 0 8px 20px rgba(16,24,40,.15) !important;
-      }
-
-      body.layoutEditModeV6183 #overviewOne .topBar.executiveTop .comparisonKpi.kpiCardEditableV6188::after {
-        content: attr(data-kpi-edit-label) !important;
-        position: absolute !important;
-        left: 6px !important;
-        top: -18px !important;
-        z-index: 50 !important;
-        padding: 2px 6px !important;
-        border-radius: 999px !important;
-        background: rgba(24, 36, 51, .9) !important;
-        color: #fff !important;
-        font: 900 9.5px/1 Roboto, Arial, sans-serif !important;
-        letter-spacing: .02em !important;
-        pointer-events: none !important;
-        white-space: nowrap !important;
-      }
-
-      .kpiResizeHandleV6188 {
-        display: none !important;
-        position: absolute !important;
-        right: 4px !important;
-        bottom: 4px !important;
-        z-index: 60 !important;
-        width: 15px !important;
-        height: 15px !important;
-        border-radius: 5px !important;
-        border: 1px solid rgba(35,91,142,.62) !important;
-        background:
-          linear-gradient(135deg, transparent 0 45%, rgba(35,91,142,.95) 46% 55%, transparent 56%),
-          rgba(255,255,255,.96) !important;
-        box-shadow: 0 2px 6px rgba(16,24,40,.18) !important;
-        cursor: nwse-resize !important;
-      }
-
-      body.layoutEditModeV6183 #overviewOne .topBar.executiveTop .kpiResizeHandleV6188 {
-        display: block !important;
-      }
-
-      #layoutKpiCardEditorV6188 {
-        border-top: 1px solid #edf0f5 !important;
-        padding-top: 8px !important;
-        margin-top: 8px !important;
-      }
-
-      #layoutKpiCardEditorV6188 .layoutEditGroupTitleV6188 {
-        font-size: 11px !important;
-        font-weight: 900 !important;
-        color: #344054 !important;
-        margin-bottom: 6px !important;
-      }
-
-      #layoutKpiCardEditorV6188 .layoutEditHintV6188 {
-        font-size: 10.5px !important;
-        color: #667085 !important;
-        line-height: 1.3 !important;
-        margin: 0 0 8px !important;
-      }
-
-      #layoutKpiCardEditorV6188 select {
-        width: 100% !important;
-        height: 30px !important;
-        border: 1px solid #d8dde6 !important;
-        border-radius: 8px !important;
-        background: #fff !important;
-        color: #344054 !important;
-        font-size: 11px !important;
-        font-weight: 800 !important;
-        padding: 0 7px !important;
-        margin: 0 0 7px !important;
-      }
-
-      #layoutKpiCardEditorV6188 .kpiCardEditorButtonsV6188 {
-        display: flex !important;
-        gap: 6px !important;
-        flex-wrap: wrap !important;
-      }
-
-      #layoutKpiCardEditorV6188 button {
-        border: 1px solid #d8dde6 !important;
-        background: #f8fafc !important;
-        color: #344054 !important;
-        border-radius: 9px !important;
-        padding: 7px 9px !important;
-        font-size: 11px !important;
-        font-weight: 900 !important;
-        cursor: pointer !important;
-      }
-
-      #layoutKpiCardEditorV6188 button.primary {
-        background: #182433 !important;
-        color: #fff !important;
-        border-color: #182433 !important;
-      }
-    `;
-    document.head.appendChild(style);
-  }
-
-  function prepareKpiCardsV6188() {
-    installStylesV6188();
-    const strip = kpiStripV6188();
-    if (strip) strip.style.setProperty('--kpiSnapGridV6188', snapSizeV6188() + 'px');
-
-    KPI_CARDS_V6188.forEach(card => {
-      const el = kpiCardV6188(card.key);
-      if (!el) return;
-
-      el.classList.add('kpiCardEditableV6188');
-      el.setAttribute('data-kpi-card-key', card.key);
-      el.setAttribute('data-kpi-edit-label', card.label);
-
-      if (!el.querySelector(':scope > .kpiResizeHandleV6188')) {
-        const handle = document.createElement('div');
-        handle.className = 'kpiResizeHandleV6188';
-        handle.setAttribute('aria-hidden', 'true');
-        el.appendChild(handle);
-      }
-    });
-
-    applySavedKpiLayoutsV6188();
-    updateSelectedKpiV6188();
-  }
-
-  function injectKpiPanelV6188() {
-    const panel = document.getElementById('layoutEditPanelV6183');
-    if (!panel || document.getElementById('layoutKpiCardEditorV6188')) return;
-
-    const group = document.createElement('div');
-    group.id = 'layoutKpiCardEditorV6188';
-    group.innerHTML = [
-      '<div class="layoutEditGroupTitleV6188">KPI cards</div>',
-      '<p class="layoutEditHintV6188">Drag each KPI card. Use the corner to resize. Grid lines appear while editing and movement snaps to the selected grid.</p>',
-      '<select id="kpiCardSelectV6188">',
-      KPI_CARDS_V6188.map(card => '<option value="' + card.key + '">' + card.label + '</option>').join(''),
-      '</select>',
-      '<select id="kpiSnapGridSelectV6188">',
-      '<option value="4">Snap: 4px</option>',
-      '<option value="8">Snap: 8px</option>',
-      '<option value="10">Snap: 10px</option>',
-      '<option value="12">Snap: 12px</option>',
-      '<option value="16">Snap: 16px</option>',
-      '</select>',
-      '<div class="kpiCardEditorButtonsV6188">',
-      '<button type="button" class="primary" id="kpiBringFrontV6188">Bring front</button>',
-      '<button type="button" id="kpiResetCardsV6188">Reset KPI cards</button>',
-      '</div>'
-    ].join('');
-
-    const cardEditor = document.getElementById('layoutCardEditorV6184');
-    const buttons = panel.querySelector('.layoutButtonsV6183');
-    if (cardEditor && cardEditor.parentNode) cardEditor.parentNode.insertBefore(group, cardEditor);
-    else if (buttons && buttons.parentNode) buttons.parentNode.insertBefore(group, buttons);
-    else panel.appendChild(group);
-
-    const cardSelect = document.getElementById('kpiCardSelectV6188');
-    const snapSelect = document.getElementById('kpiSnapGridSelectV6188');
-    const frontBtn = document.getElementById('kpiBringFrontV6188');
-    const resetBtn = document.getElementById('kpiResetCardsV6188');
-    const saveBtn = document.getElementById('layoutSaveBtnV6183');
-    const allResetBtn = document.getElementById('layoutResetBtnV6183');
-
-    if (cardSelect) {
-      cardSelect.value = selectedKpiKeyV6188;
-      cardSelect.addEventListener('change', () => {
-        selectedKpiKeyV6188 = cardSelect.value || 'revenue';
-        updateSelectedKpiV6188();
-      });
-    }
-
-    if (snapSelect) {
-      snapSelect.value = String(snapSizeV6188());
-      snapSelect.addEventListener('change', () => setSnapSizeV6188(snapSelect.value));
-    }
-
-    if (frontBtn) frontBtn.addEventListener('click', bringSelectedKpiFrontV6188);
-    if (resetBtn) resetBtn.addEventListener('click', clearKpiLayoutV6188);
-
-    if (saveBtn && !saveBtn.__v6188KpiHooked) {
-      saveBtn.addEventListener('click', writeSavedKpiLayoutV6188);
-      saveBtn.__v6188KpiHooked = true;
-    }
-
-    if (allResetBtn && !allResetBtn.__v6188KpiHooked) {
-      allResetBtn.addEventListener('click', clearKpiLayoutV6188);
-      allResetBtn.__v6188KpiHooked = true;
-    }
-  }
-
-  function updateSelectedKpiV6188() {
-    KPI_CARDS_V6188.forEach(card => {
-      const el = kpiCardV6188(card.key);
-      if (el) el.classList.toggle('kpiSelectedCardV6188', isEditModeV6188() && card.key === selectedKpiKeyV6188);
-    });
-    const select = document.getElementById('kpiCardSelectV6188');
-    if (select && select.value !== selectedKpiKeyV6188) select.value = selectedKpiKeyV6188;
-  }
-
-  function selectKpiV6188(key) {
-    selectedKpiKeyV6188 = key || selectedKpiKeyV6188 || 'revenue';
-    updateSelectedKpiV6188();
-  }
-
-  function bringSelectedKpiFrontV6188() {
-    const key = selectedKpiKeyV6188 || 'revenue';
-    const layout = getKpiLayoutV6188(key);
-    zCounterV6188 += 1;
-    layout.z = zCounterV6188;
-    currentKpiLayoutV6188[key] = layout;
-    applyOneKpiLayoutV6188(key, layout);
-    flashStatusV6188('Front');
-  }
-
-  function flashStatusV6188(text) {
-    const status = document.getElementById('layoutEditStatusV6183');
-    if (!status) return;
-    status.textContent = text;
-    window.clearTimeout(status.__v6188Timer);
-    status.__v6188Timer = window.setTimeout(() => {
-      status.textContent = '';
-    }, 1400);
-  }
-
-  function isInteractiveV6188(target) {
-    return !!(target && target.closest && target.closest('button, a, input, select, textarea, canvas, .dropdownPanel, .tableScroll, .kpiResizeHandleV6188'));
-  }
-
-  function startKpiMoveV6188(event) {
-    if (!isEditModeV6188()) return;
-    const card = event.target.closest && event.target.closest('.comparisonKpi.kpiCardEditableV6188');
-    if (!card || isInteractiveV6188(event.target)) return;
-    if (event.button !== undefined && event.button !== 0) return;
-
-    const key = card.getAttribute('data-kpi-card-key');
-    if (!key) return;
-
-    event.preventDefault();
-    event.stopPropagation();
-    selectKpiV6188(key);
-
-    const layout = getKpiLayoutV6188(key);
-    dragStateV6188 = {
-      mode: 'move',
-      key,
-      startX: event.clientX,
-      startY: event.clientY,
-      startLayout: Object.assign({}, layout)
-    };
-
-    try { card.setPointerCapture(event.pointerId); } catch (err) {}
-    window.addEventListener('pointermove', continueKpiDragV6188, true);
-    window.addEventListener('pointerup', endKpiDragV6188, true);
-  }
-
-  function startKpiResizeV6188(event) {
-    if (!isEditModeV6188()) return;
-    const card = event.target.closest && event.target.closest('.comparisonKpi.kpiCardEditableV6188');
-    if (!card) return;
-    const key = card.getAttribute('data-kpi-card-key');
-    if (!key) return;
-
-    event.preventDefault();
-    event.stopPropagation();
-    selectKpiV6188(key);
-
-    const layout = getKpiLayoutV6188(key);
-    dragStateV6188 = {
-      mode: 'resize',
-      key,
-      startX: event.clientX,
-      startY: event.clientY,
-      startLayout: Object.assign({}, layout)
-    };
-
-    try { event.target.setPointerCapture(event.pointerId); } catch (err) {}
-    window.addEventListener('pointermove', continueKpiDragV6188, true);
-    window.addEventListener('pointerup', endKpiDragV6188, true);
-  }
-
-  function continueKpiDragV6188(event) {
-    if (!dragStateV6188) return;
-    event.preventDefault();
-    event.stopPropagation();
-
-    const dx = event.clientX - dragStateV6188.startX;
-    const dy = event.clientY - dragStateV6188.startY;
-    const next = Object.assign({}, dragStateV6188.startLayout);
-
-    if (dragStateV6188.mode === 'move') {
-      next.x = dragStateV6188.startLayout.x + dx;
-      next.y = dragStateV6188.startLayout.y + dy;
-    } else {
-      next.w = dragStateV6188.startLayout.w + dx;
-      next.h = dragStateV6188.startLayout.h + dy;
-    }
-
-    const normalized = normalizeKpiLayoutV6188(dragStateV6188.key, next);
-    currentKpiLayoutV6188[dragStateV6188.key] = normalized;
-    applyOneKpiLayoutV6188(dragStateV6188.key, normalized);
-    window.dispatchEvent(new Event('resize'));
-  }
-
-  function endKpiDragV6188(event) {
-    if (dragStateV6188) {
-      event.preventDefault();
-      event.stopPropagation();
-    }
-    dragStateV6188 = null;
-    window.removeEventListener('pointermove', continueKpiDragV6188, true);
-    window.removeEventListener('pointerup', endKpiDragV6188, true);
-    window.dispatchEvent(new Event('resize'));
-  }
-
-  function bindKpiEventsV6188() {
-    const strip = kpiStripV6188();
-    if (!strip || strip.__v6188KpiEventsBound) return;
-
-    strip.addEventListener('pointerdown', event => {
-      if (event.target && event.target.classList && event.target.classList.contains('kpiResizeHandleV6188')) {
-        startKpiResizeV6188(event);
-        return;
-      }
-      startKpiMoveV6188(event);
-    }, true);
-
-    strip.__v6188KpiEventsBound = true;
-  }
-
-  function syncKpiEditModeV6188() {
-    const strip = kpiStripV6188();
-    if (strip) {
-      strip.classList.toggle('kpiSnapGridActiveV6188', isEditModeV6188());
-      strip.style.setProperty('--kpiSnapGridV6188', snapSizeV6188() + 'px');
-    }
-    updateSelectedKpiV6188();
-  }
-
-  function setDebugVersionV6188() {
-    document.querySelectorAll('body *').forEach(el => {
-      const value = (el.textContent || '').trim();
-      if (/^DEBUG v6\.\d+/.test(value) && value.length < 300) {
-        el.textContent = VERSION_TEXT_V6188;
-      }
-    });
-  }
-
-  function afterRenderV6188() {
-    installStylesV6188();
-    prepareKpiCardsV6188();
-    injectKpiPanelV6188();
-    bindKpiEventsV6188();
-    syncKpiEditModeV6188();
-    setDebugVersionV6188();
-  }
-
-  const observerV6188 = new MutationObserver(() => {
-    injectKpiPanelV6188();
-    syncKpiEditModeV6188();
-  });
-  observerV6188.observe(document.body, { attributes: true, attributeFilter: ['class'] });
-
-  const previousRenderAllV6188 = typeof renderAll === 'function' ? renderAll : null;
-  if (previousRenderAllV6188 && !renderAll.__v6188Wrapped) {
-    const wrappedRenderAllV6188 = function renderAllV6188() {
-      const result = previousRenderAllV6188.apply(this, arguments);
-      window.setTimeout(afterRenderV6188, 0);
-      return result;
-    };
-    wrappedRenderAllV6188.__v6188Wrapped = true;
-    renderAll = wrappedRenderAllV6188;
-  }
-
-  const previousHandleDataV6188 = typeof handleData === 'function' ? handleData : null;
-  if (previousHandleDataV6188 && !handleData.__v6188Wrapped) {
-    const wrappedHandleDataV6188 = function handleDataV6188() {
-      const result = previousHandleDataV6188.apply(this, arguments);
-      window.setTimeout(afterRenderV6188, 160);
-      return result;
-    };
-    wrappedHandleDataV6188.__v6188Wrapped = true;
-    handleData = wrappedHandleDataV6188;
-  }
-
-  afterRenderV6188();
-  setTimeout(afterRenderV6188, 0);
-  setTimeout(afterRenderV6188, 300);
-  setTimeout(afterRenderV6188, 1000);
-})();
-
-
-
-/* v6.190 safe compact dropdowns - no refresh hooks
-   Built from v6.188 stable baseline.
-   Keeps edit mode + KPI snap grid.
-   Adds compact dropdown sizing with CSS only.
-   Does not wrap refresh/render/handleData, so it should not crash during refresh. */
-(function installSafeCompactDropdownsNoRefreshHooksV6190() {
-  const STYLE_ID_V6190 = 'safeCompactDropdownsNoRefreshHooksStylesV6190';
-
-  if (document.getElementById(STYLE_ID_V6190)) return;
-
-  const style = document.createElement('style');
-  style.id = STYLE_ID_V6190;
-  style.textContent = `
-    #overviewFilterDeck.topOverviewFilterDeck .dropdownPanel {
-      width: auto !important;
-      min-width: 0 !important;
-      max-width: calc(100vw - 28px) !important;
-      top: 34px !important;
-      z-index: 2147483000 !important;
-    }
-
-    #overviewFilterDeck.topOverviewFilterDeck #yearDropdownPanel.yearDropdownPanel {
-      width: 300px !important;
-      min-width: 300px !important;
-      max-width: min(300px, calc(100vw - 28px)) !important;
-      left: 0 !important;
-      right: auto !important;
-    }
-
-    #overviewFilterDeck.topOverviewFilterDeck #departmentDropdownPanel {
-      width: 390px !important;
-      min-width: 390px !important;
-      max-width: min(390px, calc(100vw - 28px)) !important;
-      left: 0 !important;
-      right: auto !important;
-    }
-
-    #overviewFilterDeck.topOverviewFilterDeck #productDropdownPanel.productDropdownPanel {
-      width: 500px !important;
-      min-width: 500px !important;
-      max-width: min(500px, calc(100vw - 28px)) !important;
-      left: 0 !important;
-      right: auto !important;
-    }
-
-    #overviewFilterDeck.topOverviewFilterDeck #customerDropdownPanel.customerDropdownPanel {
-      width: 500px !important;
-      min-width: 500px !important;
-      max-width: min(500px, calc(100vw - 28px)) !important;
-      left: auto !important;
-      right: 0 !important;
-    }
-
-    #overviewFilterDeck.topOverviewFilterDeck .dropdownPanelHeader {
-      gap: 6px !important;
-      padding: 7px 8px !important;
-    }
-
-    #overviewFilterDeck.topOverviewFilterDeck .dropdownPanelHeader button {
-      height: 26px !important;
-      padding: 0 9px !important;
-      font-size: 11px !important;
-      border-radius: 7px !important;
-    }
-
-    #overviewFilterDeck.topOverviewFilterDeck .dropdownSearch {
-      height: 30px !important;
-      min-height: 30px !important;
-      margin: 7px 8px 5px !important;
-      width: calc(100% - 16px) !important;
-      font-size: 11px !important;
-    }
-
-    #overviewFilterDeck.topOverviewFilterDeck .sectionHeader.compactHeader {
-      padding: 7px 9px !important;
-      font-size: 11px !important;
-    }
-
-    #overviewFilterDeck.topOverviewFilterDeck .dropdownList {
-      max-height: min(360px, calc(100vh - 225px)) !important;
-      overflow-y: auto !important;
-    }
-
-    #overviewFilterDeck.topOverviewFilterDeck #yearList.dropdownList {
-      max-height: 210px !important;
-    }
-
-    #overviewFilterDeck.topOverviewFilterDeck .yearRow,
-    #overviewFilterDeck.topOverviewFilterDeck .deptRow,
-    #overviewFilterDeck.topOverviewFilterDeck .multiRow {
-      min-height: 30px !important;
-      padding: 5px 9px !important;
-    }
-
-    #overviewFilterDeck.topOverviewFilterDeck .multiRow .labelSide,
-    #overviewFilterDeck.topOverviewFilterDeck .deptRow .labelSide,
-    #overviewFilterDeck.topOverviewFilterDeck .yearRow .labelSide {
-      min-width: 0 !important;
-    }
-
-    #overviewFilterDeck.topOverviewFilterDeck .rowLabel,
-    #overviewFilterDeck.topOverviewFilterDeck .optionLabel,
-    #overviewFilterDeck.topOverviewFilterDeck .labelSide span:last-child {
-      overflow: hidden !important;
-      text-overflow: ellipsis !important;
-      white-space: nowrap !important;
-    }
-
-    @media (max-width: 900px) {
-      #overviewFilterDeck.topOverviewFilterDeck #yearDropdownPanel.yearDropdownPanel,
-      #overviewFilterDeck.topOverviewFilterDeck #departmentDropdownPanel,
-      #overviewFilterDeck.topOverviewFilterDeck #productDropdownPanel.productDropdownPanel,
-      #overviewFilterDeck.topOverviewFilterDeck #customerDropdownPanel.customerDropdownPanel {
-        left: 0 !important;
-        right: auto !important;
-        width: calc(100vw - 28px) !important;
-        min-width: 0 !important;
-        max-width: calc(100vw - 28px) !important;
-      }
-    }
-  `;
-  document.head.appendChild(style);
-
-  const bannerText = 'DEBUG v6.190 safeCompactDropdownsNoRefreshHooks - compact dropdowns, no refresh hooks, edit mode retained';
-  setTimeout(() => {
-    document.querySelectorAll('body *').forEach(el => {
-      const value = (el.textContent || '').trim();
-      if (/^DEBUG v6\.\d+/.test(value) && value.length < 300) {
-        el.textContent = bannerText;
-      }
-    });
-  }, 0);
-})();
-
-
-
-/* v6.194 stable filters rollback
-   Built from v6.190 safe baseline.
-   Purpose:
-   - Roll back the filter-breaking chart-mode/dropdown hook experiments.
-   - Keep edit mode, KPI snap-grid, compact KPI text, clean wrapped pills, and safe compact dropdown sizing.
-   - Remove the extra Year scope label.
-   - Keep Product/Dept/Group/Category table switching from clearing table focus. */
-(function installStableFiltersRollbackV6194() {
-  const STYLE_ID_V6194 = 'stableFiltersRollbackStylesV6194';
-  const VERSION_TEXT_V6194 = 'DEBUG v6.194 stableFiltersRollback - safe filters, edit mode retained, no chart-mode filter hooks';
-
-  if (!document.getElementById(STYLE_ID_V6194)) {
-    const style = document.createElement('style');
-    style.id = STYLE_ID_V6194;
-    style.textContent = `
-      #overviewFilterDeck.topOverviewFilterDeck .filterCard:nth-child(4)::before {
-        content: none !important;
-        display: none !important;
-      }
-
-      /* Keep dropdown lists scrollable without changing dropdown behavior. */
-      #overviewFilterDeck.topOverviewFilterDeck,
-      #overviewFilterDeck.topOverviewFilterDeck .filterCard {
-        overflow: visible !important;
-      }
-
-      #overviewFilterDeck.topOverviewFilterDeck .dropdownPanel.open {
-        display: flex !important;
-        flex-direction: column !important;
-        max-height: min(520px, calc(100vh - 96px)) !important;
-        overflow: hidden !important;
-      }
-
-      #overviewFilterDeck.topOverviewFilterDeck .dropdownList,
-      #overviewFilterDeck.topOverviewFilterDeck #departmentList,
-      #overviewFilterDeck.topOverviewFilterDeck #productList,
-      #overviewFilterDeck.topOverviewFilterDeck #customerList,
-      #overviewFilterDeck.topOverviewFilterDeck #yearList {
-        flex: 1 1 auto !important;
-        min-height: 120px !important;
-        max-height: min(380px, calc(100vh - 245px)) !important;
-        overflow-y: auto !important;
-        overflow-x: hidden !important;
-        overscroll-behavior: contain !important;
-        -webkit-overflow-scrolling: touch !important;
-      }
-    `;
-    document.head.appendChild(style);
-  }
-
-  window.setProductModeV6165 = function setProductModeV6165(mode) {
-    const allowed = new Set(['product', 'department', 'group', 'category']);
-    const nextMode = allowed.has(mode) ? mode : 'product';
-
-    state.v6165ProductMode = nextMode;
-
-    // Do not clear user selections/highlights just because the table view changed.
-    if (!state.v6165ProductFocus) state.v6165ProductFocus = new Set();
-    if (!Array.isArray(state.v6165ProductClickOrder)) state.v6165ProductClickOrder = [];
-    state.v6165ProductFocusMode = nextMode;
-
-    if (typeof syncLegacyTableSelectionV6165 === 'function') syncLegacyTableSelectionV6165();
-    if (typeof renderAll === 'function') renderAll();
-  };
-
-  window.setCustomerModeV6165 = window.setCustomerModeV6165 || function setCustomerModeV6165(mode) {
-    state.v6165CustomerMode = mode || state.v6165CustomerMode || 'customer';
-    if (!state.v6165CustomerFocus) state.v6165CustomerFocus = new Set();
-    if (!Array.isArray(state.v6165CustomerClickOrder)) state.v6165CustomerClickOrder = [];
-    if (typeof renderAll === 'function') renderAll();
-  };
-
-  const banner = document.getElementById('singleShellDebugBanner');
-  if (banner) banner.textContent = VERSION_TEXT_V6194;
-})();
-
-
-
-/* v6.197 fast year-only dropdowns
-   Built from v6.194 stable filters rollback.
-   Debug finding from v6.196: customer dropdown was freezing in renderCustomerList / getVisibleCustomerOptions.
-   Fix:
-   - Opening a dropdown does NOT render hundreds of rows at once.
-   - Dropdowns are scoped ONLY by Year.
-   - Table/chart selections do not affect dropdown inventory.
-   - Dropdown open renders a small first page, then Load more.
-   - Select all / Clear all render once, after the click.
-   - No chart-mode hooks. */
-(function installFastYearOnlyDropdownsV6197() {
-  const VERSION_TEXT_V6197 = 'DEBUG v6.198 fastYearDropdownsMainDeptFix - fast dropdown open, Year-only inventory, main dept fix';
-  const STYLE_ID_V6197 = 'fastYearOnlyDropdownsStylesV6197';
-
-  const PAGE_SIZE_V6197 = {
-    department: 120,
-    product: 90,
-    customer: 90,
-    year: 80
-  };
-
-  let cacheKeyV6197 = '';
-  let cacheV6197 = null;
-  let renderTimerV6197 = null;
-  let pendingPanelV6197 = '';
-
-  function installStylesV6197() {
-    if (document.getElementById(STYLE_ID_V6197)) return;
-
-    const style = document.createElement('style');
-    style.id = STYLE_ID_V6197;
-    style.textContent = `
-      #overviewFilterDeck.topOverviewFilterDeck .filterCard:nth-child(4)::before {
-        content: none !important;
-        display: none !important;
-      }
-
-      #overviewFilterDeck.topOverviewFilterDeck,
-      #overviewFilterDeck.topOverviewFilterDeck .filterCard {
-        overflow: visible !important;
-      }
-
-      #overviewFilterDeck.topOverviewFilterDeck .dropdownPanel {
-        max-height: min(520px, calc(100vh - 96px)) !important;
-        overflow: hidden !important;
-      }
-
-      #overviewFilterDeck.topOverviewFilterDeck .dropdownPanel.open {
-        display: flex !important;
-        flex-direction: column !important;
-      }
-
-      #overviewFilterDeck.topOverviewFilterDeck .dropdownList,
-      #overviewFilterDeck.topOverviewFilterDeck #departmentList,
-      #overviewFilterDeck.topOverviewFilterDeck #productList,
-      #overviewFilterDeck.topOverviewFilterDeck #customerList,
-      #overviewFilterDeck.topOverviewFilterDeck #yearList {
-        flex: 1 1 auto !important;
-        min-height: 120px !important;
-        max-height: min(390px, calc(100vh - 245px)) !important;
-        overflow-y: auto !important;
-        overflow-x: hidden !important;
-        overscroll-behavior: contain !important;
-        -webkit-overflow-scrolling: touch !important;
-      }
-
-      .dropdownLoadMoreV6197 {
-        width: calc(100% - 18px) !important;
-        margin: 8px 9px 10px !important;
-        height: 30px !important;
-        border: 1px solid #d8dde6 !important;
-        border-radius: 9px !important;
-        background: #f8fafc !important;
-        color: #344054 !important;
-        font: 900 11px/1 Roboto, Arial, sans-serif !important;
-        cursor: pointer !important;
-      }
-
-      .dropdownLimitHintV6197 {
-        padding: 7px 10px 3px !important;
-        color: #667085 !important;
-        font: 800 10.5px/1.25 Roboto, Arial, sans-serif !important;
-      }
-
-      body.dropdownRenderingV6197 #overviewFilterDeck.topOverviewFilterDeck .dropdownPanel.open::after {
-        content: 'Updating…' !important;
-        position: absolute !important;
-        right: 10px !important;
-        bottom: 8px !important;
-        z-index: 100 !important;
-        padding: 4px 8px !important;
-        border-radius: 999px !important;
-        background: rgba(24,36,51,.92) !important;
-        color: #fff !important;
-        font: 900 10px/1 Roboto, Arial, sans-serif !important;
-      }
-    `;
-    document.head.appendChild(style);
-  }
-
-  function selectedYearSetV6197() {
-    const selected = new Set();
-    try {
-      Array.from(state.years || []).forEach(year => {
-        const n = Number(year);
-        if (Number.isFinite(n)) selected.add(n);
-      });
-    } catch (err) {}
-
-    if (selected.size) return selected;
-
-    try {
-      (facts || []).forEach(row => {
-        const n = Number(row.year);
-        if (Number.isFinite(n)) selected.add(n);
-      });
-    } catch (err) {}
-
-    return selected;
-  }
-
-  function buildCacheV6197() {
-    const years = selectedYearSetV6197();
-    const factCount = Array.isArray(facts) ? facts.length : 0;
-    const key = factCount + ':' + Array.from(years).sort((a, b) => a - b).join('|');
-
-    if (cacheV6197 && cacheKeyV6197 === key) return cacheV6197;
-
-    const departmentMap = new Map();
-    const productSet = new Set();
-    const customerSet = new Set();
-    const yearMap = new Map();
-
-    (facts || []).forEach(row => {
-      const year = Number(row.year);
-      if (!Number.isFinite(year)) return;
-
-      if (!yearMap.has(year)) yearMap.set(year, { year, revenue: 0 });
-      yearMap.get(year).revenue += Number(row.netRevenue || 0);
-
-      if (!years.has(year)) return;
-
-      const dept = row.productsDepartment || '(Blank department)';
-      if (!departmentMap.has(dept)) {
-        departmentMap.set(dept, {
-          department: dept,
-          isMainDepartment: !!row.isMainDepartment,
-          revenue: 0
-        });
-      }
-      departmentMap.get(dept).revenue += Number(row.netRevenue || 0);
-
-      const pKey = productKey(row);
-      if (pKey) productSet.add(pKey);
-
-      if (row.customerId) customerSet.add(row.customerId);
-    });
-
-    cacheKeyV6197 = key;
-    cacheV6197 = {
-      years,
-      yearsRows: Array.from(yearMap.values()).sort((a, b) => b.year - a.year),
-      departments: Array.from(departmentMap.values()).sort((a, b) => Number(b.revenue || 0) - Number(a.revenue || 0)),
-      productSet,
-      customerSet
-    };
-
-    return cacheV6197;
-  }
-
-  function resetCacheV6197() {
-    cacheKeyV6197 = '';
-    cacheV6197 = null;
-  }
-
-  function pageLimitV6197(kind) {
-    if (!state.v6197DropdownLimit) state.v6197DropdownLimit = {};
-    return Number(state.v6197DropdownLimit[kind] || PAGE_SIZE_V6197[kind] || 90);
-  }
-
-  function resetPageLimitV6197(kind) {
-    if (!state.v6197DropdownLimit) state.v6197DropdownLimit = {};
-    state.v6197DropdownLimit[kind] = PAGE_SIZE_V6197[kind] || 90;
-  }
-
-  window.loadMoreDropdownV6197 = function loadMoreDropdownV6197(kind, event) {
-    if (event) {
-      event.preventDefault();
-      event.stopPropagation();
-    }
-
-    if (!state.v6197DropdownLimit) state.v6197DropdownLimit = {};
-    state.v6197DropdownLimit[kind] = pageLimitV6197(kind) + (PAGE_SIZE_V6197[kind] || 90);
-
-    renderDropdownKindV6197(kind);
-  };
-
-  function fitOpenDropdownV6197() {
-    const panel = document.querySelector('#overviewFilterDeck.topOverviewFilterDeck .dropdownPanel.open');
-    if (!panel) return;
-
-    const list = panel.querySelector('.dropdownList');
-    if (!list) return;
-
-    window.requestAnimationFrame(() => {
-      const rect = panel.getBoundingClientRect();
-      const available = Math.max(190, Math.floor(window.innerHeight - rect.top - 16));
-      const otherHeight = Math.max(86, Math.floor(panel.scrollHeight - list.scrollHeight));
-      const listHeight = Math.max(120, Math.min(430, available - otherHeight));
-
-      panel.style.maxHeight = available + 'px';
-      panel.style.overflow = 'hidden';
-      list.style.maxHeight = listHeight + 'px';
-      list.style.overflowY = 'auto';
-    });
-  }
-
-  function selectedDepartmentSetV6197() {
-    return state.selectedDepartments || new Set();
-  }
-
-  function mainDepartmentSetV6197() {
-    try {
-      const value = typeof getMainDepartments === 'function' ? getMainDepartments() : [];
-      if (value && typeof value.has === 'function') return value;
-      if (Array.isArray(value)) return new Set(value);
-      return new Set(Array.from(value || []));
-    } catch (err) {
-      const fallback = new Set();
-      try {
-        buildCacheV6197().departments.forEach(row => {
-          if (row && row.isMainDepartment) fallback.add(row.department);
-        });
-      } catch (ignored) {}
-      return fallback;
-    }
-  }
-
-  function isDepartmentCheckedV6197(department) {
-    if (state.deptMode === 'ALL') return true;
-    if (state.deptMode === 'MAIN') return mainDepartmentSetV6197().has(department);
-    return selectedDepartmentSetV6197().has(department);
-  }
-
-  function isProductCheckedV6197(key) {
-    if (state.productFilterMode === 'CUSTOM') return (state.selectedProductKeys || new Set()).has(key);
-    return !(state.excludedProductKeys || new Set()).has(key);
-  }
-
-  function isCustomerCheckedV6197(id) {
-    if (state.customerFilterMode === 'CUSTOM') return (state.selectedCustomerIds || new Set()).has(id);
-    return !(state.excludedCustomerIds || new Set()).has(id);
-  }
-
-  // These override the older linked dropdown inventory. Only Year should scope dropdown choices.
-  getAvailableDepartmentSetForDropdown = function getAvailableDepartmentSetForDropdownV6197() {
-    return new Set(buildCacheV6197().departments.map(row => row.department));
-  };
-
-  getAvailableProductSetForDropdown = function getAvailableProductSetForDropdownV6197() {
-    return new Set(buildCacheV6197().productSet);
-  };
-
-  getAvailableCustomerSetForDropdown = function getAvailableCustomerSetForDropdownV6197() {
-    return new Set(buildCacheV6197().customerSet);
-  };
-
-  getDepartmentAffinitySet = function getDepartmentAffinitySetV6197() { return new Set(); };
-  getProductAffinitySet = function getProductAffinitySetV6197() { return new Set(); };
-  getCustomerAffinitySet = function getCustomerAffinitySetV6197() { return new Set(); };
-
-  isDepartmentCheckedForDropdown = function isDepartmentCheckedForDropdownV6197(department) {
-    return isDepartmentCheckedV6197(department);
-  };
-
-  isProductCheckedForDropdown = function isProductCheckedForDropdownV6197(key) {
-    return isProductCheckedV6197(key);
-  };
-
-  isCustomerCheckedForDropdown = function isCustomerCheckedForDropdownV6197(id) {
-    return isCustomerCheckedV6197(id);
-  };
-
-  getVisibleDepartmentRows = function getVisibleDepartmentRowsV6197() {
-    const query = String(state.departmentSearch || '').trim().toLowerCase();
-    const rows = buildCacheV6197().departments.filter(row => !query || String(row.department).toLowerCase().includes(query));
-
-    return rows.sort((a, b) => {
-      const selectedDiff = (isDepartmentCheckedV6197(b.department) ? 1 : 0) - (isDepartmentCheckedV6197(a.department) ? 1 : 0);
-      if (selectedDiff) return selectedDiff;
-      return Number(b.revenue || 0) - Number(a.revenue || 0);
-    });
-  };
-
-  getVisibleProductOptions = function getVisibleProductOptionsV6197() {
-    const query = String(state.productSearch || '').trim();
-    const productSet = buildCacheV6197().productSet;
-
-    return (productOptions || [])
-      .filter(item => productSet.has(item.key))
-      .map(item => ({
-        item,
-        fuzzyScore: query ? window.dashboardFuzzySearchV6412.score(
-          item.searchText || [item.label, item.department, item.productId].join(' '),
-          query
-        ) : 1
-      }))
-      .filter(entry => !query || entry.fuzzyScore > 0)
-      .sort((a, b) => {
-        const selectedDiff = (isProductCheckedV6197(b.item.key) ? 1 : 0) - (isProductCheckedV6197(a.item.key) ? 1 : 0);
-        if (selectedDiff) return selectedDiff;
-        if (query && b.fuzzyScore !== a.fuzzyScore) return b.fuzzyScore - a.fuzzyScore;
-        return a.item.label.localeCompare(b.item.label);
-      })
-      .map(entry => entry.item);
-  };
-
-  getVisibleCustomerOptions = function getVisibleCustomerOptionsV6197() {
-    const query = String(state.customerSearch || '').trim().toLowerCase();
-    const customerSet = buildCacheV6197().customerSet;
-
-    return (customerOptions || [])
-      .filter(item => customerSet.has(item.idValue))
-      .filter(item => !query || item.searchText.includes(query))
-      .sort((a, b) => {
-        const selectedDiff = (isCustomerCheckedV6197(b.idValue) ? 1 : 0) - (isCustomerCheckedV6197(a.idValue) ? 1 : 0);
-        if (selectedDiff) return selectedDiff;
-        return a.label.localeCompare(b.label);
-      });
-  };
-
-  function updateCountTextV6197(countId, selected, total, shown) {
-    const el = document.getElementById(countId);
-    if (el) el.textContent = dropdownCountText(selected, total, shown);
-  }
-
-  function moreButtonV6197(kind, renderedCount, totalCount) {
-    if (totalCount <= renderedCount) return '';
-    return `
-      <div class="dropdownLimitHintV6197">Showing ${renderedCount.toLocaleString()} of ${totalCount.toLocaleString()} matching ${kind}s.</div>
-      <button type="button" class="dropdownLoadMoreV6197" onclick="loadMoreDropdownV6197('${kind}', event)">Load more</button>
-    `;
-  }
-
-  renderDepartmentList = function renderDepartmentListV6197() {
-    const list = document.getElementById('departmentList');
-    if (!list) return;
-
-    const rows = getVisibleDepartmentRows();
-    const checked = rows.filter(row => isDepartmentCheckedV6197(row.department));
-    const unchecked = rows.filter(row => !isDepartmentCheckedV6197(row.department));
-    const display = state.collapseSelectedDepartments ? unchecked : checked.concat(unchecked);
-    const limit = pageLimitV6197('department');
-    const visible = display.slice(0, limit);
-
-    updateCountTextV6197('departmentVisibleCount', checked.length, rows.length, Math.min(display.length, limit));
-    setCollapseButton('departmentCollapseBtn', state.collapseSelectedDepartments);
-
-    if (!rows.length) {
-      list.innerHTML = '<div class="emptyFilterRow">No departments match the selected year/search.</div>';
-      updateDropdownLabels();
-      fitOpenDropdownV6197();
-      return;
-    }
-
-    const html = selectedCollapseHeader('departments', state.collapseSelectedDepartments, checked.length, 'Selected') +
-      visible.map(row => `
-        <div class="deptRow ${isDepartmentCheckedV6197(row.department) ? 'active' : ''}" onclick="event.stopPropagation(); toggleDepartment('${escapeJs(row.department)}')">
-          <div class="labelSide">
-            <input type="checkbox" tabindex="-1" onclick="event.preventDefault()" ${isDepartmentCheckedV6197(row.department) ? 'checked' : ''}>
-            <span title="${escapeHtml(row.department)}">${escapeHtml(row.department)}</span>
-          </div>
-          <span class="rowTotal">${formatCompact(row.revenue)}</span>
-        </div>
-      `).join('') +
-      moreButtonV6197('department', visible.length, display.length);
-
-    list.innerHTML = html;
-    updateDropdownLabels();
-    fitOpenDropdownV6197();
-  };
-
-  renderProductList = function renderProductListV6197() {
-    const list = document.getElementById('productList');
-    if (!list) return;
-
-    const rows = getVisibleProductOptions();
-    const checked = rows.filter(item => isProductCheckedV6197(item.key));
-    const unchecked = rows.filter(item => !isProductCheckedV6197(item.key));
-    const display = state.collapseSelectedProducts ? unchecked : checked.concat(unchecked);
-    const limit = pageLimitV6197('product');
-    const visible = display.slice(0, limit);
-
-    updateCountTextV6197('productVisibleCount', checked.length, rows.length, Math.min(display.length, limit));
-    setCollapseButton('productCollapseBtn', state.collapseSelectedProducts);
-
-    if (!rows.length) {
-      list.innerHTML = '<div class="emptyFilterRow">No products match the selected year/search.</div>';
-      updateDropdownLabels();
-      fitOpenDropdownV6197();
-      return;
-    }
-
-    const html = selectedCollapseHeader('products', state.collapseSelectedProducts, checked.length, 'Selected') +
-      visible.map(item => `
-        <div class="multiRow ${isProductCheckedV6197(item.key) ? 'active' : ''}" onclick="toggleProduct('${escapeJs(item.key)}', event)">
-          <div class="labelSide">
-            <input type="checkbox" tabindex="-1" onclick="event.preventDefault()" ${isProductCheckedV6197(item.key) ? 'checked' : ''}>
-            <span title="${escapeHtml(productLabelFromKey(item.key))}">${escapeHtml(productLabelFromKey(item.key))}</span>
-          </div>
-        </div>
-      `).join('') +
-      moreButtonV6197('product', visible.length, display.length);
-
-    list.innerHTML = html;
-    updateDropdownLabels();
-    fitOpenDropdownV6197();
-  };
-
-  renderCustomerList = function renderCustomerListV6197() {
-    const list = document.getElementById('customerList');
-    if (!list) return;
-
-    const rows = getVisibleCustomerOptions();
-    const checked = rows.filter(item => isCustomerCheckedV6197(item.idValue));
-    const unchecked = rows.filter(item => !isCustomerCheckedV6197(item.idValue));
-    const display = state.collapseSelectedCustomers ? unchecked : checked.concat(unchecked);
-    const limit = pageLimitV6197('customer');
-    const visible = display.slice(0, limit);
-
-    updateCountTextV6197('customerVisibleCount', checked.length, rows.length, Math.min(display.length, limit));
-    setCollapseButton('customerCollapseBtn', state.collapseSelectedCustomers);
-    if (typeof updateCustomerActiveOnlyButton === 'function') updateCustomerActiveOnlyButton();
-
-    if (!rows.length) {
-      list.innerHTML = '<div class="emptyFilterRow">No customers match the selected year/search.</div>';
-      updateDropdownLabels();
-      fitOpenDropdownV6197();
-      return;
-    }
-
-    const html = selectedCollapseHeader('customers', state.collapseSelectedCustomers, checked.length, 'Selected') +
-      visible.map(item => `
-        <div class="multiRow ${isCustomerCheckedV6197(item.idValue) ? 'active' : ''}" onclick="toggleCustomer('${escapeJs(item.idValue)}', event)">
-          <div class="labelSide">
-            <input type="checkbox" tabindex="-1" onclick="event.preventDefault()" ${isCustomerCheckedV6197(item.idValue) ? 'checked' : ''}>
-            <span title="${escapeHtml(item.label + (item.active === false ? ' - Inactive' : ''))}">${escapeHtml(item.label)}${item.active === false ? ' <span class="inactiveBadge">Inactive</span>' : ''}</span>
-          </div>
-        </div>
-      `).join('') +
-      moreButtonV6197('customer', visible.length, display.length);
-
-    list.innerHTML = html;
-    updateDropdownLabels();
-    fitOpenDropdownV6197();
-  };
-
-  renderYearList = function renderYearListV6197() {
-    const list = document.getElementById('yearList');
-    if (!list) return;
-
-    const rows = buildCacheV6197().yearsRows;
-    const checked = rows.filter(row => state.years && state.years.has(row.year));
-    const unchecked = rows.filter(row => !(state.years && state.years.has(row.year)));
-    const display = state.collapseSelectedYears ? unchecked : checked.concat(unchecked);
-
-    updateCountTextV6197('yearVisibleCount', checked.length, rows.length, display.length);
-    setCollapseButton('yearCollapseBtn', state.collapseSelectedYears);
-
-    list.innerHTML = selectedCollapseHeader('years', state.collapseSelectedYears, checked.length, 'Selected') +
-      display.map(row => `
-        <div class="yearRow ${state.years && state.years.has(row.year) ? 'active' : ''}" onclick="toggleYear(${row.year}, event)">
-          <div class="labelSide">
-            <input type="checkbox" tabindex="-1" onclick="event.preventDefault()" ${state.years && state.years.has(row.year) ? 'checked' : ''}>
-            <span>${row.year}</span>
-          </div>
-          <span class="rowTotal">${formatCompact(row.revenue)}</span>
-        </div>
-      `).join('');
-
-    updateDropdownLabels();
-    fitOpenDropdownV6197();
-  };
-
-  function renderDropdownKindV6197(kind) {
-    if (kind === 'department') renderDepartmentList();
-    if (kind === 'product') renderProductList();
-    if (kind === 'customer') renderCustomerList();
-    if (kind === 'year') renderYearList();
-  }
-
-  function panelKindV6197(panelId) {
-    if (panelId === 'departmentDropdownPanel') return 'department';
-    if (panelId === 'productDropdownPanel') return 'product';
-    if (panelId === 'customerDropdownPanel') return 'customer';
-    if (panelId === 'yearDropdownPanel') return 'year';
-    return '';
-  }
-
-  closeDropdownPanel = function closeDropdownPanelV6197(panel) {
-    if (!panel || !panel.classList.contains('open')) return;
-    if (typeof clearDropdownSearch === 'function') clearDropdownSearch(panel.id);
-    panel.classList.remove('open');
-  };
-
-  closeDropdowns = function closeDropdownsV6197() {
-    document.querySelectorAll('.dropdownPanel').forEach(panel => closeDropdownPanel(panel));
-  };
-
-  toggleDropdown = function toggleDropdownV6197(panelId) {
-    installStylesV6197();
-
-    const panel = document.getElementById(panelId);
-    if (!panel) return;
-
-    const shouldOpen = !panel.classList.contains('open');
-
-    document.querySelectorAll('.dropdownPanel').forEach(openPanel => {
-      if (openPanel.id !== panelId) closeDropdownPanel(openPanel);
-    });
-
-    if (!shouldOpen) {
-      closeDropdownPanel(panel);
-      return;
-    }
-
-    const kind = panelKindV6197(panelId);
-    resetPageLimitV6197(kind);
-
-    panel.classList.add('open');
-
-    // Let the panel paint before building rows. This prevents Chrome from thinking the page is frozen.
-    window.setTimeout(() => {
-      renderDropdownKindV6197(kind);
-      fitOpenDropdownV6197();
-    }, 0);
-  };
-
-  prepareDropdownAction = function prepareDropdownActionV6197(event) {
-    if (event) {
-      if (typeof event.preventDefault === 'function') event.preventDefault();
-      if (typeof event.stopPropagation === 'function') event.stopPropagation();
-      if (typeof event.stopImmediatePropagation === 'function') event.stopImmediatePropagation();
-    }
-  };
-
-  renderAfterBulkDropdownSelection = function renderAfterBulkDropdownSelectionV6197(panelId) {
-    pendingPanelV6197 = panelId || pendingPanelV6197 || '';
-    document.body.classList.add('dropdownRenderingV6197');
-
-    if (renderTimerV6197) window.clearTimeout(renderTimerV6197);
-    renderTimerV6197 = window.setTimeout(() => {
-      renderTimerV6197 = null;
-      resetCacheV6197();
-
-      if (typeof renderAll === 'function') renderAll();
-
-      const target = pendingPanelV6197;
-      pendingPanelV6197 = '';
-
-      window.setTimeout(() => {
-        const panel = target ? document.getElementById(target) : null;
-        if (panel) panel.classList.add('open');
-        renderDropdownKindV6197(panelKindV6197(target));
-        document.body.classList.remove('dropdownRenderingV6197');
-      }, 25);
-    }, 25);
-  };
-
-  selectAllDepartments = function selectAllDepartmentsV6197(event) {
-    prepareDropdownAction(event);
-    const rows = getVisibleDepartmentRows();
-    state.selectedDepartments = new Set(rows.map(row => row.department));
-    state.deptMode = 'ALL';
-    renderAfterBulkDropdownSelection('departmentDropdownPanel');
-  };
-
-  clearDepartmentSelection = function clearDepartmentSelectionV6197(event) {
-    prepareDropdownAction(event);
-    state.deptMode = 'CUSTOM';
-    state.selectedDepartments = new Set();
-    state.collapseSelectedDepartments = false;
-    renderAfterBulkDropdownSelection('departmentDropdownPanel');
-  };
-
-  selectAllProducts = function selectAllProductsV6197(event) {
-    prepareDropdownAction(event);
-    state.productFilterMode = 'ALL';
-    state.selectedProductKeys = new Set();
-    state.tableSelectedProductKeys = new Set();
-    state.excludedProductKeys = new Set();
-    state.lastSelectedProductKey = null;
-    renderAfterBulkDropdownSelection('productDropdownPanel');
-  };
-
-  clearProductSelection = function clearProductSelectionV6197(event) {
-    prepareDropdownAction(event);
-    state.productFilterMode = 'CUSTOM';
-    state.selectedProductKeys = new Set();
-    state.tableSelectedProductKeys = new Set();
-    state.excludedProductKeys = new Set();
-    state.lastSelectedProductKey = null;
-    state.collapseSelectedProducts = false;
-    renderAfterBulkDropdownSelection('productDropdownPanel');
-  };
-
-  selectAllCustomers = function selectAllCustomersV6197(event) {
-    prepareDropdownAction(event);
-    state.customerFilterMode = 'ALL';
-    state.selectedCustomerIds = new Set();
-    state.tableSelectedCustomerIds = new Set();
     state.excludedCustomerIds = new Set();
     state.lastSelectedCustomerId = null;
-    renderAfterBulkDropdownSelection('customerDropdownPanel');
+    scheduleSmoothRenderV6200('customerDropdownPanel');
   };
 
-  clearCustomerSelection = function clearCustomerSelectionV6197(event) {
-    prepareDropdownAction(event);
+  clearCustomerSelection = function clearCustomerSelectionV6200(event) {
+    if (typeof prepareDropdownAction === 'function') prepareDropdownAction(event);
     state.customerFilterMode = 'CUSTOM';
     state.selectedCustomerIds = new Set();
     state.tableSelectedCustomerIds = new Set();
     state.excludedCustomerIds = new Set();
     state.lastSelectedCustomerId = null;
     state.collapseSelectedCustomers = false;
-    renderAfterBulkDropdownSelection('customerDropdownPanel');
+    scheduleSmoothRenderV6200('customerDropdownPanel');
   };
 
-  toggleDepartment = function toggleDepartmentV6197(dept, event) {
-    if (event) event.stopPropagation();
+  function updateDebugBannerV6200() {
+    const banner = document.getElementById('singleShellDebugBanner');
+    if (banner) banner.textContent = VERSION_TEXT_V6200;
+  }
+
+  installStylesV6200();
+  updateDebugBannerV6200();
+  setTimeout(updateDebugBannerV6200, 200);
+})();
+
+
+
+/* v6.201 active-only customer dropdown fix
+   Built from v6.200 smoother dropdowns.
+   Keeps debug overlay.
+   Fixes:
+   - Active only on now hides inactive customers from the customer dropdown.
+   - Customer count uses the active-only visible set.
+   - Hidden inactive customers no longer appear as checked while Active only is on.
+   - Dropdown opening stays paged/smoother. */
+(function installActiveOnlyCustomerDropdownFixV6201() {
+  const VERSION_TEXT_V6201 = 'DEBUG v6.201 activeOnlyCustomerDropdownFix - active-only customers hidden from dropdown, smoother debug retained';
+
+  function customerIsActiveV6201(item) {
+    if (!item) return false;
+    if (item.active === false) return false;
+    try {
+      if (typeof isCustomerIdActiveForFilter === 'function') return isCustomerIdActiveForFilter(item.idValue);
+    } catch (err) {}
+    return true;
+  }
+
+  function baseCustomerOptionsV6201() {
+    const query = String(state.customerSearch || '').trim();
+
+    let customerSet = null;
+    try {
+      if (typeof buildCacheV6197 === 'function') customerSet = buildCacheV6197().customerSet;
+    } catch (err) {}
+
+    return (customerOptions || [])
+      .filter(item => !customerSet || customerSet.has(item.idValue))
+      .filter(item => !state.customerActiveOnly || customerIsActiveV6201(item))
+      .map(item => ({
+        item,
+        fuzzyScore: query ? window.dashboardFuzzySearchV6412.score(
+          item.searchText || [item.label, item.idValue].join(' '),
+          query
+        ) : 1
+      }))
+      .filter(entry => !query || entry.fuzzyScore > 0);
+  }
+
+  getVisibleCustomerOptions = function getVisibleCustomerOptionsV6201() {
+    return baseCustomerOptionsV6201().sort((a, b) => {
+      const aChecked = typeof isCustomerCheckedV6197 === 'function'
+        ? isCustomerCheckedV6197(a.item.idValue)
+        : (state.customerFilterMode === 'CUSTOM'
+          ? (state.selectedCustomerIds || new Set()).has(a.item.idValue)
+          : !(state.excludedCustomerIds || new Set()).has(a.item.idValue));
+
+      const bChecked = typeof isCustomerCheckedV6197 === 'function'
+        ? isCustomerCheckedV6197(b.item.idValue)
+        : (state.customerFilterMode === 'CUSTOM'
+          ? (state.selectedCustomerIds || new Set()).has(b.item.idValue)
+          : !(state.excludedCustomerIds || new Set()).has(b.item.idValue));
+
+      const checkedDiff = (bChecked ? 1 : 0) - (aChecked ? 1 : 0);
+      if (checkedDiff) return checkedDiff;
+      if (query && b.fuzzyScore !== a.fuzzyScore) return b.fuzzyScore - a.fuzzyScore;
+      return a.item.label.localeCompare(b.item.label);
+    }).map(entry => entry.item);
+  };
+
+  renderCustomerList = function renderCustomerListV6201() {
+    const list = document.getElementById('customerList');
+    if (!list) return;
+
+    if (typeof updateCustomerActiveOnlyButton === 'function') updateCustomerActiveOnlyButton();
+
+    const rows = getVisibleCustomerOptions();
+    const isChecked = item => {
+      if (typeof isCustomerCheckedV6197 === 'function') return isCustomerCheckedV6197(item.idValue);
+      if (state.customerFilterMode === 'CUSTOM') return (state.selectedCustomerIds || new Set()).has(item.idValue);
+      return !(state.excludedCustomerIds || new Set()).has(item.idValue);
+    };
+
+    const checked = rows.filter(isChecked);
+    const unchecked = rows.filter(item => !isChecked(item));
+    const display = state.collapseSelectedCustomers ? unchecked : checked.concat(unchecked);
+
+    const limit = typeof pageLimitV6197 === 'function'
+      ? pageLimitV6197('customer')
+      : Number((state.v6197DropdownLimit && state.v6197DropdownLimit.customer) || 90);
+
+    const visible = display.slice(0, limit);
+
+    const countEl = document.getElementById('customerVisibleCount');
+    if (countEl) {
+      const shown = Math.min(display.length, limit);
+      const totalBase = rows.length;
+      const summary = dropdownCountText(checked.length, totalBase, shown);
+      const activeText = state.customerActiveOnly ? 'Active only: ' + totalBase + ' shown' : '';
+      countEl.textContent = activeText ? summary + ' | ' + activeText : summary;
+    }
+
+    setCollapseButton('customerCollapseBtn', state.collapseSelectedCustomers);
+
+    if (!rows.length) {
+      list.innerHTML = state.customerActiveOnly
+        ? '<div class="emptyFilterRow">No active customers match the selected year/search.</div>'
+        : '<div class="emptyFilterRow">No customers match the selected year/search.</div>';
+      updateDropdownLabels();
+      if (typeof fitOpenDropdownV6197 === 'function') fitOpenDropdownV6197();
+      return;
+    }
+
+    const more = display.length > visible.length
+      ? `<div class="dropdownLimitHintV6197">Showing ${visible.length.toLocaleString()} of ${display.length.toLocaleString()} matching customers.</div>
+         <button type="button" class="dropdownLoadMoreV6197" onclick="loadMoreDropdownV6197('customer', event)">Load more</button>`
+      : '';
+
+    const html = selectedCollapseHeader('customers', state.collapseSelectedCustomers, checked.length, state.customerActiveOnly ? 'Selected active customers' : 'Selected') +
+      visible.map(item => `
+        <div class="multiRow ${isChecked(item) ? 'active' : ''}" onclick="toggleCustomer('${escapeJs(item.idValue)}', event)">
+          <div class="labelSide">
+            <input type="checkbox" tabindex="-1" onclick="event.preventDefault()" ${isChecked(item) ? 'checked' : ''}>
+            <span title="${escapeHtml(item.label)}">${escapeHtml(item.label)}</span>
+          </div>
+        </div>
+      `).join('') +
+      more;
+
+    list.innerHTML = html;
+    updateDropdownLabels();
+    if (typeof fitOpenDropdownV6197 === 'function') fitOpenDropdownV6197();
+  };
+
+  const previousToggleActiveCustomersOnlyV6201 = typeof toggleActiveCustomersOnly === 'function' ? toggleActiveCustomersOnly : null;
+  toggleActiveCustomersOnly = function toggleActiveCustomersOnlyV6201(event) {
+    if (event) {
+      if (typeof event.preventDefault === 'function') event.preventDefault();
+      if (typeof event.stopPropagation === 'function') event.stopPropagation();
+      if (typeof event.stopImmediatePropagation === 'function') event.stopImmediatePropagation();
+    }
+
+    if (typeof clearMoverTablePinnedSelections === 'function') clearMoverTablePinnedSelections();
+
+    state.customerActiveOnly = !state.customerActiveOnly;
+    state.lastSelectedCustomerId = null;
+
+    if (typeof syncSelects === 'function') syncSelects();
+
+    if (typeof scheduleSmoothRenderV6200 === 'function') {
+      scheduleSmoothRenderV6200('customerDropdownPanel');
+    } else if (typeof renderAll === 'function') {
+      renderAll();
+      if (typeof renderCustomerList === 'function') renderCustomerList();
+    }
+  };
+
+  const banner = document.getElementById('singleShellDebugBanner');
+  if (banner) banner.textContent = VERSION_TEXT_V6201;
+
+  setTimeout(() => {
+    try {
+      const panel = document.getElementById('customerDropdownPanel');
+      if (panel && panel.classList.contains('open')) renderCustomerList();
+    } catch (err) {}
+  }, 0);
+})();
+
+
+
+/* v6.203 Overview 1.0 Performance Rebuild
+   - Overview tab now uses Overview 1.0 as the main active page.
+   - Overview 2.0 is removed from the visible UI because it is not needed for this testing direction.
+   - Debug timing overlay and top debug/error banner stay visible during testing.
+   - renderAll renders only the active tab and does not rebuild hidden dropdowns.
+   - Dropdown open/close renders only that dropdown list, not the full dashboard.
+   - Filter changes schedule one active-tab render instead of duplicate immediate renders. */
+(function installOverviewOnePerformanceRebuildV6202() {
+  const versionTextV6202 = 'v6.204 Overview 1.0 performance rebuild + Remake Factor - debugger retained';
+
+  let renderTimerV6202 = null;
+  let pendingPanelIdV6202 = '';
+
+  function isDebugModeV6202() {
+    try {
+      const params = new URLSearchParams(window.location.search || '');
+      return params.get('debug') === '1' || params.get('page') === 'debug';
+    } catch (err) {
+      return false;
+    }
+  }
+
+  if (isDebugModeV6202()) {
+    document.body.classList.add('debugModeV6202');
+    const banner = document.getElementById('singleShellDebugBanner');
+    if (banner) banner.textContent = 'DEBUG ' + versionTextV6202;
+  }
+
+  function setMainOverviewTabV6202() {
+    if (!state) return;
+    if (!state.activeTab || state.activeTab === 'two') state.activeTab = 'one';
+
+    const overviewOne = document.getElementById('overviewOne');
+    const overviewTwo = document.getElementById('overviewTwo');
+    const categoricalPage = document.getElementById('categoricalPage');
+    const tabOneBtn = document.getElementById('tabOneBtn');
+    const underConstructionBtn = document.getElementById('underConstructionBtn');
+    const legacyOverviewTabBtn = document.getElementById('legacyOverviewTabBtn');
+    const categoricalTabBtn = document.getElementById('categoricalTabBtn');
+    const overviewNavActions = document.getElementById('overviewNavActions');
+
+    if (overviewOne) overviewOne.classList.toggle('active', state.activeTab === 'one');
+    if (overviewTwo) overviewTwo.classList.remove('active');
+    if (categoricalPage) categoricalPage.classList.toggle('active', state.activeTab === 'categorical');
+    if (tabOneBtn) tabOneBtn.classList.toggle('active', state.activeTab === 'one');
+    if (underConstructionBtn) underConstructionBtn.classList.toggle('active', state.activeTab === 'categorical');
+    if (legacyOverviewTabBtn) {
+      legacyOverviewTabBtn.remove();
+    }
+    if (categoricalTabBtn) categoricalTabBtn.classList.toggle('active', state.activeTab === 'categorical');
+    if (overviewNavActions) overviewNavActions.style.display = state.activeTab === 'categorical' ? 'none' : 'inline-flex';
+  }
+
+  function renderOpenPanelListV6202(panelId) {
+    const target = panelId || '';
+    if (!target) return;
+
+    const panel = document.getElementById(target);
+    if (panel) panel.classList.add('open');
+
+    if (target === 'departmentDropdownPanel' && typeof renderDepartmentList === 'function') renderDepartmentList();
+    if (target === 'productDropdownPanel' && typeof renderProductList === 'function') renderProductList();
+    if (target === 'customerDropdownPanel' && typeof renderCustomerList === 'function') renderCustomerList();
+    if (target === 'yearDropdownPanel' && typeof renderYearList === 'function') renderYearList();
+  }
+
+  window.scheduleTabRenderV6202 = function scheduleTabRenderV6202(panelId) {
+    pendingPanelIdV6202 = panelId || pendingPanelIdV6202 || '';
+    if (renderTimerV6202) window.clearTimeout(renderTimerV6202);
+
+    renderTimerV6202 = window.setTimeout(() => {
+      renderTimerV6202 = null;
+      window.requestAnimationFrame(() => {
+        renderAll();
+        if (pendingPanelIdV6202) {
+          window.requestAnimationFrame(() => {
+            renderOpenPanelListV6202(pendingPanelIdV6202);
+            pendingPanelIdV6202 = '';
+          });
+        }
+      });
+    }, 20);
+  };
+
+  const originalRenderAllV6202 = typeof renderAll === 'function' ? renderAll : null;
+  if (originalRenderAllV6202 && !renderAll.__v6202OverviewOne) {
+    renderAll = function renderAllV6202() {
+      if (!payload) return;
+
+      if (!state.activeTab) state.activeTab = 'one';
+      const activeTab = state.activeTab;
+
+      if (typeof captureUndoBeforeRender === 'function') captureUndoBeforeRender();
+      const dropdownState = typeof getOpenDropdownState === 'function' ? getOpenDropdownState() : null;
+
+      if (typeof normalizeEmptyCustomFilters === 'function') normalizeEmptyCustomFilters();
+      if (typeof updateButtonStates === 'function') updateButtonStates();
+      if (typeof renderChips === 'function') renderChips();
+      if (typeof renderKpis === 'function') renderKpis();
+
+      if (activeTab === 'two') {
+        if (typeof destroyChartsForTab === 'function') destroyChartsForTab('one');
+        if (typeof renderOverviewTwoIfActive === 'function') renderOverviewTwoIfActive();
+      } else if (activeTab === 'categorical') {
+        if (typeof destroyChartsForTab === 'function') {
+          destroyChartsForTab('one');
+          destroyChartsForTab('two');
+        }
+      } else {
+        state.activeTab = 'one';
+        if (typeof destroyChartsForTab === 'function') destroyChartsForTab('two');
+        if (typeof renderCharts === 'function') renderCharts();
+        if (typeof renderTables === 'function') renderTables();
+      }
+
+      if (typeof syncSelects === 'function') syncSelects();
+
+      if (dropdownState && dropdownState.panelId) {
+        const panel = document.getElementById(dropdownState.panelId);
+        if (panel) panel.classList.add('open');
+        renderOpenPanelListV6202(dropdownState.panelId);
+        window.requestAnimationFrame(() => {
+          [
+            ['productList', dropdownState.productScrollTop],
+            ['customerList', dropdownState.customerScrollTop],
+            ['departmentList', dropdownState.departmentScrollTop],
+            ['yearList', dropdownState.yearScrollTop]
+          ].forEach(([id, top]) => {
+            const el = document.getElementById(id);
+            if (el) el.scrollTop = top || 0;
+          });
+        });
+      } else if (typeof updateDropdownLabels === 'function') {
+        updateDropdownLabels();
+      }
+
+      if (typeof finalizeUndoAfterRender === 'function') finalizeUndoAfterRender();
+    };
+    renderAll.__v6202OverviewOne = true;
+  }
+
+  switchTab = function switchTabV6202(tab) {
+    const validTabs = new Set(['one', 'categorical']);
+    state.activeTab = validTabs.has(tab) ? tab : 'one';
+    state.focusChartId = null;
+    if (typeof closeUnderConstructionMenu === 'function') closeUnderConstructionMenu();
+    if (typeof closeDropdowns === 'function') closeDropdowns();
+    setMainOverviewTabV6202();
+    scheduleTabRenderV6202();
+  };
+
+  toggleDropdown = function toggleDropdownV6202(panelId) {
+    const panel = document.getElementById(panelId);
+    if (!panel) return;
+
+    const shouldOpen = !panel.classList.contains('open');
+    document.querySelectorAll('.dropdownPanel').forEach(openPanel => {
+      if (openPanel.id !== panelId && typeof closeDropdownPanel === 'function') closeDropdownPanel(openPanel);
+    });
+
+    if (!shouldOpen) {
+      if (typeof closeDropdownPanel === 'function') closeDropdownPanel(panel);
+      return;
+    }
+
+    panel.classList.add('open');
+    window.requestAnimationFrame(() => renderOpenPanelListV6202(panelId));
+  };
+
+  function prepareFilterChangeV6202(event) {
+    if (event) {
+      if (typeof event.preventDefault === 'function') event.preventDefault();
+      if (typeof event.stopPropagation === 'function') event.stopPropagation();
+      if (typeof event.stopImmediatePropagation === 'function') event.stopImmediatePropagation();
+    }
+    if (typeof clearMoverTablePinnedSelections === 'function') clearMoverTablePinnedSelections();
+  }
+
+  toggleDepartment = function toggleDepartmentV6202(dept, event) {
+    prepareFilterChangeV6202(event);
     if (!state.selectedDepartments) state.selectedDepartments = new Set();
 
     const selected = new Set(state.selectedDepartments);
     if (state.deptMode === 'ALL') {
       selected.clear();
-      buildCacheV6197().departments.forEach(row => selected.add(row.department));
+      try {
+        if (typeof getAllDepartments === 'function') getAllDepartments().forEach(row => selected.add(row));
+      } catch (err) {}
     }
 
     if (selected.has(dept)) selected.delete(dept);
     else selected.add(dept);
 
     state.selectedDepartments = selected;
-    state.deptMode = selected.size === buildCacheV6197().departments.length ? 'ALL' : 'CUSTOM';
+    state.deptMode = 'CUSTOM';
 
-    syncSelects();
-    renderAll();
+    if (typeof syncSelects === 'function') syncSelects();
+    scheduleTabRenderV6202('departmentDropdownPanel');
   };
 
-  toggleProduct = function toggleProductV6197(key, event) {
-    if (event) event.stopPropagation();
+  toggleProduct = function toggleProductV6202(key, event) {
+    prepareFilterChangeV6202(event);
     if (!state.selectedProductKeys) state.selectedProductKeys = new Set();
     if (!state.excludedProductKeys) state.excludedProductKeys = new Set();
 
@@ -1294,12 +403,12 @@
     }
 
     state.lastSelectedProductKey = key;
-    syncSelects();
-    renderAll();
+    if (typeof syncSelects === 'function') syncSelects();
+    scheduleTabRenderV6202('productDropdownPanel');
   };
 
-  toggleCustomer = function toggleCustomerV6197(id, event) {
-    if (event) event.stopPropagation();
+  toggleCustomer = function toggleCustomerV6202(id, event) {
+    prepareFilterChangeV6202(event);
     if (!state.selectedCustomerIds) state.selectedCustomerIds = new Set();
     if (!state.excludedCustomerIds) state.excludedCustomerIds = new Set();
 
@@ -1313,589 +422,1194 @@
     }
 
     state.lastSelectedCustomerId = id;
-    syncSelects();
-    renderAll();
+    if (typeof syncSelects === 'function') syncSelects();
+    scheduleTabRenderV6202('customerDropdownPanel');
   };
 
-  const previousToggleYearV6197 = typeof toggleYear === 'function' ? toggleYear : null;
-  if (previousToggleYearV6197 && !toggleYear.__v6197Wrapped) {
-    const wrappedToggleYearV6197 = function toggleYearV6197() {
-      const result = previousToggleYearV6197.apply(this, arguments);
-      resetCacheV6197();
-      return result;
-    };
-    wrappedToggleYearV6197.__v6197Wrapped = true;
-    toggleYear = wrappedToggleYearV6197;
-  }
-
-  window.setProductModeV6165 = function setProductModeV6165(mode) {
-    const allowed = new Set(['product', 'department', 'group', 'category']);
-    const nextMode = allowed.has(mode) ? mode : 'product';
-    state.v6165ProductMode = nextMode;
-
-    if (!state.v6165ProductFocus) state.v6165ProductFocus = new Set();
-    if (!Array.isArray(state.v6165ProductClickOrder)) state.v6165ProductClickOrder = [];
-
-    state.v6165ProductFocusMode = nextMode;
-    if (typeof syncLegacyTableSelectionV6165 === 'function') syncLegacyTableSelectionV6165();
-    renderAll();
+  toggleYear = function toggleYearV6202(year, event) {
+    prepareFilterChangeV6202(event);
+    if (!state.years) state.years = new Set();
+    if (state.years.has(year)) state.years.delete(year);
+    else state.years.add(year);
+    scheduleTabRenderV6202('yearDropdownPanel');
   };
 
-  installStylesV6197();
-  const banner = document.getElementById('singleShellDebugBanner');
-  if (banner) banner.textContent = VERSION_TEXT_V6197;
-  window.addEventListener('resize', () => window.setTimeout(fitOpenDropdownV6197, 40));
+  selectAllDepartments = function selectAllDepartmentsV6202(event) {
+    prepareFilterChangeV6202(event);
+    try {
+      state.selectedDepartments = new Set((typeof getAllDepartments === 'function' ? getAllDepartments() : []));
+    } catch (err) {
+      state.selectedDepartments = new Set();
+    }
+    state.deptMode = 'ALL';
+    scheduleTabRenderV6202('departmentDropdownPanel');
+  };
+
+  selectMainDepartments = function selectMainDepartmentsV6202(event) {
+    prepareFilterChangeV6202(event);
+    state.deptMode = 'MAIN';
+    state.selectedDepartments = new Set(typeof getMainDepartments === 'function' ? getMainDepartments() : []);
+    scheduleTabRenderV6202('departmentDropdownPanel');
+  };
+
+  clearDepartmentSelection = function clearDepartmentSelectionV6202(event) {
+    prepareFilterChangeV6202(event);
+    state.deptMode = 'CUSTOM';
+    state.selectedDepartments = new Set();
+    state.collapseSelectedDepartments = false;
+    scheduleTabRenderV6202('departmentDropdownPanel');
+  };
+
+  selectAllProducts = function selectAllProductsV6202(event) {
+    prepareFilterChangeV6202(event);
+    state.productFilterMode = 'ALL';
+    state.selectedProductKeys = new Set();
+    state.tableSelectedProductKeys = new Set();
+    state.excludedProductKeys = new Set();
+    state.lastSelectedProductKey = null;
+    scheduleTabRenderV6202('productDropdownPanel');
+  };
+
+  clearProductSelection = function clearProductSelectionV6202(event) {
+    prepareFilterChangeV6202(event);
+    state.productFilterMode = 'CUSTOM';
+    state.selectedProductKeys = new Set();
+    state.tableSelectedProductKeys = new Set();
+    state.excludedProductKeys = new Set();
+    state.lastSelectedProductKey = null;
+    state.collapseSelectedProducts = false;
+    scheduleTabRenderV6202('productDropdownPanel');
+  };
+
+  selectAllCustomers = function selectAllCustomersV6202(event) {
+    prepareFilterChangeV6202(event);
+    state.customerFilterMode = 'ALL';
+    state.selectedCustomerIds = new Set();
+    state.tableSelectedCustomerIds = new Set();
+    state.excludedCustomerIds = new Set();
+    state.lastSelectedCustomerId = null;
+    scheduleTabRenderV6202('customerDropdownPanel');
+  };
+
+  clearCustomerSelection = function clearCustomerSelectionV6202(event) {
+    prepareFilterChangeV6202(event);
+    state.customerFilterMode = 'CUSTOM';
+    state.selectedCustomerIds = new Set();
+    state.tableSelectedCustomerIds = new Set();
+    state.excludedCustomerIds = new Set();
+    state.lastSelectedCustomerId = null;
+    state.collapseSelectedCustomers = false;
+    scheduleTabRenderV6202('customerDropdownPanel');
+  };
+
+  selectDefaultYears = function selectDefaultYearsV6202(event) {
+    prepareFilterChangeV6202(event);
+    const currentYear = payload && payload.config ? payload.config.currentYear : 2026;
+    const priorYear = payload && payload.config ? payload.config.priorYear : 2025;
+    state.years = new Set([currentYear, priorYear]);
+    scheduleTabRenderV6202('yearDropdownPanel');
+  };
+
+  selectAllYears = function selectAllYearsV6202(event) {
+    prepareFilterChangeV6202(event);
+    state.years = new Set([2026, 2025, 2024]);
+    scheduleTabRenderV6202('yearDropdownPanel');
+  };
+
+  const originalToggleActiveCustomersOnlyV6202 = typeof toggleActiveCustomersOnly === 'function' ? toggleActiveCustomersOnly : null;
+  toggleActiveCustomersOnly = function toggleActiveCustomersOnlyV6202(event) {
+    prepareFilterChangeV6202(event);
+    state.customerActiveOnly = !state.customerActiveOnly;
+    state.lastSelectedCustomerId = null;
+    if (typeof syncSelects === 'function') syncSelects();
+    scheduleTabRenderV6202('customerDropdownPanel');
+  };
+
+  setMainOverviewTabV6202();
 })();
 
 
-
-/* v6.198 emergency safe department mode guard */
-(function installMainDeptSafeGuardV6198() {
+/* v6.204 Remake Factor + tab-scoped performance guard
+   - Adds Remake Factor tab backed by RemakeFactorCache.gs.
+   - Keeps debugger visible during this testing build.
+   - Remake filters are isolated to this tab and never affect Overview/Categorical. */
+(function installRemakeFactorV6204() {
+  const versionTextV6204 = 'v6.204 Overview 1.0 performance rebuild + Remake Factor cached API tab';
   const banner = document.getElementById('singleShellDebugBanner');
-  if (banner) banner.textContent = 'DEBUG v6.198 fastYearDropdownsMainDeptFix - main department crash fixed';
+  if (banner) banner.textContent = 'DEBUG ' + versionTextV6204;
 
-  const originalGetMainDepartments = typeof getMainDepartments === 'function' ? getMainDepartments : null;
-  if (originalGetMainDepartments && !getMainDepartments.__v6198Safe) {
-    const safeGetMainDepartments = function getMainDepartmentsV6198() {
-      const value = originalGetMainDepartments.apply(this, arguments);
-      if (value && typeof value.has === 'function') return value;
-      if (Array.isArray(value)) return new Set(value);
-      return new Set(Array.from(value || []));
-    };
-    safeGetMainDepartments.__v6198Safe = true;
-    getMainDepartments = safeGetMainDepartments;
-  }
-})();
-
-
-/* v6.199 debug overlay kept while fixing dropdowns
-   Built from v6.198 fastYearDropdownsMainDeptFix.
-   Keeps the debug overlay, but reduces log spam so the overlay itself does not add much lag.
-   Logs:
-   - dropdown clicks
-   - render list timing
-   - visible option builder timing
-   - renderAll timing
-   - event-loop lag
-   Use Copy in the overlay to send the debug log. */
-(function installFastDropdownDebugOverlayV6199() {
-  const VERSION_TEXT_V6199 = 'DEBUG v6.207 performanceDebug - debugger retained, single ready log';
-  const STYLE_ID_V6199 = 'fastDropdownDebugOverlayStylesV6199';
-  const MAX_LOGS_V6199 = 24;
-
-  const debugStateV6199 = {
-    logs: [],
-    slowThreshold: 160,
-    lastTick: performance.now(),
-    maxLag: 0
+  const remakeState = {
+    loaded: false,
+    loading: false,
+    data: null,
+    rows: [],
+    filters: {
+      year: '',
+      department: '',
+      product: '',
+      customer: '',
+      reason: ''
+    },
+    lastNotice: { message: '', type: '' },
+    lastHealth: null
   };
 
-  function nowV6199() {
-    return performance.now();
+  window.remakeFactorState = remakeState;
+
+  function remakeElement(id) {
+    return document.getElementById(id);
   }
 
-  function timeTextV6199(ms) {
-    if (!Number.isFinite(ms)) return '';
-    return ms >= 1000 ? (ms / 1000).toFixed(2) + 's' : Math.round(ms) + 'ms';
+  function remakeText(id, value) {
+    const el = remakeElement(id);
+    if (el) el.textContent = value;
   }
 
-  function safeEscapeV6199(value) {
-    return String(value || '').replace(/[&<>"']/g, ch => ({
-      '&': '&amp;',
-      '<': '&lt;',
-      '>': '&gt;',
-      '"': '&quot;',
-      "'": '&#39;'
-    }[ch]));
+  function remakeEscape(value) {
+    return String(value === null || value === undefined ? '' : value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
   }
 
-  function addLogV6199(type, label, duration, detail, force) {
-    const ms = Number(duration || 0);
-    const slow = ms >= debugStateV6199.slowThreshold;
+  function remakeNumber(value, digits = 0) {
+    const num = Number(value || 0);
+    return num.toLocaleString(undefined, { maximumFractionDigits: digits, minimumFractionDigits: digits });
+  }
 
-    // Avoid log spam: keep fast getVisible calls only when forced or slow.
-    if (!force && !slow && /^getVisible/.test(label)) return;
+  function remakePercent(value) {
+    const num = Number(value || 0);
+    return (num * 100).toLocaleString(undefined, { maximumFractionDigits: 1, minimumFractionDigits: 1 }) + '%';
+  }
 
-    debugStateV6199.logs.unshift({
-      ts: new Date().toLocaleTimeString(),
-      type,
-      label,
-      duration: ms,
-      detail: detail || '',
-      slow
+  function remakeCurrency(value) {
+    const num = Number(value || 0);
+    return num.toLocaleString(undefined, { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
+  }
+
+  function setRemakeNotice(message, type) {
+    remakeState.lastNotice = { message: message || '', type: type || '' };
+    const el = remakeElement('remakeNotice');
+    if (!el) return;
+    el.className = 'remakeNotice' + (message ? ' active' : '') + (type ? ' ' + type : '');
+    el.textContent = message || '';
+  }
+
+  function setRemakeLoading(isLoading) {
+    remakeState.loading = !!isLoading;
+    const loadBtn = remakeElement('remakeLoadBtn');
+    const refreshBtn = remakeElement('remakeRefreshBtn');
+    if (loadBtn) loadBtn.disabled = !!isLoading;
+    if (refreshBtn) refreshBtn.disabled = !!isLoading;
+  }
+
+  function compactRemakeStatsForNotice(data) {
+    const stats = data && data.stats ? data.stats : {};
+    const parts = [];
+    if (stats.version) parts.push(stats.version);
+    if (stats.caseRowsFetched !== undefined) parts.push('cases=' + stats.caseRowsFetched);
+    if (stats.detailRows !== undefined) parts.push('rows=' + stats.detailRows);
+    if (stats.detailFetchesAttempted !== undefined) parts.push('detail calls=' + stats.detailFetchesAttempted);
+    if (stats.detailFetchesSucceeded !== undefined) parts.push('detail ok=' + stats.detailFetchesSucceeded);
+    if (stats.productMapFetched !== undefined) parts.push('product map=' + (stats.productMapFetched ? 'yes' : 'no'));
+    if (stats.hasUserId !== undefined) parts.push('userID=' + (stats.hasUserId ? 'set' : 'missing'));
+    if (stats.hasPassword !== undefined) parts.push('password=' + (stats.hasPassword ? 'set' : 'missing'));
+    if (stats.baseUrlHost) parts.push('host=' + stats.baseUrlHost);
+    if (Array.isArray(stats.warnings) && stats.warnings.length) parts.push('warnings=' + stats.warnings.length);
+    return parts.length ? ' [' + parts.join(' | ') + ']' : '';
+  }
+
+  function showRemakeFailure(message, data) {
+    const detail = compactRemakeStatsForNotice(data);
+    setRemakeNotice((message || 'Remake Factor failed.') + detail, 'error');
+    remakeText('remakeLastRefresh', 'Refresh failed: ' + new Date().toLocaleString());
+  }
+
+
+  function normalizeRemakeRows(data) {
+    if (!data) return [];
+    if (Array.isArray(data.detailRows)) return data.detailRows;
+    if (Array.isArray(data.rows)) return data.rows;
+    return [];
+  }
+
+  function remakeRowValue(row, keys) {
+    for (const key of keys) {
+      if (row && row[key] !== null && row[key] !== undefined && String(row[key]).trim() !== '') return row[key];
+    }
+    return '';
+  }
+
+  function getRemakeFilterValues() {
+    remakeState.filters = {
+      year: remakeElement('remakeYearFilter') ? remakeElement('remakeYearFilter').value : '',
+      department: remakeElement('remakeDepartmentFilter') ? remakeElement('remakeDepartmentFilter').value : '',
+      product: remakeElement('remakeProductFilter') ? remakeElement('remakeProductFilter').value : '',
+      customer: remakeElement('remakeCustomerFilter') ? remakeElement('remakeCustomerFilter').value : '',
+      reason: remakeElement('remakeReasonFilter') ? remakeElement('remakeReasonFilter').value : ''
+    };
+    return remakeState.filters;
+  }
+
+  function getFilteredRemakeRows() {
+    const f = getRemakeFilterValues();
+    return (remakeState.rows || []).filter(row => {
+      const year = String(remakeRowValue(row, ['year']) || '');
+      const department = String(remakeRowValue(row, ['department']) || 'Unassigned');
+      const product = String(remakeRowValue(row, ['productName', 'productId']) || 'Unknown product');
+      const customer = String(remakeRowValue(row, ['customerName', 'customerId']) || 'Unknown customer');
+      const reason = String(remakeRowValue(row, ['remakeReason', 'reason']) || 'Not specified');
+      if (f.year && year !== f.year) return false;
+      if (f.department && department !== f.department) return false;
+      if (f.product && product !== f.product) return false;
+      if (f.customer && customer !== f.customer) return false;
+      if (f.reason && reason !== f.reason) return false;
+      return true;
+    });
+  }
+
+  function remakeUniqueSorted(rows, getter) {
+    return [...new Set(rows.map(getter).filter(value => value !== null && value !== undefined && String(value).trim() !== ''))]
+      .map(value => String(value))
+      .sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
+  }
+
+  function fillRemakeSelect(id, label, values, selected) {
+    const select = remakeElement(id);
+    if (!select) return;
+    const prior = selected !== undefined ? selected : select.value;
+    select.innerHTML = '<option value="">' + remakeEscape(label) + '</option>' + values.map(value => {
+      const v = remakeEscape(value);
+      return '<option value="' + v + '">' + v + '</option>';
+    }).join('');
+    if (prior && values.includes(String(prior))) select.value = prior;
+  }
+
+  function populateRemakeFilters() {
+    const rows = remakeState.rows || [];
+    fillRemakeSelect('remakeYearFilter', 'All years', remakeUniqueSorted(rows, row => remakeRowValue(row, ['year'])).sort((a, b) => Number(b) - Number(a)), remakeState.filters.year);
+    fillRemakeSelect('remakeDepartmentFilter', 'All departments', remakeUniqueSorted(rows, row => remakeRowValue(row, ['department']) || 'Unassigned'), remakeState.filters.department);
+    fillRemakeSelect('remakeProductFilter', 'All products', remakeUniqueSorted(rows, row => remakeRowValue(row, ['productName', 'productId']) || 'Unknown product'), remakeState.filters.product);
+    fillRemakeSelect('remakeCustomerFilter', 'All customers', remakeUniqueSorted(rows, row => remakeRowValue(row, ['customerName', 'customerId']) || 'Unknown customer'), remakeState.filters.customer);
+    fillRemakeSelect('remakeReasonFilter', 'All reasons', remakeUniqueSorted(rows, row => remakeRowValue(row, ['remakeReason', 'reason']) || 'Not specified'), remakeState.filters.reason);
+  }
+
+  function summarizeRemakeRows(rows) {
+    const totalCases = new Set();
+    const remakeCases = new Set();
+    let totalUnits = 0;
+    let remakeUnits = 0;
+    let remakeDiscount = 0;
+
+    rows.forEach(row => {
+      const caseId = String(remakeRowValue(row, ['caseId', 'caseID', 'caseNumber']) || '').trim();
+      if (caseId) totalCases.add(caseId);
+      const units = Number(row.quantity || row.units || 0) || 0;
+      const isRemake = !!row.isRemake || String(row.remakeFlag || row.remake || '').toLowerCase().match(/^(y|yes|true|1|r|remake)$/);
+      totalUnits += units;
+      if (isRemake) {
+        if (caseId) remakeCases.add(caseId);
+        remakeUnits += Number(row.remakeUnits || units || 0) || 0;
+        remakeDiscount += Number(row.remakeDiscount || 0) || 0;
+      }
     });
 
-    debugStateV6199.logs = debugStateV6199.logs.slice(0, MAX_LOGS_V6199);
-    renderOverlayV6199();
+    return {
+      totalCases: totalCases.size,
+      remakeCases: remakeCases.size,
+      totalUnits,
+      remakeUnits,
+      remakeDiscount,
+      remakeCaseRate: totalCases.size ? remakeCases.size / totalCases.size : 0,
+      remakeUnitRate: totalUnits ? remakeUnits / totalUnits : 0
+    };
   }
 
-  function installStylesV6199() {
-    if (document.getElementById(STYLE_ID_V6199)) return;
+  function groupRemakeRows(rows, keyGetter) {
+    const groups = new Map();
+    rows.forEach(row => {
+      const key = String(keyGetter(row) || 'Not specified');
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(row);
+    });
+    return [...groups.entries()].map(([key, groupRows]) => ({ key, ...summarizeRemakeRows(groupRows) }));
+  }
 
+  function renderRemakeKpis(summary) {
+    remakeText('remakeTotalCases', remakeNumber(summary.totalCases));
+    remakeText('remakeCases', remakeNumber(summary.remakeCases));
+    remakeText('remakeCaseRate', remakePercent(summary.remakeCaseRate));
+    remakeText('remakeTotalUnits', remakeNumber(summary.totalUnits, 1));
+    remakeText('remakeUnits', remakeNumber(summary.remakeUnits, 1));
+    remakeText('remakeUnitRate', remakePercent(summary.remakeUnitRate));
+    remakeText('remakeDiscount', remakeCurrency(summary.remakeDiscount));
+  }
+
+  function renderRemakeTrend(rows) {
+    const el = remakeElement('remakeTrendList');
+    if (!el) return;
+    const grouped = groupRemakeRows(rows, row => remakeRowValue(row, ['month']) || 'Unknown')
+      .sort((a, b) => String(a.key).localeCompare(String(b.key)))
+      .slice(-24);
+    const maxRate = Math.max(0.001, ...grouped.map(row => row.remakeCaseRate || 0));
+    if (!grouped.length) {
+      el.innerHTML = '<div class="remakeCardSubtle">No remake rows match the selected filters.</div>';
+      return;
+    }
+    el.innerHTML = grouped.map(row => {
+      const width = Math.max(2, Math.round((row.remakeCaseRate || 0) / maxRate * 100));
+      return '<div class="remakeTrendRow">' +
+        '<div class="remakeTrendMonth">' + remakeEscape(row.key) + '</div>' +
+        '<div class="remakeTrendBarTrack"><div class="remakeTrendBar" style="width:' + width + '%"></div></div>' +
+        '<div class="remakeTrendValue">' + remakePercent(row.remakeCaseRate) + '</div>' +
+      '</div>';
+    }).join('');
+  }
+
+  function renderRemakeTable(id, rows, firstHeader) {
+    const table = remakeElement(id);
+    if (!table) return;
+    const topRows = rows
+      .sort((a, b) => (b.remakeCases - a.remakeCases) || (b.remakeUnits - a.remakeUnits) || String(a.key).localeCompare(String(b.key)))
+      .slice(0, 50);
+    table.innerHTML = '<thead><tr>' +
+      '<th>' + remakeEscape(firstHeader) + '</th>' +
+      '<th class="num">Total Cases</th>' +
+      '<th class="num">Remake Cases</th>' +
+      '<th class="num">Case Rate</th>' +
+      '<th class="num">Remake Units</th>' +
+      '<th class="num">Discount</th>' +
+      '</tr></thead><tbody>' +
+      (topRows.length ? topRows.map(row => '<tr>' +
+        '<td>' + remakeEscape(row.key) + '</td>' +
+        '<td class="num">' + remakeNumber(row.totalCases) + '</td>' +
+        '<td class="num">' + remakeNumber(row.remakeCases) + '</td>' +
+        '<td class="num">' + remakePercent(row.remakeCaseRate) + '</td>' +
+        '<td class="num">' + remakeNumber(row.remakeUnits, 1) + '</td>' +
+        '<td class="num">' + remakeCurrency(row.remakeDiscount) + '</td>' +
+      '</tr>').join('') : '<tr><td colspan="6">No matching rows.</td></tr>') +
+      '</tbody>';
+  }
+
+  function renderRemakeFactorDashboard() {
+    if (!remakeState.loaded) {
+      if (!(remakeState.lastNotice && remakeState.lastNotice.type === 'error' && remakeState.lastNotice.message)) {
+        setRemakeNotice('Remake Factor cache is not loaded yet. Click Refresh API Cache. If it comes back here, the API refresh failed and the status will now stay visible.', 'warn');
+      }
+      renderRemakeKpis({ totalCases: 0, remakeCases: 0, totalUnits: 0, remakeUnits: 0, remakeDiscount: 0, remakeCaseRate: 0, remakeUnitRate: 0 });
+      return;
+    }
+
+    populateRemakeFilters();
+    const filtered = getFilteredRemakeRows();
+    const summary = summarizeRemakeRows(filtered);
+    renderRemakeKpis(summary);
+    renderRemakeTrend(filtered);
+    renderRemakeTable('remakeReasonTable', groupRemakeRows(filtered.filter(row => !!row.isRemake), row => remakeRowValue(row, ['remakeReason', 'reason']) || 'Not specified'), 'Reason');
+    renderRemakeTable('remakeDepartmentTable', groupRemakeRows(filtered, row => remakeRowValue(row, ['department']) || 'Unassigned'), 'Department');
+    renderRemakeTable('remakeProductTable', groupRemakeRows(filtered, row => remakeRowValue(row, ['productName', 'productId']) || 'Unknown product'), 'Product');
+
+    if (!filtered.length) setRemakeNotice('No matching remake rows.', 'warn');
+    else setRemakeNotice('', '');
+  }
+
+  window.applyRemakeFactorFilters = function applyRemakeFactorFilters() {
+    getRemakeFilterValues();
+    window.requestAnimationFrame(renderRemakeFactorDashboard);
+  };
+
+  function handleRemakeData(data) {
+    if (!data || !data.ok) {
+      const message = data && data.message ? data.message : 'Remake cache could not load.';
+      remakeState.loaded = false;
+      showRemakeFailure(message, data);
+      return;
+    }
+    remakeState.data = data;
+    remakeState.rows = normalizeRemakeRows(data);
+    remakeState.loaded = true;
+    const stamp = data.generatedAt || data.lastRefreshAt || '';
+    remakeText('remakeLastRefresh', stamp ? 'Last refreshed: ' + stamp : 'Loaded');
+    setRemakeNotice(remakeState.rows.length ? '' : 'Cache loaded; no rows returned.', remakeState.rows.length ? '' : 'warn');
+    populateRemakeFilters();
+    renderRemakeFactorDashboard();
+  }
+
+  window.loadRemakeFactorData = function loadRemakeFactorData(forceRefresh) {
+    if (remakeState.loading) return;
+    setRemakeLoading(true);
+    const request = forceRefresh
+      ? { forceRefresh: true, quickRefresh: true, lookbackMonths: 12, pageSize: 100, maxPages: 40, maxDetailFetches: 120, fetchProductMap: false }
+      : { forceRefresh: false };
+    setRemakeNotice(forceRefresh ? 'Refreshing remake cache with safe web limits...' : 'Loading...', 'warn');
+    google.script.run
+      .withSuccessHandler(data => {
+        setRemakeLoading(false);
+        handleRemakeData(data);
+      })
+      .withFailureHandler(error => {
+        setRemakeLoading(false);
+        remakeState.loaded = false;
+        showRemakeFailure(error && error.message ? error.message : String(error), { stats: { version: 'client failure handler' } });
+      })
+      .getRemakeFactorData(request);
+  };
+
+  window.refreshRemakeFactorData = function refreshRemakeFactorData() {
+    loadRemakeFactorData(true);
+  };
+
+  const previousRenderAllV6204 = typeof renderAll === 'function' ? renderAll : null;
+  renderAll = function renderAllV6204() {
+    if (state && state.activeTab === 'remakeFactor') {
+      renderRemakeFactorDashboard();
+      return;
+    }
+    if (typeof previousRenderAllV6204 === 'function') previousRenderAllV6204();
+  };
+
+  window.switchTab = function switchTabV6204(tab) {
+    const validTabs = new Set(['one', 'categorical', 'remakeFactor']);
+    state.activeTab = validTabs.has(tab) ? tab : 'one';
+    state.focusChartId = null;
+    if (typeof closeUnderConstructionMenu === 'function') closeUnderConstructionMenu();
+    if (typeof closeDropdowns === 'function') closeDropdowns();
+
+    const overviewOne = remakeElement('overviewOne');
+    const categoricalPage = remakeElement('categoricalPage');
+    const remakeFactorPage = remakeElement('remakeFactorPage');
+    const overviewTwo = remakeElement('overviewTwo');
+    const tabOneBtn = remakeElement('tabOneBtn');
+    const remakeFactorTabBtn = remakeElement('remakeFactorTabBtn');
+    const underConstructionBtn = remakeElement('underConstructionBtn');
+    const categoricalTabBtn = remakeElement('categoricalTabBtn');
+    const overviewNavActions = remakeElement('overviewNavActions');
+
+    if (overviewOne) overviewOne.classList.toggle('active', state.activeTab === 'one');
+    if (categoricalPage) categoricalPage.classList.toggle('active', state.activeTab === 'categorical');
+    if (remakeFactorPage) remakeFactorPage.classList.toggle('active', state.activeTab === 'remakeFactor');
+    if (overviewTwo) overviewTwo.classList.remove('active');
+    if (tabOneBtn) tabOneBtn.classList.toggle('active', state.activeTab === 'one');
+    if (remakeFactorTabBtn) remakeFactorTabBtn.classList.toggle('active', state.activeTab === 'remakeFactor');
+    if (underConstructionBtn) underConstructionBtn.classList.toggle('active', state.activeTab === 'categorical');
+    if (categoricalTabBtn) categoricalTabBtn.classList.toggle('active', state.activeTab === 'categorical');
+    if (overviewNavActions) overviewNavActions.style.display = state.activeTab === 'one' ? 'inline-flex' : 'none';
+
+    if (state.activeTab === 'remakeFactor') {
+      if (!remakeState.loaded && !remakeState.loading) loadRemakeFactorData(false);
+      else renderRemakeFactorDashboard();
+      return;
+    }
+
+    if (typeof scheduleTabRenderV6202 === 'function') scheduleTabRenderV6202();
+    else if (typeof previousRenderAllV6204 === 'function') previousRenderAllV6204();
+  };
+})();
+
+
+/* v6.205 restore active yellow filter pills
+   - Keeps v6.204 Overview 1.0 performance rebuild + Remake Factor.
+   - Restores the visible yellow/amber active-filter pill rail during testing.
+   - Independent of the older v6.170-v6.186 pill wrappers so the tab-scoped render override cannot hide it. */
+(function installRestoredYellowFilterPillsV6205() {
+  const VERSION_TEXT_V6205 = 'DEBUG v6.206 · compact Remake tab';
+  const STYLE_ID_V6205 = 'restoredYellowFilterPillsStylesV6205';
+  const RAIL_ID_V6205 = 'activeFilterPillRailV6205';
+
+  function safeEscapeV6205(value) {
+    if (typeof escapeHtml === 'function') return escapeHtml(value);
+    return String(value == null ? '' : value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function toArrayV6205(value) {
+    try { return Array.from(value || []); } catch (error) { return []; }
+  }
+
+  function shortenListV6205(values, singleLabel, pluralLabel) {
+    const clean = values.map(v => String(v || '').replace(/\s+/g, ' ').trim()).filter(Boolean);
+    if (!clean.length) return '';
+    const label = clean.length === 1 ? singleLabel : pluralLabel;
+    if (clean.length <= 2) return label + ': ' + clean.join(', ');
+    return label + ': ' + clean.slice(0, 2).join(', ') + ' +' + (clean.length - 2);
+  }
+
+  function selectedYearsV6205() {
+    return toArrayV6205(state && state.years).map(Number).filter(Number.isFinite).sort((a, b) => b - a);
+  }
+
+  function defaultYearsV6205() {
+    try {
+      if (typeof getDefaultYears === 'function') return getDefaultYears().map(Number).filter(Number.isFinite).sort((a, b) => b - a);
+    } catch (error) {}
+    try {
+      const currentYear = payload && payload.config && payload.config.currentYear ? Number(payload.config.currentYear) : new Date().getFullYear();
+      const priorYear = payload && payload.config && payload.config.priorYear ? Number(payload.config.priorYear) : currentYear - 1;
+      return [currentYear, priorYear].filter(Number.isFinite).sort((a, b) => b - a);
+    } catch (error) {}
+    return [];
+  }
+
+  function sameValuesV6205(a, b) {
+    const aa = a.map(String).sort();
+    const bb = b.map(String).sort();
+    return aa.length === bb.length && aa.every((value, index) => value === bb[index]);
+  }
+
+  function productNameV6205(key) {
+    try {
+      if (typeof productLabelFromKey === 'function') return productLabelFromKey(key);
+    } catch (error) {}
+    return String(key || 'Product');
+  }
+
+  function customerNameV6205(id) {
+    try {
+      if (typeof customerLabelById !== 'undefined' && customerLabelById && customerLabelById.has(id)) return customerLabelById.get(id);
+    } catch (error) {}
+    return String(id || 'Customer');
+  }
+
+  function addPillV6205(pills, label, clearKind, hot, title) {
+    if (!label) return;
+    pills.push({ label, clearKind: clearKind || '', hot: !!hot, title: title || label });
+  }
+
+  function getPillsV6205() {
+    const pills = [];
+    if (!state || state.activeTab === 'remakeFactor') return pills;
+
+    const years = selectedYearsV6205();
+    const defaults = defaultYearsV6205();
+    if (years.length && !sameValuesV6205(years, defaults)) {
+      addPillV6205(pills, 'Years: ' + years.join(', '), 'years', false, 'Selected years');
+    }
+
+    try {
+      if (state.periodMode && String(state.periodMode).toUpperCase() === 'MTD') {
+        addPillV6205(pills, 'MTD', 'month', false, 'Month-to-date mode');
+      }
+    } catch (error) {}
+
+    try {
+      const deptMode = String(state.deptMode || '').toUpperCase();
+      const depts = toArrayV6205(state.selectedDepartments).sort((a, b) => String(a).localeCompare(String(b)));
+      if (deptMode === 'CUSTOM' && depts.length) {
+        addPillV6205(pills, shortenListV6205(depts, 'Department', 'Departments'), 'departments', false, 'Selected departments');
+      } else if (deptMode === 'ALL') {
+        addPillV6205(pills, 'All Depts', 'departments', false, 'All departments');
+      }
+    } catch (error) {}
+
+    try {
+      const selectedProducts = toArrayV6205(state.selectedProductKeys).map(productNameV6205).sort((a, b) => a.localeCompare(b));
+      const excludedProducts = toArrayV6205(state.excludedProductKeys).map(productNameV6205).sort((a, b) => a.localeCompare(b));
+      if (state.productFilterMode === 'CUSTOM' && selectedProducts.length) {
+        addPillV6205(pills, shortenListV6205(selectedProducts, 'Product', 'Products'), 'product', false, 'Selected products');
+      } else if (state.productFilterMode === 'ALL' && excludedProducts.length) {
+        addPillV6205(pills, shortenListV6205(excludedProducts, 'Excluded product', 'Excluded products'), 'product', false, 'Excluded products');
+      }
+    } catch (error) {}
+
+    try {
+      const selectedCustomers = toArrayV6205(state.selectedCustomerIds).map(customerNameV6205).sort((a, b) => a.localeCompare(b));
+      const excludedCustomers = toArrayV6205(state.excludedCustomerIds).map(customerNameV6205).sort((a, b) => a.localeCompare(b));
+      if (state.customerFilterMode === 'CUSTOM' && selectedCustomers.length) {
+        addPillV6205(pills, shortenListV6205(selectedCustomers, 'Customer', 'Customers'), 'customer', false, 'Selected customers');
+      } else if (state.customerFilterMode === 'ALL' && excludedCustomers.length) {
+        addPillV6205(pills, shortenListV6205(excludedCustomers, 'Excluded customer', 'Excluded customers'), 'customer', false, 'Excluded customers');
+      }
+    } catch (error) {}
+
+    try {
+      const months = toArrayV6205(state.highlightMonths || state.selectedMonths || state.monthsSelected || []);
+      if (months.length) addPillV6205(pills, shortenListV6205(months, 'Month', 'Months'), 'month', true, 'Highlighted months');
+    } catch (error) {}
+
+    try {
+      const customerFocus = toArrayV6205(state.v6165CustomerFocus || state.tableSelectedCustomerIds || []).map(customerNameV6205).sort((a, b) => a.localeCompare(b));
+      if (customerFocus.length) addPillV6205(pills, shortenListV6205(customerFocus, 'Customer highlighted', 'Customers highlighted'), 'v6205CustomerHighlight', true, 'Highlighted customers from chart/table clicks');
+    } catch (error) {}
+
+    try {
+      const productFocus = toArrayV6205(state.v6165ProductFocus || state.tableSelectedProductKeys || []).map(productNameV6205).sort((a, b) => a.localeCompare(b));
+      if (productFocus.length) addPillV6205(pills, shortenListV6205(productFocus, 'Product highlighted', 'Products highlighted'), 'v6205ProductHighlight', true, 'Highlighted products from chart/table clicks');
+    } catch (error) {}
+
+    return pills;
+  }
+
+  function installStylesV6205() {
+    if (document.getElementById(STYLE_ID_V6205)) return;
     const style = document.createElement('style');
-    style.id = STYLE_ID_V6199;
+    style.id = STYLE_ID_V6205;
     style.textContent = `
-      #dropdownDebugOverlayV6199 {
-        position: fixed !important;
-        right: 14px !important;
-        bottom: 14px !important;
-        z-index: 2147483647 !important;
-        width: 390px !important;
-        max-width: calc(100vw - 28px) !important;
-        max-height: 58vh !important;
-        display: flex !important;
-        flex-direction: column !important;
-        border: 1px solid rgba(24,36,51,.18) !important;
-        border-radius: 14px !important;
-        background: rgba(255,255,255,.96) !important;
-        box-shadow: 0 18px 50px rgba(16,24,40,.22) !important;
-        color: #182433 !important;
-        font-family: Roboto, Arial, sans-serif !important;
-        overflow: hidden !important;
-        backdrop-filter: blur(8px) !important;
-      }
-
-      #dropdownDebugOverlayV6199.collapsed {
-        width: auto !important;
-        max-height: none !important;
-      }
-
-      #dropdownDebugOverlayV6199 .debugHead {
+      #overviewOne .topBar.executiveTop .v6205PillSlot {
         display: flex !important;
         align-items: center !important;
-        gap: 8px !important;
-        padding: 9px 10px !important;
-        border-bottom: 1px solid #edf0f5 !important;
-        background: #f8fafc !important;
+        justify-content: flex-start !important;
+        min-width: 0 !important;
+        min-height: 24px !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: visible !important;
+        grid-column: 1 !important;
+        grid-row: 1 !important;
       }
 
-      #dropdownDebugOverlayV6199 .debugTitle {
-        font-size: 12px !important;
-        font-weight: 950 !important;
-        flex: 1 !important;
+      #overviewOne #${RAIL_ID_V6205} {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: flex-start !important;
+        flex-wrap: wrap !important;
+        gap: 6px !important;
+        min-width: 0 !important;
+        max-width: 520px !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: transparent !important;
+        border: 0 !important;
+        box-shadow: none !important;
       }
 
-      #dropdownDebugOverlayV6199 .debugBadge {
-        padding: 3px 7px !important;
-        border-radius: 999px !important;
-        background: #e8f0fb !important;
-        color: #235b8e !important;
-        font-size: 10px !important;
-        font-weight: 950 !important;
-      }
-
-      #dropdownDebugOverlayV6199 .debugBtns {
-        display: inline-flex !important;
-        gap: 4px !important;
-      }
-
-      #dropdownDebugOverlayV6199 button {
-        border: 1px solid #d8dde6 !important;
-        border-radius: 8px !important;
-        background: #fff !important;
-        color: #344054 !important;
-        height: 24px !important;
-        padding: 0 7px !important;
-        font-size: 10px !important;
-        font-weight: 900 !important;
-        cursor: pointer !important;
-      }
-
-      #dropdownDebugOverlayV6199 .debugBody {
-        overflow-y: auto !important;
-        padding: 8px 10px 10px !important;
-      }
-
-      #dropdownDebugOverlayV6199.collapsed .debugBody {
+      #overviewOne #${RAIL_ID_V6205}[data-empty="true"] {
         display: none !important;
       }
 
-      #dropdownDebugOverlayV6199 .debugMeta {
-        display: grid !important;
-        grid-template-columns: 1fr 1fr !important;
-        gap: 6px !important;
-        margin-bottom: 8px !important;
-      }
-
-      #dropdownDebugOverlayV6199 .debugMetric {
-        border: 1px solid #edf0f5 !important;
-        border-radius: 9px !important;
-        padding: 6px 7px !important;
-        background: #fff !important;
-      }
-
-      #dropdownDebugOverlayV6199 .debugMetric span {
-        display: block !important;
-        color: #667085 !important;
-        font-size: 9.5px !important;
-        font-weight: 900 !important;
-        text-transform: uppercase !important;
-        letter-spacing: .04em !important;
-      }
-
-      #dropdownDebugOverlayV6199 .debugMetric b {
-        display: block !important;
-        color: #182433 !important;
-        font-size: 12px !important;
-        font-weight: 950 !important;
-        margin-top: 2px !important;
-      }
-
-      #dropdownDebugOverlayV6199 .debugLog {
-        display: flex !important;
-        flex-direction: column !important;
-        gap: 5px !important;
-      }
-
-      #dropdownDebugOverlayV6199 .debugRow {
-        display: grid !important;
-        grid-template-columns: 54px 82px 1fr !important;
-        gap: 6px !important;
+      #overviewOne .v6205FilterPill {
+        display: inline-flex !important;
         align-items: center !important;
-        padding: 5px 6px !important;
-        border-radius: 8px !important;
-        background: #f8fafc !important;
-        border: 1px solid #edf0f5 !important;
-        font-size: 10.5px !important;
-        line-height: 1.2 !important;
+        justify-content: center !important;
+        gap: 5px !important;
+        max-width: 220px !important;
+        min-height: 23px !important;
+        padding: 2px 8px !important;
+        border-radius: 999px !important;
+        border: 1px solid #f2c94c !important;
+        background: linear-gradient(180deg, #fff8d6 0%, #ffef9f 100%) !important;
+        color: #6b4300 !important;
+        font: 900 10.5px/1.1 Roboto, Arial, sans-serif !important;
+        letter-spacing: .01em !important;
+        white-space: nowrap !important;
+        box-shadow: 0 1px 2px rgba(116, 83, 0, .16) !important;
       }
 
-      #dropdownDebugOverlayV6199 .debugRow.slow {
-        background: #fff7ed !important;
-        border-color: #fed7aa !important;
+      #overviewOne .v6205FilterPill.hot {
+        border-color: #f59e0b !important;
+        background: linear-gradient(180deg, #ffedd5 0%, #fed7aa 100%) !important;
+        color: #7c2d12 !important;
       }
 
-      #dropdownDebugOverlayV6199 .debugRow .ms {
-        font-weight: 950 !important;
-        color: #235b8e !important;
-      }
-
-      #dropdownDebugOverlayV6199 .debugRow.slow .ms {
-        color: #b45309 !important;
-      }
-
-      #dropdownDebugOverlayV6199 .debugRow .label,
-      #dropdownDebugOverlayV6199 .debugRow .detail {
+      #overviewOne .v6205FilterPill span {
+        min-width: 0 !important;
         overflow: hidden !important;
         text-overflow: ellipsis !important;
         white-space: nowrap !important;
       }
 
-      #dropdownDebugOverlayV6199 .debugRow .label {
-        font-weight: 900 !important;
+      #overviewOne .v6205FilterPill button {
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        width: 14px !important;
+        height: 14px !important;
+        min-width: 14px !important;
+        margin: 0 0 0 1px !important;
+        padding: 0 !important;
+        border: 1px solid rgba(122, 74, 0, .22) !important;
+        border-radius: 999px !important;
+        background: rgba(255, 255, 255, .74) !important;
+        color: #7a4a00 !important;
+        font: 900 11px/1 Arial, sans-serif !important;
+        cursor: pointer !important;
       }
 
-      #dropdownDebugOverlayV6199 .debugRow .detail {
-        color: #667085 !important;
+      #overviewOne .v6205FilterPill button:hover {
+        background: #ffffff !important;
+        border-color: rgba(122, 74, 0, .38) !important;
       }
 
-      #dropdownDebugOverlayV6199 .debugEmpty {
-        padding: 10px !important;
-        border-radius: 10px !important;
-        background: #f8fafc !important;
-        color: #667085 !important;
-        font-size: 11px !important;
-        font-weight: 800 !important;
+      @media (max-width: 1100px) {
+        #overviewOne .topBar.executiveTop .v6205PillSlot {
+          grid-column: 1 / -1 !important;
+          grid-row: auto !important;
+          order: 2 !important;
+        }
+        #overviewOne #${RAIL_ID_V6205} {
+          max-width: 100% !important;
+        }
       }
     `;
     document.head.appendChild(style);
   }
 
-  function ensureOverlayV6199() {
-    installStylesV6199();
+  function ensureRailV6205() {
+    installStylesV6205();
+    const topBar = document.querySelector('#overviewOne .topBar.executiveTop');
+    if (!topBar) return null;
 
-    let overlay = document.getElementById('dropdownDebugOverlayV6199');
-    if (overlay) return overlay;
-
-    // Remove old diagnostic overlay if present, so there is only one.
-    const old = document.getElementById('dropdownDebugOverlayV6196');
-    if (old) old.remove();
-
-    overlay = document.createElement('div');
-    overlay.id = 'dropdownDebugOverlayV6199';
-    overlay.innerHTML = `
-      <div class="debugHead">
-        <div class="debugTitle">Dropdown Debug</div>
-        <div class="debugBadge">v6.207</div>
-        <div class="debugBtns">
-          <button type="button" id="debugCopyV6199">Copy</button>
-          <button type="button" id="debugClearV6199">Clear</button>
-          <button type="button" id="debugCollapseV6199">Hide</button>
-        </div>
-      </div>
-      <div class="debugBody">
-        <div class="debugMeta">
-          <div class="debugMetric"><span>Max lag</span><b id="debugLagV6199">0ms</b></div>
-          <div class="debugMetric"><span>Last action</span><b id="debugLastV6199">Waiting</b></div>
-        </div>
-        <div id="debugLogV6199" class="debugLog"><div class="debugEmpty">Click a dropdown. Slow calls appear here.</div></div>
-      </div>
-    `;
-    document.body.appendChild(overlay);
-
-    overlay.querySelector('#debugClearV6199').addEventListener('click', () => {
-      debugStateV6199.logs = [];
-      debugStateV6199.maxLag = 0;
-      renderOverlayV6199();
-    });
-
-    overlay.querySelector('#debugCollapseV6199').addEventListener('click', event => {
-      overlay.classList.toggle('collapsed');
-      event.currentTarget.textContent = overlay.classList.contains('collapsed') ? 'Show' : 'Hide';
-    });
-
-    overlay.querySelector('#debugCopyV6199').addEventListener('click', async () => {
-      const logText = debugStateV6199.logs.map(row =>
-        `${row.ts} | ${row.type} | ${row.label} | ${timeTextV6199(row.duration)} | ${row.detail}`
-      ).join('\n');
-      try {
-        await navigator.clipboard.writeText(logText || 'No debug logs yet.');
-      } catch (err) {
-        console.log(logText || 'No debug logs yet.');
+    let slot = topBar.querySelector('.v6205PillSlot');
+    if (!slot) {
+      slot = topBar.querySelector('.controlFilterRow.compactChipOnlyRow') || document.createElement('div');
+      slot.classList.add('v6205PillSlot');
+      if (!slot.parentNode) {
+        const kpis = topBar.querySelector('.kpiStrip.comparisonKpis');
+        if (kpis) topBar.insertBefore(slot, kpis);
+        else topBar.insertBefore(slot, topBar.firstChild);
       }
-    });
-
-    return overlay;
-  }
-
-  function renderOverlayV6199() {
-    const overlay = ensureOverlayV6199();
-    const lag = overlay.querySelector('#debugLagV6199');
-    const last = overlay.querySelector('#debugLastV6199');
-    const log = overlay.querySelector('#debugLogV6199');
-
-    if (lag) lag.textContent = timeTextV6199(debugStateV6199.maxLag);
-
-    const first = debugStateV6199.logs[0];
-    if (last) last.textContent = first ? `${first.label} ${timeTextV6199(first.duration)}` : 'Waiting';
-
-    if (!log) return;
-
-    if (!debugStateV6199.logs.length) {
-      log.innerHTML = '<div class="debugEmpty">Click a dropdown. Slow calls appear here.</div>';
-      return;
     }
 
-    log.innerHTML = debugStateV6199.logs.map(row => `
-      <div class="debugRow ${row.slow ? 'slow' : ''}">
-        <div class="ms">${safeEscapeV6199(timeTextV6199(row.duration))}</div>
-        <div class="label" title="${safeEscapeV6199(row.label)}">${safeEscapeV6199(row.label)}</div>
-        <div class="detail" title="${safeEscapeV6199(row.detail || row.type)}">${safeEscapeV6199(row.detail || row.type)}</div>
-      </div>
-    `).join('');
+    let rail = document.getElementById(RAIL_ID_V6205);
+    if (!rail) {
+      rail = document.createElement('div');
+      rail.id = RAIL_ID_V6205;
+      rail.setAttribute('aria-live', 'polite');
+      slot.appendChild(rail);
+    } else if (rail.parentNode !== slot) {
+      slot.appendChild(rail);
+    }
+    return rail;
   }
 
-  function wrapTimedV6199(name, label) {
-    const fn = window[name];
-    if (typeof fn !== 'function' || fn.__v6199Timed) return;
-
-    const wrapped = function timedV6199() {
-      const started = nowV6199();
-      try {
-        return fn.apply(this, arguments);
-      } finally {
-        const elapsed = nowV6199() - started;
-        let detail = '';
-
-        if (/render.*List/.test(name)) {
-          const ids = {
-            renderDepartmentList: 'departmentList',
-            renderProductList: 'productList',
-            renderCustomerList: 'customerList',
-            renderYearList: 'yearList'
-          };
-          const list = document.getElementById(ids[name]);
-          if (list) detail = 'rows=' + list.children.length;
-        } else if (arguments && arguments.length) {
-          detail = Array.from(arguments).map(arg => String(arg).slice(0, 42)).join(', ');
-        }
-
-        addLogV6199(elapsed >= debugStateV6199.slowThreshold ? 'slow' : 'timed', label, elapsed, detail);
+  function clearPillV6205(kind) {
+    if (!kind) return;
+    try {
+      if (kind === 'v6205CustomerHighlight') {
+        if (state.v6165CustomerFocus && typeof state.v6165CustomerFocus.clear === 'function') state.v6165CustomerFocus.clear();
+        if (state.tableSelectedCustomerIds && typeof state.tableSelectedCustomerIds.clear === 'function') state.tableSelectedCustomerIds.clear();
+      } else if (kind === 'v6205ProductHighlight') {
+        if (state.v6165ProductFocus && typeof state.v6165ProductFocus.clear === 'function') state.v6165ProductFocus.clear();
+        if (state.tableSelectedProductKeys && typeof state.tableSelectedProductKeys.clear === 'function') state.tableSelectedProductKeys.clear();
+      } else if (typeof clearFilter === 'function') {
+        clearFilter(kind);
+        return;
       }
+    } catch (error) {}
+
+    try {
+      if (typeof scheduleTabRenderV6202 === 'function') scheduleTabRenderV6202();
+      else if (typeof renderAll === 'function') renderAll();
+    } catch (error) {}
+  }
+
+  function renderYellowFilterPillsV6205() {
+    if (!state || state.activeTab === 'remakeFactor') return;
+    const rail = ensureRailV6205();
+    if (!rail) return;
+
+    const pills = getPillsV6205();
+    rail.setAttribute('data-empty', pills.length ? 'false' : 'true');
+    rail.innerHTML = pills.map((pill, index) => {
+      const label = safeEscapeV6205(pill.label);
+      const title = safeEscapeV6205(pill.title || pill.label);
+      const cls = 'v6205FilterPill' + (pill.hot ? ' hot' : '');
+      const clearButton = pill.clearKind
+        ? '<button type="button" data-v6205-clear="' + safeEscapeV6205(pill.clearKind) + '" aria-label="Clear ' + label + '" title="Clear">×</button>'
+        : '';
+      return '<span class="' + cls + '" title="' + title + '" data-v6205-pill-index="' + index + '"><span>' + label + '</span>' + clearButton + '</span>';
+    }).join('');
+
+    rail.querySelectorAll('button[data-v6205-clear]').forEach(button => {
+      button.addEventListener('click', function(event) {
+        event.preventDefault();
+        event.stopPropagation();
+        if (typeof event.stopImmediatePropagation === 'function') event.stopImmediatePropagation();
+        clearPillV6205(button.getAttribute('data-v6205-clear'));
+      });
+    });
+  }
+
+  const previousRenderAllV6205 = typeof renderAll === 'function' ? renderAll : null;
+  if (previousRenderAllV6205 && !renderAll.__v6205YellowPills) {
+    renderAll = function renderAllV6205() {
+      const result = previousRenderAllV6205.apply(this, arguments);
+      window.requestAnimationFrame(renderYellowFilterPillsV6205);
+      return result;
     };
-
-    wrapped.__v6199Timed = true;
-    window[name] = wrapped;
+    renderAll.__v6205YellowPills = true;
   }
 
-  function installEventLoggingV6199() {
-    if (document.__v6199EventLogging) return;
-    document.__v6199EventLogging = true;
-
-    document.addEventListener('click', event => {
-      const button = event.target.closest && event.target.closest('.dropdownButton, [id$="DropdownButton"]');
-      if (!button) return;
-
-      const started = nowV6199();
-      const label = (button.id || button.textContent || 'dropdown').replace(/\s+/g, ' ').trim();
-
-      window.setTimeout(() => {
-        const panel = document.querySelector('#overviewFilterDeck .dropdownPanel.open');
-        addLogV6199('click', 'dropdown click', nowV6199() - started, label + (panel ? ' · ' + panel.id : ''), true);
-      }, 0);
-
-      window.setTimeout(() => {
-        const panel = document.querySelector('#overviewFilterDeck .dropdownPanel.open');
-        const detail = panel ? (panel.id + ' open') : 'no open panel';
-        addLogV6199('click+250', 'after click', nowV6199() - started, detail, true);
-      }, 250);
-    }, true);
+  const previousHandleDataV6205 = typeof handleData === 'function' ? handleData : null;
+  if (previousHandleDataV6205 && !handleData.__v6205YellowPills) {
+    handleData = function handleDataV6205() {
+      const result = previousHandleDataV6205.apply(this, arguments);
+      window.setTimeout(renderYellowFilterPillsV6205, 120);
+      return result;
+    };
+    handleData.__v6205YellowPills = true;
   }
 
-  function installLagWatcherV6199() {
-    if (window.__v6199LagWatcher) return;
-    window.__v6199LagWatcher = true;
-
-    setInterval(() => {
-      const current = nowV6199();
-      const lag = current - debugStateV6199.lastTick - 500;
-      debugStateV6199.lastTick = current;
-
-      if (lag > debugStateV6199.maxLag) {
-        debugStateV6199.maxLag = lag;
-        if (lag > 220) addLogV6199('lag', 'event loop lag', lag, 'browser blocked', true);
-        else renderOverlayV6199();
-      }
-    }, 500);
+  const previousScheduleTabRenderV6205 = typeof window.scheduleTabRenderV6202 === 'function' ? window.scheduleTabRenderV6202 : null;
+  if (previousScheduleTabRenderV6205 && !window.scheduleTabRenderV6202.__v6205YellowPills) {
+    window.scheduleTabRenderV6202 = function scheduleTabRenderWithYellowPillsV6205(panelId) {
+      const result = previousScheduleTabRenderV6205.apply(this, arguments);
+      window.setTimeout(renderYellowFilterPillsV6205, 80);
+      window.setTimeout(renderYellowFilterPillsV6205, 180);
+      return result;
+    };
+    window.scheduleTabRenderV6202.__v6205YellowPills = true;
   }
 
-  function installDebugV6199() {
-    ensureOverlayV6199();
-    installEventLoggingV6199();
-    installLagWatcherV6199();
+  const banner = document.getElementById('singleShellDebugBanner');
+  if (banner) banner.textContent = VERSION_TEXT_V6205;
 
-    [
-      ['toggleDropdown', 'toggleDropdown'],
-      ['renderDepartmentList', 'renderDepartmentList'],
-      ['renderProductList', 'renderProductList'],
-      ['renderCustomerList', 'renderCustomerList'],
-      ['renderYearList', 'renderYearList'],
-      ['getVisibleDepartmentRows', 'getVisibleDepartmentRows'],
-      ['getVisibleProductOptions', 'getVisibleProductOptions'],
-      ['getVisibleCustomerOptions', 'getVisibleCustomerOptions'],
-      ['renderAll', 'renderAll'],
-      ['keepSelectionsValid', 'keepSelectionsValid']
-    ].forEach(item => wrapTimedV6199(item[0], item[1]));
-
-    const banner = document.getElementById('singleShellDebugBanner');
-    if (banner) banner.textContent = VERSION_TEXT_V6199;
-
-    // The debugger is intentionally called more than once so it can wrap functions
-    // that are replaced by later patch blocks. Only log the ready row once.
-    if (!window.__v6207DebugReadyLogged) {
-      window.__v6207DebugReadyLogged = true;
-      addLogV6199('ready', 'debug ready', 0, 'v6.207 debugger retained', true);
-    } else {
-      renderOverlayV6199();
-    }
-  }
-
-  // v6.203: keep the debugger on during testing. The overlay can still be minimized/cleared/copied from its own controls.
-  const debugEnabledV6199 = true;
-
-  document.body.classList.add('debugModeV6202');
-  installDebugV6199();
-  setTimeout(installDebugV6199, 250);
-  setTimeout(installDebugV6199, 1000);
+  renderYellowFilterPillsV6205();
+  window.setTimeout(renderYellowFilterPillsV6205, 250);
+  window.setTimeout(renderYellowFilterPillsV6205, 900);
 })();
 
+/* v6.208 progressive overview render
+   Testing fix for load-time browser blocking.
+   The previous v6.207 behavior made renderAll tab-scoped, but the initial Overview load could still block
+   because renderCharts() and renderTables() ran synchronously during the first renderAll pass.
+   This patch keeps the debugger on, keeps yellow pills, and lets renderAll finish quickly by coalescing
+   charts/tables into a short progressive render queue. */
+(function installProgressiveOverviewRenderV6208() {
+  const VERSION_TEXT_V6208 = 'DEBUG v6.208 progressiveOverviewRender - charts/tables deferred, debugger retained';
+  const SCHEDULE_LABEL_V6208 = 'v6.208 progressive render';
+  let chartTimerV6208 = null;
+  let tableTimerV6208 = null;
+  let pendingReasonV6208 = '';
+  let runningChartsV6208 = false;
+  let runningTablesV6208 = false;
+  let lastRequestV6208 = 0;
 
-
-/* v6.200 smoother dropdowns
-   Built from v6.199 debug build.
-   Debug showed dropdown open is now reasonable, but renderAll is clunky because it rebuilds hidden dropdown lists.
-   Fix:
-   - Hidden dropdown lists do not rebuild during renderAll.
-   - Clicking a dropdown option updates state first, then renders dashboard on the next tick.
-   - Open dropdown is refreshed after render without blocking the initial click.
-   - Debug overlay stays on. */
-(function installSmootherDropdownsV6200() {
-  const VERSION_TEXT_V6200 = 'DEBUG v6.200 smootherDropdowns - hidden lists skipped, dropdown actions deferred, debug retained';
-  const STYLE_ID_V6200 = 'smootherDropdownsStylesV6200';
-
-  let smoothRenderTimerV6200 = null;
-  let activeDropdownPanelV6200 = '';
-
-  function installStylesV6200() {
-    if (document.getElementById(STYLE_ID_V6200)) return;
-
-    const style = document.createElement('style');
-    style.id = STYLE_ID_V6200;
-    style.textContent = `
-      body.dropdownSmoothRenderingV6200 #overviewFilterDeck.topOverviewFilterDeck .dropdownPanel.open::after {
-        content: 'Updating…' !important;
-        position: absolute !important;
-        right: 10px !important;
-        bottom: 8px !important;
-        z-index: 100 !important;
-        padding: 4px 8px !important;
-        border-radius: 999px !important;
-        background: rgba(24,36,51,.88) !important;
-        color: #fff !important;
-        font: 900 10px/1 Roboto, Arial, sans-serif !important;
-      }
-
-      #overviewFilterDeck.topOverviewFilterDeck .dropdownPanel.open .dropdownList {
-        contain: content !important;
-      }
-    `;
-    document.head.appendChild(style);
+  function setBannerV6208() {
+    try {
+      const banner = document.getElementById('singleShellDebugBanner');
+      if (banner) banner.textContent = VERSION_TEXT_V6208;
+      document.querySelectorAll('.debugBadge').forEach(el => { el.textContent = 'v6.208'; });
+    } catch (error) {}
   }
 
-  function panelIsOpenV6200(panelId) {
-    const panel = document.getElementById(panelId);
-    return !!(panel && panel.classList.contains('open'));
+  function afterDelayV6208(ms, fn) {
+    return window.setTimeout(() => {
+      window.requestAnimationFrame(() => {
+        try { fn(); } catch (error) { console.error(error); }
+      });
+    }, ms);
   }
 
-  function currentOpenPanelIdV6200() {
-    const open = document.querySelector('#overviewFilterDeck.topOverviewFilterDeck .dropdownPanel.open');
-    return open ? open.id : '';
-  }
-
-  function panelKindV6200(panelId) {
-    if (panelId === 'departmentDropdownPanel') return 'department';
-    if (panelId === 'productDropdownPanel') return 'product';
-    if (panelId === 'customerDropdownPanel') return 'customer';
-    if (panelId === 'yearDropdownPanel') return 'year';
-    return '';
-  }
-
-  function renderOpenPanelListV6200(panelId) {
-    const target = panelId || currentOpenPanelIdV6200();
-    if (!target) return;
-
-    const panel = document.getElementById(target);
-    if (panel) panel.classList.add('open');
-
-    if (target === 'departmentDropdownPanel' && typeof renderDepartmentList === 'function') renderDepartmentList();
-    if (target === 'productDropdownPanel' && typeof renderProductList === 'function') renderProductList();
-    if (target === 'customerDropdownPanel' && typeof renderCustomerList === 'function') renderCustomerList();
-    if (target === 'yearDropdownPanel' && typeof renderYearList === 'function') renderYearList();
-  }
-
-  function scheduleSmoothRenderV6200(panelId) {
-    activeDropdownPanelV6200 = panelId || currentOpenPanelIdV6200() || activeDropdownPanelV6200;
-    document.body.classList.add('dropdownSmoothRenderingV6200');
-
-    if (smoothRenderTimerV6200) window.clearTimeout(smoothRenderTimerV6200);
-
-    smoothRenderTimerV6200 = window.setTimeout(() => {
-      smoothRenderTimerV6200 = null;
-
-      if (typeof renderAll === 'function') renderAll();
-
-      window.setTimeout(() => {
-        renderOpenPanelListV6200(activeDropdownPanelV6200);
-        document.body.classList.remove('dropdownSmoothRenderingV6200');
-      }, 35);
-    }, 35);
-  }
-
-  function skipHiddenListV6200(panelId, originalFn, args) {
-    if (!panelIsOpenV6200(panelId)) {
-      if (typeof updateDropdownLabels === 'function') updateDropdownLabels();
-      return;
+  function shouldDeferOverviewWorkV6208() {
+    try {
+      if (!payload || !state) return false;
+      if (state.activeTab && state.activeTab !== 'one') return false;
+      const overviewOne = document.getElementById('overviewOne');
+      return !overviewOne || overviewOne.classList.contains('active');
+    } catch (error) {
+      return false;
     }
-    return originalFn.apply(this, args);
   }
 
+  function scheduleOverviewWorkV6208(reason) {
+    if (!shouldDeferOverviewWorkV6208()) return;
+    pendingReasonV6208 = reason || pendingReasonV6208 || SCHEDULE_LABEL_V6208;
+    lastRequestV6208 += 1;
+    const requestId = lastRequestV6208;
+
+    if (chartTimerV6208) window.clearTimeout(chartTimerV6208);
+    if (tableTimerV6208) window.clearTimeout(tableTimerV6208);
+
+    chartTimerV6208 = afterDelayV6208(80, () => {
+      if (requestId !== lastRequestV6208 || runningChartsV6208) return;
+      runningChartsV6208 = true;
+      try {
+        if (typeof originalRenderChartsV6208 === 'function' && shouldDeferOverviewWorkV6208()) {
+          originalRenderChartsV6208();
+        }
+      } finally {
+        runningChartsV6208 = false;
+      }
+    });
+
+    tableTimerV6208 = afterDelayV6208(190, () => {
+      if (requestId !== lastRequestV6208 || runningTablesV6208) return;
+      runningTablesV6208 = true;
+      try {
+        if (typeof originalRenderTablesV6208 === 'function' && shouldDeferOverviewWorkV6208()) {
+          originalRenderTablesV6208();
+        }
+      } finally {
+        runningTablesV6208 = false;
+      }
+    });
+  }
+
+  const originalRenderChartsV6208 = typeof renderCharts === 'function' ? renderCharts : null;
+  const originalRenderTablesV6208 = typeof renderTables === 'function' ? renderTables : null;
+
+  if (originalRenderChartsV6208 && !renderCharts.__v6208Deferred) {
+    renderCharts = function renderChartsV6208() {
+      if (!shouldDeferOverviewWorkV6208() || runningChartsV6208) {
+        return originalRenderChartsV6208.apply(this, arguments);
+      }
+      scheduleOverviewWorkV6208('renderCharts requested');
+      return null;
+    };
+    renderCharts.__v6208Deferred = true;
+  }
+
+  if (originalRenderTablesV6208 && !renderTables.__v6208Deferred) {
+    renderTables = function renderTablesV6208() {
+      if (!shouldDeferOverviewWorkV6208() || runningTablesV6208) {
+        return originalRenderTablesV6208.apply(this, arguments);
+      }
+      scheduleOverviewWorkV6208('renderTables requested');
+      return null;
+    };
+    renderTables.__v6208Deferred = true;
+  }
+
+  const previousScheduleTabRenderV6208 = typeof window.scheduleTabRenderV6202 === 'function' ? window.scheduleTabRenderV6202 : null;
+  if (previousScheduleTabRenderV6208 && !window.scheduleTabRenderV6202.__v6208Progressive) {
+    window.scheduleTabRenderV6202 = function scheduleTabRenderV6208(panelId) {
+      const result = previousScheduleTabRenderV6208.apply(this, arguments);
+      if (!panelId) scheduleOverviewWorkV6208('tab render');
+      return result;
+    };
+    window.scheduleTabRenderV6202.__v6208Progressive = true;
+  }
+
+  const previousHandleDataV6208 = typeof handleData === 'function' ? handleData : null;
+  if (previousHandleDataV6208 && !handleData.__v6208Progressive) {
+    handleData = function handleDataV6208() {
+      const result = previousHandleDataV6208.apply(this, arguments);
+      scheduleOverviewWorkV6208('data loaded');
+      return result;
+    };
+    handleData.__v6208Progressive = true;
+  }
+
+  setBannerV6208();
+  window.setTimeout(setBannerV6208, 300);
+  window.setTimeout(setBannerV6208, 1100);
+})();
+
+/* v6.209 responsive overview + yellow pills only
+   - Removes the older grey/status chip rows from the visible Overview UI.
+   - Rebuilds the yellow pill rail with useful hover titles, especially excluded values.
+   - Cuts through the accumulated renderAll/handleData wrapper stack for Overview 1.0 so first load does less synchronous work.
+   - Staggers chart/table rendering and debounces resize so the layout does not break while the browser is resizing. */
+(function installResponsiveYellowPillsOnlyV6209() {
+  const VERSION_TEXT_V6209 = 'DEBUG v6.210 responsiveYellowPillsOnly + remake diagnostics - lean render, resize stable, grey pills removed';
+  const STYLE_ID_V6209 = 'responsiveYellowPillsOnlyStylesV6209';
+  const RAIL_ID_V6209 = 'activeFilterPillRailV6205';
+
+  const previousRenderAllV6209 = typeof renderAll === 'function' ? renderAll : null;
+  const previousHandleDataV6209 = typeof handleData === 'function' ? handleData : null;
+  let renderTimerV6209 = null;
+  let chartJobV6209 = 0;
+  let tableJobV6209 = 0;
+  let resizeTimerV6209 = null;
+  let renderingV6209 = false;
+
+  function escapeV6209(value) {
+    if (typeof escapeHtml === 'function') return escapeHtml(value);
+    return String(value == null ? '' : value).replace(/[&<>"']/g, ch => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[ch]));
+  }
+
+  function toArrayV6209(value) {
+    try { return Array.from(value || []); } catch (error) { return []; }
+  }
+
+  function cleanTextV6209(value) {
+    return String(value == null ? '' : value).replace(/\s+/g, ' ').trim();
+  }
+
+  function sameValuesV6209(a, b) {
+    const aa = toArrayV6209(a).map(String).sort();
+    const bb = toArrayV6209(b).map(String).sort();
+    return aa.length === bb.length && aa.every((value, index) => value === bb[index]);
+  }
+
+  function valuesTitleV6209(prefix, values, emptyText) {
+    const clean = toArrayV6209(values).map(cleanTextV6209).filter(Boolean);
+    if (!clean.length) return emptyText || prefix;
+    const maxItems = 80;
+    const shown = clean.slice(0, maxItems);
+    const extra = clean.length - shown.length;
+    return prefix + ':\n' + shown.join('\n') + (extra > 0 ? '\n+' + extra + ' more' : '');
+  }
+
+  function shortListLabelV6209(values, singular, plural, maxShown) {
+    const clean = toArrayV6209(values).map(cleanTextV6209).filter(Boolean);
+    if (!clean.length) return '';
+    const limit = maxShown || 2;
+    const prefix = clean.length === 1 ? singular : plural;
+    if (clean.length <= limit) return prefix + ': ' + clean.join(', ');
+    return prefix + ': ' + clean.slice(0, limit).join(', ') + ' +' + (clean.length - limit);
+  }
+
+  function monthNameV6209(value) {
+    const num = Number(value);
+    if (Number.isFinite(num) && num >= 1 && num <= 12 && Array.isArray(monthLabels)) return monthLabels[num - 1];
+    return cleanTextV6209(value);
+  }
+
+  function productNameV6209(key) {
+    try { if (typeof productLabelFromKey === 'function') return productLabelFromKey(key); } catch (error) {}
+    return cleanTextV6209(key || 'Product');
+  }
+
+  function customerNameV6209(id) {
+    try { if (typeof getCustomerNameById === 'function') return getCustomerNameById(id); } catch (error) {}
+    try { if (typeof customerLabelById !== 'undefined' && customerLabelById && customerLabelById.has(id)) return customerLabelById.get(id); } catch (error) {}
+    return cleanTextV6209(id || 'Customer');
+  }
+
+  function defaultYearsV6209() {
+    try { if (typeof getDefaultYears === 'function') return getDefaultYears().map(Number).filter(Number.isFinite).sort((a, b) => b - a); } catch (error) {}
+    try {
+      const currentYear = payload && payload.config && payload.config.currentYear ? Number(payload.config.currentYear) : new Date().getFullYear();
+      const priorYear = payload && payload.config && payload.config.priorYear ? Number(payload.config.priorYear) : currentYear - 1;
+      return [currentYear, priorYear].filter(Number.isFinite).sort((a, b) => b - a);
+    } catch (error) {}
+    return [];
+  }
+
+  function selectedYearsV6209() {
+    return toArrayV6209(state && state.years).map(Number).filter(Number.isFinite).sort((a, b) => b - a);
+  }
+
+  function selectedMonthsV6209() {
+    try { if (typeof getSelectedMonths === 'function') return getSelectedMonths(); } catch (error) {}
+    return toArrayV6209(state && state.selectedMonths).map(Number).filter(Number.isFinite).sort((a, b) => a - b);
+  }
+
+  function addPillV6209(pills, label, clearKind, hot, title) {
+    if (!cleanTextV6209(label)) return;
+    pills.push({ label: cleanTextV6209(label), clearKind: clearKind || '', hot: !!hot, title: title || label });
+  }
+
+  function buildYellowPillsV6209() {
+    const pills = [];
+    if (!state || state.activeTab === 'remakeFactor') return pills;
+
+    const years = selectedYearsV6209();
+    if (years.length && !sameValuesV6209(years, defaultYearsV6209())) {
+      addPillV6209(pills, 'Years: ' + years.join(', '), 'years', false, valuesTitleV6209('Selected years', years));
+    }
+
+    const months = selectedMonthsV6209();
+    if (months.length) {
+      const monthNames = months.map(monthNameV6209);
+      const isMtd = String(state.periodMode || '').toUpperCase() === 'MTD';
+      addPillV6209(
+        pills,
+        isMtd && monthNames.length === 1 ? 'MTD: ' + monthNames[0] : shortListLabelV6209(monthNames, 'Month', 'Months', 3),
+        'month',
+        true,
+        valuesTitleV6209(isMtd ? 'Month-to-date month' : 'Selected months', monthNames)
+      );
+    }
+
+    try {
+      const selectedDepts = toArrayV6209(state.selectedDepartments).map(cleanTextV6209).filter(Boolean).sort((a, b) => a.localeCompare(b));
+      const allDepts = typeof getAllDepartments === 'function' ? getAllDepartments() : [];
+      const mainDepts = typeof getMainDepartments === 'function' ? getMainDepartments() : [];
+      const isDefaultMain = String(state.deptMode || '').toUpperCase() === 'MAIN' && sameValuesV6209(selectedDepts, mainDepts);
+      const isAll = selectedDepts.length && allDepts.length && sameValuesV6209(selectedDepts, allDepts);
+      if (selectedDepts.length && !isDefaultMain && !isAll) {
+        addPillV6209(pills, shortListLabelV6209(selectedDepts, 'Department', 'Departments', 2), 'departments', false, valuesTitleV6209('Selected departments', selectedDepts));
+      } else if (String(state.deptMode || '').toUpperCase() === 'ALL' && isAll) {
+        addPillV6209(pills, 'All departments', 'departments', false, 'Department filter: all departments are included');
+      }
+    } catch (error) {}
+
+    try {
+      const selectedProducts = toArrayV6209(state.selectedProductKeys).map(productNameV6209).filter(Boolean).sort((a, b) => a.localeCompare(b));
+      const excludedProducts = toArrayV6209(state.excludedProductKeys).map(productNameV6209).filter(Boolean).sort((a, b) => a.localeCompare(b));
+      if (state.productFilterMode === 'CUSTOM') {
+        addPillV6209(
+          pills,
+          selectedProducts.length ? shortListLabelV6209(selectedProducts, 'Product', 'Products', 2) : 'Products: none',
+          'product',
+          false,
+          valuesTitleV6209('Included products', selectedProducts, 'No products are included')
+        );
+      } else if (excludedProducts.length) {
+        addPillV6209(
+          pills,
+          shortListLabelV6209(excludedProducts, 'Excluded product', 'Excluded products', 2),
+          'product',
+          false,
+          valuesTitleV6209('Excluded products', excludedProducts)
+        );
+      }
+    } catch (error) {}
+
+    try {
+      const selectedCustomers = toArrayV6209(state.selectedCustomerIds).map(customerNameV6209).filter(Boolean).sort((a, b) => a.localeCompare(b));
+      const excludedCustomers = toArrayV6209(state.excludedCustomerIds).map(customerNameV6209).filter(Boolean).sort((a, b) => a.localeCompare(b));
+      if (state.customerFilterMode === 'CUSTOM') {
+        addPillV6209(
+          pills,
+          selectedCustomers.length ? shortListLabelV6209(selectedCustomers, 'Customer', 'Customers', 2) : 'Customers: none',
+          'customer',
+          false,
+          valuesTitleV6209('Included customers', selectedCustomers, 'No customers are included')
+        );
+      } else if (excludedCustomers.length) {
+        addPillV6209(
+          pills,
+          shortListLabelV6209(excludedCustomers, 'Excluded customer', 'Excluded customers', 2),
+          'customer',
+          false,
+          valuesTitleV6209('Excluded customers', excludedCustomers)
+        );
+      }
+    } catch (error) {}
+
+    try {
+      if (state.customerActiveOnly) {
+        addPillV6209(pills, 'Active customers only', 'activeOnly', false, 'Customer filter: inactive customers are hidden');
+      }
+    } catch (error) {}
+
+    try {
+      const customerFocus = toArrayV6209(state.v6165CustomerFocus || state.tableSelectedCustomerIds).map(customerNameV6209).filter(Boolean).sort((a, b) => a.localeCompare(b));
+      if (customerFocus.length) {
+        addPillV6209(pills, shortListLabelV6209(customerFocus, 'Customer highlighted', 'Customers highlighted', 2), 'customerFocus', true, valuesTitleV6209('Highlighted customers', customerFocus));
+      }
+    } catch (error) {}
+
+    try {
+      const productFocus = toArrayV6209(state.v6165ProductFocus || state.tableSelectedProductKeys).map(productNameV6209).filter(Boolean).sort((a, b) => a.localeCompare(b));
+      if (productFocus.length) {
+        addPillV6209(pills, shortListLabelV6209(productFocus, 'Product highlighted', 'Products highlighted', 2), 'productFocus', true, valuesTitleV6209('Highlighted products', productFocus));
+      }
+    } catch (error) {}
+
+    return pills;
+  }
+
+  function installStylesV6209() {
+    if (document.getElementById(STYLE_ID_V6209)) return;
+    const style = document.createElement('style');
+    style.id = STYLE_ID_V6209;
+    style.textContent = `
+      #singleShellDebugBanner {
+        position: sticky !important;
+        top: 0 !important;
+        z-index: 2147482000 !important;
+      }
+
+      #overviewOne #legacyChipRow,
+      #overviewOne #chipRow,
+      #overviewOne #activeFilterPillBarV6170 {
+        display: none !important;
+        visibility: hidden !important;
+        width: 0 !important;
+        height: 0 !important;
+        min-width: 0 !important;
+        min-height: 0 !important;
+        max-height: 0 !important;
+        margin: 0 !important;

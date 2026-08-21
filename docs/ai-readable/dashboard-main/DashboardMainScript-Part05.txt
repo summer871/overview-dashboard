@@ -1,1395 +1,1656 @@
-      return '<div class="o2InsightRowV152" title="' + escapeHtml(name + ': ' + value) + '">'
-        + '<span class="name">' + escapeHtml(name) + '</span>'
-        + '<span class="value ' + insightToneClass(toneValue) + '">' + escapeHtml(value) + '</span>'
-        + '</div>';
-    }
-
-    function healthTileHtml(label, value, sub, cls) {
-      return '<div class="o2HealthTileV152 ' + (cls || '') + '">'
-        + '<div class="label">' + escapeHtml(label) + '</div>'
-        + '<div class="value">' + escapeHtml(formatNumber(value)) + '</div>'
-        + '<div class="sub">' + escapeHtml(sub || '-') + '</div>'
-        + '</div>';
-    }
-
-
-    /* v6.155 deep dive tabs: keep all analytics, show one lower panel at a time. */
-    function setOverviewTwoDeepDive(mode) {
-      if (!state) return;
-      state.overviewTwoDeepDive = mode || 'gap';
-      updateOverviewTwoDeepDive();
-    }
-
-    function updateOverviewTwoDeepDive() {
-      const mode = state && state.overviewTwoDeepDive ? state.overviewTwoDeepDive : 'gap';
-      const config = {
-        gap: {
-          tab: 'o2DeepTabGap',
-          panel: 'o2DeepPanelGap',
-          title: 'Deep Dive: Gap Drivers',
-          subtitle: 'Unit, price, customer-count, and revenue-per-customer impact in the current YTD window.'
-        },
-        health: {
-          tab: 'o2DeepTabHealth',
-          panel: 'o2DeepPanelHealth',
-          title: 'Deep Dive: Customer Health',
-          subtitle: 'A cleaner view of growing, declining, new/reactivated, and lost customer groups.'
-        },
-        mix: {
-          tab: 'o2DeepTabMix',
-          panel: 'o2DeepPanelMix',
-          title: 'Deep Dive: Department Mix',
-          subtitle: 'Largest department shifts behind the selected year-to-date performance.'
-        },
-        moves: {
-          tab: 'o2DeepTabMoves',
-          panel: 'o2DeepPanelMoves',
-          title: 'Deep Dive: Biggest Moves',
-          subtitle: 'Best and worst customer/product movements in one focused view.'
+          highlighted.push(makePillV6170(listLabelV6170(names, labelName, labelName + 's').replace(labelName + 's:', labelName + ' highlighted:').replace(labelName + ':', labelName + ' highlighted:'), 'v6170ProductHighlight', true));
         }
-      };
-      const selected = config[mode] || config.gap;
-      Object.keys(config).forEach(key => {
-        const tab = document.getElementById(config[key].tab);
-        const panel = document.getElementById(config[key].panel);
-        if (tab) tab.classList.toggle('active', config[key].tab === selected.tab);
-        if (panel) panel.classList.toggle('active', config[key].panel === selected.panel);
-      });
-      const title = document.getElementById('o2DeepDiveTitle');
-      const subtitle = document.getElementById('o2DeepDiveSubtitle');
-      if (title) title.textContent = selected.title;
-      if (subtitle) subtitle.textContent = selected.subtitle;
-    }
+        if (!highlighted.length) highlighted.push(makePillV6170('No chart/table highlights', null, false));
 
-
-    /* v6.153 interactive executive insights. */
-    function setOverviewTwoInsightMode(mode) {
-      if (!state) return;
-      state.o2InsightMode = mode || 'explain';
-      renderOverviewTwoExecutiveInsights();
-    }
-
-    function renderOverviewTwoExecutiveInsights() {
-      const holder = document.getElementById('o2ExecutiveInsights');
-      if (!holder || !payload || !facts || !facts.length) return;
-
-      const mode = state.o2InsightMode || 'explain';
-      const overview = document.getElementById('overviewTwo');
-      if (overview) overview.classList.remove('o2BossViewV153');
-      updateOverviewTwoInsightButtons(mode);
-
-      const rows = getYtdComparisonRowsThroughCurrentMonth();
-      const metrics = summarize(rows);
-      const context = buildOverviewTwoInsightContext(rows, metrics);
-      const content = buildOverviewTwoInsightContent(mode, context);
-
-      const title = document.getElementById('o2ExecutiveInsightsTitle');
-      const subtitle = document.getElementById('o2ExecutiveInsightsSubtitle');
-      const badge = document.getElementById('o2ExecutiveInsightsBadge');
-      if (title) title.textContent = content.title;
-      if (subtitle) subtitle.textContent = content.subtitle;
-      if (badge) badge.textContent = content.badge;
-
-      holder.innerHTML = '<div class="o2InsightNarrativeV153">'
-        + '<div class="o2InsightLeadV153 ' + insightToneClass(content.toneValue) + '">' + escapeHtml(content.lead) + '</div>'
-        + '<div class="o2InsightBulletsV153">' + content.bullets.map((item, index) => insightBulletHtml(index + 1, item.label, item.value, item.tone)).join('') + '</div>'
-        + '</div>'
-        + '<div class="o2InsightStatGridV153">' + content.stats.map(item => insightStatHtml(item.label, item.value, item.sub)).join('') + '</div>';
-    }
-
-    function updateOverviewTwoInsightButtons(mode) {
-      const ids = {
-        explain: 'o2InsightBtnExplain',
-        loss: 'o2InsightBtnLoss',
-        growth: 'o2InsightBtnGrowth'
-      };
-      Object.keys(ids).forEach(key => {
-        const btn = document.getElementById(ids[key]);
-        if (btn) btn.classList.toggle('active', key === mode);
-      });
-    }
-
-    function buildOverviewTwoInsightContext(rows, metrics) {
-      const monthly = getMonthlyYoyRows();
-      const customers = groupCurrentPrior(rows, row => row.customerId || row.customerName || 'Unassigned', row => row.customerName || row.customerId || 'Unassigned customer');
-      const products = groupCurrentPrior(rows, row => productKey(row), row => row.productsDescription || 'Unassigned product');
-      const departments = groupCurrentPrior(rows, row => row.productsDepartment || 'Unassigned', row => row.productsDepartment || 'Unassigned');
-      [customers, products, departments].forEach(list => list.forEach(item => {
-        item.gap = Number(item.current || 0) - Number(item.prior || 0);
-        item.gapPct = item.prior ? item.gap / Math.abs(item.prior) : null;
-        item.absGap = Math.abs(item.gap || 0);
-      }));
-
-      const monthWorst = monthly.length ? monthly.slice().sort((a, b) => a.gap - b.gap)[0] : null;
-      const monthBest = monthly.length ? monthly.slice().sort((a, b) => b.gap - a.gap)[0] : null;
-      const lossCustomers = customers.filter(item => item.gap < 0).sort((a, b) => a.gap - b.gap);
-      const gainCustomers = customers.filter(item => item.gap > 0).sort((a, b) => b.gap - a.gap);
-      const lossProducts = products.filter(item => item.gap < 0).sort((a, b) => a.gap - b.gap);
-      const gainProducts = products.filter(item => item.gap > 0).sort((a, b) => b.gap - a.gap);
-      const lossDepartments = departments.filter(item => item.gap < 0).sort((a, b) => a.gap - b.gap);
-      const gainDepartments = departments.filter(item => item.gap > 0).sort((a, b) => b.gap - a.gap);
-      const lostCustomers = customers.filter(item => Number(item.current || 0) <= 0 && Number(item.prior || 0) > 0);
-      const newCustomers = customers.filter(item => Number(item.current || 0) > 0 && Number(item.prior || 0) <= 0);
-      const growingCustomers = customers.filter(item => item.gap > 0 && item.prior > 0);
-      const decliningCustomers = customers.filter(item => item.gap < 0 && item.current > 0 && item.prior > 0);
-      const atRiskRevenue = lostCustomers.reduce((sum, item) => sum + Number(item.prior || 0), 0);
-      const winRevenue = gainCustomers.reduce((sum, item) => sum + Math.max(0, Number(item.gap || 0)), 0);
-      const lossRevenue = lossCustomers.reduce((sum, item) => sum + Math.min(0, Number(item.gap || 0)), 0);
-
-      return {
-        metrics,
-        monthly,
-        monthWorst,
-        monthBest,
-        customers,
-        products,
-        departments,
-        lossCustomers,
-        gainCustomers,
-        lossProducts,
-        gainProducts,
-        lossDepartments,
-        gainDepartments,
-        lostCustomers,
-        newCustomers,
-        growingCustomers,
-        decliningCustomers,
-        atRiskRevenue,
-        winRevenue,
-        lossRevenue
-      };
-    }
-
-    function buildOverviewTwoInsightContent(mode, context) {
-      if (mode === 'loss') return buildOverviewTwoLossWatchContent(context);
-      if (mode === 'growth') return buildOverviewTwoGrowthWinsContent(context);
-      return buildOverviewTwoExplainGapContent(context);
-    }
-
-    function buildOverviewTwoExplainGapContent(context) {
-      const m = context.metrics;
-      const gap = Number(m.gap || 0);
-      const direction = gap < 0 ? 'down' : gap > 0 ? 'up' : 'flat';
-      const worstCustomer = context.lossCustomers[0];
-      const worstProduct = context.lossProducts[0];
-      const worstDept = context.lossDepartments[0];
-      const monthText = context.monthWorst ? monthLabels[context.monthWorst.month - 1] : '-';
-      return {
-        title: 'Executive Insights',
-        subtitle: 'A quick read of what is driving the selected dashboard state.',
-        badge: 'Explain Gap',
-        toneValue: gap,
-        lead: 'YTD revenue is ' + direction + ' ' + formatCompactSigned(gap) + ' vs prior year.',
-        bullets: [
-          { label: 'Biggest customer drag', value: worstCustomer ? shortenInsightName(worstCustomer.name) + ' ' + formatCompactSigned(worstCustomer.gap) : '-', tone: worstCustomer ? worstCustomer.gap : 0 },
-          { label: 'Biggest product drag', value: worstProduct ? shortenInsightName(worstProduct.name) + ' ' + formatCompactSigned(worstProduct.gap) : '-', tone: worstProduct ? worstProduct.gap : 0 },
-          { label: 'Department pressure', value: worstDept ? shortenInsightName(worstDept.name) + ' ' + formatCompactSigned(worstDept.gap) : '-', tone: worstDept ? worstDept.gap : 0 },
-          { label: 'Toughest month', value: monthText + ' ' + (context.monthWorst ? formatCompactSigned(context.monthWorst.gap) : '-'), tone: context.monthWorst ? context.monthWorst.gap : 0 }
-        ],
-        stats: [
-          { label: 'Revenue gap', value: formatCompactSigned(gap), sub: formatSignedPercent(m.gapPct) },
-          { label: 'Customer gap', value: formatNumber(Number(m.customers || 0) - Number(m.priorCustomers || 0)), sub: formatNumber(m.customers) + ' current' },
-          { label: 'Unit gap', value: formatNumber(Number(m.units || 0) - Number(m.priorUnits || 0)), sub: formatNumber(m.units) + ' current' },
-          { label: 'Worst month', value: monthText, sub: context.monthWorst ? formatCompactSigned(context.monthWorst.gap) : '-' }
-        ]
-      };
-    }
-
-    function buildOverviewTwoLossWatchContent(context) {
-      const topLoss = context.lossCustomers[0];
-      const productLoss = context.lossProducts[0];
-      const deptLoss = context.lossDepartments[0];
-      return {
-        title: 'Loss Watch',
-        subtitle: 'Fast scan of the areas creating the most negative year-over-year movement.',
-        badge: 'Loss Watch',
-        toneValue: context.lossRevenue,
-        lead: context.lossCustomers.length + ' customers are below prior-year YTD, totaling ' + formatCompactSigned(context.lossRevenue) + ' in customer gap.',
-        bullets: [
-          { label: 'Largest customer loss', value: topLoss ? shortenInsightName(topLoss.name) + ' ' + formatCompactSigned(topLoss.gap) : '-', tone: topLoss ? topLoss.gap : 0 },
-          { label: 'Largest product loss', value: productLoss ? shortenInsightName(productLoss.name) + ' ' + formatCompactSigned(productLoss.gap) : '-', tone: productLoss ? productLoss.gap : 0 },
-          { label: 'Largest department loss', value: deptLoss ? shortenInsightName(deptLoss.name) + ' ' + formatCompactSigned(deptLoss.gap) : '-', tone: deptLoss ? deptLoss.gap : 0 },
-          { label: 'Lost customer prior revenue', value: formatCurrency(context.atRiskRevenue), tone: -Math.abs(context.atRiskRevenue) }
-        ],
-        stats: [
-          { label: 'Declining customers', value: formatNumber(context.decliningCustomers.length), sub: 'Still active, but lower' },
-          { label: 'Lost customers', value: formatNumber(context.lostCustomers.length), sub: formatCurrency(context.atRiskRevenue) + ' prior' },
-          { label: 'Product losses', value: formatNumber(context.lossProducts.length), sub: productLoss ? formatCompactSigned(productLoss.gap) + ' largest' : '-' },
-          { label: 'Worst month', value: context.monthWorst ? monthLabels[context.monthWorst.month - 1] : '-', sub: context.monthWorst ? formatCompactSigned(context.monthWorst.gap) : '-' }
-        ]
-      };
-    }
-
-    function buildOverviewTwoGrowthWinsContent(context) {
-      const topWin = context.gainCustomers[0];
-      const productWin = context.gainProducts[0];
-      const deptWin = context.gainDepartments[0];
-      return {
-        title: 'Growth Wins',
-        subtitle: 'What is working right now, even if the total dashboard is down.',
-        badge: 'Growth Wins',
-        toneValue: context.winRevenue,
-        lead: context.gainCustomers.length + ' customers are ahead of prior-year YTD, adding ' + formatCompactSigned(context.winRevenue) + ' in positive customer gap.',
-        bullets: [
-          { label: 'Best customer win', value: topWin ? shortenInsightName(topWin.name) + ' ' + formatCompactSigned(topWin.gap) : '-', tone: topWin ? topWin.gap : 0 },
-          { label: 'Best product win', value: productWin ? shortenInsightName(productWin.name) + ' ' + formatCompactSigned(productWin.gap) : '-', tone: productWin ? productWin.gap : 0 },
-          { label: 'Best department win', value: deptWin ? shortenInsightName(deptWin.name) + ' ' + formatCompactSigned(deptWin.gap) : '-', tone: deptWin ? deptWin.gap : 0 },
-          { label: 'Best month', value: context.monthBest ? monthLabels[context.monthBest.month - 1] + ' ' + formatCompactSigned(context.monthBest.gap) : '-', tone: context.monthBest ? context.monthBest.gap : 0 }
-        ],
-        stats: [
-          { label: 'Growing customers', value: formatNumber(context.growingCustomers.length), sub: 'Existing customers up' },
-          { label: 'New / reactivated', value: formatNumber(context.newCustomers.length), sub: 'Current with no prior' },
-          { label: 'Positive product moves', value: formatNumber(context.gainProducts.length), sub: productWin ? formatCompactSigned(productWin.gap) + ' largest' : '-' },
-          { label: 'Best month', value: context.monthBest ? monthLabels[context.monthBest.month - 1] : '-', sub: context.monthBest ? formatCompactSigned(context.monthBest.gap) : '-' }
-        ]
-      };
-    }
-
-    function insightBulletHtml(number, label, value, tone) {
-      return '<div class="o2InsightBulletV153 ' + insightToneClass(tone) + '" title="' + escapeHtml(label + ': ' + value) + '">'
-        + '<span class="dot">' + number + '</span>'
-        + '<span class="label">' + escapeHtml(label) + '</span>'
-        + '<span class="value">' + escapeHtml(value) + '</span>'
-        + '</div>';
-    }
-
-    function insightStatHtml(label, value, sub) {
-      return '<div class="o2InsightStatV153" title="' + escapeHtml(label + ': ' + value + ' - ' + (sub || '')) + '">'
-        + '<div class="label">' + escapeHtml(label) + '</div>'
-        + '<div class="value">' + escapeHtml(value) + '</div>'
-        + '<div class="sub">' + escapeHtml(sub || '-') + '</div>'
-        + '</div>';
-    }
-
-    function shortenInsightName(name) {
-      const text = String(name || '').trim();
-      if (text.length <= 26) return text || '-';
-      return text.slice(0, 23).trim() + '...';
-    }
-
-
-    function formatCompactSigned(value) {
-      const n = Number(value || 0);
-      const sign = n > 0 ? '+' : n < 0 ? '-' : '';
-      const abs = Math.abs(n);
-      let text;
-      if (abs >= 1000000) text = '$' + (abs / 1000000).toFixed(abs >= 10000000 ? 0 : 1).replace(/\.0$/, '') + 'M';
-      else if (abs >= 1000) text = '$' + (abs / 1000).toFixed(abs >= 10000 ? 0 : 1).replace(/\.0$/, '') + 'K';
-      else text = '$' + Math.round(abs).toLocaleString('en-US');
-      return sign + text;
-    }
-
-
-    /* v6.157 active customer filter + inactive customer badges */
-    function isCustomerIdActiveForFilter(id) {
-      const option = customerOptions.find(item => item.idValue === id);
-      if (option) return option.active !== false;
-      return !facts.some(row => row.customerId === id && row.customerActive === false);
-    }
-
-    function updateCustomerActiveOnlyButton() {
-      const button = document.getElementById('customerActiveOnlyBtn');
-      if (!button) return;
-      button.classList.toggle('active', !!state.customerActiveOnly);
-      button.textContent = state.customerActiveOnly ? 'Active only on' : 'Active only';
-      button.title = state.customerActiveOnly
-        ? 'Only active customers are included in the dashboard. Click to include inactive customers again.'
-        : 'Filter the dashboard to active customers only.';
-    }
-
-    function toggleActiveCustomersOnly(event) {
-      if (event) {
-        if (typeof event.preventDefault === 'function') event.preventDefault();
-        if (typeof event.stopPropagation === 'function') event.stopPropagation();
-        if (typeof event.stopImmediatePropagation === 'function') event.stopImmediatePropagation();
-      }
-      clearMoverTablePinnedSelections();
-      state.customerActiveOnly = !state.customerActiveOnly;
-      state.lastSelectedCustomerId = null;
-      if (typeof syncSelects === 'function') syncSelects();
-      renderAll();
-      if (isDropdownOpen('customerDropdownPanel')) renderCustomerList();
-    }
-
-    function customerActiveOnlySummaryText() {
-      if (!state.customerActiveOnly) return '';
-      const total = customerOptions.length;
-      const active = customerOptions.filter(item => item.active !== false).length;
-      return 'Active only: ' + active + ' of ' + total;
-    }
-
-    function buildEffectiveDropdownSnapshot() {
-      const rows = getEffectiveDropdownRows();
-      const snapshot = { rows: rows, departments: new Set(), products: new Set(), customers: new Set() };
-      rows.forEach(row => addDropdownSnapshotRow(snapshot, row));
-
-      if (state.productFilterMode === 'CUSTOM' && state.selectedProductKeys) {
-        state.selectedProductKeys.forEach(key => {
-          if (!key) return;
-          const relatedRows = facts.filter(row => productKey(row) === key && (!state.customerActiveOnly || row.customerActive !== false));
-          if (relatedRows.length) {
-            snapshot.products.add(key);
-            relatedRows.forEach(row => addDropdownSnapshotRow(snapshot, row));
-          }
-        });
+        bar.innerHTML = '<div class="v6170PillSection"><span class="v6170PillLabel">Active view</span><div class="v6170PillRow">' + hard.join('') + '</div></div>'
+          + '<div class="v6170PillSection"><span class="v6170PillLabel">Highlighted / exploring</span><div class="v6170PillRow">' + highlighted.join('') + '</div></div>';
       }
 
-      if (state.customerFilterMode === 'CUSTOM' && state.selectedCustomerIds) {
-        state.selectedCustomerIds.forEach(id => {
-          if (!id) return;
-          if (state.customerActiveOnly && !isCustomerIdActiveForFilter(id)) return;
-          snapshot.customers.add(id);
-          facts.forEach(row => {
-            if (row.customerId === id && (!state.customerActiveOnly || row.customerActive !== false)) addDropdownSnapshotRow(snapshot, row);
-          });
-        });
-      }
-
-      return snapshot;
-    }
-
-    function renderCustomerList() {
-      const list = document.getElementById('customerList');
-      if (!list) return;
-
-      updateCustomerActiveOnlyButton();
-      const snapshot = buildEffectiveDropdownSnapshot();
-      const visibleRows = sortByCheckedThenLabel(
-        getVisibleCustomerOptions(),
-        item => snapshot.customers.has(item.idValue),
-        item => item.label
-      );
-      const checkedVisibleRows = visibleRows.filter(item => snapshot.customers.has(item.idValue));
-      const uncheckedVisibleRows = visibleRows.filter(item => !snapshot.customers.has(item.idValue));
-      const shownCount = state.collapseSelectedCustomers ? uncheckedVisibleRows.length : visibleRows.length;
-      const countEl = document.getElementById('customerVisibleCount');
-      if (countEl) {
-        const summary = dropdownCountText(snapshot.customers.size, customerOptions.length, shownCount);
-        const activeText = customerActiveOnlySummaryText();
-        countEl.textContent = activeText ? summary + ' | ' + activeText : summary;
-      }
-      setCollapseButton('customerCollapseBtn', state.collapseSelectedCustomers);
-
-      if (!visibleRows.length) {
-        list.innerHTML = '<div class="emptyFilterRow">No customers match that search.</div>';
-        updateDropdownLabels(snapshot);
-        return;
-      }
-
-      const rowHtml = item => {
-        const checked = snapshot.customers.has(item.idValue);
-        const inactive = item.active === false;
-        return `
-        <div class="multiRow ${checked ? 'active' : ''} ${inactive ? 'inactiveCustomerOption' : ''}" onclick="toggleCustomer('${escapeJs(item.idValue)}', event)">
-          <div class="labelSide">
-            <input type="checkbox" tabindex="-1" onclick="event.preventDefault()" ${checked ? 'checked' : ''}>
-            <span title="${escapeHtml(item.label + (inactive ? ' - Inactive' : ''))}"><span class="customerNameText">${escapeHtml(item.label)}</span>${inactive ? ' <span class="inactiveBadge">Inactive</span>' : ''}</span>
-          </div>
-        </div>`;
-      };
-
-      const parts = [];
-      parts.push(selectedCollapseHeader('customers', state.collapseSelectedCustomers, checkedVisibleRows.length, state.customerActiveOnly ? 'Selected active customers' : 'Selected'));
-      if (!state.collapseSelectedCustomers) parts.push(...checkedVisibleRows.map(rowHtml));
-      parts.push(...uncheckedVisibleRows.map(rowHtml));
-      list.innerHTML = parts.join('') || '<div class="emptyFilterRow">No customers match that search.</div>';
-      updateDropdownLabels(snapshot);
-    }
-
-    function includeCustomerForDropdownClick(id) {
-      if (!id) return;
-      if (!state.selectedCustomerIds) state.selectedCustomerIds = new Set();
-      if (!state.excludedCustomerIds) state.excludedCustomerIds = new Set();
-
-      // If an inactive customer is clicked while Active only is on, turn Active only off
-      // so the click visibly sticks instead of being blocked by the active-customer filter.
-      if (state.customerActiveOnly && !isCustomerIdActiveForFilter(id)) {
-        state.customerActiveOnly = false;
-      }
-
-      if (state.customerFilterMode === 'CUSTOM') {
-        state.selectedCustomerIds.add(id);
-      } else {
-        state.excludedCustomerIds.delete(id);
-      }
-
-      const customerRows = facts.filter(row => row && row.customerId === id);
-      customerRows.forEach(row => {
-        includeDepartmentForDropdownClick(row.productsDepartment);
-        const key = productKey(row);
-        if (state.productFilterMode === 'CUSTOM') {
-          if (!state.selectedProductKeys) state.selectedProductKeys = new Set();
-          state.selectedProductKeys.add(key);
-        } else {
-          if (!state.excludedProductKeys) state.excludedProductKeys = new Set();
-          state.excludedProductKeys.delete(key);
-        }
-      });
-
-      if (typeof restoreLinkedFiltersForCustomer === 'function') restoreLinkedFiltersForCustomer(id);
-      state.lastSelectedCustomerId = id;
-      state.tableSelectedCustomerIds = new Set(state.selectedCustomerIds || []);
-    }
-
-    function renderOverviewTwoDriverTable() {
-      ['customers','products','buckets','departments'].forEach(tab => setActive('o2Tab' + titleCase(tab), state.overviewTwoTab === tab));
-      ['losses','gains','top','units'].forEach(sort => setActive('o2Sort' + titleCase(sort), state.overviewTwoSort === sort));
-
-      const rows = getOverviewTwoDriverRows();
-      const pinned = state.overviewTwoPinnedKey;
-      rows.sort((a, b) => {
-        if (pinned && a.key === pinned && b.key !== pinned) return -1;
-        if (pinned && b.key === pinned && a.key !== pinned) return 1;
-        if (state.overviewTwoSort === 'gains') return b.gap - a.gap;
-        if (state.overviewTwoSort === 'top') return b.current - a.current;
-        if (state.overviewTwoSort === 'units') return Math.abs(b.unitGap) - Math.abs(a.unitGap);
-        return a.gap - b.gap;
-      });
-
-      renderOverviewTwoFocus(rows);
-
-      const table = document.getElementById('o2DriverTable');
-      if (!table) return;
-      const nameHeader = { customers: 'Customer', products: 'Product', buckets: 'Category', departments: 'Department' }[state.overviewTwoTab] || 'Name';
-      const shown = rows.slice(0, 60);
-
-      table.innerHTML = '<thead><tr>'
-        + '<th>' + nameHeader + '</th>'
-        + '<th class="num">Current</th>'
-        + '<th class="num">Prior</th>'
-        + '<th class="num">Gap $</th>'
-        + '<th class="num">Gap %</th>'
-        + '<th class="num">Units</th>'
-        + '<th class="num">Unit Gap</th>'
-        + '<th class="o2ActionCol">Action</th>'
-        + '</tr></thead><tbody>'
-        + shown.map(row => {
-          const cls = row.gap < 0 ? 'o2Negative' : row.gap > 0 ? 'o2Positive' : 'o2Neutral';
-          const isInactiveCustomer = state.overviewTwoTab === 'customers' && row.customerActive === false;
-          const nameHtml = isInactiveCustomer
-            ? '<span class="customerNameText">' + escapeHtml(row.name) + '</span><span class="o2InactiveBadge">Inactive</span>'
-            : escapeHtml(row.name);
-          return '<tr class="' + (pinned === row.key ? 'pinned' : '') + '" onclick="pinOverviewTwoRow(\'' + escapeJs(row.key) + '\')">'
-            + '<td class="o2NameCell ' + (isInactiveCustomer ? 'customerNameWithBadge' : '') + '" title="' + escapeHtml(row.name + (isInactiveCustomer ? ' - Inactive' : '')) + '">' + nameHtml + '</td>'
-            + '<td class="num">' + formatCompact(row.current) + '</td>'
-            + '<td class="num">' + formatCompact(row.prior) + '</td>'
-            + '<td class="num ' + cls + '">' + formatCompact(row.gap) + '</td>'
-            + '<td class="num ' + cls + '">' + formatPercent(row.gapPct) + '</td>'
-            + '<td class="num">' + formatNumber(row.units) + '</td>'
-            + '<td class="num">' + formatNumber(row.unitGap) + '</td>'
-            + '<td class="o2ActionCol"><button class="o2FocusBtn" type="button" onclick="focusOverviewTwoRow(event, \'" + escapeJs(state.overviewTwoTab) + "\', \'" + escapeJs(row.key) + "\')">Focus</button></td>'
-            + '</tr>';
-        }).join('') + '</tbody>';
-    }
-
-    function getOverviewTwoDriverRows() {
-      const rows = getFilteredFacts();
-      const { currentYear, priorYear } = getCurrentPriorYears();
-      const tab = state.overviewTwoTab || 'customers';
-
-      let keyFn = row => row.customerId;
-      let nameFn = row => row.customerName;
-      if (tab === 'products') {
-        keyFn = row => productKey(row);
-        nameFn = row => row.productsDescription;
-      } else if (tab === 'buckets') {
-        keyFn = row => row.productsGroup || '(Blank bucket)';
-        nameFn = row => row.productsGroup || '(Blank bucket)';
-      } else if (tab === 'departments') {
-        keyFn = row => row.productsDepartment || '(Blank department)';
-        nameFn = row => row.productsDepartment || '(Blank department)';
-      }
-
-      return groupBy(rows, keyFn, row => ({
-        key: keyFn(row),
-        name: nameFn(row),
-        customerActive: tab === 'customers' ? row.customerActive !== false : true,
-        current: 0,
-        prior: 0,
-        units: 0,
-        priorUnits: 0
-      }), (acc, row) => {
-        if (tab === 'customers' && row.customerActive === false) acc.customerActive = false;
-        if (row.year === currentYear) { acc.current += row.netRevenue; acc.units += row.units; }
-        if (row.year === priorYear) { acc.prior += row.netRevenue; acc.priorUnits += row.units; }
-      }).map(row => ({
-        ...row,
-        gap: row.current - row.prior,
-        gapPct: row.prior ? (row.current - row.prior) / Math.abs(row.prior) : null,
-        unitGap: row.units - row.priorUnits
-      })).filter(row => Math.abs(row.current) + Math.abs(row.prior) + Math.abs(row.units) > 0);
-    }
-
-    function renderOverviewTwoFocus(rows) {
-      const panel = document.getElementById('o2DriverFocus');
-      if (!panel) return;
-      const row = rows.find(item => item.key === state.overviewTwoPinnedKey);
-      if (!row) {
-        panel.innerHTML = '<div class="o2FocusEmpty">Click a row to pin it. Use <b>Focus</b> to drill the dashboard into that customer, product, category, or department.</div>';
-        return;
-      }
-      const label = { customers: 'Customer', products: 'Product', buckets: 'Category', departments: 'Department' }[state.overviewTwoTab] || 'Driver';
-      const cls = row.gap < 0 ? 'o2Negative' : row.gap > 0 ? 'o2Positive' : 'o2Neutral';
-      const inactiveBadge = state.overviewTwoTab === 'customers' && row.customerActive === false ? ' <span class="o2InactiveBadge">Inactive</span>' : '';
-      panel.innerHTML = '<div class="o2FocusCard">'
-        + '<div class="o2FocusLabel">' + escapeHtml(label) + '</div>'
-        + '<div class="o2FocusName" title="' + escapeHtml(row.name + (inactiveBadge ? ' - Inactive' : '')) + '">' + escapeHtml(row.name) + inactiveBadge + '</div>'
-        + '<div class="o2FocusStats">'
-        + '<div><span>Current</span><b>' + formatCompact(row.current) + '</b></div>'
-        + '<div><span>Prior</span><b>' + formatCompact(row.prior) + '</b></div>'
-        + '<div><span>Gap</span><b class="' + cls + '">' + formatCompact(row.gap) + '</b></div>'
-        + '<div><span>Units</span><b>' + formatNumber(row.units) + '</b></div>'
-        + '</div></div>';
-    }
-
-
-
-    /* v6.165 visible interaction controls
-       Built from clean v6.156. This patch intentionally makes the requested tools visible:
-       - always-visible interaction QA pill so the installed version can be confirmed
-       - active filter pills for month brush, customer row focus, and product/dimension row focus
-       - click selected month/customer/product again to unselect
-       - ctrl/cmd multi-select for monthly chart clicks and table rows
-       - drag across monthly charts to brush a month range
-       - customer/product dropdown clicks outside the current year add the related year so the click sticks
-       - customer/product row clicks highlight + pin only; they do not filter either mover table
-       - normal month click restores the original month drilldown/daily breakdown
-       - ctrl/cmd month click and drag remain multi-month brush behavior
-       - product table modes: Product, Department, Group, Category, with slim rows */
-    (function installVisibleInteractionControlsV6168() {
-      const VERSION = 'v6.169 selectionUpdatesChartsTablesStayFull';
-      const monthBrush = { active: false, canvas: null, pointerId: null, startX: 0, lastX: 0, startMonth: null, moved: false, additive: false };
-      let suppressMonthClickUntil = 0;
-      let scheduledRenderV6168 = null;
-      const originalHandleData = typeof handleData === 'function' ? handleData : null;
-      const originalRenderAll = typeof renderAll === 'function' ? renderAll : null;
-      const originalGetFilteredFacts = typeof getFilteredFacts === 'function' ? getFilteredFacts : null;
-      const originalDrawChart = typeof drawChart === 'function' ? drawChart : null;
-      const originalClearFilter = typeof clearFilter === 'function' ? clearFilter : null;
-      const originalAddCustomerContext = typeof addRelatedContextForCustomerSelection === 'function' ? addRelatedContextForCustomerSelection : null;
-      const originalAddProductContext = typeof addRelatedContextForProductSelection === 'function' ? addRelatedContextForProductSelection : null;
-
-
-      function safeRenderAllV6168() {
-        // Do not destroy/recreate Chart.js canvases inside the same pointer/click stack.
-        // Apps Script can surface that as a generic line 0 "Script error" during drag brush.
-        if (scheduledRenderV6168) window.clearTimeout(scheduledRenderV6168);
-        scheduledRenderV6168 = window.setTimeout(() => {
-          scheduledRenderV6168 = null;
-          try {
-            renderAll();
-          } catch (err) {
-            console.error('v6.169 deferred render failed', err);
-            if (typeof showError === 'function') {
-              showError('Dashboard render failed: ' + (err && err.message ? err.message : String(err)));
-            } else {
-              throw err;
-            }
-          }
-        }, 0);
-      }
-
-      function resetMonthBrushV6168(canvas) {
-        try { hideBrushOverlayV6165(canvas || monthBrush.canvas); } catch (err) {}
-        monthBrush.active = false;
-        monthBrush.canvas = null;
-        monthBrush.pointerId = null;
-        monthBrush.startX = 0;
-        monthBrush.lastX = 0;
-        monthBrush.startMonth = null;
-        monthBrush.moved = false;
-        monthBrush.additive = false;
-      }
-
-      function handleMonthBrushErrorV6168(err) {
-        console.error('v6.169 month brush handler failed', err);
-        resetMonthBrushV6168();
-      }
-
-      function ensureV6165State() {
-        if (!state.selectedMonths) state.selectedMonths = new Set();
-        if (!state.v6165CustomerFocus) state.v6165CustomerFocus = new Set();
-        if (!state.v6165ProductFocus) state.v6165ProductFocus = new Set();
-        if (!state.v6165CustomerClickOrder) state.v6165CustomerClickOrder = [];
-        if (!state.v6165ProductClickOrder) state.v6165ProductClickOrder = [];
-        if (!state.v6165ProductMode) state.v6165ProductMode = 'product';
-        if (!state.v6165ProductFocusMode) state.v6165ProductFocusMode = state.v6165ProductMode;
-      }
-
-      function setDebugVersionV6165() {
-        const banner = document.getElementById('singleShellDebugBanner');
-        if (!banner) return;
-        if (banner.innerHTML.indexOf(VERSION) >= 0) return;
-        if (/DEBUG v6\.\d+[^<]*/.test(banner.innerHTML)) {
-          banner.innerHTML = banner.innerHTML.replace(/DEBUG v6\.\d+[^<]*/, 'DEBUG ' + VERSION + ' ');
-        } else {
-          banner.insertAdjacentHTML('beforeend', ' · DEBUG ' + VERSION);
-        }
-      }
-
-      function nativeEventV6165(event) {
-        return event && event.native ? event.native : event;
-      }
-
-      function additiveV6165(event) {
-        const e = nativeEventV6165(event);
-        return !!(e && (e.ctrlKey || e.metaKey));
-      }
-
-      function monthNameV6165(month) {
-        return monthLabels[Number(month) - 1] || String(month);
-      }
-
-      function sortedMonthsV6165() {
-        ensureV6165State();
-        return [...state.selectedMonths].map(Number).filter(Boolean).sort((a, b) => a - b);
-      }
-
-      function compressMonthsV6165(months) {
-        const values = [...months].map(Number).filter(Boolean).sort((a, b) => a - b);
-        if (!values.length) return '';
-        const chunks = [];
-        let start = values[0];
-        let prev = values[0];
-        for (let i = 1; i <= values.length; i++) {
-          const value = values[i];
-          if (value === prev + 1) {
-            prev = value;
-            continue;
-          }
-          chunks.push(start === prev ? monthNameV6165(start) : monthNameV6165(start) + '-' + monthNameV6165(prev));
-          start = value;
-          prev = value;
-        }
-        return chunks.join(', ');
-      }
-
-      function productModeConfigV6165() {
-        ensureV6165State();
-        const mode = state.v6165ProductMode || 'product';
-        if (mode === 'department') {
-          return { mode, label: 'Department', key: row => row.productsDepartment || '(Blank department)', name: row => row.productsDepartment || '(Blank department)', focusKind: 'department' };
-        }
-        if (mode === 'group') {
-          return { mode, label: 'Group', key: row => row.productsGroup || '(Blank group)', name: row => row.productsGroup || '(Blank group)', focusKind: 'group' };
-        }
-        if (mode === 'category') {
-          return { mode, label: 'Category', key: row => row.productsCategory || '(Blank category)', name: row => row.productsCategory || '(Blank category)', focusKind: 'category' };
-        }
-        return { mode: 'product', label: 'Product', key: row => productKey(row), name: row => row.productsDescription || productKey(row), focusKind: 'product' };
-      }
-
-      function focusProductRowKeyV6165(row) {
-        return productModeConfigV6165().key(row);
-      }
-
-      function factMatchesProductFocusV6165(row) {
-        ensureV6165State();
-        if (!state.v6165ProductFocus || !state.v6165ProductFocus.size) return true;
-        const mode = state.v6165ProductFocusMode || state.v6165ProductMode || 'product';
-        if (mode === 'department') return state.v6165ProductFocus.has(row.productsDepartment || '(Blank department)');
-        if (mode === 'group') return state.v6165ProductFocus.has(row.productsGroup || '(Blank group)');
-        if (mode === 'category') return state.v6165ProductFocus.has(row.productsCategory || '(Blank category)');
-        return state.v6165ProductFocus.has(productKey(row));
-      }
-
-      function selectedFirstV6165(rows, keyFn, selectedSet, clickOrder) {
-        if (!selectedSet || !selectedSet.size || !Array.isArray(rows)) return rows;
-        const orderMap = new Map((clickOrder || []).map((key, index) => [key, index]));
-        rows.forEach((row, index) => { row.__v6165OriginalIndex = index; });
-        rows.sort((a, b) => {
-          const ak = keyFn(a);
-          const bk = keyFn(b);
-          const as = selectedSet.has(ak);
-          const bs = selectedSet.has(bk);
-          if (as && !bs) return -1;
-          if (!as && bs) return 1;
-          if (as && bs) return (orderMap.get(ak) ?? 9999) - (orderMap.get(bk) ?? 9999);
-          return (a.__v6165OriginalIndex || 0) - (b.__v6165OriginalIndex || 0);
-        });
-        rows.forEach(row => { delete row.__v6165OriginalIndex; });
-        return rows;
-      }
-
-      function rememberClickOrderV6165(listName, key) {
-        ensureV6165State();
-        const arr = state[listName] || [];
-        state[listName] = [key].concat(arr.filter(item => item !== key));
-      }
-
-      function syncLegacyTableSelectionV6165() {
-        ensureV6165State();
-        state.tableSelectedCustomerIds = new Set(state.v6165CustomerFocus || []);
-        state.tableSelectedProductKeys = new Set(state.v6165ProductFocus || []);
-      }
-
-      function setMonthSelectionV6165(months, modeHint) {
-        const values = [...months].map(Number).filter(Boolean);
-        state.selectedMonths = new Set(values);
-        // v6.167 correction:
-        // A normal single month click must keep the original drilldown behavior
-        // so the revenue trend opens that month as a daily/month breakdown.
-        // Only ctrl/cmd multi-select and drag/brush should use multi mode.
-        if (!values.length) {
-          state.monthSelectionMode = 'none';
-          state.selectedMonth = null;
-        } else if (modeHint === 'drill' && values.length === 1) {
-          state.monthSelectionMode = 'drill';
-          state.selectedMonth = values[0];
-        } else {
-          state.monthSelectionMode = 'multi';
-          state.selectedMonth = values.length === 1 ? values[0] : null;
-        }
-        state.lastSelectedMonth = values.length ? values[values.length - 1] : null;
-        state.periodMode = values.length ? 'MTD' : 'YTD';
-        if (typeof syncSelectedMonthLegacy === 'function') syncSelectedMonthLegacy();
-      }
-
-      applyMonthSelection = function applyMonthSelectionV6165(month, additive, range) {
-        if (Date.now() < suppressMonthClickUntil) return;
-        ensureV6165State();
-        const value = Number(month);
-        if (!value) return;
-        const selected = new Set(state.selectedMonths || []);
-        const isAdd = !!additive;
-        const isRange = !!range;
-        let modeHint = 'drill';
-
-        if (isRange && state.lastSelectedMonth) {
-          const start = Math.min(Number(state.lastSelectedMonth), value);
-          const end = Math.max(Number(state.lastSelectedMonth), value);
-          const rangeValues = [];
-          for (let m = start; m <= end; m++) rangeValues.push(m);
-          if (isAdd) rangeValues.forEach(m => selected.add(m));
-          else {
-            selected.clear();
-            rangeValues.forEach(m => selected.add(m));
-          }
-          modeHint = 'multi';
-        } else if (isAdd) {
-          if (selected.has(value)) selected.delete(value);
-          else selected.add(value);
-          modeHint = 'multi';
-        } else if (selected.has(value) && selected.size === 1) {
-          // Click the already-drilled month again to clear it.
-          selected.delete(value);
-          modeHint = 'none';
-        } else {
-          // Normal click on a month restores the existing month breakdown/drilldown.
-          selected.clear();
-          selected.add(value);
-          modeHint = 'drill';
-        }
-        setMonthSelectionV6165(selected, modeHint);
-        safeRenderAllV6168();
-      };
-
-      if (originalGetFilteredFacts) {
-        getFilteredFacts = function getFilteredFactsV6169(ignore = {}) {
-          // v6.169 correction:
-          // Interaction selections should update KPIs and sales charts, but table row lists
-          // must remain visible/pinned unless a top dropdown hard filter removes them.
-          // Callers can pass v6165CustomerFocus/v6165ProductFocus to keep table lists full.
-          ensureV6165State();
-          const opts = ignore || {};
-          const rows = originalGetFilteredFacts(opts);
-          return rows.filter(row => {
-            if (!opts.v6165CustomerFocus && state.v6165CustomerFocus && state.v6165CustomerFocus.size && !state.v6165CustomerFocus.has(row.customerId)) return false;
-            if (!opts.v6165ProductFocus && state.v6165ProductFocus && state.v6165ProductFocus.size && !factMatchesProductFocusV6165(row)) return false;
-            return true;
-          });
-        };
-      }
-
-      function clearCustomerFocusV6165() {
-        ensureV6165State();
-        state.v6165CustomerFocus.clear();
-        state.v6165CustomerClickOrder = [];
-        syncLegacyTableSelectionV6165();
-      }
-
-      function clearProductFocusV6165() {
-        ensureV6165State();
-        state.v6165ProductFocus.clear();
-        state.v6165ProductClickOrder = [];
-        syncLegacyTableSelectionV6165();
-      }
-
-      setCustomer = function setCustomerV6165(value, event) {
-        ensureV6165State();
-        const id = value || '';
-        if (!id) {
-          clearCustomerFocusV6165();
-          renderAll();
-          return;
-        }
-        const selected = state.v6165CustomerFocus;
-        if (selected.has(id)) {
-          // Clicking an already highlighted row removes just that highlight.
-          selected.delete(id);
-          state.v6165CustomerClickOrder = (state.v6165CustomerClickOrder || []).filter(item => item !== id);
-        } else if (additiveV6165(event)) {
-          selected.add(id);
-          rememberClickOrderV6165('v6165CustomerClickOrder', id);
-        } else {
-          // Normal click on a new row replaces the highlight group, but does not filter the table.
-          selected.clear();
-          selected.add(id);
-          state.v6165CustomerClickOrder = [id];
-        }
-        syncLegacyTableSelectionV6165();
-        renderAll();
-      };
-
-      setProduct = function setProductV6165(value, event) {
-        ensureV6165State();
-        const key = value || '';
-        if (!key) {
-          clearProductFocusV6165();
-          renderAll();
-          return;
-        }
-        if (state.v6165ProductFocusMode !== state.v6165ProductMode) {
-          state.v6165ProductFocus.clear();
-          state.v6165ProductClickOrder = [];
-          state.v6165ProductFocusMode = state.v6165ProductMode;
-        }
-        const selected = state.v6165ProductFocus;
-        if (selected.has(key)) {
-          // Clicking an already highlighted row removes just that highlight.
-          selected.delete(key);
-          state.v6165ProductClickOrder = (state.v6165ProductClickOrder || []).filter(item => item !== key);
-        } else if (additiveV6165(event)) {
-          selected.add(key);
-          rememberClickOrderV6165('v6165ProductClickOrder', key);
-        } else {
-          // Normal click on a new row replaces the highlight group, but does not filter the table.
-          selected.clear();
-          selected.add(key);
-          state.v6165ProductClickOrder = [key];
-        }
-        syncLegacyTableSelectionV6165();
-        renderAll();
-      };
-
-      window.setProductModeV6165 = function setProductModeV6165(mode) {
-        ensureV6165State();
-        const allowed = new Set(['product', 'department', 'group', 'category']);
-        state.v6165ProductMode = allowed.has(mode) ? mode : 'product';
-        state.v6165ProductFocus.clear();
-        state.v6165ProductClickOrder = [];
-        state.v6165ProductFocusMode = state.v6165ProductMode;
-        syncLegacyTableSelectionV6165();
-        renderAll();
-      };
-
-      function installProductModeButtonsV6165() {
-        const area = document.querySelector('#overviewOne .areaProductTable .cardActions');
-        if (!area || area.querySelector('.productModeButtonsV6165')) return;
-        const wrap = document.createElement('div');
-        wrap.className = 'tableToggles productModeButtonsV6165';
-        wrap.innerHTML = [
-          ['product', 'Product'], ['department', 'Dept'], ['group', 'Group'], ['category', 'Category']
-        ].map(pair => '<button type="button" class="tinyBtn" data-product-mode-v6165="' + pair[0] + '" onclick="setProductModeV6165(\'' + pair[0] + '\')">' + pair[1] + '</button>').join('');
-        area.insertBefore(wrap, area.firstChild);
-      }
-
-      function updateProductModeButtonsV6165() {
-        document.querySelectorAll('[data-product-mode-v6165]').forEach(button => {
-          button.classList.toggle('active', button.getAttribute('data-product-mode-v6165') === (state.v6165ProductMode || 'product'));
-        });
-        const title = document.querySelector('#overviewOne .areaProductTable .chartTitle');
-        if (title) title.textContent = productModeConfigV6165().label + ' Movers';
-        const firstHeader = document.querySelector('#overviewOne .areaProductTable thead th:first-child');
-        if (firstHeader) firstHeader.childNodes[0].nodeValue = productModeConfigV6165().label;
-      }
-
-      renderCustomerTable = function renderCustomerTableV6165() {
-        ensureV6165State();
-        const rows = groupBy(getFilteredFacts({ v6165CustomerFocus: true, v6165ProductFocus: true }), row => row.customerId, row => ({
-          customerId: row.customerId,
-          customerName: row.customerName,
-          customerActive: true,
-          currentRevenue: 0,
-          priorRevenue: 0,
-          currentUnits: 0,
-          priorUnits: 0
-        }), (acc, row) => {
-          if (row.customerActive === false) acc.customerActive = false;
-          if (row.year === (payload.config.currentYear || 2026)) { acc.currentRevenue += row.netRevenue; acc.currentUnits += row.units; }
-          if (row.year === (payload.config.priorYear || 2025)) { acc.priorRevenue += row.netRevenue; acc.priorUnits += row.units; }
-        }).map(row => ({ ...row, gap: row.currentRevenue - row.priorRevenue, unitGap: row.currentUnits - row.priorUnits }));
-        updateMoverMetricHeaders('customer');
-        sortCustomerRows(rows);
-        selectedFirstV6165(rows, row => row.customerId, state.v6165CustomerFocus, state.v6165CustomerClickOrder);
-        const visibleRows = rows.slice(0, 500);
-        state.lastCustomerTableIds = visibleRows.map(row => row.customerId);
-        const unitsMode = state.customerMetric === 'units';
-        const tbody = document.getElementById('customerTable');
-        if (!tbody) return;
-        tbody.innerHTML = visibleRows.map(row => {
-          const priorValue = unitsMode ? row.priorUnits : row.priorRevenue;
-          const currentValue = unitsMode ? row.currentUnits : row.currentRevenue;
-          const gapValue = unitsMode ? row.unitGap : row.gap;
-          const active = state.v6165CustomerFocus && state.v6165CustomerFocus.has(row.customerId);
-          return '<tr class="clickable ' + (active ? 'active v6165PinnedRow' : '') + '" onclick="setCustomer(\'' + escapeJs(row.customerId) + '\', event)">'
-            + '<td>' + escapeHtml(row.customerId) + '</td>'
-            + '<td class="customerNameCell"><span class="customerNameText">' + escapeHtml(row.customerName) + '</span>' + (row.customerActive === false ? ' <span class="inactiveBadge">Inactive</span>' : '') + '</td>'
-            + '<td>' + formatMoverValue(priorValue, unitsMode) + '</td>'
-            + '<td>' + formatMoverValue(currentValue, unitsMode) + '</td>'
-            + '<td class="' + (gapValue < 0 ? 'negative' : 'positive') + '">' + formatMoverValue(gapValue, unitsMode) + '</td>'
-            + '</tr>';
-        }).join('');
-      };
-
-      renderProductTable = function renderProductTableV6165() {
-        ensureV6165State();
-        installProductModeButtonsV6165();
-        updateProductModeButtonsV6165();
-        const modeConfig = productModeConfigV6165();
-        const rows = groupBy(getFilteredFacts({ v6165CustomerFocus: true, v6165ProductFocus: true }), row => modeConfig.key(row), row => ({
-          key: modeConfig.key(row),
-          name: modeConfig.name(row),
-          productsDescription: modeConfig.name(row),
-          productsDepartment: row.productsDepartment,
-          productsGroup: row.productsGroup,
-          productsCategory: row.productsCategory,
-          currentRevenue: 0,
-          priorRevenue: 0,
-          currentUnits: 0,
-          priorUnits: 0
-        }), (acc, row) => {
-          if (row.year === (payload.config.currentYear || 2026)) { acc.currentRevenue += row.netRevenue; acc.currentUnits += row.units; }
-          if (row.year === (payload.config.priorYear || 2025)) { acc.priorRevenue += row.netRevenue; acc.priorUnits += row.units; }
-        }).map(row => ({ ...row, gap: row.currentRevenue - row.priorRevenue, unitGap: row.currentUnits - row.priorUnits }));
-        updateMoverMetricHeaders('product');
-        sortProductRows(rows);
-        selectedFirstV6165(rows, row => row.key, state.v6165ProductFocus, state.v6165ProductClickOrder);
-        const visibleRows = rows.slice(0, 1000);
-        state.lastProductTableKeys = visibleRows.map(row => row.key);
-        const unitsMode = state.productMetric === 'units';
-        const tbody = document.getElementById('productTable');
-        if (!tbody) return;
-        tbody.innerHTML = visibleRows.map(row => {
-          const priorValue = unitsMode ? row.priorUnits : row.priorRevenue;
-          const currentValue = unitsMode ? row.currentUnits : row.currentRevenue;
-          const gapValue = unitsMode ? row.unitGap : row.gap;
-          const active = state.v6165ProductFocus && state.v6165ProductFocus.has(row.key) && state.v6165ProductFocusMode === state.v6165ProductMode;
-          const title = [row.productsDepartment, row.productsGroup, row.productsCategory].filter(Boolean).join(' | ');
-          return '<tr class="clickable ' + (active ? 'active v6165PinnedRow' : '') + '" onclick="setProduct(\'' + escapeJs(row.key) + '\', event)" title="' + escapeHtml(title) + '">'
-            + '<td>' + escapeHtml(row.name) + '</td>'
-            + '<td>' + formatMoverValue(priorValue, unitsMode) + '</td>'
-            + '<td>' + formatMoverValue(currentValue, unitsMode) + '</td>'
-            + '<td class="' + (gapValue < 0 ? 'negative' : 'positive') + '">' + formatMoverValue(gapValue, unitsMode) + '</td>'
-            + '</tr>';
-        }).join('');
-      };
-
-      function addYearsFromRowsV6165(rows) {
-        if (!state.years) state.years = new Set();
-        (rows || []).forEach(row => {
-          const y = Number(row && row.year);
-          if (y) state.years.add(y);
-        });
-      }
-
-      addRelatedContextForCustomerSelection = function addRelatedContextForCustomerSelectionV6165(id) {
-        if (originalAddCustomerContext) originalAddCustomerContext(id);
-        addYearsFromRowsV6165(facts.filter(row => row.customerId === id));
-      };
-
-      addRelatedContextForProductSelection = function addRelatedContextForProductSelectionV6165(key) {
-        if (originalAddProductContext) originalAddProductContext(key);
-        addYearsFromRowsV6165(facts.filter(row => productKey(row) === key));
-      };
-
-      function monthFromCanvasPointerV6165(canvas, event) {
-        const chart = charts && charts[canvas.id];
-        if (!chart || !chart.data || !Array.isArray(chart.data.labels) || !chart.scales || !chart.scales.x) return null;
-        const labels = chart.data.labels.map(label => String(label));
-        if (!labels.some(label => monthLabels.indexOf(label) >= 0)) return null;
-        const rect = canvas.getBoundingClientRect();
-        const x = event.clientX - rect.left;
-        const scale = chart.scales.x;
-        let index = Number(scale.getValueForPixel ? scale.getValueForPixel(x) : NaN);
-        if (!Number.isFinite(index)) {
-          let best = 0;
-          let bestDist = Infinity;
-          labels.forEach((label, i) => {
-            const px = scale.getPixelForValue ? scale.getPixelForValue(i) : 0;
-            const dist = Math.abs(px - x);
-            if (dist < bestDist) { bestDist = dist; best = i; }
-          });
-          index = best;
-        }
-        index = Math.max(0, Math.min(labels.length - 1, Math.round(index)));
-        const month = monthLabels.indexOf(labels[index]) + 1;
-        return month > 0 ? month : null;
-      }
-
-      function getBrushOverlayV6165(canvas) {
-        const box = canvas.closest('.chartBox') || canvas.parentElement;
-        if (!box) return null;
-        let overlay = box.querySelector('.monthBrushOverlayV6165');
-        if (!overlay) {
-          overlay = document.createElement('div');
-          overlay.className = 'monthBrushOverlayV6165';
-          box.appendChild(overlay);
-        }
-        return overlay;
-      }
-
-      function updateBrushOverlayV6165(canvas, startX, endX) {
-        const overlay = getBrushOverlayV6165(canvas);
-        if (!overlay) return;
-        const left = Math.max(0, Math.min(startX, endX));
-        const width = Math.abs(endX - startX);
-        overlay.style.display = width > 4 ? 'block' : 'none';
-        overlay.style.left = left + 'px';
-        overlay.style.width = width + 'px';
-      }
-
-      function hideBrushOverlayV6165(canvas) {
-        const box = canvas ? (canvas.closest('.chartBox') || canvas.parentElement) : null;
-        const overlay = box ? box.querySelector('.monthBrushOverlayV6165') : null;
-        if (overlay) overlay.style.display = 'none';
-      }
-
-      function installMonthBrushOnCanvasV6165(canvas) {
-        if (!canvas || canvas.__monthBrushV6165) return;
-        canvas.__monthBrushV6165 = true;
-
-        canvas.addEventListener('pointerdown', event => {
-          try {
-            if (event.button !== 0) return;
-            const month = monthFromCanvasPointerV6165(canvas, event);
-            if (!month) return;
-            const rect = canvas.getBoundingClientRect();
-            ensureV6165State();
-            monthBrush.active = true;
-            monthBrush.canvas = canvas;
-            monthBrush.pointerId = event.pointerId;
-            monthBrush.startX = event.clientX - rect.left;
-            monthBrush.lastX = monthBrush.startX;
-            monthBrush.startMonth = month;
-            monthBrush.moved = false;
-            monthBrush.additive = additiveV6165(event);
-            // Do not use setPointerCapture here. In Apps Script iframes it can
-            // create a generic cross-origin "Script error" during Chart.js drag.
-          } catch (err) {
-            handleMonthBrushErrorV6168(err);
-          }
-        });
-
-        canvas.addEventListener('pointermove', event => {
-          try {
-            if (!monthBrush.active || monthBrush.canvas !== canvas) return;
-            const rect = canvas.getBoundingClientRect();
-            monthBrush.lastX = event.clientX - rect.left;
-            if (Math.abs(monthBrush.lastX - monthBrush.startX) > 7) {
-              monthBrush.moved = true;
-              if (event.cancelable) event.preventDefault();
-            }
-            updateBrushOverlayV6165(canvas, monthBrush.startX, monthBrush.lastX);
-          } catch (err) {
-            handleMonthBrushErrorV6168(err);
-          }
-        });
-
-        canvas.addEventListener('pointerup', event => {
-          try {
-            if (!monthBrush.active || monthBrush.canvas !== canvas) return;
-            hideBrushOverlayV6165(canvas);
-            const endMonth = monthFromCanvasPointerV6165(canvas, event);
-            if (monthBrush.moved) {
-              suppressMonthClickUntil = Date.now() + 700;
-              if (event.cancelable) event.preventDefault();
-              if (typeof event.stopPropagation === 'function') event.stopPropagation();
-            }
-            if (monthBrush.moved && monthBrush.startMonth && endMonth) {
-              ensureV6165State();
-              const start = Math.min(monthBrush.startMonth, endMonth);
-              const end = Math.max(monthBrush.startMonth, endMonth);
-              const months = [];
-              for (let m = start; m <= end; m++) months.push(m);
-              const base = (monthBrush.additive || additiveV6165(event)) ? (state.selectedMonths || new Set()) : [];
-              const selected = new Set(base);
-              months.forEach(m => selected.add(m));
-              setMonthSelectionV6165(selected, 'multi');
-              safeRenderAllV6168();
-            }
-            resetMonthBrushV6168(canvas);
-          } catch (err) {
-            handleMonthBrushErrorV6168(err);
-          }
-        });
-
-        canvas.addEventListener('pointercancel', () => {
-          resetMonthBrushV6168(canvas);
-        });
-      }
-
-      function installMonthBrushesV6165() {
-        ['chartRevenue', 'chartCustomers', 'chartUnits', 'chartRpac', 'chartAvg', 'o2RevenueTrend', 'o2Customers', 'o2Units', 'o2Rpac', 'o2Avg'].forEach(id => installMonthBrushOnCanvasV6165(document.getElementById(id)));
-      }
-
-      if (originalDrawChart) {
-        drawChart = function drawChartV6165(canvasId, config) {
-          originalDrawChart(canvasId, config);
-          installMonthBrushOnCanvasV6165(document.getElementById(canvasId));
-        };
-      }
-
-      function productFocusLabelV6165() {
-        ensureV6165State();
-        const values = [...state.v6165ProductFocus];
-        if (!values.length) return '';
-        const label = productModeConfigV6165().label;
-        const shown = values.slice(0, 2).map(value => state.v6165ProductMode === 'product' ? productLabelFromKey(value) : value);
-        return label + ' highlighted: ' + shown.join(', ') + (values.length > 2 ? ' +' + (values.length - 2) : '');
-      }
-
-      function customerFocusLabelV6165() {
-        const values = [...(state.v6165CustomerFocus || [])];
-        if (!values.length) return '';
-        const shown = values.slice(0, 2).map(getCustomerNameById);
-        return 'Customer highlighted: ' + shown.join(', ') + (values.length > 2 ? ' +' + (values.length - 2) : '');
-      }
-
-      function renderVisibleInteractionPillsV6165() {
-        ensureV6165State();
-        document.querySelectorAll('.v6165InteractionChip').forEach(el => el.remove());
-        const rows = [document.getElementById('legacyChipRow'), document.getElementById('chipRow')].filter(Boolean);
-        if (!rows.length) return;
-        const pieces = [];
-        pieces.push('<span class="chip v6165InteractionChip v6165ReadyChip" title="Visible interaction controls are installed">' + VERSION + '</span>');
-        const months = sortedMonthsV6165();
-        if (months.length) pieces.push('<span class="chip v6165InteractionChip v6165MonthChip">Month brush: ' + escapeHtml(compressMonthsV6165(months)) + ' <button onclick="event.stopPropagation(); clearFilter(\'month\')">x</button></span>');
-        const customerLabel = customerFocusLabelV6165();
-        if (customerLabel) pieces.push('<span class="chip v6165InteractionChip">' + escapeHtml(customerLabel) + ' <button onclick="event.stopPropagation(); clearFilter(\'interactionCustomers\')">x</button></span>');
-        const productLabel = productFocusLabelV6165();
-        if (productLabel) pieces.push('<span class="chip v6165InteractionChip">' + escapeHtml(productLabel) + ' <button onclick="event.stopPropagation(); clearFilter(\'interactionProducts\')">x</button></span>');
-        rows.forEach(row => row.insertAdjacentHTML('beforeend', pieces.join('')));
-      }
-
-      if (originalClearFilter) {
-        clearFilter = function clearFilterV6165(kind) {
-          ensureV6165State();
-          if (kind === 'interactionCustomers' || kind === 'customerFocus') {
-            clearCustomerFocusV6165();
-            renderAll();
-            return;
-          }
-          if (kind === 'interactionProducts' || kind === 'productFocus') {
-            clearProductFocusV6165();
-            renderAll();
-            return;
-          }
-          originalClearFilter(kind);
-        };
-      }
-
-      function installStylesV6165() {
-        if (document.getElementById('visibleInteractionStylesV6165')) return;
-        const style = document.createElement('style');
-        style.id = 'visibleInteractionStylesV6165';
-        style.textContent = `
-          .v6165ReadyChip { background: #f4f3ff !important; border-color: #c7bfff !important; color: #3730a3 !important; font-weight: 900 !important; }
-          .v6165InteractionChip { background: #eef4ff !important; border-color: #b2ccff !important; color: #194185 !important; font-weight: 850 !important; }
-          .v6165MonthChip { background: #ecfdf3 !important; border-color: #abefc6 !important; color: #067647 !important; }
-          #overviewOne tr.v6165PinnedRow td { background: #eef4ff !important; font-weight: 850 !important; }
-          .monthBrushOverlayV6165 { display: none; position: absolute; top: 0; bottom: 0; background: rgba(37, 99, 235, .14); border: 1px solid rgba(37, 99, 235, .36); border-radius: 6px; pointer-events: none; z-index: 5; }
-          #overviewOne .chartBox { position: relative !important; }
-          #overviewOne .productModeButtonsV6165 { margin-right: 6px !important; }
-          #overviewOne .productModeButtonsV6165 .tinyBtn.active { background: #312e81 !important; color: #ffffff !important; border-color: #312e81 !important; }
-          #overviewOne .areaProductTable td:first-child { white-space: nowrap !important; overflow: hidden !important; text-overflow: ellipsis !important; }
-        `;
-        document.head.appendChild(style);
-      }
-
-      if (originalRenderAll) {
-        renderAll = function renderAllV6165() {
-          const result = originalRenderAll();
-          try {
-            ensureV6165State();
-            syncLegacyTableSelectionV6165();
-            installStylesV6165();
-            setDebugVersionV6165();
-            installProductModeButtonsV6165();
-            updateProductModeButtonsV6165();
-            installMonthBrushesV6165();
-            renderVisibleInteractionPillsV6165();
-          } catch (error) {
-            console.warn('v6.165 interaction render warning', error);
-          }
-          return result;
-        };
-      }
-
-      if (originalHandleData) {
-        handleData = function handleDataV6165(data, options = {}) {
-          const result = originalHandleData(data, options);
-          try {
-            ensureV6165State();
-            installStylesV6165();
-            setDebugVersionV6165();
-            renderVisibleInteractionPillsV6165();
-          } catch (error) {
-            console.warn('v6.165 interaction handleData warning', error);
-          }
-          return result;
-        };
-      }
-
-      installStylesV6165();
-      ensureV6165State();
-      setDebugVersionV6165();
-    })();
-
-
-
-    /* v6.170 Digital Cases-style pills + reliable click filter wiring
-       This patch is intentionally appended after the prior v6.169 patch so it wins.
-       Goals:
-       - Replace debug/random chips with a clean Digital Cases-style active filter pill bar.
-       - Make customer/product row clicks update KPIs and sales charts while tables stay full/pinned.
-       - Keep dropdowns as the only destructive table filters.
-       - Keep normal month click drilldown and ctrl/cmd/drag month highlighting. */
-    (function installDigitalCasesPillsAndClickFiltersV6170() {
-      const VERSION = 'v6.170 digitalCasesPillsAndClickFilters';
-      const previousRenderAll = typeof renderAll === 'function' ? renderAll : null;
-      const previousHandleData = typeof handleData === 'function' ? handleData : null;
-      const previousGetFilteredFacts = typeof getFilteredFacts === 'function' ? getFilteredFacts : null;
-      const previousClearFilter = typeof clearFilter === 'function' ? clearFilter : null;
-
-      function ensureInteractionStateV6170() {
-        if (!state.selectedMonths) state.selectedMonths = new Set();
-        if (!state.v6165CustomerFocus) state.v6165CustomerFocus = new Set();
-        if (!state.v6165ProductFocus) state.v6165ProductFocus = new Set();
-        if (!state.v6165CustomerClickOrder) state.v6165CustomerClickOrder = [];
-        if (!state.v6165ProductClickOrder) state.v6165ProductClickOrder = [];
-        if (!state.v6165ProductMode) state.v6165ProductMode = 'product';
-        if (!state.v6165ProductFocusMode) state.v6165ProductFocusMode = state.v6165ProductMode;
-        state.tableSelectedCustomerIds = new Set(state.v6165CustomerFocus || []);
-        state.tableSelectedProductKeys = new Set(state.v6165ProductFocus || []);
-      }
-
-      function isAdditiveV6170(event) {
-        const e = event && event.native ? event.native : event;
-        return !!(e && (e.ctrlKey || e.metaKey));
-      }
-
-      function rememberFirstV6170(listName, key) {
-        const current = Array.isArray(state[listName]) ? state[listName] : [];
-        state[listName] = [key].concat(current.filter(item => item !== key));
-      }
-
-      function productFocusModeV6170() {
-        return state.v6165ProductFocusMode || state.v6165ProductMode || 'product';
-      }
-
-      function productFocusLabelNameV6170() {
-        const mode = productFocusModeV6170();
-        if (mode === 'department') return 'Department';
-        if (mode === 'group') return 'Group';
-        if (mode === 'category') return 'Category';
-        return 'Product';
-      }
-
-      function factMatchesProductFocusV6170(row) {
+      clearFilter = function clearFilterV6170(kind) {
         ensureInteractionStateV6170();
-        if (!state.v6165ProductFocus || !state.v6165ProductFocus.size) return true;
-        const mode = productFocusModeV6170();
-        if (mode === 'department') return state.v6165ProductFocus.has(row.productsDepartment || '(Blank department)');
-        if (mode === 'group') return state.v6165ProductFocus.has(row.productsGroup || '(Blank group)');
-        if (mode === 'category') return state.v6165ProductFocus.has(row.productsCategory || '(Blank category)');
-        return state.v6165ProductFocus.has(productKey(row));
-      }
-
-      function baseFilteredFactsV6170(ignore) {
-        const opts = Object.assign({}, ignore || {}, {
-          v6165CustomerFocus: true,
-          v6165ProductFocus: true
-        });
-        if (previousGetFilteredFacts) return previousGetFilteredFacts(opts);
-        return (facts || []).filter(row => {
-          if (!opts.years && state.years && !state.years.has(row.year)) return false;
-          if (!opts.departments && state.selectedDepartments && !state.selectedDepartments.has(row.productsDepartment)) return false;
-          if (!opts.month && state.selectedMonths && state.selectedMonths.size && !state.selectedMonths.has(row.monthNum)) return false;
-          return true;
-        });
-      }
-
-      getFilteredFacts = function getFilteredFactsV6170(ignore = {}) {
-        ensureInteractionStateV6170();
-        const opts = ignore || {};
-        let rows = baseFilteredFactsV6170(opts);
-        // Table renderers pass v6165CustomerFocus/v6165ProductFocus so they stay full.
-        // KPI and chart renderers do not pass those flags, so highlighted rows update totals/charts.
-        if (!opts.v6165CustomerFocus && !opts.noInteractionFocus && state.v6165CustomerFocus && state.v6165CustomerFocus.size) {
-          rows = rows.filter(row => state.v6165CustomerFocus.has(row.customerId));
-        }
-        if (!opts.v6165ProductFocus && !opts.noInteractionFocus && state.v6165ProductFocus && state.v6165ProductFocus.size) {
-          rows = rows.filter(row => factMatchesProductFocusV6170(row));
-        }
-        return rows;
-      };
-
-      function clearCustomerHighlightV6170() {
-        ensureInteractionStateV6170();
-        state.v6165CustomerFocus.clear();
-        state.v6165CustomerClickOrder = [];
-        state.tableSelectedCustomerIds = new Set();
-      }
-
-      function clearProductHighlightV6170() {
-        ensureInteractionStateV6170();
-        state.v6165ProductFocus.clear();
-        state.v6165ProductClickOrder = [];
-        state.tableSelectedProductKeys = new Set();
-      }
-
-      setCustomer = function setCustomerV6170(value, event) {
-        ensureInteractionStateV6170();
-        const id = String(value || '');
-        if (!id) {
+        if (kind === 'v6170CustomerHighlight' || kind === 'interactionCustomers' || kind === 'customerFocus') {
           clearCustomerHighlightV6170();
           renderAll();
           return;
         }
-        const selected = state.v6165CustomerFocus;
-        const additive = isAdditiveV6170(event);
-        if (selected.has(id)) {
-          selected.delete(id);
-          state.v6165CustomerClickOrder = (state.v6165CustomerClickOrder || []).filter(item => item !== id);
-        } else if (additive) {
-          selected.add(id);
-          rememberFirstV6170('v6165CustomerClickOrder', id);
-        } else {
-          selected.clear();
-          selected.add(id);
-          state.v6165CustomerClickOrder = [id];
-        }
-        state.tableSelectedCustomerIds = new Set(selected);
-        renderAll();
-      };
-
-      setProduct = function setProductV6170(value, event) {
-        ensureInteractionStateV6170();
-        const key = String(value || '');
-        if (!key) {
+        if (kind === 'v6170ProductHighlight' || kind === 'interactionProducts' || kind === 'productFocus') {
           clearProductHighlightV6170();
           renderAll();
           return;
         }
-        if (state.v6165ProductFocusMode !== state.v6165ProductMode) {
-          clearProductHighlightV6170();
-          state.v6165ProductFocusMode = state.v6165ProductMode;
+        if (previousClearFilter) {
+          previousClearFilter(kind);
+          return;
         }
-        const selected = state.v6165ProductFocus;
-        const additive = isAdditiveV6170(event);
-        if (selected.has(key)) {
-          selected.delete(key);
-          state.v6165ProductClickOrder = (state.v6165ProductClickOrder || []).filter(item => item !== key);
-        } else if (additive) {
-          selected.add(key);
+      };
+
+      function installStylesV6170() {
+        if (document.getElementById('digitalCasesPillStylesV6170')) return;
+        const style = document.createElement('style');
+        style.id = 'digitalCasesPillStylesV6170';
+        style.textContent = `
+          #singleShellDebugBanner { font-size: 11px !important; opacity: .72 !important; }
+          .v6165InteractionChip { display: none !important; }
+          #overviewOne .v6170FilterPillPanel {
+            display: grid !important;
+            gap: 8px !important;
+            margin: 8px 0 10px !important;
+            padding: 10px 12px !important;
+            border: 1px solid #dce3ee !important;
+            background: #ffffff !important;
+            border-radius: 18px !important;
+            box-shadow: 0 10px 28px rgba(15, 23, 42, .06) !important;
+          }
+          #overviewOne .v6170PillSection { display: flex !important; align-items: center !important; gap: 10px !important; flex-wrap: wrap !important; }
+          #overviewOne .v6170PillLabel { color: #667085 !important; font-size: 11px !important; font-weight: 900 !important; letter-spacing: .08em !important; text-transform: uppercase !important; white-space: nowrap !important; }
+          #overviewOne .v6170PillRow { display: flex !important; flex-wrap: wrap !important; align-items: center !important; gap: 8px !important; }
+          #overviewOne .v6170Pill {
+            display: inline-flex !important;
+            align-items: center !important;
+            gap: 8px !important;
+            min-height: 30px !important;
+            border-radius: 999px !important;
+            border: 1px solid #dce3ee !important;
+            background: #f8faff !important;
+            padding: 0 10px !important;
+            color: #667085 !important;
+            font-size: 12px !important;
+            font-weight: 850 !important;
+            line-height: 1 !important;
+          }
+          #overviewOne .v6170Pill.hot {
+            background: rgba(245, 158, 11, .18) !important;
+            border-color: rgba(245, 158, 11, .42) !important;
+            color: #121826 !important;
+          }
+          #overviewOne .v6170Pill i { width: 7px !important; height: 7px !important; border-radius: 50% !important; background: #f59e0b !important; display: inline-block !important; }
+          #overviewOne .v6170Pill button {
+            border: 0 !important;
+            background: rgba(15, 23, 42, .08) !important;
+            color: #475467 !important;
+            width: 18px !important;
+            height: 18px !important;
+            border-radius: 999px !important;
+            font-size: 12px !important;
+            line-height: 18px !important;
+            padding: 0 !important;
+            font-weight: 900 !important;
+            cursor: pointer !important;
+          }
+          #overviewOne .v6170Pill button:hover { background: rgba(15, 23, 42, .16) !important; color: #121826 !important; }
+          #overviewOne tr.v6165PinnedRow td, #overviewOne tr.active td { background: #fff7e6 !important; font-weight: 900 !important; }
+          #overviewOne tr.v6165PinnedRow td:first-child, #overviewOne tr.active td:first-child { box-shadow: inset 4px 0 0 #f59e0b !important; }
+          @media (min-width: 1000px) { #overviewOne .v6170FilterPillPanel { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important; } }
+        `;
+        document.head.appendChild(style);
+      }
+
+      function setDebugVersionV6170() {
+        const banner = document.getElementById('singleShellDebugBanner');
+        if (!banner) return;
+        banner.innerHTML = 'DEBUG ' + VERSION + ' - Digital Cases-style pills - click highlights update KPIs/charts - tables stay full - existing data loader unchanged';
+      }
+
+      function afterRenderV6170() {
+        try {
+          ensureInteractionStateV6170();
+          installStylesV6170();
+          setDebugVersionV6170();
+          renderDigitalCasesPillsV6170();
+          if (typeof updateChartFocusStyles === 'function') updateChartFocusStyles();
+        } catch (err) {
+          console.warn('v6.170 post-render warning', err);
+        }
+      }
+
+      if (previousRenderAll) {
+        renderAll = function renderAllV6170() {
+          const result = previousRenderAll();
+          afterRenderV6170();
+          return result;
+        };
+      }
+
+      if (previousHandleData) {
+        handleData = function handleDataV6170(data, options = {}) {
+          const result = previousHandleData(data, options);
+          afterRenderV6170();
+          return result;
+        };
+      }
+
+      installStylesV6170();
+      ensureInteractionStateV6170();
+      setDebugVersionV6170();
+      setTimeout(afterRenderV6170, 0);
+    })();
+    /* v6.175 KPI-inline subtle filter/highlight pills
+       UI-only. Keeps v6.170 click-filter wiring, but places the active/context pills
+       in the unused KPI/header area beside the KPI cards instead of inside a full-width
+       banner row or the Revenue Trend header. Clearable pills keep a small x button. */
+    (function installKpiInlineSubtleFilterPillsV6175() {
+      const VERSION = 'v6.175 kpiInlineSubtleFilterPills';
+
+      function setDebugVersionV6175() {
+        const banner = document.getElementById('singleShellDebugBanner');
+        if (!banner) return;
+        banner.innerHTML = 'DEBUG ' + VERSION + ' - KPI-inline subtle filter/highlight pills - clearable x filters - click highlights update KPIs/charts - tables stay full - data loads through <b>getOverviewDashboardData</b>';
+      }
+
+      function installStylesV6175() {
+        if (document.getElementById('kpiInlineSubtleFilterPillsStylesV6175')) return;
+
+        const style = document.createElement('style');
+        style.id = 'kpiInlineSubtleFilterPillsStylesV6175';
+        style.textContent = `
+          /* Keep legacy chip rows from becoming their own dashboard band. */
+          #overviewOne .compactChipOnlyRow #legacyChipRow,
+          #overviewOne #legacyChipRow {
+            display: none !important;
+          }
+
+          /* Use the same header row as the KPI cards: quiet pills on the left,
+             KPI cards on the right. This consumes existing whitespace without
+             pushing Revenue Trend downward. */
+          #overviewOne .topBar.executiveTop {
+            display: grid !important;
+            grid-template-columns: minmax(260px, 1fr) minmax(820px, max-content) !important;
+            grid-template-areas: "pills kpis" !important;
+            align-items: center !important;
+            column-gap: 8px !important;
+            row-gap: 0 !important;
+            margin-bottom: 4px !important;
+          }
+
+          #overviewOne .topBar.executiveTop .comparisonKpis {
+            grid-area: kpis !important;
+            width: auto !important;
+            max-width: 1110px !important;
+            min-width: 0 !important;
+            justify-self: end !important;
+            grid-template-columns: repeat(5, minmax(150px, 214px)) !important;
+            gap: 8px !important;
+          }
+
+          #overviewOne .topBar.executiveTop .comparisonKpi {
+            min-width: 0 !important;
+          }
+
+          #overviewOne .topBar.executiveTop .controlFilterRow.compactChipOnlyRow,
+          #overviewOne .topBar.executiveTop .v6175KpiPillSlot {
+            grid-area: pills !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: flex-start !important;
+            min-width: 0 !important;
+            min-height: 0 !important;
+            width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            overflow: hidden !important;
+          }
+
+          /* The v6.170 pill panel becomes an inline, status-like strip. */
+          #overviewOne .topBar.executiveTop .controlFilterRow.compactChipOnlyRow > #activeFilterPillBarV6170.v6170FilterPillPanel,
+          #overviewOne .topBar.executiveTop .v6175KpiPillSlot > #activeFilterPillBarV6170.v6170FilterPillPanel {
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: flex-start !important;
+            flex: 1 1 auto !important;
+            min-width: 0 !important;
+            width: auto !important;
+            max-width: 100% !important;
+            gap: 5px !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            border: 0 !important;
+            border-radius: 0 !important;
+            background: transparent !important;
+            box-shadow: none !important;
+            overflow-x: auto !important;
+            overflow-y: hidden !important;
+            scrollbar-width: thin !important;
+          }
+
+          #overviewOne .topBar.executiveTop #activeFilterPillBarV6170::-webkit-scrollbar {
+            height: 5px !important;
+          }
+
+          #overviewOne .topBar.executiveTop #activeFilterPillBarV6170::-webkit-scrollbar-thumb {
+            background: #d0d5dd !important;
+            border-radius: 999px !important;
+          }
+
+          #overviewOne .topBar.executiveTop #activeFilterPillBarV6170 .v6170PillSection {
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: flex-start !important;
+            flex: 0 0 auto !important;
+            min-width: 0 !important;
+            gap: 4px !important;
+            flex-wrap: nowrap !important;
+          }
+
+          #overviewOne .topBar.executiveTop #activeFilterPillBarV6170 .v6170PillSection + .v6170PillSection {
+            border-left: 1px solid #e5e7eb !important;
+            padding-left: 6px !important;
+            margin-left: 1px !important;
+          }
+
+          #overviewOne .topBar.executiveTop #activeFilterPillBarV6170 .v6170PillLabel {
+            display: none !important;
+          }
+
+          #overviewOne .topBar.executiveTop #activeFilterPillBarV6170 .v6170PillRow {
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: flex-start !important;
+            flex-wrap: nowrap !important;
+            gap: 4px !important;
+            min-width: 0 !important;
+          }
+
+          #overviewOne .topBar.executiveTop #activeFilterPillBarV6170 .v6170Pill {
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            gap: 5px !important;
+            min-height: 22px !important;
+            height: 22px !important;
+            max-width: 190px !important;
+            padding: 0 8px !important;
+            border-radius: 999px !important;
+            border: 1px solid #dce3ee !important;
+            background: #f8faff !important;
+            color: #667085 !important;
+            font-family: Roboto, Arial, sans-serif !important;
+            font-size: 10.5px !important;
+            font-weight: 800 !important;
+            line-height: 1 !important;
+            white-space: nowrap !important;
+            box-shadow: none !important;
+            flex: 0 0 auto !important;
+          }
+
+          #overviewOne .topBar.executiveTop #activeFilterPillBarV6170 .v6170Pill.hot {
+            background: rgba(245, 158, 11, .16) !important;
+            border-color: rgba(245, 158, 11, .36) !important;
+            color: #344054 !important;
+          }
+
+          #overviewOne .topBar.executiveTop #activeFilterPillBarV6170 .v6170Pill span {
+            min-width: 0 !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+            white-space: nowrap !important;
+          }
+
+          #overviewOne .topBar.executiveTop #activeFilterPillBarV6170 .v6170Pill i {
+            display: inline-block !important;
+            width: 6px !important;
+            height: 6px !important;
+            border-radius: 50% !important;
+            background: #f59e0b !important;
+            flex: 0 0 auto !important;
+          }
+
+          #overviewOne .topBar.executiveTop #activeFilterPillBarV6170 .v6170Pill button,
+          #overviewOne .topBar.executiveTop #activeFilterPillBarV6170 .v6175ClearBtn {
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            width: 14px !important;
+            height: 14px !important;
+            min-width: 14px !important;
+            margin: 0 0 0 1px !important;
+            padding: 0 !important;
+            border: 1px solid #d0d5dd !important;
+            border-radius: 999px !important;
+            background: #ffffff !important;
+            color: #667085 !important;
+            box-shadow: none !important;
+            font: 900 11px/1 Arial, sans-serif !important;
+            cursor: pointer !important;
+          }
+
+          #overviewOne .topBar.executiveTop #activeFilterPillBarV6170 .v6170Pill button:hover,
+          #overviewOne .topBar.executiveTop #activeFilterPillBarV6170 .v6175ClearBtn:hover {
+            background: #f2f4f7 !important;
+            color: #344054 !important;
+            border-color: #bfc5cf !important;
+          }
+
+          /* Revenue Trend no longer hosts pills; keep it compact and close to the KPI row. */
+          #overviewOne .areaRevenue .cardHeader {
+            min-height: 22px !important;
+            height: 22px !important;
+            margin: 0 0 2px 0 !important;
+            padding: 0 !important;
+          }
+
+          #overviewOne .areaRevenue .cardHeader > #activeFilterPillBarV6170 {
+            display: none !important;
+          }
+
+          /* Fallback: if the pill bar briefly renders outside the KPI slot,
+             do not let it become a full-width banner. */
+          #overviewOne > #activeFilterPillBarV6170.v6170FilterPillPanel,
+          #overviewOne .dashboardShell > #activeFilterPillBarV6170.v6170FilterPillPanel,
+          #overviewOne .topBar > #activeFilterPillBarV6170.v6170FilterPillPanel:not([data-placement="kpi-inline-header"]) {
+            display: none !important;
+          }
+
+          @media (max-width: 1400px) and (min-width: 901px) {
+            #overviewOne .topBar.executiveTop {
+              grid-template-columns: minmax(220px, .85fr) minmax(650px, 1.15fr) !important;
+            }
+            #overviewOne .topBar.executiveTop .comparisonKpis {
+              grid-template-columns: repeat(5, minmax(126px, 1fr)) !important;
+              max-width: none !important;
+            }
+            #overviewOne .topBar.executiveTop #activeFilterPillBarV6170 .v6170Pill {
+              max-width: 150px !important;
+            }
+          }
+
+          @media (max-width: 900px) {
+            #overviewOne .topBar.executiveTop {
+              grid-template-columns: 1fr !important;
+              grid-template-areas: "kpis" "pills" !important;
+              row-gap: 5px !important;
+              margin-bottom: 5px !important;
+            }
+            #overviewOne .topBar.executiveTop .comparisonKpis {
+              width: 100% !important;
+              max-width: none !important;
+              justify-self: stretch !important;
+              grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+            }
+            #overviewOne .topBar.executiveTop .controlFilterRow.compactChipOnlyRow,
+            #overviewOne .topBar.executiveTop .v6175KpiPillSlot {
+              justify-content: flex-start !important;
+            }
+            #overviewOne .topBar.executiveTop #activeFilterPillBarV6170 .v6170PillSection + .v6170PillSection {
+              border-left: 0 !important;
+              padding-left: 0 !important;
+              margin-left: 0 !important;
+            }
+          }
+        `;
+
+        document.head.appendChild(style);
+      }
+
+      function ensureKpiPillSlotV6175() {
+        const topBar = document.querySelector('#overviewOne .topBar.executiveTop');
+        if (!topBar) return null;
+
+        let slot = topBar.querySelector('.controlFilterRow.compactChipOnlyRow') || topBar.querySelector('.v6175KpiPillSlot');
+        if (!slot) {
+          slot = document.createElement('div');
+          slot.className = 'controlFilterRow compactChipOnlyRow v6175KpiPillSlot';
+          const kpis = topBar.querySelector('.comparisonKpis');
+          if (kpis) topBar.insertBefore(slot, kpis);
+          else topBar.appendChild(slot);
+        }
+        slot.classList.add('v6175KpiPillSlot');
+        return slot;
+      }
+
+      function movePillsIntoKpiHeaderV6175() {
+        const bar = document.getElementById('activeFilterPillBarV6170');
+        const slot = ensureKpiPillSlotV6175();
+        if (!bar || !slot) return null;
+
+        if (bar.parentNode !== slot) slot.appendChild(bar);
+        bar.classList.add('v6175KpiInlinePillRow');
+        bar.classList.remove('v6174RevenueHeaderPillRow');
+        bar.setAttribute('data-placement', 'kpi-inline-header');
+        return bar;
+      }
+
+
+
+      function clearDepartmentFilterOnlyV6175() {
+        state.deptMode = 'ALL';
+        if (typeof getAllDepartments === 'function') state.selectedDepartments = new Set(getAllDepartments());
+        else if (state.selectedDepartments) state.selectedDepartments = new Set(state.selectedDepartments);
+      }
+
+      function clearProductFilterOnlyV6175() {
+        state.productFilterMode = 'ALL';
+        state.selectedProductKeys = new Set();
+        state.excludedProductKeys = new Set();
+        state.lastSelectedProductKey = null;
+      }
+
+      function clearCustomerFilterOnlyV6175() {
+        state.customerFilterMode = 'ALL';
+        state.selectedCustomerIds = new Set();
+        state.excludedCustomerIds = new Set();
+        state.lastSelectedCustomerId = null;
+      }
+
+      function clearInteractionHighlightsV6175() {
+        if (state.v6165CustomerFocus) state.v6165CustomerFocus.clear();
+        if (state.v6165ProductFocus) state.v6165ProductFocus.clear();
+        state.v6165CustomerClickOrder = [];
+        state.v6165ProductClickOrder = [];
+        state.tableSelectedCustomerIds = new Set();
+        state.tableSelectedProductKeys = new Set();
+      }
+
+      function removeEmptyHighlightPlaceholderV6175(bar) {
+        if (!bar) return;
+
+        bar.querySelectorAll('.v6170Pill').forEach(pill => {
+          const text = pill.textContent.replace(/\s+/g, ' ').trim().toLowerCase();
+          if (text === 'no chart/table highlights') pill.remove();
+        });
+
+        bar.querySelectorAll('.v6170PillSection').forEach(section => {
+          if (!section.querySelector('.v6170Pill')) section.remove();
+        });
+      }
+
+      function prettifyExistingClearButtonsV6175(bar) {
+        if (!bar) return;
+
+        bar.querySelectorAll('.v6170Pill button').forEach(button => {
+          button.classList.add('v6175ClearBtn');
+          button.textContent = '×';
+          if (!button.getAttribute('aria-label')) button.setAttribute('aria-label', 'Clear this filter');
+          if (!button.getAttribute('title')) button.setAttribute('title', 'Clear this filter');
+        });
+      }
+
+      function addDepartmentClearButtonWhenActiveV6175(bar) {
+        if (!bar) return;
+
+        const pills = Array.from(bar.querySelectorAll('.v6170Pill'));
+        const departmentPill = pills.find(pill => {
+          const text = pill.textContent.replace(/\s+/g, ' ').trim();
+          return /^(Department|Departments):/i.test(text);
+        });
+
+        if (!departmentPill || departmentPill.querySelector('button')) return;
+
+        const text = departmentPill.textContent.replace(/\s+/g, ' ').trim();
+        if (/^(Main Depts|All Depts)$/i.test(text)) return;
+
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'v6175ClearBtn';
+        button.textContent = '×';
+        button.title = 'Clear department filter';
+        button.setAttribute('aria-label', 'Clear department filter');
+        button.addEventListener('click', function(event) {
+          event.stopPropagation();
+          clearDepartmentFilterOnlyV6175();
+          renderAll();
+        });
+
+        departmentPill.appendChild(button);
+      }
+
+      function afterRenderV6175() {
+        installStylesV6175();
+        const bar = movePillsIntoKpiHeaderV6175();
+        removeEmptyHighlightPlaceholderV6175(bar);
+        prettifyExistingClearButtonsV6175(bar);
+        addDepartmentClearButtonWhenActiveV6175(bar);
+        setDebugVersionV6175();
+      }
+
+
+      const previousClearFilterV6175 = typeof clearFilter === 'function' ? clearFilter : null;
+      if (previousClearFilterV6175 && !clearFilter.__v6175Wrapped) {
+        const wrappedClearFilterV6175 = function clearFilterV6175(kind) {
+          if (kind === 'departments' || kind === 'department') {
+            clearDepartmentFilterOnlyV6175();
+            renderAll();
+            return;
+          }
+          if (kind === 'product') {
+            clearProductFilterOnlyV6175();
+            renderAll();
+            return;
+          }
+          if (kind === 'customer') {
+            clearCustomerFilterOnlyV6175();
+            renderAll();
+            return;
+          }
+          return previousClearFilterV6175.apply(this, arguments);
+        };
+        wrappedClearFilterV6175.__v6175Wrapped = true;
+        clearFilter = wrappedClearFilterV6175;
+      }
+
+      const previousResetAllFiltersV6175 = typeof resetAllFilters === 'function' ? resetAllFilters : null;
+      if (previousResetAllFiltersV6175 && !resetAllFilters.__v6175Wrapped) {
+        const wrappedResetAllFiltersV6175 = function resetAllFiltersV6175() {
+          clearInteractionHighlightsV6175();
+          return previousResetAllFiltersV6175.apply(this, arguments);
+        };
+        wrappedResetAllFiltersV6175.__v6175Wrapped = true;
+        resetAllFilters = wrappedResetAllFiltersV6175;
+      }
+
+      const previousRenderAllV6175 = typeof renderAll === 'function' ? renderAll : null;
+      if (previousRenderAllV6175 && !renderAll.__v6175Wrapped) {
+        const wrappedRenderAllV6175 = function renderAllV6175() {
+          const result = previousRenderAllV6175.apply(this, arguments);
+          afterRenderV6175();
+          return result;
+        };
+        wrappedRenderAllV6175.__v6175Wrapped = true;
+        renderAll = wrappedRenderAllV6175;
+      }
+
+      const previousHandleDataV6175 = typeof handleData === 'function' ? handleData : null;
+      if (previousHandleDataV6175 && !handleData.__v6175Wrapped) {
+        const wrappedHandleDataV6175 = function handleDataV6175() {
+          const result = previousHandleDataV6175.apply(this, arguments);
+          afterRenderV6175();
+          return result;
+        };
+        wrappedHandleDataV6175.__v6175Wrapped = true;
+        handleData = wrappedHandleDataV6175;
+      }
+
+      installStylesV6175();
+      afterRenderV6175();
+      setTimeout(afterRenderV6175, 0);
+      setTimeout(afterRenderV6175, 250);
+      setTimeout(afterRenderV6175, 900);
+    })();
+
+
+
+    /* v6.176 highlight-first KPI pills
+       UI-only. Keeps v6.170/v6.175 behavior, but promotes clearable highlight pills
+       to the front of the KPI pill strip so table/chart clicks are immediately visible. */
+    (function installHighlightFirstKpiPillsV6176() {
+      const VERSION = 'v6.176 highlightFirstKpiPills';
+
+      function setDebugVersionV6176() {
+        const banner = document.getElementById('singleShellDebugBanner');
+        if (!banner) return;
+        banner.innerHTML = 'DEBUG ' + VERSION + ' - highlight pills first in KPI area - clearable x filters - click highlights update KPIs/charts - tables stay full - data loads through <b>getOverviewDashboardData</b>';
+      }
+
+      function installStylesV6176() {
+        if (document.getElementById('highlightFirstKpiPillStylesV6176')) return;
+        const style = document.createElement('style');
+        style.id = 'highlightFirstKpiPillStylesV6176';
+        style.textContent = `
+          #overviewOne .topBar.executiveTop #activeFilterPillBarV6170 .v6176HighlightSection {
+            order: -4 !important;
+          }
+
+          #overviewOne .topBar.executiveTop #activeFilterPillBarV6170 .v6176ClearableSection {
+            order: -3 !important;
+          }
+
+          #overviewOne .topBar.executiveTop #activeFilterPillBarV6170 .v6176HighlightPill {
+            order: -5 !important;
+            max-width: 250px !important;
+            background: rgba(245, 158, 11, .18) !important;
+            border-color: rgba(245, 158, 11, .44) !important;
+            color: #1f2937 !important;
+          }
+
+          #overviewOne .topBar.executiveTop #activeFilterPillBarV6170 .v6176ClearablePill {
+            order: -2 !important;
+          }
+
+          #overviewOne .topBar.executiveTop #activeFilterPillBarV6170 .v6176DefaultStatusPill {
+            display: none !important;
+          }
+
+          #overviewOne .topBar.executiveTop #activeFilterPillBarV6170 .v6170PillSection + .v6170PillSection.v6176HighlightSection {
+            border-left: 0 !important;
+            padding-left: 0 !important;
+            margin-left: 0 !important;
+          }
+
+          #overviewOne .topBar.executiveTop #activeFilterPillBarV6170 .v6176HighlightSection + .v6170PillSection {
+            border-left: 1px solid #e5e7eb !important;
+            padding-left: 6px !important;
+            margin-left: 1px !important;
+          }
+        `;
+        document.head.appendChild(style);
+      }
+
+      function pillTextV6176(pill) {
+        return (pill ? pill.textContent : '').replace(/×|x/g, '').replace(/s+/g, ' ').trim();
+      }
+
+      function isDefaultStatusPillV6176(pill) {
+        if (!pill || pill.querySelector('button')) return false;
+        const text = pillTextV6176(pill).toLowerCase();
+        return text === 'products: all' || text === 'customers: all' || text === 'ytd' || text === 'no chart/table highlights';
+      }
+
+      function promotePillsV6176() {
+        const bar = document.getElementById('activeFilterPillBarV6170');
+        if (!bar) return;
+
+        const sections = Array.from(bar.querySelectorAll('.v6170PillSection'));
+        sections.forEach(section => {
+          const pills = Array.from(section.querySelectorAll('.v6170Pill'));
+          const hasHighlight = pills.some(pill => pill.classList.contains('hot'));
+          const hasClearable = pills.some(pill => pill.querySelector('button'));
+          section.classList.toggle('v6176HighlightSection', hasHighlight);
+          section.classList.toggle('v6176ClearableSection', !hasHighlight && hasClearable);
+          if (hasHighlight && bar.firstElementChild !== section) bar.insertBefore(section, bar.firstElementChild);
+        });
+
+        bar.querySelectorAll('.v6170Pill').forEach(pill => {
+          const isHighlight = pill.classList.contains('hot');
+          const isClearable = !!pill.querySelector('button');
+          pill.classList.toggle('v6176HighlightPill', isHighlight);
+          pill.classList.toggle('v6176ClearablePill', !isHighlight && isClearable);
+          pill.classList.toggle('v6176DefaultStatusPill', isDefaultStatusPillV6176(pill));
+        });
+
+        bar.scrollLeft = 0;
+      }
+
+      function afterRenderV6176() {
+        installStylesV6176();
+        promotePillsV6176();
+        setDebugVersionV6176();
+      }
+
+      const previousRenderAllV6176 = typeof renderAll === 'function' ? renderAll : null;
+      if (previousRenderAllV6176 && !renderAll.__v6176Wrapped) {
+        const wrappedRenderAllV6176 = function renderAllV6176() {
+          const result = previousRenderAllV6176.apply(this, arguments);
+          afterRenderV6176();
+          return result;
+        };
+        wrappedRenderAllV6176.__v6176Wrapped = true;
+        renderAll = wrappedRenderAllV6176;
+      }
+
+      const previousHandleDataV6176 = typeof handleData === 'function' ? handleData : null;
+      if (previousHandleDataV6176 && !handleData.__v6176Wrapped) {
+        const wrappedHandleDataV6176 = function handleDataV6176() {
+          const result = previousHandleDataV6176.apply(this, arguments);
+          afterRenderV6176();
+          return result;
+        };
+        wrappedHandleDataV6176.__v6176Wrapped = true;
+        handleData = wrappedHandleDataV6176;
+      }
+
+      installStylesV6176();
+      afterRenderV6176();
+      setTimeout(afterRenderV6176, 0);
+      setTimeout(afterRenderV6176, 250);
+      setTimeout(afterRenderV6176, 900);
+    })();
+
+
+(function installVisibleKpiPillRailV6177() {
+  const VERSION_TEXT_V6177 = 'DEBUG v6.177 visibleKpiPillRail - pills sit beside KPI cards - clear x buttons unchanged - frontend only';
+  const STYLE_ID_V6177 = 'visibleKpiPillRailStylesV6177';
+
+  function installStylesV6177() {
+    if (document.getElementById(STYLE_ID_V6177)) return;
+    const style = document.createElement('style');
+    style.id = STYLE_ID_V6177;
+    style.textContent = [
+      '#overviewOne .topBar.executiveTop {',
+      '  display: grid !important;',
+      '  grid-template-columns: minmax(270px, 0.85fr) minmax(760px, 2.6fr);',
+      '  align-items: stretch !important;',
+      '  gap: 8px !important;',
+      '  margin-bottom: 8px !important;',
+      '}',
+      '#overviewOne .topBar.executiveTop .controlFilterRow.v6175KpiPillSlot {',
+      '  grid-column: 1 !important;',
+      '  grid-row: 1 !important;',
+      '  display: flex !important;',
+      '  flex-wrap: wrap !important;',
+      '  align-content: center !important;',
+      '  align-items: center !important;',
+      '  justify-content: flex-start !important;',
+      '  gap: 6px !important;',
+      '  min-height: 64px !important;',
+      '  height: auto !important;',
+      '  margin: 0 !important;',
+      '  padding: 4px 2px 4px 0 !important;',
+      '  background: transparent !important;',
+      '  border: 0 !important;',
+      '  box-shadow: none !important;',
+      '  overflow: visible !important;',
+      '}',
+      '#overviewOne .topBar.executiveTop .kpiStrip.comparisonKpis {',
+      '  grid-column: 2 !important;',
+      '  grid-row: 1 !important;',
+      '  min-width: 0 !important;',
+      '  width: 100% !important;',
+      '}',
+      '#overviewOne .topBar.executiveTop .controlFilterRow.v6175KpiPillSlot .v6176DefaultStatusPill {',
+      '  display: none !important;',
+      '}',
+      '#overviewOne .topBar.executiveTop .controlFilterRow.v6175KpiPillSlot .v6176HighlightPill,',
+      '#overviewOne .topBar.executiveTop .controlFilterRow.v6175KpiPillSlot .v6176ClearablePill {',
+      '  display: inline-flex !important;',
+      '  align-items: center !important;',
+      '  max-width: 100% !important;',
+      '  min-height: 22px !important;',
+      '  padding: 3px 7px !important;',
+      '  border-radius: 999px !important;',
+      '  font-size: 11px !important;',
+      '  line-height: 1.15 !important;',
+      '  font-weight: 600 !important;',
+      '  white-space: nowrap !important;',
+      '}',
+      '#overviewOne .topBar.executiveTop .controlFilterRow.v6175KpiPillSlot button {',
+      '  width: 16px !important;',
+      '  height: 16px !important;',
+      '  min-width: 16px !important;',
+      '  margin-left: 4px !important;',
+      '  border-radius: 999px !important;',
+      '  line-height: 14px !important;',
+      '  font-size: 11px !important;',
+      '}',
+      '@media (max-width: 1180px) {',
+      '  #overviewOne .topBar.executiveTop {',
+      '    grid-template-columns: minmax(220px, 0.7fr) minmax(620px, 2fr);',
+      '  }',
+      '  #overviewOne .topBar.executiveTop .controlFilterRow.v6175KpiPillSlot {',
+      '    min-height: 58px !important;',
+      '  }',
+      '}',
+      '@media (max-width: 920px) {',
+      '  #overviewOne .topBar.executiveTop {',
+      '    grid-template-columns: 1fr !important;',
+      '  }',
+      '  #overviewOne .topBar.executiveTop .controlFilterRow.v6175KpiPillSlot,',
+      '  #overviewOne .topBar.executiveTop .kpiStrip.comparisonKpis {',
+      '    grid-column: 1 !important;',
+      '  }',
+      '  #overviewOne .topBar.executiveTop .controlFilterRow.v6175KpiPillSlot {',
+      '    grid-row: 2 !important;',
+      '    min-height: 0 !important;',
+      '    padding-top: 2px !important;',
+      '  }',
+      '  #overviewOne .topBar.executiveTop .kpiStrip.comparisonKpis {',
+      '    grid-row: 1 !important;',
+      '  }',
+      '}'
+    ].join('\n');
+    document.head.appendChild(style);
+  }
+
+  function promotePillsV6177() {
+    const bar = document.getElementById('activeFilterPillBarV6170');
+    const topBar = document.querySelector('#overviewOne .topBar.executiveTop');
+    const kpiStrip = topBar && topBar.querySelector('.kpiStrip.comparisonKpis');
+    if (!bar || !topBar || !kpiStrip) return;
+    bar.classList.add('v6177VisibleKpiPillRail');
+    topBar.insertBefore(bar, kpiStrip);
+  }
+
+  function setDebugVersionV6177() {
+    document.querySelectorAll('body *').forEach(el => {
+      const value = (el.textContent || '').trim();
+      if (/^DEBUG v6\.\d+/.test(value) && value.length < 300) {
+        el.textContent = VERSION_TEXT_V6177;
+      }
+    });
+  }
+
+  function afterRenderV6177() {
+    installStylesV6177();
+    promotePillsV6177();
+    setDebugVersionV6177();
+  }
+
+  const previousRenderAllV6177 = typeof renderAll === 'function' ? renderAll : null;
+  if (previousRenderAllV6177 && !renderAll.__v6177Wrapped) {
+    const wrappedRenderAllV6177 = function renderAllV6177() {
+      const result = previousRenderAllV6177.apply(this, arguments);
+      afterRenderV6177();
+      return result;
+    };
+    wrappedRenderAllV6177.__v6177Wrapped = true;
+    renderAll = wrappedRenderAllV6177;
+  }
+
+  const previousHandleDataV6177 = typeof handleData === 'function' ? handleData : null;
+  if (previousHandleDataV6177 && !handleData.__v6177Wrapped) {
+    const wrappedHandleDataV6177 = function handleDataV6177() {
+      const result = previousHandleDataV6177.apply(this, arguments);
+      afterRenderV6177();
+      return result;
+    };
+    wrappedHandleDataV6177.__v6177Wrapped = true;
+    handleData = wrappedHandleDataV6177;
+  }
+
+  afterRenderV6177();
+  setTimeout(afterRenderV6177, 0);
+  setTimeout(afterRenderV6177, 250);
+  setTimeout(afterRenderV6177, 900);
+})();
+
+
+
+/* v6.183 floating layout edit mode
+   Built from Codex v6.177 baseline.
+   Adds a floating pencil button for edit mode.
+   Edit mode lets the user move/resize the KPI strip and active-selection pills, then save/reset per browser.
+   Also remembers the last page/tab and filters through localStorage.
+   This patch does not hard-code a new KPI layout by default; it only applies layout changes after the user edits/saves. */
+(function installFloatingLayoutEditModeV6183() {
+  const VERSION_TEXT_V6183 = 'DEBUG v6.183 floatingLayoutEditMode - pencil edit mode, save layout, remember page/filter - frontend only';
+  const STYLE_ID_V6183 = 'floatingLayoutEditModeStylesV6183';
+  const LAYOUT_KEY_V6183 = 'cdaDashboardLayout.v6.183';
+  const STATE_KEY_V6183 = 'cdaDashboardLastState.v6.183';
+
+  let restoredStateOnceV6183 = false;
+  let restoringStateV6183 = false;
+  let resettingStateV6183 = false;
+  let saveStateTimerV6183 = null;
+  let editModeV6183 = false;
+  let currentLayoutV6183 = null;
+  let dragStateV6183 = null;
+
+  function numberV6183(value, fallback) {
+    const n = Number(value);
+    return Number.isFinite(n) ? n : fallback;
+  }
+
+  function clampV6183(value, min, max) {
+    return Math.max(min, Math.min(max, value));
+  }
+
+  function toArrayV6183(value) {
+    try { return Array.from(value || []); } catch (err) { return []; }
+  }
+
+  function sameSetV6183(a, b) {
+    const aa = toArrayV6183(a).map(String).sort();
+    const bb = toArrayV6183(b).map(String).sort();
+    if (aa.length !== bb.length) return false;
+    for (let i = 0; i < aa.length; i++) if (aa[i] !== bb[i]) return false;
+    return true;
+  }
+
+  function defaultYearsMatchV6183() {
+    try {
+      const current = toArrayV6183(state.years).map(Number).filter(Boolean);
+      const defaults = typeof getDefaultYears === 'function' ? getDefaultYears().map(Number).filter(Boolean) : [2026, 2025];
+      return sameSetV6183(current, defaults);
+    } catch (err) {
+      return false;
+    }
+  }
+
+  function getOverviewOneV6183() {
+    return document.getElementById('overviewOne');
+  }
+
+  function getKpiStripV6183() {
+    return document.querySelector('#overviewOne .topBar.executiveTop .kpiStrip.comparisonKpis');
+  }
+
+  function getPillBarV6183() {
+    return document.getElementById('activeFilterPillBarV6170');
+  }
+
+  function getTopBarV6183() {
+    return document.querySelector('#overviewOne .topBar.executiveTop');
+  }
+
+  function getDefaultLayoutV6183() {
+    const kpis = getKpiStripV6183();
+    const pills = getPillBarV6183();
+    const kpiRect = kpis ? kpis.getBoundingClientRect() : { width: 760 };
+    const pillRect = pills ? pills.getBoundingClientRect() : { width: 300 };
+
+    return {
+      kpiX: 0,
+      kpiY: 0,
+      kpiWidth: Math.round(kpiRect.width || 760),
+      kpiScale: 100,
+      kpiGap: 8,
+      pillX: 0,
+      pillY: 0,
+      pillWidth: Math.round(pillRect.width || 300)
+    };
+  }
+
+  function normalizeLayoutV6183(layout) {
+    const defaults = getDefaultLayoutV6183();
+    const result = Object.assign({}, defaults, layout || {});
+    result.kpiX = clampV6183(numberV6183(result.kpiX, 0), -500, 500);
+    result.kpiY = clampV6183(numberV6183(result.kpiY, 0), -160, 160);
+    result.kpiWidth = clampV6183(numberV6183(result.kpiWidth, defaults.kpiWidth), 420, 1280);
+    result.kpiScale = clampV6183(numberV6183(result.kpiScale, 100), 70, 130);
+    result.kpiGap = clampV6183(numberV6183(result.kpiGap, 8), 2, 22);
+    result.pillX = clampV6183(numberV6183(result.pillX, 0), -500, 500);
+    result.pillY = clampV6183(numberV6183(result.pillY, 0), -160, 160);
+    result.pillWidth = clampV6183(numberV6183(result.pillWidth, defaults.pillWidth), 120, 900);
+    return result;
+  }
+
+  function readSavedLayoutV6183() {
+    try {
+      const raw = localStorage.getItem(LAYOUT_KEY_V6183);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      return parsed && typeof parsed === 'object' ? normalizeLayoutV6183(parsed) : null;
+    } catch (err) {
+      return null;
+    }
+  }
+
+  function saveLayoutV6183() {
+    if (!currentLayoutV6183) currentLayoutV6183 = normalizeLayoutV6183({});
+    try {
+      localStorage.setItem(LAYOUT_KEY_V6183, JSON.stringify(currentLayoutV6183));
+    } catch (err) {}
+    const overview = getOverviewOneV6183();
+    if (overview) overview.classList.add('layoutTunedV6183');
+    flashLayoutStatusV6183('Saved');
+  }
+
+  function clearLayoutV6183() {
+    try { localStorage.removeItem(LAYOUT_KEY_V6183); } catch (err) {}
+    currentLayoutV6183 = null;
+    clearLayoutVarsV6183();
+    syncPanelInputsV6183(getDefaultLayoutV6183());
+    flashLayoutStatusV6183('Reset');
+  }
+
+  function clearLayoutVarsV6183() {
+    const overview = getOverviewOneV6183();
+    if (!overview) return;
+    ['--layoutKpiX','--layoutKpiY','--layoutKpiWidth','--layoutKpiScale','--layoutKpiGap','--layoutPillX','--layoutPillY','--layoutPillWidth'].forEach(name => {
+      overview.style.removeProperty(name);
+    });
+    overview.classList.remove('layoutTunedV6183');
+  }
+
+  function applyLayoutV6183(layout, markTuned) {
+    const overview = getOverviewOneV6183();
+    if (!overview) return;
+    const next = normalizeLayoutV6183(layout || {});
+    currentLayoutV6183 = next;
+
+    overview.style.setProperty('--layoutKpiX', next.kpiX + 'px');
+    overview.style.setProperty('--layoutKpiY', next.kpiY + 'px');
+    overview.style.setProperty('--layoutKpiWidth', next.kpiWidth + 'px');
+    overview.style.setProperty('--layoutKpiScale', (next.kpiScale / 100).toFixed(3));
+    overview.style.setProperty('--layoutKpiGap', next.kpiGap + 'px');
+    overview.style.setProperty('--layoutPillX', next.pillX + 'px');
+    overview.style.setProperty('--layoutPillY', next.pillY + 'px');
+    overview.style.setProperty('--layoutPillWidth', next.pillWidth + 'px');
+
+    if (markTuned) overview.classList.add('layoutTunedV6183');
+    syncPanelInputsV6183(next);
+  }
+
+  function originalPillTextV6183(pill) {
+    if (!pill) return '';
+    const span = pill.querySelector('span');
+    const stored = span ? span.getAttribute('data-v6183-original-label') : null;
+    const raw = stored || (span ? span.textContent : pill.textContent);
+    return String(raw || '').replace(/\s+/g, ' ').trim();
+  }
+
+  function shouldHidePillV6183(label, hasMonthPill) {
+    const text = String(label || '').replace(/\s+/g, ' ').trim();
+    const lower = text.toLowerCase();
+    if (!text) return true;
+    if (lower === 'no chart/table highlights') return true;
+    if (lower === 'customers: all') return true;
+    if (lower === 'products: all') return true;
+    if (lower === 'main depts') return true;
+    if (lower === 'all depts') return true;
+    if (lower === 'ytd') return true;
+    if (lower === 'mtd' && hasMonthPill) return true;
+    if (/^years:/i.test(text) && defaultYearsMatchV6183()) return true;
+    return false;
+  }
+
+  function valueOnlyLabelV6183(label) {
+    return String(label || '')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .replace(/^Customers highlighted:\s*/i, '')
+      .replace(/^Customer highlighted:\s*/i, '')
+      .replace(/^Products highlighted:\s*/i, '')
+      .replace(/^Product highlighted:\s*/i, '')
+      .replace(/^Departments highlighted:\s*/i, '')
+      .replace(/^Department highlighted:\s*/i, '')
+      .replace(/^Groups highlighted:\s*/i, '')
+      .replace(/^Group highlighted:\s*/i, '')
+      .replace(/^Categories highlighted:\s*/i, '')
+      .replace(/^Category highlighted:\s*/i, '')
+      .replace(/^Month breakdown:\s*/i, '')
+      .replace(/^Months:\s*/i, '')
+      .replace(/^Years:\s*/i, '')
+      .replace(/^Customers:\s*/i, '')
+      .replace(/^Customer:\s*/i, '')
+      .replace(/^Products:\s*/i, '')
+      .replace(/^Product:\s*/i, '')
+      .replace(/^Departments:\s*/i, '')
+      .replace(/^Department:\s*/i, '')
+      .replace(/^Groups:\s*/i, '')
+      .replace(/^Group:\s*/i, '')
+      .replace(/^Categories:\s*/i, '')
+      .replace(/^Category:\s*/i, '')
+      .trim();
+  }
+
+  function makePillsValueOnlyV6183() {
+    const bar = getPillBarV6183();
+    const topBar = getTopBarV6183();
+    if (!bar || !topBar) return;
+
+    bar.classList.add('layoutEditablePillBarV6183');
+    const pills = Array.from(bar.querySelectorAll('.v6170Pill'));
+    const labels = pills.map(originalPillTextV6183);
+    const hasMonthPill = labels.some(label => /^Month breakdown:/i.test(label) || /^Months:/i.test(label));
+    let visibleCount = 0;
+
+    pills.forEach(pill => {
+      const span = pill.querySelector('span');
+      if (!span) {
+        pill.classList.add('layoutHiddenPillV6183');
+        pill.style.display = 'none';
+        return;
+      }
+      const original = originalPillTextV6183(pill);
+      span.setAttribute('data-v6183-original-label', original);
+      if (shouldHidePillV6183(original, hasMonthPill)) {
+        pill.classList.add('layoutHiddenPillV6183');
+        pill.classList.remove('layoutValuePillV6183');
+        pill.style.display = 'none';
+        return;
+      }
+      const value = valueOnlyLabelV6183(original);
+      if (!value) {
+        pill.classList.add('layoutHiddenPillV6183');
+        pill.classList.remove('layoutValuePillV6183');
+        pill.style.display = 'none';
+        return;
+      }
+      span.textContent = value;
+      pill.title = value;
+      pill.classList.remove('layoutHiddenPillV6183');
+      pill.classList.add('layoutValuePillV6183');
+      pill.style.display = 'inline-flex';
+      pill.querySelectorAll('button').forEach(button => {
+        button.textContent = '×';
+        button.classList.add('layoutPillClearV6183');
+        button.title = 'Clear';
+        if (!button.getAttribute('aria-label')) button.setAttribute('aria-label', 'Clear ' + value);
+      });
+      visibleCount++;
+    });
+
+    bar.querySelectorAll('.v6170PillLabel').forEach(label => { label.style.display = 'none'; });
+    bar.querySelectorAll('.v6170PillSection').forEach(section => {
+      const hasVisible = Array.from(section.querySelectorAll('.v6170Pill')).some(pill => !pill.classList.contains('layoutHiddenPillV6183'));
+      section.style.display = hasVisible ? 'inline-flex' : 'none';
+    });
+    bar.style.visibility = visibleCount ? 'visible' : 'hidden';
+    bar.setAttribute('data-v6183-visible-count', String(visibleCount));
+  }
+
+  function installStylesV6183() {
+    if (document.getElementById(STYLE_ID_V6183)) return;
+    const style = document.createElement('style');
+    style.id = STYLE_ID_V6183;
+    style.textContent = [
+      '#overviewOne { --layoutPanelTop: 84px; }',
+      '#overviewOne .topBar.executiveTop { position: relative !important; }',
+      '#overviewOne.layoutTunedV6183 .topBar.executiveTop .kpiStrip.comparisonKpis,',
+      '#overviewOne.layoutEditActiveV6183 .topBar.executiveTop .kpiStrip.comparisonKpis {',
+      '  width: var(--layoutKpiWidth) !important;',
+      '  max-width: min(100%, var(--layoutKpiWidth)) !important;',
+      '  gap: var(--layoutKpiGap) !important;',
+      '  transform: translate(var(--layoutKpiX), var(--layoutKpiY)) scale(var(--layoutKpiScale)) !important;',
+      '  transform-origin: center center !important;',
+      '  z-index: 2 !important;',
+      '}',
+      '#overviewOne.layoutTunedV6183 #activeFilterPillBarV6170,',
+      '#overviewOne.layoutEditActiveV6183 #activeFilterPillBarV6170 {',
+      '  width: var(--layoutPillWidth) !important;',
+      '  max-width: min(100%, var(--layoutPillWidth)) !important;',
+      '  transform: translate(var(--layoutPillX), var(--layoutPillY)) !important;',
+      '  z-index: 3 !important;',
+      '}',
+      '#overviewOne #activeFilterPillBarV6170.layoutEditablePillBarV6183 {',
+      '  background: transparent !important;',
+      '  box-shadow: none !important;',
+      '  border: 0 !important;',
+      '}',
+      '#overviewOne #activeFilterPillBarV6170 .layoutHiddenPillV6183 { display: none !important; }',
+      '#overviewOne #activeFilterPillBarV6170 .layoutValuePillV6183 {',
+      '  display: inline-flex !important;',
+      '  align-items: center !important;',
+      '  gap: 4px !important;',
+      '  min-height: 20px !important;',
+      '  height: 20px !important;',
+      '  max-width: 170px !important;',
+      '  padding: 0 6px !important;',
+      '  border-radius: 999px !important;',
+      '  border: 1px solid #d9dee7 !important;',
+      '  background: #f8faff !important;',
+      '  color: #475467 !important;',
+      '  box-shadow: none !important;',
+      '  font-family: Roboto, Arial, sans-serif !important;',
+      '  font-size: 10.5px !important;',
+      '  font-weight: 700 !important;',
+      '  line-height: 1 !important;',
+      '  white-space: nowrap !important;',
+      '}',
+      '#overviewOne #activeFilterPillBarV6170 .layoutValuePillV6183 span { overflow: hidden !important; text-overflow: ellipsis !important; white-space: nowrap !important; }',
+      '#overviewOne #activeFilterPillBarV6170 .layoutPillClearV6183 {',
+      '  width: 13px !important; height: 13px !important; min-width: 13px !important;',
+      '  margin: 0 0 0 1px !important; padding: 0 !important; border: 0 !important;',
+      '  border-radius: 999px !important; background: rgba(15, 23, 42, .08) !important;',
+      '  color: #667085 !important; box-shadow: none !important; font: 900 10px/1 Arial, sans-serif !important;',
+      '}',
+      '#layoutEditButtonV6183 {',
+      '  position: fixed !important; right: 14px !important; bottom: 16px !important; z-index: 99990 !important;',
+      '  width: 38px !important; height: 38px !important; border-radius: 999px !important;',
+      '  border: 1px solid rgba(24, 36, 51, .20) !important; background: #ffffff !important;',
+      '  color: #182433 !important; box-shadow: 0 8px 22px rgba(16,24,40,.16) !important;',
+      '  font-size: 18px !important; font-weight: 900 !important; cursor: pointer !important;',
+      '}',
+      '#layoutEditButtonV6183:hover { transform: translateY(-1px) !important; box-shadow: 0 10px 26px rgba(16,24,40,.20) !important; }',
+      '#layoutEditPanelV6183 {',
+      '  position: fixed !important; right: 14px !important; bottom: 62px !important; z-index: 99991 !important;',
+      '  width: 316px !important; max-width: calc(100vw - 28px) !important; display: none !important;',
+      '  background: #ffffff !important; border: 1px solid #d8dde6 !important; border-radius: 14px !important;',
+      '  box-shadow: 0 18px 42px rgba(16,24,40,.22) !important; padding: 12px !important;',
+      '  color: #182433 !important; font-family: Roboto, Arial, sans-serif !important;',
+      '}',
+      'body.layoutEditModeV6183 #layoutEditPanelV6183 { display: block !important; }',
+      '#layoutEditPanelV6183 .layoutEditTitleV6183 { font-size: 12px !important; font-weight: 900 !important; letter-spacing: .04em !important; text-transform: uppercase !important; margin: 0 0 8px !important; }',
+      '#layoutEditPanelV6183 .layoutEditHintV6183 { font-size: 11px !important; color: #667085 !important; line-height: 1.3 !important; margin: 0 0 10px !important; }',
+      '#layoutEditPanelV6183 .layoutEditGroupV6183 { border-top: 1px solid #edf0f5 !important; padding-top: 8px !important; margin-top: 8px !important; }',
+      '#layoutEditPanelV6183 .layoutEditGroupTitleV6183 { font-size: 11px !important; font-weight: 900 !important; color: #344054 !important; margin-bottom: 6px !important; }',
+      '#layoutEditPanelV6183 label { display: grid !important; grid-template-columns: 72px minmax(0,1fr) 42px !important; gap: 8px !important; align-items: center !important; font-size: 11px !important; font-weight: 700 !important; color: #475467 !important; margin: 6px 0 !important; }',
+      '#layoutEditPanelV6183 input[type="range"] { width: 100% !important; }',
+      '#layoutEditPanelV6183 .layoutValueV6183 { text-align: right !important; color: #667085 !important; font-variant-numeric: tabular-nums !important; }',
+      '#layoutEditPanelV6183 .layoutButtonsV6183 { display: flex !important; gap: 6px !important; margin-top: 10px !important; flex-wrap: wrap !important; }',
+      '#layoutEditPanelV6183 button { border: 1px solid #d8dde6 !important; background: #f8fafc !important; color: #344054 !important; border-radius: 9px !important; padding: 7px 9px !important; font-size: 11px !important; font-weight: 900 !important; cursor: pointer !important; }',
+      '#layoutEditPanelV6183 button.primary { background: #182433 !important; color: #fff !important; border-color: #182433 !important; }',
+      '#layoutEditStatusV6183 { margin-left: auto !important; color: #667085 !important; font-size: 11px !important; align-self: center !important; }',
+      'body.layoutEditModeV6183 #overviewOne .topBar.executiveTop .kpiStrip.comparisonKpis,',
+      'body.layoutEditModeV6183 #overviewOne #activeFilterPillBarV6170 {',
+      '  outline: 1.5px dashed rgba(35, 91, 142, .80) !important;',
+      '  outline-offset: 3px !important;',
+      '  cursor: move !important;',
+      '}',
+      'body.layoutEditModeV6183 #overviewOne .topBar.executiveTop .kpiStrip.comparisonKpis::after { content: "KPIs"; }',
+      'body.layoutEditModeV6183 #overviewOne #activeFilterPillBarV6170::after { content: "Pills"; }',
+      'body.layoutEditModeV6183 #overviewOne .topBar.executiveTop .kpiStrip.comparisonKpis::after,',
+      'body.layoutEditModeV6183 #overviewOne #activeFilterPillBarV6170::after {',
+      '  position: absolute !important; right: 4px !important; top: -18px !important;',
+      '  background: #182433 !important; color: #fff !important; border-radius: 999px !important;',
+      '  padding: 2px 6px !important; font: 900 10px/1 Roboto, Arial, sans-serif !important;',
+      '}',
+      '@media (max-width: 760px) { #layoutEditPanelV6183 { right: 8px !important; bottom: 58px !important; width: calc(100vw - 16px) !important; } #layoutEditButtonV6183 { right: 10px !important; bottom: 12px !important; } }'
+    ].join('\n');
+    document.head.appendChild(style);
+  }
+
+  function createPanelV6183() {
+    if (document.getElementById('layoutEditButtonV6183')) return;
+
+    const button = document.createElement('button');
+    button.id = 'layoutEditButtonV6183';
+    button.type = 'button';
+    button.title = 'Edit dashboard layout';
+    button.setAttribute('aria-label', 'Edit dashboard layout');
+    button.textContent = '✎';
+    button.addEventListener('click', toggleEditModeV6183);
+
+    const panel = document.createElement('div');
+    panel.id = 'layoutEditPanelV6183';
+    panel.innerHTML = [
+      '<div class="layoutEditTitleV6183">Edit layout</div>',
+      '<p class="layoutEditHintV6183">Drag the outlined KPI or pill area, or use the sliders. Save keeps it for this browser.</p>',
+      '<div class="layoutEditGroupV6183">',
+      '<div class="layoutEditGroupTitleV6183">KPI cards</div>',
+      makeRangeRowV6183('kpiX', 'Move X', -500, 500, 1),
+      makeRangeRowV6183('kpiY', 'Move Y', -160, 160, 1),
+      makeRangeRowV6183('kpiWidth', 'Width', 420, 1280, 1),
+      makeRangeRowV6183('kpiScale', 'Scale', 70, 130, 1),
+      makeRangeRowV6183('kpiGap', 'Gap', 2, 22, 1),
+      '</div>',
+      '<div class="layoutEditGroupV6183">',
+      '<div class="layoutEditGroupTitleV6183">Active pills</div>',
+      makeRangeRowV6183('pillX', 'Move X', -500, 500, 1),
+      makeRangeRowV6183('pillY', 'Move Y', -160, 160, 1),
+      makeRangeRowV6183('pillWidth', 'Width', 120, 900, 1),
+      '</div>',
+      '<div class="layoutButtonsV6183">',
+      '<button type="button" class="primary" id="layoutSaveBtnV6183">Save</button>',
+      '<button type="button" id="layoutResetBtnV6183">Reset</button>',
+      '<button type="button" id="layoutExitBtnV6183">Exit</button>',
+      '<span id="layoutEditStatusV6183"></span>',
+      '</div>'
+    ].join('');
+
+    document.body.appendChild(button);
+    document.body.appendChild(panel);
+
+    panel.querySelectorAll('input[type="range"]').forEach(input => {
+      input.addEventListener('input', handleSliderInputV6183);
+    });
+    const saveBtn = document.getElementById('layoutSaveBtnV6183');
+    const resetBtn = document.getElementById('layoutResetBtnV6183');
+    const exitBtn = document.getElementById('layoutExitBtnV6183');
+    if (saveBtn) saveBtn.addEventListener('click', saveLayoutV6183);
+    if (resetBtn) resetBtn.addEventListener('click', clearLayoutV6183);
+    if (exitBtn) exitBtn.addEventListener('click', exitEditModeV6183);
+  }
+
+  function makeRangeRowV6183(name, label, min, max, step) {
+    return '<label><span>' + label + '</span><input id="layoutInput-' + name + '" data-layout-name="' + name + '" type="range" min="' + min + '" max="' + max + '" step="' + step + '"><span class="layoutValueV6183" id="layoutValue-' + name + '">0</span></label>';
+  }
+
+  function syncPanelInputsV6183(layout) {
+    const next = normalizeLayoutV6183(layout || currentLayoutV6183 || {});
+    Object.keys(next).forEach(name => {
+      const input = document.getElementById('layoutInput-' + name);
+      const label = document.getElementById('layoutValue-' + name);
+      if (input) input.value = String(next[name]);
+      if (label) label.textContent = String(Math.round(next[name]));
+    });
+  }
+
+  function handleSliderInputV6183(event) {
+    const input = event.currentTarget;
+    const name = input.getAttribute('data-layout-name');
+    if (!name) return;
+    const next = Object.assign({}, currentLayoutV6183 || getDefaultLayoutV6183());
+    next[name] = Number(input.value);
+    applyLayoutV6183(next, false);
+  }
+
+  function enterEditModeV6183() {
+    const overview = getOverviewOneV6183();
+    if (!overview) return;
+    editModeV6183 = true;
+    document.body.classList.add('layoutEditModeV6183');
+    overview.classList.add('layoutEditActiveV6183');
+    currentLayoutV6183 = currentLayoutV6183 || readSavedLayoutV6183() || getDefaultLayoutV6183();
+    applyLayoutV6183(currentLayoutV6183, !!readSavedLayoutV6183());
+    attachDragHandlersV6183();
+    flashLayoutStatusV6183('Editing');
+  }
+
+  function exitEditModeV6183() {
+    const overview = getOverviewOneV6183();
+    editModeV6183 = false;
+    document.body.classList.remove('layoutEditModeV6183');
+    if (overview) overview.classList.remove('layoutEditActiveV6183');
+    detachDragHandlersV6183();
+  }
+
+  function toggleEditModeV6183() {
+    if (editModeV6183) exitEditModeV6183();
+    else enterEditModeV6183();
+  }
+
+  function flashLayoutStatusV6183(text) {
+    const status = document.getElementById('layoutEditStatusV6183');
+    if (!status) return;
+    status.textContent = text;
+    window.clearTimeout(status.__timerV6183);
+    status.__timerV6183 = window.setTimeout(() => { status.textContent = ''; }, 1400);
+  }
+
+  function attachDragHandlersV6183() {
+    detachDragHandlersV6183();
+    const kpis = getKpiStripV6183();
+    const pills = getPillBarV6183();
+    if (kpis) kpis.addEventListener('pointerdown', startDragKpisV6183, true);
+    if (pills) pills.addEventListener('pointerdown', startDragPillsV6183, true);
+  }
+
+  function detachDragHandlersV6183() {
+    const kpis = getKpiStripV6183();
+    const pills = getPillBarV6183();
+    if (kpis) kpis.removeEventListener('pointerdown', startDragKpisV6183, true);
+    if (pills) pills.removeEventListener('pointerdown', startDragPillsV6183, true);
+    window.removeEventListener('pointermove', continueDragV6183, true);
+    window.removeEventListener('pointerup', endDragV6183, true);
+  }
+
+  function startDragKpisV6183(event) {
+    startDragV6183(event, 'kpi');
+  }
+
+  function startDragPillsV6183(event) {
+    startDragV6183(event, 'pill');
+  }
+
+  function startDragV6183(event, target) {
+    if (!editModeV6183) return;
+    if (event.button !== undefined && event.button !== 0) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const layout = normalizeLayoutV6183(currentLayoutV6183 || getDefaultLayoutV6183());
+    dragStateV6183 = {
+      target,
+      startX: event.clientX,
+      startY: event.clientY,
+      startLayout: layout
+    };
+    currentLayoutV6183 = layout;
+    try { event.currentTarget.setPointerCapture(event.pointerId); } catch (err) {}
+    window.addEventListener('pointermove', continueDragV6183, true);
+    window.addEventListener('pointerup', endDragV6183, true);
+  }
+
+  function continueDragV6183(event) {
+    if (!dragStateV6183) return;
+    event.preventDefault();
+    const dx = event.clientX - dragStateV6183.startX;
+    const dy = event.clientY - dragStateV6183.startY;
+    const next = Object.assign({}, dragStateV6183.startLayout);
+    if (dragStateV6183.target === 'kpi') {
+      next.kpiX = dragStateV6183.startLayout.kpiX + dx;
+      next.kpiY = dragStateV6183.startLayout.kpiY + dy;
+    } else {
+      next.pillX = dragStateV6183.startLayout.pillX + dx;
+      next.pillY = dragStateV6183.startLayout.pillY + dy;
+    }
+    applyLayoutV6183(next, false);
+  }
+
+  function endDragV6183(event) {
+    if (dragStateV6183) event.preventDefault();
+    dragStateV6183 = null;
+    window.removeEventListener('pointermove', continueDragV6183, true);
+    window.removeEventListener('pointerup', endDragV6183, true);
+  }
+
+  function readSavedDashboardStateV6183() {
+    try {
+      const raw = localStorage.getItem(STATE_KEY_V6183);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      return parsed && typeof parsed === 'object' ? parsed : null;
+    } catch (err) {
+      return null;
+    }
+  }
+
+  function snapshotDashboardStateV6183() {
+    return {
+      version: 'v6.183',
+      savedAt: new Date().toISOString(),
+      activeTab: state.activeTab || 'two',
+      filterSnapshot: typeof snapshotFilterState === 'function' ? snapshotFilterState() : {}
+    };
+  }
+
+  function saveDashboardStateNowV6183() {
+    if (restoringStateV6183 || resettingStateV6183 || !payload) return;
+    try { localStorage.setItem(STATE_KEY_V6183, JSON.stringify(snapshotDashboardStateV6183())); } catch (err) {}
+  }
+
+  function scheduleStateSaveV6183() {
+    if (restoringStateV6183 || resettingStateV6183 || !payload) return;
+    if (saveStateTimerV6183) window.clearTimeout(saveStateTimerV6183);
+    saveStateTimerV6183 = window.setTimeout(() => {
+      saveStateTimerV6183 = null;
+      saveDashboardStateNowV6183();
+    }, 160);
+  }
+
+  function restoreDashboardStateV6183() {
+    if (restoredStateOnceV6183 || !payload) return false;
+    restoredStateOnceV6183 = true;
+    const saved = readSavedDashboardStateV6183();
+    if (!saved) return false;
+    restoringStateV6183 = true;
+    try {
+      if (saved.filterSnapshot && typeof applyFilterSnapshot === 'function') applyFilterSnapshot(saved.filterSnapshot);
+      if (typeof keepSelectionsValid === 'function') keepSelectionsValid();
+      if (typeof buildControls === 'function') buildControls();
+      const tab = saved.activeTab || 'two';
+      state.activeTab = tab;
+      if (typeof switchTab === 'function') switchTab(tab);
+      else if (typeof renderAll === 'function') renderAll();
+      window.setTimeout(afterRenderV6183, 140);
+      return true;
+    } catch (err) {
+      console.warn('v6.183 saved state restore failed', err);
+      return false;
+    } finally {
+      restoringStateV6183 = false;
+    }
+  }
+
+  function clearDashboardStateV6183() {
+    try { localStorage.removeItem(STATE_KEY_V6183); } catch (err) {}
+  }
+
+  function setDebugVersionV6183() {
+    document.querySelectorAll('body *').forEach(el => {
+      const value = (el.textContent || '').trim();
+      if (/^DEBUG v6\.\d+/.test(value) && value.length < 300) el.textContent = VERSION_TEXT_V6183;
+    });
+  }
+
+  function applySavedLayoutIfAnyV6183() {
+    const saved = readSavedLayoutV6183();
+    if (saved) applyLayoutV6183(saved, true);
+  }
+
+  function afterRenderV6183() {
+    installStylesV6183();
+    createPanelV6183();
+    makePillsValueOnlyV6183();
+    applySavedLayoutIfAnyV6183();
+    setDebugVersionV6183();
+    scheduleStateSaveV6183();
+  }
+
+  const previousRenderAllV6183 = typeof renderAll === 'function' ? renderAll : null;
+  if (previousRenderAllV6183 && !renderAll.__v6183Wrapped) {
+    const wrappedRenderAllV6183 = function renderAllV6183() {
+      const result = previousRenderAllV6183.apply(this, arguments);
+      afterRenderV6183();
+      return result;
+    };
+    wrappedRenderAllV6183.__v6183Wrapped = true;
+    renderAll = wrappedRenderAllV6183;
+  }
+
+  const previousHandleDataV6183 = typeof handleData === 'function' ? handleData : null;
+  if (previousHandleDataV6183 && !handleData.__v6183Wrapped) {
+    const wrappedHandleDataV6183 = function handleDataV6183() {
+      const result = previousHandleDataV6183.apply(this, arguments);
+      if (!restoreDashboardStateV6183()) afterRenderV6183();
+      return result;
+    };
+    wrappedHandleDataV6183.__v6183Wrapped = true;
+    handleData = wrappedHandleDataV6183;
+  }
+
+  const previousSwitchTabV6183 = typeof switchTab === 'function' ? switchTab : null;
+  if (previousSwitchTabV6183 && !switchTab.__v6183Wrapped) {
+    const wrappedSwitchTabV6183 = function switchTabV6183() {
+      const result = previousSwitchTabV6183.apply(this, arguments);
+      window.setTimeout(() => { afterRenderV6183(); scheduleStateSaveV6183(); }, 80);
+      return result;
+    };
+    wrappedSwitchTabV6183.__v6183Wrapped = true;
+    switchTab = wrappedSwitchTabV6183;
+  }
+
+  const previousResetAllFiltersV6183 = typeof resetAllFilters === 'function' ? resetAllFilters : null;
+  if (previousResetAllFiltersV6183 && !resetAllFilters.__v6183Wrapped) {
+    const wrappedResetAllFiltersV6183 = function resetAllFiltersV6183() {
+      resettingStateV6183 = true;
+      clearDashboardStateV6183();
+      try {
+        return previousResetAllFiltersV6183.apply(this, arguments);
+      } finally {
+        resettingStateV6183 = false;
+        clearDashboardStateV6183();
+        afterRenderV6183();
+      }
+    };
+    wrappedResetAllFiltersV6183.__v6183Wrapped = true;
+    resetAllFilters = wrappedResetAllFiltersV6183;
+  }
+
+  window.addEventListener('beforeunload', saveDashboardStateNowV6183);
+
+  installStylesV6183();
+  createPanelV6183();
+  afterRenderV6183();
+  setTimeout(afterRenderV6183, 0);
+  setTimeout(afterRenderV6183, 250);
+  setTimeout(afterRenderV6183, 900);
+})();
+
+
+/* v6.184 advanced layout edit mode for Overview 1.0 cards
+   Built on v6.183.
+   Adds move/resize editing for the main dashboard cards so gaps can be manually filled.
+   Existing v6.183 pencil, KPI/pill edit mode, save/reset, and page/filter memory remain active.
+   Default/status pills remain hidden unless they represent an actual selected value. */
+(function installAdvancedLayoutEditModeAllBlocksV6184() {
+  const VERSION_TEXT_V6184 = 'DEBUG v6.184 floatingLayoutEditModeAllBlocks - move/resize dashboard cards, save layout, hidden default pills';
+  const STYLE_ID_V6184 = 'advancedLayoutEditModeAllBlocksStylesV6184';
+  const BLOCK_LAYOUT_KEY_V6184 = 'cdaDashboardBlockLayout.v6.184';
+
+  const BLOCKS_V6184 = [
+    { key: 'revenue', label: 'Revenue Trend', selector: '#overviewOne .areaRevenue' },
+    { key: 'customers', label: 'Customer Count', selector: '#overviewOne .areaCustomers' },
+    { key: 'units', label: 'Units Produced', selector: '#overviewOne .areaUnits' },
+    { key: 'rpac', label: 'Revenue / Active Customer', selector: '#overviewOne .areaRpac' },
+    { key: 'avg', label: 'Avg Price / Unit', selector: '#overviewOne .areaAvg' },
+    { key: 'customerTable', label: 'Customer Movers', selector: '#overviewOne .areaCustomerTable' },
+    { key: 'productTable', label: 'Product Movers', selector: '#overviewOne .areaProductTable' }
+  ];
+
+  let currentBlockLayoutV6184 = null;
+  let dragStateV6184 = null;
+  let selectedBlockKeyV6184 = 'revenue';
+  let zCounterV6184 = 20;
+
+  function clampV6184(value, min, max) {
+    return Math.max(min, Math.min(max, value));
+  }
+
+  function numberV6184(value, fallback) {
+    const n = Number(value);
+    return Number.isFinite(n) ? n : fallback;
+  }
+
+  function overviewOneV6184() {
+    return document.getElementById('overviewOne');
+  }
+
+  function gridV6184() {
+    return document.querySelector('#overviewOne .grid');
+  }
+
+  function isEditModeV6184() {
+    return document.body.classList.contains('layoutEditModeV6183');
+  }
+
+  function blockElementV6184(key) {
+    const block = BLOCKS_V6184.find(item => item.key === key);
+    return block ? document.querySelector(block.selector) : null;
+  }
+
+  function readSavedBlockLayoutV6184() {
+    try {
+      const raw = localStorage.getItem(BLOCK_LAYOUT_KEY_V6184);
+      if (!raw) return {};
+      const parsed = JSON.parse(raw);
+      return parsed && typeof parsed === 'object' ? parsed : {};
+    } catch (err) {
+      return {};
+    }
+  }
+
+  function saveBlockLayoutV6184() {
+    currentBlockLayoutV6184 = currentBlockLayoutV6184 || {};
+    try {
+      localStorage.setItem(BLOCK_LAYOUT_KEY_V6184, JSON.stringify(currentBlockLayoutV6184));
+    } catch (err) {}
+    const overview = overviewOneV6184();
+    if (overview) overview.classList.add('blockLayoutTunedV6184');
+    flashStatusV6184('Saved cards');
+  }
+
+  function clearBlockLayoutV6184() {
+    try {
+      localStorage.removeItem(BLOCK_LAYOUT_KEY_V6184);
+    } catch (err) {}
+    currentBlockLayoutV6184 = {};
+    const overview = overviewOneV6184();
+    if (overview) overview.classList.remove('blockLayoutTunedV6184');
+    BLOCKS_V6184.forEach(block => {
+      const el = blockElementV6184(block.key);
+      if (!el) return;
+      [
+        '--blockX',
+        '--blockY',
+        '--blockW',
+        '--blockH',
+        '--blockZ'
+      ].forEach(name => el.style.removeProperty(name));
+      el.classList.remove('blockMovedV6184');
+    });
+    flashStatusV6184('Reset cards');
+    window.dispatchEvent(new Event('resize'));
+  }
+
+  function defaultBlockLayoutV6184(key) {
+    const el = blockElementV6184(key);
+    const rect = el ? el.getBoundingClientRect() : { width: 420, height: 260 };
+    return {
+      x: 0,
+      y: 0,
+      w: Math.max(220, Math.round(rect.width || 420)),
+      h: Math.max(150, Math.round(rect.height || 260)),
+      z: 1
+    };
+  }
+
+  function normalizeBlockLayoutV6184(key, layout) {
+    const defaults = defaultBlockLayoutV6184(key);
+    const next = Object.assign({}, defaults, layout || {});
+    return {
+      x: clampV6184(numberV6184(next.x, 0), -900, 900),
+      y: clampV6184(numberV6184(next.y, 0), -700, 700),
+      w: clampV6184(numberV6184(next.w, defaults.w), 220, 1700),
+      h: clampV6184(numberV6184(next.h, defaults.h), 140, 1000),
+      z: clampV6184(numberV6184(next.z, 1), 1, 999)
+    };
+  }
+
+  function getCurrentBlockLayoutV6184(key) {
+    currentBlockLayoutV6184 = currentBlockLayoutV6184 || readSavedBlockLayoutV6184() || {};
+    const existing = currentBlockLayoutV6184[key];
+    const normalized = normalizeBlockLayoutV6184(key, existing);
+    currentBlockLayoutV6184[key] = normalized;
+    return normalized;
+  }
+

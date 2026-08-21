@@ -1,473 +1,319 @@
-      state.v6165CustomerClickOrder = [id];
-    }
+      + '</tbody>';
+  }
 
-    state.tableSelectedCustomerIds = new Set(selected);
-    renderAll();
-  };
-  window.setCustomer = setCustomer;
+  window.setRemakeFilterV6215 = setRemakeFilterV6215;
 
-  setProduct = function setProductV6213(value, event) {
-    ensureInteractionStateV6213();
-    const key = String(value || '');
-    if (!key) {
-      clearProductFocusV6213();
-      renderAll();
+  function renderRemakeFactorDashboardV6215() {
+    populateRemakeFiltersV6215();
+    const filtered = remakeFilteredRowsV6215();
+    const summary = remakeSummaryV6215(filtered);
+    renderRemakeKpisV6215(summary);
+    renderRemakeTrendV6215(filtered);
+    renderRemakeTableV6215('remakeReasonTable', groupRemakeRowsV6215(filtered, row => row.remakeReason || row.reason || 'Not specified'), 'Reason', 'remakeReasonFilter');
+    renderRemakeTableV6215('remakeDepartmentTable', groupRemakeRowsV6215(filtered, row => row.department || 'Unassigned'), 'Department', 'remakeDepartmentFilter');
+    renderRemakeTableV6215('remakeProductTable', groupRemakeRowsV6215(filtered, row => row.productName || row.productId || 'Unknown product'), 'Product', 'remakeProductFilter');
+  }
+
+  function handleRemakeDataV6215(data, fromLocal) {
+    if (!window.remakeFactorState) window.remakeFactorState = {};
+    if (!data || !data.ok) {
+      window.remakeFactorState.loaded = false;
+      setRemakeNoticeV6215((data && data.message) || 'Remake cache could not load.', 'error');
       return;
     }
-    if (state.v6165ProductFocusMode !== state.v6165ProductMode) {
-      clearProductFocusV6213();
-      state.v6165ProductFocusMode = state.v6165ProductMode;
-    }
-    const selected = state.v6165ProductFocus;
-    const additive = eventIsAdditiveV6213(event);
-
-    if (additive) {
-      if (selected.has(key)) {
-        selected.delete(key);
-        state.v6165ProductClickOrder = (state.v6165ProductClickOrder || []).filter(item => item !== key);
-      } else {
-        selected.add(key);
-        rememberFirstV6213('v6165ProductClickOrder', key);
-      }
-    } else {
-      selected.clear();
-      selected.add(key);
-      state.v6165ProductClickOrder = [key];
-    }
-
-    state.tableSelectedProductKeys = new Set(selected);
-    renderAll();
-  };
-  window.setProduct = setProduct;
-
-  function installProductModeButtonsV6213() {
-    const area = document.querySelector('#overviewOne .areaProductTable .cardActions');
-    if (!area) return;
-    const old = area.querySelector('.productModeButtonsV6165');
-    if (old) old.classList.add('productModeButtonsV6213');
-    if (area.querySelector('.productModeButtonsV6213')) return;
-    const wrap = document.createElement('div');
-    wrap.className = 'tableToggles productModeButtonsV6213';
-    wrap.innerHTML = [
-      ['product', 'Product'], ['department', 'Dept'], ['group', 'Group'], ['category', 'Category']
-    ].map(pair => '<button type="button" class="tinyBtn" data-product-mode-v6213="' + pair[0] + '" onclick="setProductModeV6213(\'' + pair[0] + '\')">' + pair[1] + '</button>').join('');
-    area.insertBefore(wrap, area.firstChild);
-  }
-
-  window.setProductModeV6213 = function setProductModeV6213(mode) {
-    ensureInteractionStateV6213();
-    const allowed = new Set(['product', 'department', 'group', 'category']);
-    const next = allowed.has(mode) ? mode : 'product';
-    if (state.v6165ProductMode !== next) {
-      state.v6165ProductMode = next;
-      state.v6165ProductFocusMode = next;
-      clearProductFocusV6213();
-    }
-    renderAll();
-  };
-  window.setProductModeV6212 = window.setProductModeV6213;
-  window.setProductModeV6165 = window.setProductModeV6213;
-
-  function updateProductModeChromeV6213() {
-    const config = productModeConfigV6213();
-    document.querySelectorAll('[data-product-mode-v6165], [data-product-mode-v6212], [data-product-mode-v6213]').forEach(button => {
-      const mode = button.getAttribute('data-product-mode-v6165') || button.getAttribute('data-product-mode-v6212') || button.getAttribute('data-product-mode-v6213');
-      button.classList.toggle('active', mode === config.mode);
-    });
-    const title = document.querySelector('#overviewOne .areaProductTable .chartTitle');
-    if (title) title.textContent = config.label + ' Movers';
-    const firstHeader = document.querySelector('#overviewOne .areaProductTable thead th:first-child');
-    if (firstHeader) {
-      const glyph = firstHeader.querySelector('.sortGlyph');
-      firstHeader.childNodes[0].nodeValue = config.label + ' ';
-      if (glyph) glyph.id = 'productSort_productsDescription';
-    }
-  }
-
-  renderCustomerTable = function renderCustomerTableV6213() {
-    ensureInteractionStateV6213();
-    const baseRows = getFilteredFacts({ v6165CustomerFocus: true });
-    const rows = groupBy(baseRows, row => row.customerId, row => ({
-      customerId: row.customerId,
-      customerName: row.customerName,
-      customerActive: true,
-      currentRevenue: 0,
-      priorRevenue: 0,
-      currentUnits: 0,
-      priorUnits: 0
-    }), (acc, row) => {
-      if (row.customerActive === false) acc.customerActive = false;
-      if (row.year === (payload.config.currentYear || 2026)) { acc.currentRevenue += row.netRevenue; acc.currentUnits += row.units; }
-      if (row.year === (payload.config.priorYear || 2025)) { acc.priorRevenue += row.netRevenue; acc.priorUnits += row.units; }
-    }).map(row => ({ ...row, gap: row.currentRevenue - row.priorRevenue, unitGap: row.currentUnits - row.priorUnits }));
-
-    updateMoverMetricHeaders('customer');
-    sortCustomerRows(rows);
-    selectedFirstV6213(rows, row => row.customerId, state.v6165CustomerFocus, state.v6165CustomerClickOrder);
-
-    const visibleRows = rows.slice(0, 500);
-    state.lastCustomerTableIds = visibleRows.map(row => row.customerId);
-    const unitsMode = state.customerMetric === 'units';
-    const tbody = document.getElementById('customerTable');
-    if (!tbody) return;
-    tbody.innerHTML = visibleRows.map(row => {
-      const priorValue = unitsMode ? row.priorUnits : row.priorRevenue;
-      const currentValue = unitsMode ? row.currentUnits : row.currentRevenue;
-      const gapValue = unitsMode ? row.unitGap : row.gap;
-      const active = state.v6165CustomerFocus && state.v6165CustomerFocus.has(row.customerId);
-      return '<tr class="clickable ' + (active ? 'active v6213PinnedRow' : '') + '" title="Click to hold this customer. Ctrl/Cmd-click to add or remove." onclick="setCustomer(\'' + escapeJs(row.customerId) + '\', event)">'
-        + '<td>' + escapeHtml(row.customerId) + '</td>'
-        + '<td class="customerNameCell"><span class="customerNameText">' + escapeHtml(row.customerName) + '</span>' + (row.customerActive === false ? ' <span class="inactiveBadge">Inactive</span>' : '') + '</td>'
-        + '<td>' + formatMoverValue(priorValue, unitsMode) + '</td>'
-        + '<td>' + formatMoverValue(currentValue, unitsMode) + '</td>'
-        + '<td class="' + (gapValue < 0 ? 'negative' : 'positive') + '">' + formatMoverValue(gapValue, unitsMode) + '</td>'
-        + '</tr>';
-    }).join('');
-  };
-
-  renderProductTable = function renderProductTableV6213() {
-    ensureInteractionStateV6213();
-    installProductModeButtonsV6213();
-    updateProductModeChromeV6213();
-    const config = productModeConfigV6213();
-    const baseRows = getFilteredFacts({ v6165ProductFocus: true });
-    const rows = groupBy(baseRows, row => config.key(row), row => ({
-      key: config.key(row),
-      productsDescription: config.name(row),
-      name: config.name(row),
-      currentRevenue: 0,
-      priorRevenue: 0,
-      currentUnits: 0,
-      priorUnits: 0
-    }), (acc, row) => {
-      if (row.year === (payload.config.currentYear || 2026)) { acc.currentRevenue += row.netRevenue; acc.currentUnits += row.units; }
-      if (row.year === (payload.config.priorYear || 2025)) { acc.priorRevenue += row.netRevenue; acc.priorUnits += row.units; }
-    }).map(row => ({ ...row, gap: row.currentRevenue - row.priorRevenue, unitGap: row.currentUnits - row.priorUnits }));
-
-    updateMoverMetricHeaders('product');
-    sortProductRows(rows);
-    selectedFirstV6213(rows, row => row.key, state.v6165ProductFocus, state.v6165ProductClickOrder);
-
-    const visibleRows = rows.slice(0, 1000);
-    state.lastProductTableKeys = visibleRows.map(row => row.key);
-    const unitsMode = state.productMetric === 'units';
-    const tbody = document.getElementById('productTable');
-    if (!tbody) return;
-    tbody.innerHTML = visibleRows.map(row => {
-      const priorValue = unitsMode ? row.priorUnits : row.priorRevenue;
-      const currentValue = unitsMode ? row.currentUnits : row.currentRevenue;
-      const gapValue = unitsMode ? row.unitGap : row.gap;
-      const active = state.v6165ProductFocus && state.v6165ProductFocus.has(row.key);
-      return '<tr class="clickable ' + (active ? 'active v6213PinnedRow' : '') + '" title="Click to hold this ' + escapeHtml(config.label.toLowerCase()) + '. Ctrl/Cmd-click to add or remove." onclick="setProduct(\'' + escapeJs(row.key) + '\', event)">'
-        + '<td>' + escapeHtml(row.productsDescription) + '</td>'
-        + '<td>' + formatMoverValue(priorValue, unitsMode) + '</td>'
-        + '<td>' + formatMoverValue(currentValue, unitsMode) + '</td>'
-        + '<td class="' + (gapValue < 0 ? 'negative' : 'positive') + '">' + formatMoverValue(gapValue, unitsMode) + '</td>'
-        + '</tr>';
-    }).join('');
-  };
-
-  renderCharts = function renderChartsV6213() {
-    if (!payload || !overviewIsActiveV6213()) return;
-    const jobId = ++chartJobV6213;
-    let rows = [];
-    let months = [];
-    let years = [];
+    window.remakeFactorState.data = data;
+    window.remakeFactorState.rows = normalizeRemakeRowsV6215(data);
+    window.remakeFactorState.loaded = true;
+    window.remakeFactorState.loading = false;
+    const stamp = data.generatedAt || data.lastRefreshAt || '';
+    setRemakeTextV6215('remakeLastRefresh', (fromLocal ? 'Saved browser cache: ' : 'Last refreshed: ') + (stamp || 'Loaded'));
+    setRemakeNoticeV6215(window.remakeFactorState.rows.length ? '' : 'Cache loaded; no rows returned.', window.remakeFactorState.rows.length ? '' : 'warn');
+    renderRemakeFactorDashboardV6215();
     try {
-      rows = typeof getFilteredFacts === 'function' ? getFilteredFacts({ month: true }) : [];
-      months = typeof getChartMonths === 'function' ? getChartMonths(rows) : [];
-      years = typeof getDisplayYears === 'function' ? getDisplayYears() : [];
-      if (typeof destroyChartsForTab === 'function') destroyChartsForTab('two');
-    } catch (error) { console.warn('v6.213 chart prep warning', error); }
-
-    const stillCurrent = () => jobId === chartJobV6213;
-    runLaterV6213(25, stillCurrent, () => drawRevenueTrendChart('chartRevenue', rows, years));
-    runLaterV6213(90, stillCurrent, () => drawMetricChart('chartCustomers', 'bar', rows, months, years, 'customers', formatNumber));
-    runLaterV6213(155, stillCurrent, () => drawMetricChart('chartUnits', 'bar', rows, months, years, 'units', formatNumber));
-    runLaterV6213(220, stillCurrent, () => drawMetricChart('chartRpac', 'bar', rows, months, years, 'rpac', formatCurrency));
-    runLaterV6213(285, stillCurrent, () => {
-      drawMetricChart('chartAvg', 'bar', rows, months, years, 'avgPrice', formatCurrency);
-      if (typeof updateChartFocusStyles === 'function') updateChartFocusStyles();
-      resizePoppedChartV6213();
-    });
-  };
-
-  renderTables = function renderTablesV6213() {
-    if (!payload || !overviewIsActiveV6213()) return;
-    const jobId = ++tableJobV6213;
-    const stillCurrent = () => jobId === tableJobV6213;
-    runLaterV6213(55, stillCurrent, () => renderCustomerTable());
-    runLaterV6213(105, stillCurrent, () => renderProductTable());
-  };
-
-  const previousSetOverviewChartModeV6213 = window.setOverviewChartModeV6212;
-  window.setOverviewChartModeV6213 = function setOverviewChartModeV6213(canvasId, mode) {
-    ensureInteractionStateV6213();
-    state.overviewChartModes[canvasId] = mode || 'bar';
-    if (typeof closeComponentMenu === 'function') closeComponentMenu();
-    renderAll();
-  };
-  window.setOverviewChartModeV6212 = window.setOverviewChartModeV6213;
-
-  function resizePoppedChartV6213() {
-    const card = document.querySelector('.v6213PoppedCard, .v6212PoppedCard');
-    if (!card) return;
-    const canvas = card.querySelector('canvas');
-    if (canvas && charts && charts[canvas.id] && typeof charts[canvas.id].resize === 'function') {
-      try { charts[canvas.id].resize(); } catch (error) {}
-    }
+      const json = JSON.stringify(data);
+      if (typeof idbSet === 'function') idbSet(REMAKE_LOCAL_CACHE_KEY_V6215, json).catch(() => {});
+      window.localStorage.setItem(REMAKE_LOCAL_CACHE_KEY_V6215, json);
+    } catch (error) {}
   }
 
-  function clearPopoutInlineV6213(card) {
-    if (!card) return;
-    ['left', 'top', 'right', 'bottom', 'width', 'height', 'zIndex', 'position', 'resize', 'overflow'].forEach(prop => {
-      try { card.style[prop] = ''; } catch (error) {}
-    });
+  function readLocalRemakeCacheV6215() {
+    if (typeof idbGet === 'function') {
+      return idbGet(REMAKE_LOCAL_CACHE_KEY_V6215).then(value => value ? JSON.parse(value) : null).catch(() => null);
+    }
+    return Promise.resolve(null).then(() => {
+      const value = window.localStorage.getItem(REMAKE_LOCAL_CACHE_KEY_V6215);
+      return value ? JSON.parse(value) : null;
+    }).catch(() => null);
   }
 
-  function installPopoutDragV6213(card, bar) {
-    if (!card || !bar || bar.__v6213DragInstalled) return;
-    bar.__v6213DragInstalled = true;
-    bar.addEventListener('mousedown', event => {
-      if (event.target && event.target.closest && event.target.closest('button')) return;
-      event.preventDefault();
-      const rect = card.getBoundingClientRect();
-      const startX = event.clientX;
-      const startY = event.clientY;
-      const startLeft = rect.left;
-      const startTop = rect.top;
-      function move(moveEvent) {
-        const nextLeft = Math.max(6, Math.min(window.innerWidth - 120, startLeft + moveEvent.clientX - startX));
-        const nextTop = Math.max(6, Math.min(window.innerHeight - 80, startTop + moveEvent.clientY - startY));
-        card.style.left = nextLeft + 'px';
-        card.style.top = nextTop + 'px';
-      }
-      function up() {
-        document.removeEventListener('mousemove', move);
-        document.removeEventListener('mouseup', up);
-      }
-      document.addEventListener('mousemove', move);
-      document.addEventListener('mouseup', up);
-    });
-  }
-
-  window.closePopOutV6213 = function closePopOutV6213() {
-    const cards = document.querySelectorAll('.v6213PoppedCard, .v6212PoppedCard');
-    cards.forEach(card => {
-      card.classList.remove('v6213PoppedCard', 'v6212PoppedCard');
-      const bar = card.querySelector('.v6213PopoutBar');
-      if (bar) bar.remove();
-      const oldClose = card.querySelector('.v6212PopoutClose');
-      if (oldClose) oldClose.remove();
-      clearPopoutInlineV6213(card);
-      setTimeout(() => {
-        const canvas = card.querySelector('canvas');
-        if (canvas && charts && charts[canvas.id] && typeof charts[canvas.id].resize === 'function') charts[canvas.id].resize();
-      }, 80);
-    });
-    const backdrop = document.getElementById('v6212PopoutBackdrop');
-    if (backdrop) backdrop.remove();
-    document.body.classList.remove('v6212PopoutOpen', 'v6213PopoutOpen');
-    if (popoutResizeObserverV6213) {
-      try { popoutResizeObserverV6213.disconnect(); } catch (error) {}
-      popoutResizeObserverV6213 = null;
-    }
+  window.applyRemakeFactorFilters = function applyRemakeFactorFiltersV6215() {
+    window.requestAnimationFrame(renderRemakeFactorDashboardV6215);
   };
-  window.closePopOutV6212 = window.closePopOutV6213;
 
-  window.popOutComponentV6213 = function popOutComponentV6213(componentId) {
-    if (typeof closeComponentMenu === 'function') closeComponentMenu();
-    const card = typeof getComponentCard === 'function' ? getComponentCard(componentId) : null;
-    if (!card) return;
-    window.closePopOutV6213();
+  window.loadRemakeFactorData = function loadRemakeFactorDataV6215(forceRefresh) {
+    if (!window.remakeFactorState) window.remakeFactorState = {};
+    if (window.remakeFactorState.loading) return;
+    setRemakeLoadingV6215(true);
 
-    const rect = card.getBoundingClientRect();
-    const width = Math.max(520, Math.min(Math.round(window.innerWidth * 0.72), Math.max(620, Math.round(rect.width * 1.25))));
-    const height = Math.max(360, Math.min(Math.round(window.innerHeight * 0.68), Math.max(420, Math.round(rect.height * 1.25))));
-    const left = Math.max(12, Math.min(window.innerWidth - width - 12, 78));
-    const top = Math.max(12, Math.min(window.innerHeight - height - 12, 86));
-
-    card.classList.add('v6213PoppedCard');
-    card.style.position = 'fixed';
-    card.style.left = left + 'px';
-    card.style.top = top + 'px';
-    card.style.width = width + 'px';
-    card.style.height = height + 'px';
-    card.style.right = 'auto';
-    card.style.bottom = 'auto';
-    card.style.zIndex = '2147483300';
-    card.style.resize = 'both';
-    card.style.overflow = 'auto';
-
-    const title = (card.querySelector('.chartTitle') && card.querySelector('.chartTitle').textContent) || 'Dashboard panel';
-    const bar = document.createElement('div');
-    bar.className = 'v6213PopoutBar';
-    bar.innerHTML = '<span class="v6213PopoutTitle">' + escapeHtml(title) + '</span><span class="v6213PopoutHint">Drag header · resize corner</span><button type="button" class="v6213PopoutClose" onclick="closePopOutV6213()">Close ×</button>';
-    card.insertBefore(bar, card.firstChild);
-    installPopoutDragV6213(card, bar);
-
-    document.body.classList.add('v6213PopoutOpen');
-    if (typeof ResizeObserver !== 'undefined') {
-      popoutResizeObserverV6213 = new ResizeObserver(() => resizePoppedChartV6213());
-      popoutResizeObserverV6213.observe(card);
+    if (!forceRefresh) {
+      readLocalRemakeCacheV6215().then(cached => {
+        if (cached && cached.ok) {
+          handleRemakeDataV6215(cached, true);
+          setRemakeNoticeV6215('Loading...', 'warn');
+        }
+      });
     }
-    setTimeout(resizePoppedChartV6213, 90);
-  };
-  window.popOutComponentV6212 = window.popOutComponentV6213;
 
-  function installStylesV6213() {
-    if (document.getElementById(STYLE_ID_V6213)) return;
+    const request = forceRefresh
+      ? { forceRefresh: true, quickRefresh: true, lookbackMonths: 12, pageSize: 100, maxPages: 40, maxPagesPerChunk: 40, maxDetailFetches: 120, fetchProductMap: false, chunkByMonth: true }
+      : { forceRefresh: false };
+
+    setRemakeNoticeV6215(forceRefresh ? 'Refreshing Remake Factor API cache by month...' : 'Loading...', 'warn');
+    google.script.run
+      .withSuccessHandler(data => {
+        setRemakeLoadingV6215(false);
+        handleRemakeDataV6215(data, false);
+      })
+      .withFailureHandler(error => {
+        setRemakeLoadingV6215(false);
+        if (window.remakeFactorState && window.remakeFactorState.loaded) {
+          setRemakeNoticeV6215('Could not refresh server Remake cache. Keeping saved browser cache. ' + ((error && error.message) || String(error)), 'warn');
+        } else {
+          setRemakeNoticeV6215((error && error.message) || String(error), 'error');
+        }
+      })
+      .getRemakeFactorData(request);
+  };
+
+  window.refreshRemakeFactorData = function refreshRemakeFactorDataV6215() {
+    window.loadRemakeFactorData(true);
+  };
+
+  function installStylesV6215() {
+    if (document.getElementById(STYLE_ID_V6215)) return;
     const style = document.createElement('style');
-    style.id = STYLE_ID_V6213;
+    style.id = STYLE_ID_V6215;
     style.textContent = `
-      #overviewOne tr.v6213PinnedRow td,
-      #overviewOne tr.v6212CrossFilterRow td,
-      #overviewOne tr.v6165PinnedRow td {
-        background: #fff7d6 !important;
-        border-top-color: #f59e0b !important;
-        border-bottom-color: #f59e0b !important;
-      }
-
-      #overviewOne tr.v6213PinnedRow td:first-child,
-      #overviewOne tr.v6212CrossFilterRow td:first-child,
-      #overviewOne tr.v6165PinnedRow td:first-child {
-        box-shadow: inset 3px 0 0 #f59e0b !important;
-      }
-
-      #v6212PopoutBackdrop { display: none !important; }
-      body.v6212PopoutOpen { overflow: auto !important; }
-
-      .v6213PoppedCard {
-        min-width: 460px !important;
-        min-height: 300px !important;
-        max-width: calc(100vw - 18px) !important;
-        max-height: calc(100vh - 18px) !important;
-        display: flex !important;
-        flex-direction: column !important;
-        padding-top: 38px !important;
-        box-shadow: 0 18px 58px rgba(15, 23, 42, .30) !important;
-        border: 1px solid rgba(15, 23, 42, .18) !important;
-        border-radius: 14px !important;
-        background: #ffffff !important;
-      }
-
-      .v6213PoppedCard .v6213PopoutBar {
+      #overviewOne .v6215ExternalPoppedSource { position: relative !important; }
+      #overviewOne .v6215PopoutOverlay {
         position: absolute !important;
-        left: 0 !important;
-        right: 0 !important;
-        top: 0 !important;
-        height: 34px !important;
+        inset: 0 !important;
+        z-index: 500 !important;
+        background: rgba(229, 231, 235, 0.72) !important;
+        backdrop-filter: grayscale(1) opacity(.92) !important;
+        display: flex !important;
+        align-items: flex-start !important;
+        justify-content: flex-end !important;
+        padding: 8px !important;
+        pointer-events: auto !important;
+      }
+      #overviewOne .v6215PopBackBtn {
+        height: 28px !important;
+        border: 1px solid #cfd6df !important;
+        border-radius: 999px !important;
+        background: #ffffff !important;
+        color: #172033 !important;
+        font: 900 12px/1 Roboto, Arial, sans-serif !important;
+        padding: 0 12px !important;
+        cursor: pointer !important;
+        box-shadow: 0 1px 2px rgba(16,24,40,.14) !important;
+      }
+      #remakeFactorPage {
+        background: #ebe9ed !important;
+        padding: 8px !important;
+      }
+      #remakeFactorPage .remakeShell {
+        max-width: 1900px !important;
+        margin: 0 auto !important;
+        background: #ebe9ed !important;
+        border: 0 !important;
+        box-shadow: none !important;
+        padding: 8px 10px 10px !important;
+      }
+      #remakeFactorPage .remakeHeader {
+        min-height: 44px !important;
+        margin-bottom: 8px !important;
+        background: transparent !important;
+        border: 0 !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+      }
+      #remakeFactorPage .remakeTitle {
+        font: 900 18px/1.1 Roboto, Arial, sans-serif !important;
+        color: #172033 !important;
+        margin: 0 !important;
+      }
+      #remakeFactorPage .remakeActions { gap: 6px !important; align-items: center !important; }
+      #remakeFactorPage .remakeButton {
+        min-height: 30px !important;
+        border-radius: 6px !important;
+        padding: 7px 12px !important;
+        background: #172033 !important;
+        color: #ffffff !important;
+        border: 1px solid #172033 !important;
+        font-weight: 800 !important;
+      }
+      #remakeFactorPage .remakeButton.secondary {
+        background: #ffffff !important;
+        color: #344054 !important;
+        border-color: #bdc5d1 !important;
+      }
+      #remakeFactorPage .remakeRefreshStamp {
+        color: #667085 !important;
+        font-size: 10.5px !important;
+        font-weight: 700 !important;
+      }
+      #remakeFactorPage .remakeFilterBar {
+        display: grid !important;
+        grid-template-columns: repeat(5, minmax(160px, 1fr)) !important;
+        gap: 8px !important;
+        margin-bottom: 8px !important;
+      }
+      #remakeFactorPage .remakeFilter,
+      #remakeFactorPage .remakeKpi,
+      #remakeFactorPage .remakeCard {
+        background: #ffffff !important;
+        border: 1px solid #d7dce2 !important;
+        border-radius: 6px !important;
+        box-shadow: 0 1px 3px rgba(20,32,42,.14) !important;
+      }
+      #remakeFactorPage .remakeFilter { padding: 8px !important; }
+      #remakeFactorPage .remakeFilter label {
+        color: #667085 !important;
+        font-size: 9.5px !important;
+        letter-spacing: .055em !important;
+        text-transform: uppercase !important;
+        font-weight: 800 !important;
+        margin-bottom: 5px !important;
+      }
+      #remakeFactorPage .remakeFilter select {
+        height: 32px !important;
+        border: 1px solid #d5dae2 !important;
+        border-radius: 4px !important;
+        background: #ffffff !important;
+        color: #202124 !important;
+        font-size: 12px !important;
+      }
+      #remakeFactorPage .remakeKpis {
+        display: grid !important;
+        grid-template-columns: repeat(7, minmax(120px, 1fr)) !important;
+        gap: 8px !important;
+        margin-bottom: 8px !important;
+      }
+      #remakeFactorPage .remakeKpi { min-height: 62px !important; padding: 8px 11px !important; }
+      #remakeFactorPage .remakeKpi .label {
+        font-size: 9.5px !important;
+        letter-spacing: .055em !important;
+        text-transform: uppercase !important;
+        color: #667085 !important;
+        font-weight: 800 !important;
+        margin-bottom: 4px !important;
+      }
+      #remakeFactorPage .remakeKpi .value {
+        font-size: 21px !important;
+        font-weight: 850 !important;
+        color: #172033 !important;
+        line-height: 1 !important;
+      }
+      #remakeFactorPage .remakeGrid {
+        display: grid !important;
+        grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr) !important;
+        gap: 8px !important;
+        margin-bottom: 8px !important;
+      }
+      #remakeFactorPage .remakeCard { padding: 0 !important; overflow: hidden !important; }
+      #remakeFactorPage .remakeCardHeader {
+        min-height: 30px !important;
+        padding: 6px 8px !important;
+        border-bottom: 1px solid #d7dce2 !important;
         display: flex !important;
         align-items: center !important;
-        gap: 10px !important;
-        padding: 0 10px 0 14px !important;
-        border-bottom: 1px solid #e2e8f0 !important;
-        background: #f8fafc !important;
-        border-radius: 14px 14px 0 0 !important;
-        cursor: move !important;
-        user-select: none !important;
-        font: 800 12px/1 Roboto, Arial, sans-serif !important;
-        color: #0f172a !important;
       }
-
-      .v6213PopoutTitle {
-        min-width: 0 !important;
-        overflow: hidden !important;
-        text-overflow: ellipsis !important;
+      #remakeFactorPage .remakeCardTitle {
+        font: 900 12px/1.1 Roboto, Arial, sans-serif !important;
+        color: #202124 !important;
+      }
+      #remakeFactorPage .remakeOverviewChartBox { height: 235px !important; padding: 10px 12px 8px !important; }
+      #remakeFactorPage .remakeTableWrap { height: 250px !important; overflow: auto !important; border: 0 !important; }
+      #remakeFactorPage .remakeTable { width: 100% !important; border-collapse: collapse !important; font-size: 11px !important; }
+      #remakeFactorPage .remakeTable th {
+        position: sticky !important;
+        top: 0 !important;
+        background: #203038 !important;
+        color: #ffffff !important;
+        border: 1px solid #34454f !important;
+        padding: 6px 7px !important;
+        font-weight: 800 !important;
         white-space: nowrap !important;
       }
-
-      .v6213PopoutHint {
-        margin-left: auto !important;
-        color: #64748b !important;
-        font-weight: 700 !important;
-        font-size: 11px !important;
-        white-space: nowrap !important;
-      }
-
-      .v6213PopoutClose {
-        height: 24px !important;
-        padding: 0 9px !important;
-        border-radius: 999px !important;
-        border: 1px solid #cbd5e1 !important;
+      #remakeFactorPage .remakeTable td {
+        border: 1px solid #e5e7eb !important;
+        padding: 6px 7px !important;
+        color: #3c4043 !important;
         background: #ffffff !important;
-        color: #0f172a !important;
-        font: 900 11px/1 Roboto, Arial, sans-serif !important;
-        cursor: pointer !important;
+        white-space: nowrap !important;
       }
-
-      .v6213PoppedCard .chartBox,
-      .v6213PoppedCard .tableWrap,
-      .v6213PoppedCard .moverTableWrap {
-        flex: 1 1 auto !important;
-        min-height: 0 !important;
-        max-height: none !important;
-        height: auto !important;
-      }
-
-      .v6213PoppedCard canvas {
-        min-height: 250px !important;
-      }
-
-      .v6213PoppedCard .tableWrap,
-      .v6213PoppedCard .moverTableWrap {
-        overflow: auto !important;
+      #remakeFactorPage .remakeTable tr:nth-child(even) td { background: #fafafa !important; }
+      #remakeFactorPage .remakeTable tr.clickable:hover td { background: #eef4ff !important; cursor: pointer !important; }
+      #remakeFactorPage .remakeTable td.num,
+      #remakeFactorPage .remakeTable th.num { text-align: right !important; }
+      @media (max-width: 1100px) {
+        #remakeFactorPage .remakeFilterBar { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+        #remakeFactorPage .remakeKpis { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+        #remakeFactorPage .remakeGrid { grid-template-columns: 1fr !important; }
       }
     `;
     document.head.appendChild(style);
   }
 
-  const previousResetComponentSelectionV6213 = typeof resetComponentSelection === 'function' ? resetComponentSelection : null;
-  if (previousResetComponentSelectionV6213 && !resetComponentSelection.__v6213InteractionRepair) {
-    const resetComponentSelectionV6213 = function resetComponentSelectionV6213(componentId) {
-      const config = (typeof componentMenuConfigs !== 'undefined' && componentMenuConfigs) ? (componentMenuConfigs[componentId] || {}) : {};
-      if (config.resetKind === 'customer') clearCustomerFocusV6213();
-      if (config.resetKind === 'product') clearProductFocusV6213();
-      return previousResetComponentSelectionV6213.apply(this, arguments);
+  installStylesV6215();
+  const discountLabel = document.querySelector('#remakeDiscount') && document.querySelector('#remakeDiscount').previousElementSibling;
+  if (discountLabel) discountLabel.textContent = 'Remake Discount';
+  const loadBtn = document.getElementById('remakeLoadBtn');
+  if (loadBtn) loadBtn.textContent = 'Reload Saved Cache';
+  const refreshBtn = document.getElementById('remakeRefreshBtn');
+  if (refreshBtn) refreshBtn.textContent = 'Refresh API Cache (12 mo)';
+
+  const previousRenderAllV6215 = typeof renderAll === 'function' ? renderAll : null;
+  if (previousRenderAllV6215 && !previousRenderAllV6215.__v6215RemakeRoute) {
+    renderAll = function renderAllV6215() {
+      if (state && state.activeTab === 'remakeFactor') {
+        renderRemakeFactorDashboardV6215();
+        return;
+      }
+      return previousRenderAllV6215.apply(this, arguments);
     };
-    resetComponentSelectionV6213.__v6213InteractionRepair = true;
-    resetComponentSelection = resetComponentSelectionV6213;
+    renderAll.__v6215RemakeRoute = true;
   }
 
-  document.addEventListener('keydown', event => {
-    if (event.key === 'Escape') window.closePopOutV6213();
-  });
-
-  installStylesV6213();
-  ensureInteractionStateV6213();
-  setBannerV6213();
-  setTimeout(setBannerV6213, 250);
-  setTimeout(setBannerV6213, 1000);
-  setTimeout(setBannerV6213, 1800);
+  setBannerV6215();
+  setTimeout(setBannerV6215, 250);
+  setTimeout(setBannerV6215, 1000);
 })();
 
 
-/* v6.214 true external-window pop-out
-   - Changes component pop-out from an in-page floating card to a real browser popup window.
-   - Popup redraws the selected chart/table from the live dashboard snapshot.
-   - Clicking popup chart months, customer rows, or product/department/group/category rows sends the selection back to the opener and refreshes both windows.
-   - Ctrl/Cmd-click and Shift-click are forwarded for multi-select/range month behavior. */
-(function installExternalWindowPopoutV6214() {
-  const VERSION_TEXT_V6214 = 'DEBUG v6.214 externalWindowPopout - real browser window pop-outs with live control sync';
-  let externalPopoutV6214 = null;
-  let syncTimerV6214 = null;
 
-  const componentMapV6214 = {
-    revenue: { title: 'Revenue Trend', type: 'chart', canvasId: 'chartRevenue', resetKind: 'month' },
-    customerCount: { title: 'Customer Count', type: 'chart', canvasId: 'chartCustomers', resetKind: 'month' },
-    units: { title: 'Units Produced', type: 'chart', canvasId: 'chartUnits', resetKind: 'month' },
-    rpac: { title: 'Revenue Per Active Customer', type: 'chart', canvasId: 'chartRpac', resetKind: 'month' },
-    avg: { title: 'Avg Price Per Unit', type: 'chart', canvasId: 'chartAvg', resetKind: 'month' },
-    customerTable: { title: 'Customer Movers', type: 'table', tableSelector: '#customerTable', resetKind: 'customer' },
-    productTable: { title: 'Product Movers', type: 'table', tableSelector: '#productTable', resetKind: 'product' }
-  };
+/* v6.216 focused cleanup pass
+   - Stops Remake tab from falling back into the old v6.204 renderer.
+   - Adds stronger chart dimming, consistent skinny-line legends, bigger KPIs, faster dropdown renderers.
+   - Replaces pop-out header refresh with useful controls and adds a best-effort Keep front toggle.
+   - Makes API refresh request only the current open month by default so closed historical months stay cached. */
+(function installOverviewRemakeCleanupV6216() {
+  const VERSION_TEXT_V6216 = 'DEBUG v6.216 overviewRemakeCleanup - fast dropdowns, larger KPIs, stronger dimming, current-month remake refresh';
+  const STYLE_ID_V6216 = 'overviewRemakeCleanupStylesV6216';
+  const REMAKE_LOCAL_CACHE_KEY_V6216 = 'cdaRemakeFactorCache.v6216';
+  const REMAKE_CHART_ID_V6216 = 'remakeMonthlyChartV6216';
+  const popupRefsV6216 = {};
+  const popupPinsV6216 = {};
+  let popupSyncTimerV6216 = null;
+  const remakeChartsV6216 = {};
 
-  function setBannerV6214() {
+  function setBannerV6216() {
     const banner = document.getElementById('singleShellDebugBanner');
-    if (banner) banner.textContent = VERSION_TEXT_V6214;
+    if (banner) banner.textContent = VERSION_TEXT_V6216;
   }
 
-  function escapeHtmlV6214(value) {
+  function escHtmlV6216(value) {
     return String(value == null ? '' : value)
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
@@ -476,495 +322,13 @@
       .replace(/'/g, '&#39;');
   }
 
-  function getConfigV6214(componentId) {
-    return componentMapV6214[componentId] || null;
+  function escJsV6216(value) {
+    return String(value == null ? '' : value).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\n/g, '\\n').replace(/\r/g, '');
   }
 
-  function getCardV6214(componentId) {
-    if (typeof getComponentCard === 'function') {
-      try {
-        const card = getComponentCard(componentId);
-        if (card) return card;
-      } catch (error) {}
-    }
-    const config = getConfigV6214(componentId);
-    if (!config) return null;
-    if (config.canvasId) {
-      const canvas = document.getElementById(config.canvasId);
-      return canvas ? canvas.closest('.card') : null;
-    }
-    if (config.tableSelector) {
-      const body = document.querySelector(config.tableSelector);
-      return body ? body.closest('.card') : null;
-    }
-    return null;
-  }
-
-  function clonePlainColorV6214(value, fallback) {
-    if (value == null || typeof value === 'function') return fallback;
-    if (Array.isArray(value)) return value.map(item => clonePlainColorV6214(item, fallback));
-    if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') return value;
-    return fallback;
-  }
-
-  function cloneDatasetV6214(dataset, index) {
-    const palette = ['#2563eb', '#94a3b8', '#d97706', '#16a34a', '#9333ea'];
-    const border = palette[index % palette.length];
-    const bg = index === 0 ? 'rgba(37, 99, 235, 0.20)' : index === 1 ? 'rgba(148, 163, 184, 0.35)' : 'rgba(217, 119, 6, 0.22)';
-    const copy = {
-      label: String(dataset && dataset.label ? dataset.label : 'Value'),
-      data: Array.isArray(dataset && dataset.data) ? dataset.data.map(value => value == null ? null : Number(value)) : [],
-      type: dataset && dataset.type ? dataset.type : undefined,
-      fill: !!(dataset && dataset.fill),
-      tension: typeof (dataset && dataset.tension) === 'number' ? dataset.tension : 0.32,
-      borderWidth: clonePlainColorV6214(dataset && dataset.borderWidth, 2),
-      borderDash: Array.isArray(dataset && dataset.borderDash) ? dataset.borderDash.slice() : undefined,
-      pointRadius: clonePlainColorV6214(dataset && dataset.pointRadius, 2.5),
-      pointHoverRadius: clonePlainColorV6214(dataset && dataset.pointHoverRadius, 5),
-      borderColor: clonePlainColorV6214(dataset && dataset.borderColor, border),
-      backgroundColor: clonePlainColorV6214(dataset && dataset.backgroundColor, bg)
-    };
-    Object.keys(copy).forEach(key => { if (copy[key] === undefined) delete copy[key]; });
-    return copy;
-  }
-
-  function buildChartSnapshotV6214(componentId, config) {
-    const canvas = document.getElementById(config.canvasId);
-    const chart = (typeof charts !== 'undefined' && charts) ? charts[config.canvasId] : null;
-    const title = (getCardV6214(componentId) && getCardV6214(componentId).querySelector('.chartTitle') && getCardV6214(componentId).querySelector('.chartTitle').textContent) || config.title;
-    if (!canvas || !chart || !chart.data) {
-      return { ok: false, type: 'chart', componentId, title, message: 'This chart is not ready yet. Reload the dashboard or wait for the chart to finish rendering.' };
-    }
-    const labels = (chart.data.labels || []).map(label => String(label));
-    const datasets = (chart.data.datasets || []).map((dataset, index) => cloneDatasetV6214(dataset, index));
-    return {
-      ok: true,
-      type: 'chart',
-      componentId,
-      canvasId: config.canvasId,
-      title,
-      chartType: (chart.config && chart.config.type) || 'line',
-      labels,
-      datasets,
-      selectedMonths: typeof getSelectedMonths === 'function' ? getSelectedMonths() : [],
-      updatedAt: new Date().toLocaleTimeString()
-    };
-  }
-
-  function sanitizeCloneForPopupV6214(clone) {
-    if (!clone) return clone;
-    clone.querySelectorAll('.componentMenuBtn, .componentMenu, .v6213PopoutBar, .v6212PopoutClose, script').forEach(node => node.remove());
-    clone.querySelectorAll('[id]').forEach(node => {
-      const oldId = node.getAttribute('id') || '';
-      if (oldId) node.setAttribute('data-main-id', oldId);
-      node.removeAttribute('id');
-    });
-    clone.querySelectorAll('button').forEach(button => {
-      if (!button.getAttribute('onclick')) button.setAttribute('type', 'button');
-    });
-    return clone;
-  }
-
-  function buildTableSnapshotV6214(componentId, config) {
-    const card = getCardV6214(componentId);
-    const title = (card && card.querySelector('.chartTitle') && card.querySelector('.chartTitle').textContent) || config.title;
-    if (!card) return { ok: false, type: 'table', componentId, title, message: 'This table is not ready yet.' };
-    const clone = sanitizeCloneForPopupV6214(card.cloneNode(true));
-    return {
-      ok: true,
-      type: 'table',
-      componentId,
-      title,
-      html: clone.outerHTML,
-      updatedAt: new Date().toLocaleTimeString()
-    };
-  }
-
-  window.getExternalPopoutSnapshotV6214 = function getExternalPopoutSnapshotV6214(componentId) {
-    const config = getConfigV6214(componentId);
-    if (!config) return { ok: false, componentId, title: 'Dashboard panel', message: 'Unknown dashboard component: ' + componentId };
-    return config.type === 'chart'
-      ? buildChartSnapshotV6214(componentId, config)
-      : buildTableSnapshotV6214(componentId, config);
-  };
-
-  function monthFromPopupLabelV6214(label, index) {
-    const clean = String(label || '').trim().slice(0, 3).toLowerCase();
-    const names = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
-    const found = names.indexOf(clean);
-    if (found >= 0) return found + 1;
-    const n = Number(label);
-    if (n >= 1 && n <= 12) return n;
-    return Number(index) + 1;
-  }
-
-  window.applyExternalPopoutFilterV6214 = function applyExternalPopoutFilterV6214(payload) {
-    const item = payload || {};
-    const syntheticEvent = {
-      ctrlKey: !!item.ctrlKey || !!item.metaKey,
-      metaKey: !!item.metaKey,
-      shiftKey: !!item.shiftKey,
-      preventDefault: function() {},
-      stopPropagation: function() {}
-    };
-
-    try {
-      if (item.kind === 'customer' && typeof setCustomer === 'function') {
-        setCustomer(item.value, syntheticEvent);
-      } else if (item.kind === 'product' && typeof setProduct === 'function') {
-        setProduct(item.value, syntheticEvent);
-      } else if (item.kind === 'productMode') {
-        if (typeof setProductModeV6213 === 'function') setProductModeV6213(item.value);
-        else if (typeof setProductModeV6212 === 'function') setProductModeV6212(item.value);
-        else if (typeof setProductModeV6165 === 'function') setProductModeV6165(item.value);
-      } else if (item.kind === 'customerSort' && typeof setCustomerColumnSort === 'function') {
-        setCustomerColumnSort(item.value);
-        if (typeof renderAll === 'function') renderAll();
-      } else if (item.kind === 'productSort' && typeof setProductColumnSort === 'function') {
-        setProductColumnSort(item.value);
-        if (typeof renderAll === 'function') renderAll();
-      } else if (item.kind === 'resetComponent' && typeof resetComponentSelection === 'function') {
-        resetComponentSelection(item.componentId || (externalPopoutV6214 && externalPopoutV6214.componentId) || '');
-      } else if (item.kind === 'month') {
-        const month = Number(item.month || 0);
-        if (month && typeof applyMonthSelection === 'function') {
-          applyMonthSelection(month, !!syntheticEvent.ctrlKey, !!syntheticEvent.shiftKey);
-        } else if (month) {
-          if (!state.selectedMonths) state.selectedMonths = new Set();
-          if (syntheticEvent.ctrlKey) {
-            if (state.selectedMonths.has(month)) state.selectedMonths.delete(month);
-            else state.selectedMonths.add(month);
-            state.monthSelectionMode = 'multi';
-          } else {
-            state.selectedMonths = new Set([month]);
-            state.monthSelectionMode = 'drill';
-          }
-          state.selectedMonth = state.selectedMonths.size === 1 ? [...state.selectedMonths][0] : null;
-          state.periodMode = state.selectedMonths.size ? 'MTD' : 'YTD';
-          if (typeof renderAll === 'function') renderAll();
-        }
-      }
-      scheduleExternalPopoutSyncV6214(650);
-    } catch (error) {
-      console.error('External popout filter failed', error);
-      try { if (typeof showStatus === 'function') showStatus('External pop-out action failed: ' + (error && error.message ? error.message : error), 'warn'); } catch (err) {}
-    }
-  };
-
-  function pushSnapshotToExternalPopoutV6214() {
-    if (!externalPopoutV6214 || !externalPopoutV6214.win || externalPopoutV6214.win.closed) return;
-    const snapshot = window.getExternalPopoutSnapshotV6214(externalPopoutV6214.componentId);
-    try {
-      if (typeof externalPopoutV6214.win.__receiveOverviewSnapshotV6214 === 'function') {
-        externalPopoutV6214.win.__receiveOverviewSnapshotV6214(snapshot);
-      } else {
-        externalPopoutV6214.win.postMessage({ type: 'overviewSnapshotV6214', snapshot }, '*');
-      }
-    } catch (error) {
-      try { externalPopoutV6214.win.postMessage({ type: 'overviewSnapshotV6214', snapshot }, '*'); } catch (err) {}
-    }
-  }
-
-  function scheduleExternalPopoutSyncV6214(delay) {
-    if (!externalPopoutV6214 || !externalPopoutV6214.win || externalPopoutV6214.win.closed) return;
-    if (syncTimerV6214) window.clearTimeout(syncTimerV6214);
-    syncTimerV6214 = window.setTimeout(() => {
-      syncTimerV6214 = null;
-      pushSnapshotToExternalPopoutV6214();
-    }, typeof delay === 'number' ? delay : 350);
-  }
-
-  function popupHtmlV6214(componentId, title) {
-    const chartScript = '<scr' + 'ipt src="https://cdn.jsdelivr.net/npm/chart.js"></scr' + 'ipt>';
-    const openScript = '<scr' + 'ipt>';
-    const closeScript = '</scr' + 'ipt>';
-    const inlineScript = `
-      let currentSnapshotV6214 = null;
-      let currentChartV6214 = null;
-      const componentIdV6214 = ${JSON.stringify(componentId)};
-      function byIdV6214(id) { return document.getElementById(id); }
-      function setStatusV6214(text) { const el = byIdV6214('status'); if (el) el.textContent = text || ''; }
-      function escapeHtmlV6214(value) {
-        return String(value == null ? '' : value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-      }
-      function sendToOpenerV6214(payload, event) {
-        const item = payload || {};
-        if (event) {
-          item.ctrlKey = !!event.ctrlKey;
-          item.metaKey = !!event.metaKey;
-          item.shiftKey = !!event.shiftKey;
-          if (event.preventDefault) event.preventDefault();
-          if (event.stopPropagation) event.stopPropagation();
-        }
-        try {
-          if (window.opener && !window.opener.closed && typeof window.opener.applyExternalPopoutFilterV6214 === 'function') {
-            setStatusV6214('Updating main dashboard...');
-            window.opener.applyExternalPopoutFilterV6214(item);
-            setTimeout(requestSnapshotV6214, 700);
-          } else {
-            setStatusV6214('Main dashboard window is not connected.');
-          }
-        } catch (error) {
-          setStatusV6214('Could not send action to main dashboard.');
-          console.error(error);
-        }
-      }
-      function requestSnapshotV6214() {
-        try {
-          if (window.opener && !window.opener.closed && typeof window.opener.getExternalPopoutSnapshotV6214 === 'function') {
-            applySnapshotV6214(window.opener.getExternalPopoutSnapshotV6214(componentIdV6214));
-          } else {
-            setStatusV6214('Main dashboard window is not connected.');
-          }
-        } catch (error) {
-          setStatusV6214('Could not refresh from main dashboard.');
-          console.error(error);
-        }
-      }
-      function monthFromLabelV6214(label, index) {
-        const clean = String(label || '').trim().slice(0, 3).toLowerCase();
-        const names = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
-        const found = names.indexOf(clean);
-        if (found >= 0) return found + 1;
-        const n = Number(label);
-        if (n >= 1 && n <= 12) return n;
-        return Number(index) + 1;
-      }
-      function renderChartV6214(snapshot) {
-        const content = byIdV6214('content');
-        content.innerHTML = '<div class="chartShell"><canvas id="externalChart"></canvas></div><div class="hint">Click a month to filter the main dashboard. Ctrl/Cmd-click adds or removes months.</div>';
-        if (!window.Chart) {
-          setStatusV6214('Loading...');
-          setTimeout(() => applySnapshotV6214(snapshot), 250);
-          return;
-        }
-        if (currentChartV6214) {
-          try { currentChartV6214.destroy(); } catch (error) {}
-          currentChartV6214 = null;
-        }
-        const ctx = byIdV6214('externalChart').getContext('2d');
-        const chartType = snapshot.chartType || 'line';
-        currentChartV6214 = new Chart(ctx, {
-          type: chartType,
-          data: { labels: snapshot.labels || [], datasets: snapshot.datasets || [] },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            interaction: { mode: 'index', intersect: false },
-            onClick: function(event, elements) {
-              const points = elements && elements.length ? elements : currentChartV6214.getElementsAtEventForMode(event, 'nearest', { intersect: false }, true);
-              if (!points || !points.length) return;
-              const index = points[0].index;
-              const label = (snapshot.labels || [])[index];
-              const month = monthFromLabelV6214(label, index);
-              sendToOpenerV6214({ kind: 'month', month, componentId: snapshot.componentId }, event && event.native ? event.native : event);
-            },
-            plugins: {
-              legend: { position: 'top', align: 'start', labels: { boxWidth: 14, font: { size: 12, weight: '700' } } },
-              tooltip: { enabled: true }
-            },
-            scales: {
-              x: { grid: { display: false }, ticks: { color: '#475467', font: { size: 11, weight: '700' } } },
-              y: { beginAtZero: true, grid: { color: '#edf0f5' }, ticks: { color: '#667085', font: { size: 11 } } }
-            }
-          }
-        });
-      }
-      function renderTableV6214(snapshot) {
-        const content = byIdV6214('content');
-        content.innerHTML = snapshot.html || '<div class="empty">No table content.</div>';
-        content.querySelectorAll('.componentMenuBtn').forEach(node => node.remove());
-        setStatusV6214('Connected · ' + (snapshot.updatedAt || 'updated'));
-      }
-      function applySnapshotV6214(snapshot) {
-        currentSnapshotV6214 = snapshot || {};
-        document.title = (currentSnapshotV6214.title || 'Dashboard panel') + ' - Pop out';
-        byIdV6214('title').textContent = currentSnapshotV6214.title || 'Dashboard panel';
-        if (!currentSnapshotV6214.ok) {
-          byIdV6214('content').innerHTML = '<div class="empty">' + escapeHtmlV6214(currentSnapshotV6214.message || 'Nothing to display yet.') + '</div>';
-          setStatusV6214('Waiting for main dashboard...');
-          return;
-        }
-        if (currentSnapshotV6214.type === 'chart') renderChartV6214(currentSnapshotV6214);
-        else renderTableV6214(currentSnapshotV6214);
-        setStatusV6214('Connected · ' + (currentSnapshotV6214.updatedAt || 'updated'));
-      }
-      window.__receiveOverviewSnapshotV6214 = applySnapshotV6214;
-      window.addEventListener('message', function(event) {
-        const data = event && event.data ? event.data : {};
-        if (data.type === 'overviewSnapshotV6214') applySnapshotV6214(data.snapshot);
-      });
-      window.addEventListener('beforeunload', function() {
-        try {
-          if (window.opener && !window.opener.closed && typeof window.opener.clearExternalPopoutReferenceV6214 === 'function') {
-            window.opener.clearExternalPopoutReferenceV6214(componentIdV6214);
-          }
-        } catch (error) {}
-      });
-      function setCustomer(id, event) { sendToOpenerV6214({ kind: 'customer', value: id }, event); }
-      function setProduct(key, event) { sendToOpenerV6214({ kind: 'product', value: key }, event); }
-      function setProductModeV6213(mode) { sendToOpenerV6214({ kind: 'productMode', value: mode }); }
-      function setProductModeV6212(mode) { setProductModeV6213(mode); }
-      function setProductModeV6165(mode) { setProductModeV6213(mode); }
-      function setCustomerColumnSort(value) { sendToOpenerV6214({ kind: 'customerSort', value }); }
-      function setProductColumnSort(value) { sendToOpenerV6214({ kind: 'productSort', value }); }
-      function resetComponentSelection(componentId) { sendToOpenerV6214({ kind: 'resetComponent', componentId: componentId || componentIdV6214 }); }
-      function closeComponentMenu() {}
-      function openComponentMenu() {}
-      setTimeout(requestSnapshotV6214, 100);
-    `;
-
-    return '<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>'
-      + escapeHtmlV6214(title) + ' - Pop out</title>'
-      + chartScript
-      + '<style>'
-      + 'html,body{height:100%;margin:0;background:#f4f6f8;color:#202124;font-family:Roboto,Arial,sans-serif;overflow:hidden;}'
-      + '.popHeader{height:42px;display:flex;align-items:center;gap:10px;padding:0 12px;background:#fff;border-bottom:1px solid #d7dce4;box-sizing:border-box;}'
-      + '#title{font-weight:800;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}'
-      + '#status{margin-left:auto;color:#667085;font-size:11px;font-weight:700;white-space:nowrap;}'
-      + 'button{height:28px;border:1px solid #cfd6df;border-radius:7px;background:#fff;color:#202124;font:800 12px/1 Roboto,Arial,sans-serif;cursor:pointer;padding:0 10px;}'
-      + 'button:hover{background:#f1f3f4;}'
-      + '#content{height:calc(100% - 42px);overflow:auto;padding:10px;box-sizing:border-box;}'
-      + '.chartShell{height:calc(100vh - 82px);min-height:320px;background:#fff;border:1px solid #d7dce4;border-radius:8px;padding:10px;box-sizing:border-box;}'
-      + '.hint{font-size:11px;color:#667085;margin-top:5px;font-weight:700;}'
-      + '.empty{background:#fff;border:1px solid #d7dce4;border-radius:8px;padding:16px;color:#667085;font-weight:700;}'
-      + '.card,.moverArea{background:#fff!important;border:1px solid #d7dce4!important;border-radius:8px!important;box-shadow:none!important;padding:8px!important;height:auto!important;min-height:0!important;}'
-      + '.cardHeader{display:flex!important;align-items:center!important;gap:8px!important;margin:0 0 6px 0!important;min-height:24px!important;}'
-      + '.chartTitle{font-size:13px!important;font-weight:900!important;color:#202124!important;}'
-      + '.cardActions{margin-left:auto!important;display:flex!important;gap:4px!important;align-items:center!important;}'
-      + '.componentMenuBtn{display:none!important;}'
-      + '.tableToggles{display:inline-flex!important;gap:3px!important;}'
-      + '.tinyBtn{height:23px!important;padding:0 7px!important;border:1px solid #d8dde6!important;border-radius:5px!important;background:#eef1f5!important;color:#667085!important;font-size:10px!important;font-weight:800!important;}'
-      + '.tinyBtn.active,.metricBtn.active{background:#203038!important;color:#fff!important;border-color:#203038!important;}'
-      + '.tableScroll,.moverTableWrap{height:calc(100vh - 100px)!important;overflow:auto!important;border:1px solid #c9d1dc!important;border-radius:5px!important;}'
-      + 'table{width:100%!important;border-collapse:collapse!important;font-size:11px!important;background:#fff!important;}'
-      + 'th{position:sticky!important;top:0!important;background:#203038!important;color:#fff!important;border:1px solid #34454f!important;padding:6px 7px!important;text-align:right!important;z-index:2!important;white-space:nowrap!important;}'
-      + 'th:first-child,td:first-child{text-align:left!important;}td{border:1px solid #e5e7eb!important;padding:6px 7px!important;text-align:right!important;white-space:nowrap!important;color:#3c4043!important;}tr:nth-child(even) td{background:#fafafa!important;}tr.clickable:hover td{background:#eef4ff!important;cursor:pointer!important;}tr.active td,.v6213PinnedRow td,.v6212CrossFilterRow td,.v6165PinnedRow td{background:#fff7d6!important;border-top-color:#f59e0b!important;border-bottom-color:#f59e0b!important;}.negative{color:#b42318!important;font-weight:800!important;}.positive{color:#067647!important;font-weight:800!important;}.inactiveBadge{display:inline-flex!important;border:1px solid #fecaca!important;background:#fff1f1!important;color:#b42318!important;border-radius:999px!important;padding:2px 6px!important;font-size:10px!important;font-weight:800!important;}'
-      + '</style></head><body><div class="popHeader"><div id="title">' + escapeHtmlV6214(title) + '</div><div id="status">Opening...</div><button type="button" onclick="requestSnapshotV6214()">Refresh</button><button type="button" onclick="window.close()">Close</button></div><div id="content"><div class="empty">Connecting to the main dashboard...</div></div>'
-      + openScript + inlineScript + closeScript + '</body></html>';
-  }
-
-  window.clearExternalPopoutReferenceV6214 = function clearExternalPopoutReferenceV6214(componentId) {
-    if (externalPopoutV6214 && (!componentId || externalPopoutV6214.componentId === componentId)) externalPopoutV6214 = null;
-  };
-
-  window.popOutComponentV6214 = function popOutComponentV6214(componentId) {
-    if (typeof closeComponentMenu === 'function') closeComponentMenu();
-    const config = getConfigV6214(componentId);
-    if (!config) return;
-    const title = (getCardV6214(componentId) && getCardV6214(componentId).querySelector('.chartTitle') && getCardV6214(componentId).querySelector('.chartTitle').textContent) || config.title;
-    const width = Math.max(760, Math.round(window.innerWidth * 0.56));
-    const height = Math.max(520, Math.round(window.innerHeight * 0.72));
-    const left = Math.max(20, Math.round((window.screenX || window.screenLeft || 0) + 60));
-    const top = Math.max(20, Math.round((window.screenY || window.screenTop || 0) + 60));
-    const name = 'cdaOverviewPopout_' + String(componentId).replace(/[^a-zA-Z0-9_]/g, '_');
-    const features = 'popup=yes,width=' + width + ',height=' + height + ',left=' + left + ',top=' + top + ',resizable=yes,scrollbars=yes';
-    const win = window.open('', name, features);
-    if (!win) {
-      if (typeof showStatus === 'function') showStatus('Browser blocked the external pop-out. Allow pop-ups for this dashboard, then try again.', 'warn');
-      return;
-    }
-    externalPopoutV6214 = { win, componentId };
-    try {
-      win.document.open();
-      win.document.write(popupHtmlV6214(componentId, title));
-      win.document.close();
-      win.focus();
-      scheduleExternalPopoutSyncV6214(250);
-    } catch (error) {
-      console.error('External popout open failed', error);
-      try { if (typeof showStatus === 'function') showStatus('External pop-out opened but could not be initialized: ' + (error && error.message ? error.message : error), 'warn'); } catch (err) {}
-    }
-  };
-  window.popOutComponentV6213 = window.popOutComponentV6214;
-  window.popOutComponentV6212 = window.popOutComponentV6214;
-
-  const previousRenderAllV6214 = typeof renderAll === 'function' ? renderAll : null;
-  if (previousRenderAllV6214 && !previousRenderAllV6214.__v6214ExternalPopoutWrapped) {
-    const wrappedRenderAllV6214 = function renderAllV6214() {
-      const result = previousRenderAllV6214.apply(this, arguments);
-      scheduleExternalPopoutSyncV6214(900);
-      return result;
-    };
-    wrappedRenderAllV6214.__v6214ExternalPopoutWrapped = true;
-    renderAll = wrappedRenderAllV6214;
-  }
-
-  const previousBuildComponentMenuHtmlV6214 = typeof buildComponentMenuHtml === 'function' ? buildComponentMenuHtml : null;
-  if (previousBuildComponentMenuHtmlV6214 && !previousBuildComponentMenuHtmlV6214.__v6214ExternalPopoutLabel) {
-    const wrappedBuildComponentMenuHtmlV6214 = function buildComponentMenuHtmlV6214() {
-      let html = previousBuildComponentMenuHtmlV6214.apply(this, arguments);
-      html = String(html || '').replace(/Pop out panel/g, 'Open in separate window').replace(/Pop out/g, 'Open in separate window');
-      return html;
-    };
-    wrappedBuildComponentMenuHtmlV6214.__v6214ExternalPopoutLabel = true;
-    buildComponentMenuHtml = wrappedBuildComponentMenuHtmlV6214;
-  }
-
-  window.addEventListener('message', event => {
-    const data = event && event.data ? event.data : {};
-    if (data.type === 'overviewExternalPopoutRequestV6214' && data.componentId) {
-      try { event.source && event.source.postMessage({ type: 'overviewSnapshotV6214', snapshot: window.getExternalPopoutSnapshotV6214(data.componentId) }, '*'); } catch (error) {}
-    }
-  });
-
-  setBannerV6214();
-  setTimeout(setBannerV6214, 250);
-  setTimeout(setBannerV6214, 1000);
-})();
-
-
-/* v6.215 Overview + Remake polish
-   - External pop-outs now dim their source panel until the popup is closed or popped back in.
-   - Chart legends use the same line-style legend swatches everywhere.
-   - Non-selected months are dimmed more strongly across line/bar charts.
-   - Month clicks keep the dashboard in MTD daily cumulative mode.
-   - Active highlighted table rows can be clicked again to clear the highlight.
-   - Remake Factor gets local browser cache, Overview-like styling, and department remapping from Overview product metadata. */
-(function installOverviewRemakePolishV6215() {
-  const VERSION_TEXT_V6215 = 'DEBUG v6.215 overviewRemakePolish - stronger dimming, consistent legends, popout source dim, remake fast cache';
-  const STYLE_ID_V6215 = 'overviewRemakePolishStylesV6215';
-  const REMAKE_LOCAL_CACHE_KEY_V6215 = 'remake-factor-local-cache-v6-215';
-  const REMAKE_CHART_ID_V6215 = 'remakeTrendChartV6215';
-  const remakeChartsV6215 = {};
-
-  function setBannerV6215() {
-    const banner = document.getElementById('singleShellDebugBanner');
-    if (banner) banner.textContent = VERSION_TEXT_V6215;
-    document.querySelectorAll('.debugBadge').forEach(el => { el.textContent = 'v6.215'; });
-  }
-
-  function safeTextV6215(value) {
-    return String(value == null ? '' : value)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
-  }
-
-  function safeJsV6215(value) {
-    return String(value == null ? '' : value).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\n/g, ' ');
-  }
-
-  function currentYearV6215() {
-    return Number(payload && payload.config && payload.config.currentYear ? payload.config.currentYear : 2026);
-  }
-
-  function priorYearV6215() {
-    return Number(payload && payload.config && payload.config.priorYear ? payload.config.priorYear : currentYearV6215() - 1);
-  }
-
-  function selectedMonthSetV6215() {
-    try {
-      if (typeof getSelectedMonths === 'function') return new Set(getSelectedMonths().map(Number).filter(Boolean));
-    } catch (error) {}
-    return new Set([...(state && state.selectedMonths ? state.selectedMonths : new Set())].map(Number).filter(Boolean));
-  }
-
-  function monthFromChartLabelV6215(label, index) {
-    const clean = String(label || '').trim().slice(0, 3).toLowerCase();
+  function monthFromLabelV6216(label, index) {
     const names = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
+    const clean = String(label || '').trim().slice(0, 3).toLowerCase();
     const found = names.indexOf(clean);
     if (found >= 0) return found + 1;
     const n = Number(label);
@@ -972,450 +336,743 @@
     return Number(index) + 1;
   }
 
-  function isChartMonthAxisV6215(config) {
-    const labels = config && config.data && Array.isArray(config.data.labels) ? config.data.labels : [];
-    if (!labels.length || labels.length > 12) return false;
-    return labels.every((label, index) => {
-      const m = monthFromChartLabelV6215(label, index);
-      return m >= 1 && m <= 12;
+  function selectedMonthSetV6216() {
+    const raw = state && state.selectedMonths ? Array.from(state.selectedMonths) : [];
+    return new Set(raw.map(Number).filter(Boolean));
+  }
+
+  function rgbaV6216(hex, alpha) {
+    const h = String(hex || '').replace('#', '').trim();
+    if (h.length !== 6) return 'rgba(37,99,235,' + alpha + ')';
+    const r = parseInt(h.slice(0, 2), 16);
+    const g = parseInt(h.slice(2, 4), 16);
+    const b = parseInt(h.slice(4, 6), 16);
+    return 'rgba(' + r + ',' + g + ',' + b + ',' + alpha + ')';
+  }
+
+  function baseColorForDatasetV6216(dataset, fallback) {
+    const c = dataset && dataset.borderColor;
+    if (typeof c === 'string' && c.indexOf('rgba') !== 0) return c;
+    const bg = dataset && dataset.backgroundColor;
+    if (typeof bg === 'string' && bg.charAt(0) === '#') return bg;
+    return fallback || '#2563eb';
+  }
+
+  function selectedIndexSetFromLabelsV6216(labels) {
+    const selected = selectedMonthSetV6216();
+    const result = new Set();
+    if (!selected.size) return result;
+    (labels || []).forEach((label, index) => {
+      const month = monthFromLabelV6216(label, index);
+      if (selected.has(Number(month))) result.add(index);
     });
+    return result;
   }
 
-  function formatTooltipValueV6215(canvasId, value) {
-    const n = Number(value || 0);
-    if (canvasId === 'chartRevenue' || canvasId === 'chartRpac' || canvasId === 'chartAvg') {
-      return typeof formatCurrency === 'function' ? formatCurrency(n) : n.toLocaleString(undefined, { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
-    }
-    return typeof formatNumber === 'function' ? formatNumber(n) : n.toLocaleString(undefined, { maximumFractionDigits: 0 });
-  }
+  function patchLegendAndTooltipV6216(config) {
+    if (!config || !config.options || !config.data) return config;
+    const labels = config.data.labels || [];
+    const selectedIdx = selectedIndexSetFromLabelsV6216(labels);
+    const hasMonthDim = selectedIdx.size > 0 && labels.length <= 31;
 
-  function formatTooltipDeltaV6215(canvasId, gap, prior) {
-    const pct = Number(prior || 0) ? gap / Math.abs(Number(prior || 0)) : null;
-    const sign = gap > 0 ? '+' : '';
-    const formattedGap = formatTooltipValueV6215(canvasId, gap);
-    const pctText = pct === null || !isFinite(Number(pct)) ? '' : ' (' + (pct > 0 ? '+' : '') + (pct * 100).toFixed(0) + '%)';
-    return sign + formattedGap + pctText;
-  }
-
-  function legendLabelsV6215(chart) {
-    const currentYear = currentYearV6215();
-    const priorYear = priorYearV6215();
-    return Chart.defaults.plugins.legend.labels.generateLabels(chart).map(item => {
-      const year = Number(item.text);
-      const color = colors && colors[year] ? colors[year] : null;
-      return Object.assign({}, item, {
-        text: isFinite(year) ? "'" + String(year).slice(-2) : item.text,
-        lineWidth: year === currentYear ? 3 : 2.2,
-        strokeStyle: color ? color.border : item.strokeStyle,
-        fillStyle: color ? color.border : item.fillStyle,
-        lineDash: year === currentYear ? [] : year === priorYear ? [7, 5] : [2, 5]
-      });
-    });
-  }
-
-  function enhanceChartConfigV6215(canvasId, config) {
-    if (!config || !config.data || !Array.isArray(config.data.datasets)) return config;
-    const chartType = config.type || 'line';
-    const currentYear = currentYearV6215();
-    const priorYear = priorYearV6215();
-    const selected = selectedMonthSetV6215();
-    const labels = Array.isArray(config.data.labels) ? config.data.labels : [];
-    const monthAxis = isChartMonthAxisV6215(config);
-
-    config.options = config.options || {};
     config.options.plugins = config.options.plugins || {};
-    config.options.plugins.legend = config.options.plugins.legend || {};
-    config.options.plugins.legend.position = 'top';
-    config.options.plugins.legend.align = 'start';
-    config.options.plugins.legend.labels = Object.assign({}, config.options.plugins.legend.labels || {}, {
+    const legend = config.options.plugins.legend = config.options.plugins.legend || {};
+    legend.position = 'top';
+    legend.align = 'start';
+    legend.labels = Object.assign({}, legend.labels || {}, {
       boxWidth: 18,
       boxHeight: 2,
       usePointStyle: false,
       color: '#475467',
+      padding: 8,
       font: { family: 'Roboto, Arial, sans-serif', size: 11, weight: '700' },
-      padding: 6,
-      generateLabels: legendLabelsV6215
-    });
-
-    config.data.datasets.forEach(dataset => {
-      const year = Number(dataset.label);
-      const color = colors && colors[year] ? colors[year] : null;
-      const baseBorder = (color && color.border) || dataset.borderColor || '#64748b';
-      const baseBar = (color && color.bar) || dataset.backgroundColor || baseBorder;
-      const dimBorder = 'rgba(107, 114, 128, 0.20)';
-      const dimFill = 'rgba(107, 114, 128, 0.13)';
-
-      if (chartType === 'line') {
-        dataset.pointStyle = 'circle';
-        if (year === currentYear && color) {
-          dataset.fill = 'origin';
-          dataset.backgroundColor = color.area || 'rgba(37, 99, 235, 0.13)';
-        }
-        if (monthAxis && selected.size) {
-          delete dataset.segment;
-          dataset.borderColor = baseBorder;
-          dataset.pointBackgroundColor = labels.map((label, index) => selected.has(monthFromChartLabelV6215(label, index)) ? baseBorder : 'rgba(107, 114, 128, 0.22)');
-          dataset.pointBorderColor = labels.map((label, index) => selected.has(monthFromChartLabelV6215(label, index)) ? '#ffffff' : 'rgba(255,255,255,0.38)');
-          dataset.pointRadius = labels.map((label, index) => selected.has(monthFromChartLabelV6215(label, index)) ? (year === currentYear ? 4.6 : 3.1) : (year === currentYear ? 1.2 : 0));
-          dataset.pointHoverRadius = labels.map((label, index) => selected.has(monthFromChartLabelV6215(label, index)) ? 6 : 3);
-        }
-      }
-
-      if (chartType === 'bar' && monthAxis && selected.size) {
-        dataset.backgroundColor = labels.map((label, index) => selected.has(monthFromChartLabelV6215(label, index)) ? baseBar : dimFill);
-        dataset.borderColor = labels.map((label, index) => selected.has(monthFromChartLabelV6215(label, index)) ? ((color && color.barBorder) || baseBorder) : dimBorder);
+      generateLabels: function(chart) {
+        return Chart.defaults.plugins.legend.labels.generateLabels(chart).map(item => {
+          const year = Number(item.text);
+          const color = (typeof colors !== 'undefined' && colors && colors[year] && colors[year].border) || item.strokeStyle || item.fillStyle || '#2563eb';
+          return Object.assign({}, item, {
+            lineWidth: year === Number(payload && payload.config ? payload.config.currentYear : 2026) ? 3 : 2.4,
+            strokeStyle: color,
+            fillStyle: color,
+            lineDash: year === Number(payload && payload.config ? payload.config.currentYear : 2026) ? [] : year === Number(payload && payload.config ? payload.config.priorYear : 2025) ? [7, 5] : [2, 5]
+          });
+        });
       }
     });
 
-    if (canvasId !== 'chartRevenue') {
+    const formatter = metricFormatterForCanvasV6216(config.options && config.options.plugins && config.options.plugins.v6216MetricKey);
+    if (!config.options.plugins.tooltip || config.options.plugins.tooltip.enabled !== false) {
       config.options.plugins.tooltip = config.options.plugins.tooltip || {};
       config.options.plugins.tooltip.callbacks = Object.assign({}, config.options.plugins.tooltip.callbacks || {}, {
-        title: items => items && items.length ? String(items[0].label || '') : '',
-        label: context => {
-          const label = context.dataset && context.dataset.label ? String(context.dataset.label) : '';
-          return label + ': ' + formatTooltipValueV6215(canvasId, context.raw);
+        label: function(context) {
+          return (context.dataset.label ? context.dataset.label + ': ' : '') + formatter(Number(context.raw || 0));
         },
-        footer: () => ''
+        footer: function() { return ''; },
+        beforeFooter: function() { return ''; },
+        afterFooter: function() { return ''; },
+        afterBody: function(items) {
+          if (!items || !items.length) return [];
+          const chart = items[0].chart;
+          const idx = items[0].dataIndex;
+          const cy = Number(payload && payload.config ? payload.config.currentYear : 2026);
+          const py = Number(payload && payload.config ? payload.config.priorYear : 2025);
+          const current = (chart.data.datasets || []).find(ds => Number(ds.label) === cy);
+          const prior = (chart.data.datasets || []).find(ds => Number(ds.label) === py);
+          if (!current || !prior) return [];
+          const cur = Number((current.data || [])[idx] || 0);
+          const pre = Number((prior.data || [])[idx] || 0);
+          const delta = cur - pre;
+          const pct = pre ? delta / Math.abs(pre) : null;
+          const arrow = delta >= 0 ? '▲' : '▼';
+          const pctText = pct === null || !isFinite(pct) ? '' : ' (' + (delta >= 0 ? '+' : '') + Math.round(pct * 100) + '%)';
+          return ['Delta vs ' + py + ': ' + arrow + ' ' + formatter(Math.abs(delta)) + pctText];
+        }
       });
     }
+
+    (config.data.datasets || []).forEach((ds, dsIndex) => {
+      const base = baseColorForDatasetV6216(ds, dsIndex === 0 ? '#2563eb' : '#94a3b8');
+      const isLine = config.type === 'line' || ds.type === 'line';
+      const isBar = config.type === 'bar' || ds.type === 'bar';
+      const isCurrent = Number(ds.label) === Number(payload && payload.config ? payload.config.currentYear : 2026);
+
+      if (isLine) {
+        ds.borderColor = base;
+        if (isCurrent && ds.fill !== false) {
+          ds.fill = 'origin';
+          ds.backgroundColor = rgbaV6216(base, 0.16);
+        }
+        if (hasMonthDim) {
+          ds.pointBackgroundColor = labels.map((_, i) => selectedIdx.has(i) ? base : 'rgba(148,163,184,0.14)');
+          ds.pointBorderColor = labels.map((_, i) => selectedIdx.has(i) ? '#ffffff' : 'rgba(148,163,184,0.18)');
+          ds.pointRadius = labels.map((_, i) => selectedIdx.has(i) ? (isCurrent ? 4.8 : 3.2) : (isCurrent ? 1.1 : 0));
+          delete ds.segment;
+          ds.borderColor = base;
+        }
+      }
+      if (isBar && hasMonthDim) {
+        ds.backgroundColor = labels.map((_, i) => selectedIdx.has(i) ? rgbaV6216(base, 0.82) : 'rgba(148,163,184,0.18)');
+        ds.borderColor = labels.map((_, i) => selectedIdx.has(i) ? base : 'rgba(148,163,184,0.22)');
+      }
+    });
 
     return config;
   }
 
-  if (typeof drawChart === 'function' && !drawChart.__v6215Enhanced) {
-    const previousDrawChartV6215 = drawChart;
-    drawChart = function drawChartV6215(canvasId, config) {
-      return previousDrawChartV6215.call(this, canvasId, enhanceChartConfigV6215(canvasId, config));
+  function metricFormatterForCanvasV6216(metricKey) {
+    if (metricKey === 'customers' || metricKey === 'units') return (typeof formatNumber === 'function') ? formatNumber : (v => Number(v || 0).toLocaleString());
+    return (typeof formatCurrency === 'function') ? formatCurrency : (v => '$' + Math.round(Number(v || 0)).toLocaleString());
+  }
+
+  const previousDrawChartV6216 = typeof drawChart === 'function' ? drawChart : null;
+  if (previousDrawChartV6216 && !previousDrawChartV6216.__v6216Patched) {
+    drawChart = function drawChartV6216(canvasId, config) {
+      const metricByCanvas = { chartCustomers: 'customers', chartUnits: 'units', chartRpac: 'rpac', chartAvg: 'avgPrice', chartRevenue: 'revenue' };
+      if (config && config.options) {
+        config.options.plugins = config.options.plugins || {};
+        config.options.plugins.v6216MetricKey = metricByCanvas[canvasId] || '';
+      }
+      return previousDrawChartV6216.call(this, canvasId, patchLegendAndTooltipV6216(config));
     };
-    drawChart.__v6215Enhanced = true;
+    drawChart.__v6216Patched = true;
   }
 
-  if (typeof drawRevenueTrendChart === 'function' && !drawRevenueTrendChart.__v6215MtdCumulative) {
-    const previousDrawRevenueTrendChartV6215 = drawRevenueTrendChart;
-    drawRevenueTrendChart = function drawRevenueTrendChartV6215(canvasId, baseRows, years) {
-      let oldMode;
-      let hadMode = false;
-      const selected = typeof getSingleSelectedMonth === 'function' ? getSingleSelectedMonth() : null;
-      if (canvasId === 'chartRevenue' && selected && state && state.periodMode === 'MTD') {
-        if (!state.overviewChartModes) state.overviewChartModes = {};
-        hadMode = Object.prototype.hasOwnProperty.call(state.overviewChartModes, canvasId);
-        oldMode = state.overviewChartModes[canvasId];
-        state.overviewChartModes[canvasId] = 'sparkline';
-      }
-      try {
-        return previousDrawRevenueTrendChartV6215.apply(this, arguments);
-      } finally {
-        if (canvasId === 'chartRevenue' && selected && state && state.overviewChartModes) {
-          if (hadMode) state.overviewChartModes[canvasId] = oldMode;
-          else delete state.overviewChartModes[canvasId];
-        }
-      }
-    };
-    drawRevenueTrendChart.__v6215MtdCumulative = true;
+  function cumulativeMetricThroughDayV6216(rows, year, day, metricKey, selectedMonth) {
+    const scoped = (rows || []).filter(row => Number(row.year) === Number(year) && Number(row.monthNum) === Number(selectedMonth) && Number(row.dayOfMonth || 0) <= Number(day));
+    const revenue = typeof sum === 'function' ? sum(scoped, 'netRevenue') : scoped.reduce((t, r) => t + Number(r.netRevenue || 0), 0);
+    const units = typeof sum === 'function' ? sum(scoped, 'units') : scoped.reduce((t, r) => t + Number(r.units || 0), 0);
+    const customers = typeof distinctCount === 'function' ? distinctCount(scoped, 'customerId') : new Set(scoped.map(r => r.customerId).filter(Boolean)).size;
+    if (metricKey === 'revenue') return revenue;
+    if (metricKey === 'units') return units;
+    if (metricKey === 'customers') return customers;
+    if (metricKey === 'rpac') return customers ? revenue / customers : 0;
+    if (metricKey === 'avgPrice') return units ? revenue / units : 0;
+    return 0;
   }
 
-  if (typeof applyMonthSelection === 'function' && !applyMonthSelection.__v6215MtdPermanent) {
-    applyMonthSelection = function applyMonthSelectionV6215(month, additive, range) {
-      const value = Number(month);
-      if (!value) return;
-      if (!state.selectedMonths) state.selectedMonths = new Set();
-      const selected = new Set(state.selectedMonths || []);
 
-      if (range && state.lastSelectedMonth) {
-        const start = Math.min(Number(state.lastSelectedMonth), value);
-        const end = Math.max(Number(state.lastSelectedMonth), value);
-        if (!additive) selected.clear();
-        for (let m = start; m <= end; m++) selected.add(m);
-        state.monthSelectionMode = 'multi';
-      } else if (additive) {
-        if (selected.has(value)) selected.delete(value);
-        else selected.add(value);
-        state.monthSelectionMode = selected.size > 1 ? 'multi' : selected.size === 1 ? 'drill' : 'none';
-      } else {
-        selected.clear();
-        selected.add(value);
-        state.monthSelectionMode = 'drill';
+  function buildDailyMetricSeriesV6224(monthRows, year, days, metricKey) {
+    const buckets = new Map();
+    (monthRows || []).forEach(row => {
+      if (Number(row.year) !== Number(year)) return;
+      const day = Number(row.dayOfMonth || 0);
+      if (!day) return;
+      if (!buckets.has(day)) buckets.set(day, { revenue: 0, units: 0, customers: [] });
+      const bucket = buckets.get(day);
+      bucket.revenue += Number(row.netRevenue || 0);
+      bucket.units += Number(row.units || 0);
+      const cid = row.customerId || row.customerID || row.Cases_CustomerID;
+      if (cid !== null && cid !== undefined && String(cid).trim() !== '') bucket.customers.push(String(cid));
+    });
+    let revenue = 0;
+    let units = 0;
+    const customers = new Set();
+    return (days || []).map(day => {
+      const bucket = buckets.get(Number(day));
+      if (bucket) {
+        revenue += Number(bucket.revenue || 0);
+        units += Number(bucket.units || 0);
+        bucket.customers.forEach(id => customers.add(id));
       }
-
-      state.selectedMonths = selected;
-      state.selectedMonth = selected.size === 1 ? [...selected][0] : null;
-      state.lastSelectedMonth = selected.size ? value : null;
-      state.periodMode = selected.size ? 'MTD' : 'YTD';
-      if (typeof renderAll === 'function') renderAll();
-    };
-    applyMonthSelection.__v6215MtdPermanent = true;
-  }
-
-  function additiveEventV6215(event) {
-    const e = event && event.native ? event.native : (event || window.event);
-    return !!(e && (e.ctrlKey || e.metaKey));
-  }
-
-  function ensureHighlightSetsV6215() {
-    if (!state.v6165CustomerFocus) state.v6165CustomerFocus = new Set();
-    if (!state.v6165ProductFocus) state.v6165ProductFocus = new Set();
-    if (!Array.isArray(state.v6165CustomerClickOrder)) state.v6165CustomerClickOrder = [];
-    if (!Array.isArray(state.v6165ProductClickOrder)) state.v6165ProductClickOrder = [];
-  }
-
-  window.setCustomer = setCustomer = function setCustomerV6215(value, event) {
-    ensureHighlightSetsV6215();
-    const id = String(value || '');
-    const selected = state.v6165CustomerFocus;
-    const additive = additiveEventV6215(event);
-    if (!id) {
-      selected.clear();
-      state.v6165CustomerClickOrder = [];
-    } else if (additive) {
-      if (selected.has(id)) {
-        selected.delete(id);
-        state.v6165CustomerClickOrder = state.v6165CustomerClickOrder.filter(item => item !== id);
-      } else {
-        selected.add(id);
-        state.v6165CustomerClickOrder = [id].concat(state.v6165CustomerClickOrder.filter(item => item !== id));
-      }
-    } else if (selected.has(id) && selected.size === 1) {
-      selected.clear();
-      state.v6165CustomerClickOrder = [];
-    } else {
-      selected.clear();
-      selected.add(id);
-      state.v6165CustomerClickOrder = [id];
-    }
-    state.tableSelectedCustomerIds = new Set(selected);
-    if (typeof renderAll === 'function') renderAll();
-  };
-
-  window.setProduct = setProduct = function setProductV6215(value, event) {
-    ensureHighlightSetsV6215();
-    const key = String(value || '');
-    if (!state.v6165ProductMode) state.v6165ProductMode = 'product';
-    if (state.v6165ProductFocusMode !== state.v6165ProductMode) {
-      state.v6165ProductFocus.clear();
-      state.v6165ProductClickOrder = [];
-      state.v6165ProductFocusMode = state.v6165ProductMode;
-    }
-    const selected = state.v6165ProductFocus;
-    const additive = additiveEventV6215(event);
-    if (!key) {
-      selected.clear();
-      state.v6165ProductClickOrder = [];
-    } else if (additive) {
-      if (selected.has(key)) {
-        selected.delete(key);
-        state.v6165ProductClickOrder = state.v6165ProductClickOrder.filter(item => item !== key);
-      } else {
-        selected.add(key);
-        state.v6165ProductClickOrder = [key].concat(state.v6165ProductClickOrder.filter(item => item !== key));
-      }
-    } else if (selected.has(key) && selected.size === 1) {
-      selected.clear();
-      state.v6165ProductClickOrder = [];
-    } else {
-      selected.clear();
-      selected.add(key);
-      state.v6165ProductClickOrder = [key];
-    }
-    state.tableSelectedProductKeys = new Set(selected);
-    if (typeof renderAll === 'function') renderAll();
-  };
-
-  function popoutWindowNameV6215(componentId) {
-    return 'cdaOverviewPopout_' + String(componentId || '').replace(/[^a-zA-Z0-9_]/g, '_');
-  }
-
-  function unmarkExternalSourceV6215(componentId) {
-    document.querySelectorAll('.v6215ExternalPoppedSource').forEach(card => {
-      if (!componentId || card.getAttribute('data-v6215-component') === String(componentId)) {
-        card.classList.remove('v6215ExternalPoppedSource');
-        card.removeAttribute('data-v6215-component');
-        const overlay = card.querySelector('.v6215PopoutOverlay');
-        if (overlay) overlay.remove();
-      }
+      const customerCount = customers.size;
+      if (metricKey === 'revenue') return revenue;
+      if (metricKey === 'units') return units;
+      if (metricKey === 'customers') return customerCount;
+      if (metricKey === 'rpac') return customerCount ? revenue / customerCount : 0;
+      if (metricKey === 'avgPrice') return units ? revenue / units : 0;
+      return 0;
     });
   }
 
-  window.__closeExternalPopoutV6215 = function closeExternalPopoutV6215(componentId) {
-    try {
-      const win = window.open('', popoutWindowNameV6215(componentId));
-      if (win && !win.closed) win.close();
-    } catch (error) {}
-    if (typeof window.clearExternalPopoutReferenceV6214 === 'function') {
-      try { window.clearExternalPopoutReferenceV6214(componentId); } catch (error) {}
+  function drawDailyMetricV6216(canvasId, rows, years, metricKey, formatter) {
+    const selectedMonth = typeof getSingleSelectedMonth === 'function' ? Number(getSingleSelectedMonth()) : 0;
+    if (!selectedMonth) return false;
+    const monthRows = (rows || []).filter(row => Number(row.monthNum) === selectedMonth);
+    const maxDay = Math.max(1, ...monthRows.map(row => Number(row.dayOfMonth || 0)).filter(Boolean));
+    const days = Array.from({ length: maxDay }, (_, i) => i + 1);
+    const currentYear = Number(payload && payload.config ? payload.config.currentYear : 2026);
+    const priorYear = Number(payload && payload.config ? payload.config.priorYear : 2025);
+    const datasets = (years || []).map(year => {
+      const color = (typeof colors !== 'undefined' && colors && colors[year]) || (colors && colors[priorYear]) || { border: '#94a3b8', area: 'rgba(148,163,184,.16)' };
+      const isCurrent = Number(year) === currentYear;
+      const isPrior = Number(year) === priorYear;
+      return {
+        label: String(year),
+        data: buildDailyMetricSeriesV6224(monthRows, year, days, metricKey),
+        borderColor: color.border,
+        backgroundColor: isCurrent ? color.area || rgbaV6216(color.border, 0.16) : 'transparent',
+        pointBackgroundColor: color.border,
+        pointBorderColor: '#ffffff',
+        pointBorderWidth: isCurrent ? 2 : 0,
+        pointRadius: isCurrent ? 2.4 : 0,
+        pointHoverRadius: isCurrent ? 5 : 3.5,
+        borderWidth: isCurrent ? 3.2 : isPrior ? 2.2 : 1.8,
+        borderDash: isCurrent ? [] : isPrior ? [7, 5] : [2, 5],
+        fill: isCurrent ? 'origin' : false,
+        tension: 0.28,
+        spanGaps: false
+      };
+    });
+    const opts = chartOptions(formatter, metricKey, 'line', {
+      currentYear,
+      priorYear,
+      isRevenueTrend: false,
+      trendMode: 'dailyCumulative',
+      selectedMonth,
+      canvasId
+    });
+    if (opts.plugins && opts.plugins.executiveValueLabels) opts.plugins.executiveValueLabels.display = false;
+    drawChart(canvasId, { type: 'line', data: { labels: days.map(String), datasets }, options: opts });
+    return true;
+  }
+
+  const previousRenderChartsV6216 = typeof renderCharts === 'function' ? renderCharts : null;
+  if (previousRenderChartsV6216 && !previousRenderChartsV6216.__v6216MtdCumulative) {
+    renderCharts = function renderChartsV6216() {
+      const selectedMonth = typeof getSingleSelectedMonth === 'function' ? Number(getSingleSelectedMonth()) : 0;
+      if (selectedMonth && state && state.periodMode === 'MTD') {
+        const rows = typeof getFilteredFacts === 'function' ? getFilteredFacts({ month: true }) : [];
+        const years = typeof getDisplayYears === 'function' ? getDisplayYears() : [];
+        if (typeof destroyChartsForTab === 'function') destroyChartsForTab('two');
+        if (typeof drawRevenueTrendChart === 'function') drawRevenueTrendChart('chartRevenue', rows, years);
+        drawDailyMetricV6216('chartCustomers', rows, years, 'customers', metricFormatterForCanvasV6216('customers'));
+        drawDailyMetricV6216('chartUnits', rows, years, 'units', metricFormatterForCanvasV6216('units'));
+        drawDailyMetricV6216('chartRpac', rows, years, 'rpac', metricFormatterForCanvasV6216('rpac'));
+        drawDailyMetricV6216('chartAvg', rows, years, 'avgPrice', metricFormatterForCanvasV6216('avgPrice'));
+        if (typeof updateChartFocusStyles === 'function') updateChartFocusStyles();
+        return;
+      }
+      return previousRenderChartsV6216.apply(this, arguments);
+    };
+    renderCharts.__v6216MtdCumulative = true;
+  }
+
+  function buildFastDepartmentRowsV6216() {
+    const selectedYears = new Set(Array.from((state && state.years) || []).map(Number).filter(Boolean));
+    const query = String((state && state.departmentSearch) || '').trim();
+    const key = (facts ? facts.length : 0) + '|' + Array.from(selectedYears).sort().join(',') + '|' + query + '|' + (state && state.deptMode) + '|' + Array.from((state && state.selectedDepartments) || []).join(',');
+    if (state.__v6216DepartmentRowsKey === key && Array.isArray(state.__v6216DepartmentRows)) return state.__v6216DepartmentRows;
+    const map = new Map();
+    const fuzzyScores = new Map();
+    (facts || []).forEach(row => {
+      const year = Number(row.year);
+      if (selectedYears.size && !selectedYears.has(year)) return;
+      const dept = String(row.productsDepartment || '(Blank department)');
+      if (query) {
+        if (!fuzzyScores.has(dept)) fuzzyScores.set(dept, window.dashboardFuzzySearchV6412.score(dept, query));
+        if (fuzzyScores.get(dept) <= 0) return;
+      }
+      if (!map.has(dept)) map.set(dept, { department: dept, revenue: 0, fuzzyScoreV6412: query ? fuzzyScores.get(dept) : 1 });
+      map.get(dept).revenue += Number(row.netRevenue || 0);
+    });
+    const selected = new Set((state && state.selectedDepartments) || []);
+    const main = new Set(typeof getMainDepartments === 'function' ? Array.from(getMainDepartments() || []) : []);
+    function checked(dept) {
+      if (state.deptMode === 'ALL') return true;
+      if (state.deptMode === 'MAIN') return main.has(dept);
+      return selected.has(dept);
     }
-    unmarkExternalSourceV6215(componentId);
+    const rows = Array.from(map.values()).sort((a, b) => {
+      const sd = (checked(b.department) ? 1 : 0) - (checked(a.department) ? 1 : 0);
+      if (sd) return sd;
+      if (query && b.fuzzyScoreV6412 !== a.fuzzyScoreV6412) return b.fuzzyScoreV6412 - a.fuzzyScoreV6412;
+      return Number(b.revenue || 0) - Number(a.revenue || 0);
+    });
+    state.__v6216DepartmentRowsKey = key;
+    state.__v6216DepartmentRows = rows;
+    return rows;
+  }
+
+  if (typeof renderDepartmentList === 'function') {
+    getVisibleDepartmentRows = function getVisibleDepartmentRowsV6216() {
+      return buildFastDepartmentRowsV6216().slice();
+    };
+    renderDepartmentList = function renderDepartmentListV6216() {
+      const list = document.getElementById('departmentList');
+      if (!list) return;
+      const rows = buildFastDepartmentRowsV6216();
+      const selected = new Set((state && state.selectedDepartments) || []);
+      const main = new Set(typeof getMainDepartments === 'function' ? Array.from(getMainDepartments() || []) : []);
+      function checked(dept) {
+        if (state.deptMode === 'ALL') return true;
+        if (state.deptMode === 'MAIN') return main.has(dept);
+        return selected.has(dept);
+      }
+      const checkedCount = rows.filter(row => checked(row.department)).length;
+      const count = document.getElementById('departmentVisibleCount');
+      if (count) count.textContent = checkedCount + ' of ' + rows.length + ' selected';
+      if (!rows.length) {
+        list.innerHTML = '<div class="emptyFilterRow">No departments match.</div>';
+        if (typeof updateDropdownLabels === 'function') updateDropdownLabels();
+        return;
+      }
+      list.innerHTML = rows.map(row => '<div class="deptRow ' + (checked(row.department) ? 'active' : '') + '" onclick="event.stopPropagation(); toggleDepartment(\'' + escJsV6216(row.department) + '\')"><div class="labelSide"><input type="checkbox" tabindex="-1" onclick="event.preventDefault()" ' + (checked(row.department) ? 'checked' : '') + '><span title="' + escHtmlV6216(row.department) + '">' + escHtmlV6216(row.department) + '</span></div><span class="rowTotal">' + (typeof formatCompact === 'function' ? formatCompact(row.revenue) : Math.round(row.revenue).toLocaleString()) + '</span></div>').join('');
+      if (typeof updateDropdownLabels === 'function') updateDropdownLabels();
+    };
+  }
+
+  function popupWindowNameV6216(componentId) {
+    return 'cdaOverviewPopoutV6216_' + String(componentId || '').replace(/[^a-zA-Z0-9_]/g, '_');
+  }
+
+  function componentMapV6216(componentId) {
+    return {
+      revenue: { title: 'Revenue Trend', type: 'chart', canvasId: 'chartRevenue', resetKind: 'month' },
+      customerCount: { title: 'Customer Count', type: 'chart', canvasId: 'chartCustomers', resetKind: 'month' },
+      units: { title: 'Units Produced', type: 'chart', canvasId: 'chartUnits', resetKind: 'month' },
+      rpac: { title: 'Revenue Per Active Customer', type: 'chart', canvasId: 'chartRpac', resetKind: 'month' },
+      avg: { title: 'Avg Price Per Unit', type: 'chart', canvasId: 'chartAvg', resetKind: 'month' },
+      customerTable: { title: 'Customer Movers', type: 'table', tableSelector: '#customerTable', resetKind: 'customer' },
+      productTable: { title: 'Product Movers', type: 'table', tableSelector: '#productTable', resetKind: 'product' }
+    }[componentId] || null;
+  }
+
+  function getCardV6216(componentId) {
+    if (typeof getComponentCard === 'function') {
+      try { const card = getComponentCard(componentId); if (card) return card; } catch (error) {}
+    }
+    const config = componentMapV6216(componentId);
+    if (!config) return null;
+    const el = config.canvasId ? document.getElementById(config.canvasId) : document.querySelector(config.tableSelector);
+    return el ? el.closest('.card') : null;
+  }
+
+  function markPoppedSourceV6216(componentId) {
+    document.querySelectorAll('.v6216ExternalPoppedSource').forEach(card => {
+      card.classList.remove('v6216ExternalPoppedSource');
+      const overlay = card.querySelector('.v6216PopoutOverlay');
+      if (overlay) overlay.remove();
+    });
+    const card = getCardV6216(componentId);
+    if (!card) return;
+    card.classList.add('v6216ExternalPoppedSource');
+    const overlay = document.createElement('div');
+    overlay.className = 'v6216PopoutOverlay';
+    overlay.innerHTML = '<button type="button" class="v6216PopBackBtn" onclick="window.__closePopoutV6216(\'' + escJsV6216(componentId) + '\')">Pop back in ×</button>';
+    card.appendChild(overlay);
+  }
+
+  window.__closePopoutV6216 = function closePopoutV6216(componentId) {
+    const ref = popupRefsV6216[componentId];
+    try { if (ref && ref.win && !ref.win.closed) ref.win.close(); } catch (error) {}
+    delete popupRefsV6216[componentId];
+    delete popupPinsV6216[componentId];
+    document.querySelectorAll('.v6216ExternalPoppedSource').forEach(card => {
+      card.classList.remove('v6216ExternalPoppedSource');
+      const overlay = card.querySelector('.v6216PopoutOverlay');
+      if (overlay) overlay.remove();
+    });
   };
 
-  function markExternalSourceV6215(componentId) {
-    const card = typeof getComponentCard === 'function' ? getComponentCard(componentId) : null;
-    if (!card) return;
-    unmarkExternalSourceV6215();
-    card.classList.add('v6215ExternalPoppedSource');
-    card.setAttribute('data-v6215-component', String(componentId));
-    if (!card.querySelector('.v6215PopoutOverlay')) {
-      const overlay = document.createElement('div');
-      overlay.className = 'v6215PopoutOverlay';
-      overlay.innerHTML = '<button type="button" class="v6215PopBackBtn" onclick="window.__closeExternalPopoutV6215(\'' + safeJsV6215(componentId) + '\')">Pop back in x</button>';
-      card.appendChild(overlay);
+  function cloneDatasetForPopupV6216(dataset, index) {
+    const fallback = index === 0 ? '#2563eb' : '#94a3b8';
+    const base = baseColorForDatasetV6216(dataset, fallback);
+    const copy = {};
+    ['label','type','fill','tension','borderWidth','borderDash','pointRadius','pointHoverRadius','maxBarThickness','categoryPercentage','barPercentage'].forEach(k => { if (dataset && dataset[k] !== undefined) copy[k] = Array.isArray(dataset[k]) ? dataset[k].slice() : dataset[k]; });
+    copy.label = String(copy.label || 'Value');
+    copy.data = Array.isArray(dataset && dataset.data) ? dataset.data.map(v => v == null ? null : Number(v)) : [];
+    copy.borderColor = base;
+    copy.backgroundColor = dataset && typeof dataset.backgroundColor === 'string' ? dataset.backgroundColor : rgbaV6216(base, 0.20);
+    copy.pointBackgroundColor = base;
+    copy.pointBorderColor = '#ffffff';
+    return copy;
+  }
+
+  window.getExternalPopoutSnapshotV6216 = function getExternalPopoutSnapshotV6216(componentId) {
+    const config = componentMapV6216(componentId);
+    if (!config) return { ok: false, componentId, message: 'Unknown panel.' };
+    const title = (getCardV6216(componentId) && getCardV6216(componentId).querySelector('.chartTitle') && getCardV6216(componentId).querySelector('.chartTitle').textContent) || config.title;
+    if (config.type === 'chart') {
+      const chart = (typeof charts !== 'undefined' && charts) ? charts[config.canvasId] : null;
+      if (!chart || !chart.data) return { ok: false, type: 'chart', componentId, title, message: 'Chart is not ready.' };
+      return {
+        ok: true,
+        type: 'chart',
+        componentId,
+        canvasId: config.canvasId,
+        title,
+        chartType: (chart.config && chart.config.type) || 'line',
+        mode: typeof chartModeV6212 === 'function' ? chartModeV6212(config.canvasId) : '',
+        labels: (chart.data.labels || []).map(String),
+        datasets: (chart.data.datasets || []).map(cloneDatasetForPopupV6216),
+        updatedAt: new Date().toLocaleTimeString()
+      };
     }
+    const card = getCardV6216(componentId);
+    if (!card) return { ok: false, type: 'table', componentId, title, message: 'Table is not ready.' };
+    const clone = card.cloneNode(true);
+    clone.querySelectorAll('.componentMenuBtn,.componentMenu,script').forEach(node => node.remove());
+    clone.querySelectorAll('[id]').forEach(node => { node.removeAttribute('id'); });
+    return { ok: true, type: 'table', componentId, title, html: clone.outerHTML, updatedAt: new Date().toLocaleTimeString() };
+  };
+
+  function schedulePopoutSyncV6216(delay) {
+    if (popupSyncTimerV6216) clearTimeout(popupSyncTimerV6216);
+    popupSyncTimerV6216 = setTimeout(() => {
+      Object.keys(popupRefsV6216).forEach(componentId => {
+        const ref = popupRefsV6216[componentId];
+        if (!ref || !ref.win || ref.win.closed) { delete popupRefsV6216[componentId]; return; }
+        const snap = window.getExternalPopoutSnapshotV6216(componentId);
+        try {
+          if (typeof ref.win.__receiveOverviewSnapshotV6216 === 'function') ref.win.__receiveOverviewSnapshotV6216(snap);
+          else ref.win.postMessage({ type: 'overviewSnapshotV6216', snapshot: snap }, '*');
+        } catch (error) {}
+      });
+    }, delay || 350);
   }
 
-  function injectPopupStyleV6215(componentId) {
+  window.__setPopoutPinnedV6216 = function setPopoutPinnedV6216(componentId, pinned) {
+    popupPinsV6216[componentId] = !!pinned;
+  };
+
+  window.applyExternalPopoutFilterV6216 = function applyExternalPopoutFilterV6216(payload) {
+    const item = payload || {};
+    const ev = { ctrlKey: !!item.ctrlKey || !!item.metaKey, metaKey: !!item.metaKey, shiftKey: !!item.shiftKey, preventDefault(){}, stopPropagation(){} };
     try {
-      const win = window.open('', popoutWindowNameV6215(componentId));
-      if (!win || win.closed || !win.document || win.document.getElementById('popupStyleV6215')) return;
-      const style = win.document.createElement('style');
-      style.id = 'popupStyleV6215';
-      style.textContent = `
-        html, body { background: #ebe9ed !important; font-family: Roboto, Arial, sans-serif !important; }
-        .popHeader { background: #ffffff !important; border-bottom: 1px solid #d7dce2 !important; }
-        .chartShell, .card, .moverArea, .tableScroll { border-radius: 5px !important; border-color: #d7dce2 !important; box-shadow: 0 1px 3px rgba(20,32,42,.14) !important; }
-        .chartShell { background: #ffffff !important; padding: 10px 12px 9px !important; }
-        .hint { color: #667085 !important; }
-        tr.active td, .v6213PinnedRow td, .v6212CrossFilterRow td, .v6165PinnedRow td { background: #fff2bf !important; border-top-color: #f59e0b !important; border-bottom-color: #f59e0b !important; }
-      `;
-      win.document.head.appendChild(style);
-    } catch (error) {}
+      if (item.kind === 'month') {
+        const month = Number(item.month || 0);
+        if (month && typeof applyMonthSelection === 'function') applyMonthSelection(month, !!ev.ctrlKey, !!ev.shiftKey);
+      } else if (item.kind === 'customer' && typeof setCustomer === 'function') setCustomer(item.value, ev);
+      else if (item.kind === 'product' && typeof setProduct === 'function') setProduct(item.value, ev);
+      else if (item.kind === 'chartMode' && typeof window.setOverviewChartModeV6212 === 'function') window.setOverviewChartModeV6212(item.canvasId, item.mode);
+      else if (item.kind === 'resetComponent' && typeof resetComponentSelection === 'function') resetComponentSelection(item.componentId || item.componentId);
+      else if (item.kind === 'customerSort' && typeof setCustomerColumnSort === 'function') { setCustomerColumnSort(item.value); renderAll(); }
+      else if (item.kind === 'productSort' && typeof setProductColumnSort === 'function') { setProductColumnSort(item.value); renderAll(); }
+    } catch (error) { console.error(error); }
+    schedulePopoutSyncV6216(600);
+  };
+
+  function popupHtmlV6216(componentId, title) {
+    const cfg = componentMapV6216(componentId) || {};
+    const isChart = cfg.type === 'chart';
+    const chartScript = '<scr' + 'ipt src="https://cdn.jsdelivr.net/npm/chart.js"></scr' + 'ipt>';
+    const scriptOpen = '<scr' + 'ipt>';
+    const scriptClose = '</scr' + 'ipt>';
+    const inline = `
+      let currentSnapshot=null,currentChart=null,pinned=false;
+      const componentId=${JSON.stringify(componentId)};
+      function byId(id){return document.getElementById(id)}
+      function status(t){const el=byId('status'); if(el) el.textContent=t||'';}
+      function send(payload,ev){payload=payload||{}; if(ev){payload.ctrlKey=!!ev.ctrlKey;payload.metaKey=!!ev.metaKey;payload.shiftKey=!!ev.shiftKey;if(ev.preventDefault)ev.preventDefault();if(ev.stopPropagation)ev.stopPropagation();} try{if(window.opener&&!window.opener.closed&&typeof window.opener.applyExternalPopoutFilterV6216==='function'){window.opener.applyExternalPopoutFilterV6216(payload); setTimeout(requestSnapshot,500);}else status('Main dashboard disconnected.')}catch(e){status('Action failed.'); console.error(e)}}
+      function requestSnapshot(){try{if(window.opener&&!window.opener.closed&&typeof window.opener.getExternalPopoutSnapshotV6216==='function')applySnapshot(window.opener.getExternalPopoutSnapshotV6216(componentId));else status('Main dashboard disconnected.')}catch(e){status('Refresh failed.')}}
+      function monthFromLabel(label,index){const names=['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];const f=names.indexOf(String(label||'').slice(0,3).toLowerCase());if(f>=0)return f+1;const n=Number(label);return n>=1&&n<=12?n:Number(index)+1}
+      function setMode(mode){if(!currentSnapshot||!currentSnapshot.canvasId)return; send({kind:'chartMode',canvasId:currentSnapshot.canvasId,mode:mode});}
+      function resetPanel(){send({kind:'resetComponent',componentId:componentId});}
+      function togglePin(){pinned=!pinned; byId('pinBtn').classList.toggle('active',pinned); byId('pinBtn').textContent=pinned?'Keep front: on':'Keep front'; try{if(window.opener&&!window.opener.closed&&typeof window.opener.__setPopoutPinnedV6216==='function')window.opener.__setPopoutPinnedV6216(componentId,pinned)}catch(e){} if(pinned) window.focus();}
+      setInterval(function(){ if(pinned){ try{window.focus()}catch(e){} } }, 1600);
+      function fmt(v){return Number(v||0).toLocaleString()}
+      function renderChart(snap){const c=byId('content'); c.innerHTML='<div class="chartShell"><canvas id="externalChart"></canvas></div><div class="hint">Click a month/day to filter the main dashboard. Ctrl/Cmd-click adds or removes.</div>'; if(!window.Chart){setTimeout(()=>renderChart(snap),250);return;} if(currentChart){try{currentChart.destroy()}catch(e){}} const ctx=byId('externalChart').getContext('2d'); currentChart=new Chart(ctx,{type:snap.chartType||'line',data:{labels:snap.labels||[],datasets:snap.datasets||[]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},onClick:function(event,elements){const pts=elements&&elements.length?elements:currentChart.getElementsAtEventForMode(event,'nearest',{intersect:false},true); if(!pts||!pts.length)return; const idx=pts[0].index; send({kind:'month',month:monthFromLabel((snap.labels||[])[idx],idx),componentId:snap.componentId},event&&event.native?event.native:event);},plugins:{legend:{position:'top',align:'start',labels:{boxWidth:18,boxHeight:2,usePointStyle:false,color:'#475467',font:{size:11,weight:'700'}}},tooltip:{callbacks:{label:function(ctx){return (ctx.dataset.label?ctx.dataset.label+': ':'')+fmt(ctx.raw)}}}},scales:{x:{grid:{display:false},ticks:{color:'#334155',font:{size:11,weight:'700'}}},y:{beginAtZero:true,grid:{color:'#edf0f5'},ticks:{color:'#667085',font:{size:11}}}}}})}
+      function renderTable(snap){const c=byId('content'); c.innerHTML=snap.html||'<div class="empty">No table content.</div>'; c.querySelectorAll('.componentMenuBtn').forEach(n=>n.remove());}
+      function applySnapshot(snap){currentSnapshot=snap||{}; document.title=(currentSnapshot.title||'Dashboard panel')+' - Pop out'; byId('title').textContent=currentSnapshot.title||'Dashboard panel'; byId('modeButtons').style.display=currentSnapshot.type==='chart'?'inline-flex':'none'; if(!currentSnapshot.ok){byId('content').innerHTML='<div class="empty">'+(currentSnapshot.message||'Nothing to display yet.')+'</div>'; status('Waiting for dashboard...'); return;} if(currentSnapshot.type==='chart')renderChart(currentSnapshot); else renderTable(currentSnapshot); status('Connected · '+(currentSnapshot.updatedAt||'updated'));}
+      window.__receiveOverviewSnapshotV6216=applySnapshot; window.addEventListener('message',e=>{const d=e&&e.data?e.data:{}; if(d.type==='overviewSnapshotV6216')applySnapshot(d.snapshot)}); window.addEventListener('beforeunload',()=>{try{if(window.opener&&!window.opener.closed&&typeof window.opener.__closePopoutV6216==='function')window.opener.__closePopoutV6216(componentId)}catch(e){}});
+      function setCustomer(id,event){send({kind:'customer',value:id},event)} function setProduct(key,event){send({kind:'product',value:key},event)} function setProductModeV6213(mode){send({kind:'chartMode',canvasId:'chartProducts',mode:mode})} function setProductModeV6212(mode){setProductModeV6213(mode)} function setProductModeV6165(mode){setProductModeV6213(mode)} function setCustomerColumnSort(v){send({kind:'customerSort',value:v})} function setProductColumnSort(v){send({kind:'productSort',value:v})} function openComponentMenu(){} function closeComponentMenu(){}
+      setTimeout(requestSnapshot,100);
+    `;
+    const modeButtons = isChart ? '<div id="modeButtons" class="modeButtons"><button onclick="setMode(\'bar\')">Bar</button><button onclick="setMode(\'sparkline\')">Monthly</button><button onclick="setMode(\'cumulativeSparkline\')">Cumulative</button><button onclick="setMode(\'momSparkline\')">MoM</button></div>' : '<div id="modeButtons" class="modeButtons" style="display:none"></div>';
+    return '<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>' + escHtmlV6216(title) + ' - Pop out</title>' + chartScript + '<style>' +
+      'html,body{height:100%;margin:0;background:#ebe9ed;color:#202124;font-family:Roboto,Arial,sans-serif;overflow:hidden}.popHeader{height:48px;display:flex;align-items:center;gap:10px;padding:0 12px;background:#fff;border-bottom:1px solid #d7dce2;box-sizing:border-box}#title{font-weight:900;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.modeButtons{display:inline-flex;gap:4px;margin-left:8px}button{height:30px;border:1px solid #cfd6df;border-radius:7px;background:#fff;color:#202124;font:800 12px/1 Roboto,Arial,sans-serif;cursor:pointer;padding:0 10px}button:hover,button.active{background:#172033;color:#fff;border-color:#172033}#status{margin-left:auto;color:#667085;font-size:11px;font-weight:800;white-space:nowrap}#content{height:calc(100% - 48px);overflow:auto;padding:10px;box-sizing:border-box}.chartShell{height:calc(100vh - 92px);min-height:340px;background:#fff;border:1px solid #d7dce2;border-radius:7px;padding:12px;box-shadow:0 1px 3px rgba(20,32,42,.14);box-sizing:border-box}.hint{font-size:11px;color:#667085;margin-top:5px;font-weight:800}.empty{background:#fff;border:1px solid #d7dce2;border-radius:7px;padding:16px;color:#667085;font-weight:800}.card,.moverArea{background:#fff!important;border:1px solid #d7dce2!important;border-radius:7px!important;box-shadow:0 1px 3px rgba(20,32,42,.14)!important;padding:8px!important}.cardHeader{display:flex!important;align-items:center!important;gap:8px!important;margin:0 0 6px!important;min-height:24px!important}.chartTitle{font-size:13px!important;font-weight:900!important;color:#202124!important}.cardActions{margin-left:auto!important;display:flex!important;gap:4px!important;align-items:center!important}.tableScroll{height:calc(100vh - 108px)!important;overflow:auto!important;border:1px solid #c9d1dc!important;border-radius:5px!important}table{width:100%!important;border-collapse:collapse!important;font-size:11px!important;background:#fff!important}th{position:sticky!important;top:0!important;background:#203038!important;color:#fff!important;border:1px solid #34454f!important;padding:6px 7px!important;text-align:right!important;z-index:2!important;white-space:nowrap!important}th:first-child,td:first-child{text-align:left!important}td{border:1px solid #e5e7eb!important;padding:6px 7px!important;text-align:right!important;white-space:nowrap!important;color:#3c4043!important}tr:nth-child(even) td{background:#fafafa!important}tr.clickable:hover td{background:#eef4ff!important;cursor:pointer!important}tr.active td,.v6165PinnedRow td,.v6212CrossFilterRow td,.v6213PinnedRow td{background:#fff7d6!important}.negative{color:#b42318!important;font-weight:800!important}.positive{color:#067647!important;font-weight:800!important}.inactiveBadge{display:inline-flex!important;border:1px solid #fecaca!important;background:#fff1f1!important;color:#b42318!important;border-radius:999px!important;padding:2px 6px!important;font-size:10px!important;font-weight:800!important}' +
+      '</style></head><body><div class="popHeader"><div id="title">' + escHtmlV6216(title) + '</div>' + modeButtons + '<button onclick="resetPanel()">Clear highlight</button><button id="pinBtn" onclick="togglePin()">Keep front</button><div id="status">Opening...</div><button onclick="window.close()">Close</button></div><div id="content"><div class="empty">Connecting to the main dashboard...</div></div>' + scriptOpen + inline + scriptClose + '</body></html>';
   }
 
-  if (typeof window.popOutComponentV6214 === 'function' && !window.popOutComponentV6214.__v6215Wrapped) {
-    const previousPopOutComponentV6215 = window.popOutComponentV6214;
-    window.popOutComponentV6215 = function popOutComponentV6215(componentId) {
-      previousPopOutComponentV6215(componentId);
-      window.setTimeout(() => {
-        markExternalSourceV6215(componentId);
-        injectPopupStyleV6215(componentId);
-      }, 180);
-      window.setTimeout(() => injectPopupStyleV6215(componentId), 800);
-    };
-    window.popOutComponentV6215.__v6215Wrapped = true;
-    window.popOutComponentV6214 = window.popOutComponentV6215;
-    window.popOutComponentV6213 = window.popOutComponentV6215;
-    window.popOutComponentV6212 = window.popOutComponentV6215;
-  }
+  window.popOutComponentV6216 = function popOutComponentV6216(componentId) {
+    if (typeof closeComponentMenu === 'function') closeComponentMenu();
+    const config = componentMapV6216(componentId);
+    if (!config) return;
+    const title = (getCardV6216(componentId) && getCardV6216(componentId).querySelector('.chartTitle') && getCardV6216(componentId).querySelector('.chartTitle').textContent) || config.title;
+    const width = Math.max(830, Math.round(window.innerWidth * 0.58));
+    const height = Math.max(560, Math.round(window.innerHeight * 0.74));
+    const left = Math.max(20, Math.round((window.screenX || window.screenLeft || 0) + 70));
+    const top = Math.max(20, Math.round((window.screenY || window.screenTop || 0) + 55));
+    const win = window.open('', popupWindowNameV6216(componentId), 'popup=yes,width=' + width + ',height=' + height + ',left=' + left + ',top=' + top + ',resizable=yes,scrollbars=yes');
+    if (!win) { if (typeof showStatus === 'function') showStatus('Browser blocked the pop-out. Allow pop-ups for this dashboard.', 'warn'); return; }
+    popupRefsV6216[componentId] = { win, componentId };
+    try { win.document.open(); win.document.write(popupHtmlV6216(componentId, title)); win.document.close(); win.focus(); markPoppedSourceV6216(componentId); schedulePopoutSyncV6216(250); } catch (error) { console.error(error); }
+  };
+  window.popOutComponentV6214 = window.popOutComponentV6216;
+  window.popOutComponentV6213 = window.popOutComponentV6216;
+  window.popOutComponentV6212 = window.popOutComponentV6216;
 
-  if (typeof window.clearExternalPopoutReferenceV6214 === 'function' && !window.clearExternalPopoutReferenceV6214.__v6215Wrapped) {
-    const previousClearExternalV6215 = window.clearExternalPopoutReferenceV6214;
-    window.clearExternalPopoutReferenceV6214 = function clearExternalPopoutReferenceV6215(componentId) {
-      const result = previousClearExternalV6215.apply(this, arguments);
-      unmarkExternalSourceV6215(componentId);
+  document.addEventListener('click', function() {
+    Object.keys(popupPinsV6216).forEach(componentId => {
+      if (!popupPinsV6216[componentId]) return;
+      const ref = popupRefsV6216[componentId];
+      if (ref && ref.win && !ref.win.closed) setTimeout(() => { try { ref.win.focus(); } catch (error) {} }, 70);
+    });
+  }, true);
+
+  const previousRenderAllV6216 = typeof renderAll === 'function' ? renderAll : null;
+  if (previousRenderAllV6216 && !previousRenderAllV6216.__v6216PopSync) {
+    renderAll = function renderAllV6216() {
+      const result = previousRenderAllV6216.apply(this, arguments);
+      schedulePopoutSyncV6216(700);
       return result;
     };
-    window.clearExternalPopoutReferenceV6214.__v6215Wrapped = true;
+    renderAll.__v6216PopSync = true;
   }
 
-  function isLabLikeDepartmentV6215(value) {
-    const text = String(value || '').trim().toLowerCase();
-    return !text || text === 'pacifica' || text === 'san ramon' || text === 'deanza' || text === 'de anza' || text === 'cada' || text === 'cad' || text === 'case level';
+  function remakeRowsRawV6216(data) {
+    if (!data) return [];
+    if (Array.isArray(data.detailRows)) return data.detailRows;
+    if (Array.isArray(data.rows)) return data.rows;
+    return [];
   }
 
-  function productLookupV6215() {
-    const byId = new Map();
-    const byName = new Map();
+  function isLabDeptV6216(value) {
+    const t = String(value || '').trim().toLowerCase();
+    return !t || t === 'pacifica' || t === 'san ramon' || t === 'deanza' || t === 'de anza' || t === 'cada' || t === 'cad' || t === 'case level';
+  }
+
+  function overviewProductLookupV6216() {
+    const byId = new Map(), byName = new Map(), customerById = new Map();
     (facts || []).forEach(row => {
       const productId = String(row.productId || '').trim();
       const name = String(row.productsDescription || '').trim();
-      const meta = {
-        productId,
-        productName: name || productId || 'Unknown product',
-        department: row.productsDepartment || 'Unassigned',
-        group: row.productsGroup || '',
-        category: row.productsCategory || '',
-        type: row.productsType || ''
-      };
+      const meta = { productId, productName: name || productId || 'Unknown product', department: row.productsDepartment || 'Unassigned', group: row.productsGroup || '', category: row.productsCategory || '', type: row.productsType || '' };
       if (productId && !byId.has(productId)) byId.set(productId, meta);
       if (name && !byName.has(name.toLowerCase())) byName.set(name.toLowerCase(), meta);
+      if (row.customerId && row.customerName && !customerById.has(String(row.customerId))) customerById.set(String(row.customerId), row.customerName);
     });
-    return { byId, byName };
+    return { byId, byName, customerById };
   }
 
-  function normalizeRemakeRowsV6215(data) {
-    const rows = data && Array.isArray(data.detailRows) ? data.detailRows : data && Array.isArray(data.rows) ? data.rows : [];
-    const lookup = productLookupV6215();
-    const customerNames = new Map();
-    (facts || []).forEach(row => {
-      const id = String(row.customerId || '').trim();
-      if (id && row.customerName && !customerNames.has(id)) customerNames.set(id, row.customerName);
-    });
-
-    return rows.map(row => {
+  function normalizeRemakeRowsV6216(data) {
+    const lookup = overviewProductLookupV6216();
+    return remakeRowsRawV6216(data).map(row => {
       const productId = String(row.productId || row.productID || '').trim();
       const currentName = String(row.productName || row.invoiceDescription || row.description || productId || 'Unknown product').trim();
       const meta = lookup.byId.get(productId) || lookup.byName.get(currentName.toLowerCase()) || null;
-      const currentDepartment = row.department || row.productsDepartment || row.taxDepartment || '';
-      const department = meta && !isLabLikeDepartmentV6215(meta.department)
-        ? meta.department
-        : (!isLabLikeDepartmentV6215(currentDepartment) ? currentDepartment : 'Unassigned');
+      const rawDept = row.department || row.productsDepartment || row.taxDepartment || '';
+      const department = meta && !isLabDeptV6216(meta.department) ? meta.department : (!isLabDeptV6216(rawDept) ? rawDept : 'Unassigned');
       const customerId = String(row.customerId || row.customerID || '').trim() || 'Unknown customer';
-      return Object.assign({}, row, {
-        productId: productId || 'UNKNOWN',
-        productName: meta && meta.productName ? meta.productName : currentName,
-        department,
-        group: meta && meta.group ? meta.group : row.group || '',
-        category: meta && meta.category ? meta.category : row.category || '',
-        type: meta && meta.type ? meta.type : row.type || '',
-        customerId,
-        customerName: customerNames.get(customerId) || row.customerName || customerId,
-        year: Number(row.year || String(row.month || '').slice(0, 4) || 0) || '',
-        month: row.month || 'Unknown'
-      });
+      return Object.assign({}, row, { productId: productId || 'UNKNOWN', productName: meta && meta.productName ? meta.productName : currentName, department, customerId, customerName: lookup.customerById.get(customerId) || row.customerName || customerId, month: row.month || 'Unknown', year: Number(row.year || String(row.month || '').slice(0,4) || 0) || '' });
     });
   }
 
-  function remakeNumberV6215(value, digits) {
-    const n = Number(value || 0);
-    return n.toLocaleString(undefined, { minimumFractionDigits: digits || 0, maximumFractionDigits: digits || 0 });
-  }
-
-  function remakePercentV6215(value) {
-    const n = Number(value || 0);
-    return (n * 100).toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + '%';
-  }
-
-  function remakeCurrencyV6215(value) {
-    const n = Number(value || 0);
-    return n.toLocaleString(undefined, { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
-  }
-
-  function setRemakeTextV6215(id, value) {
-    const el = document.getElementById(id);
-    if (el) el.textContent = value;
-  }
-
-  function setRemakeNoticeV6215(message, type) {
-    const el = document.getElementById('remakeNotice');
-    if (!el) return;
-    el.className = 'remakeNotice' + (message ? ' active' : '') + (type ? ' ' + type : '');
-    el.textContent = message || '';
-  }
-
-  function setRemakeLoadingV6215(loading) {
-    const st = window.remakeFactorState || {};
-    st.loading = !!loading;
-    const loadBtn = document.getElementById('remakeLoadBtn');
-    const refreshBtn = document.getElementById('remakeRefreshBtn');
-    if (loadBtn) loadBtn.disabled = !!loading;
-    if (refreshBtn) refreshBtn.disabled = !!loading;
-  }
-
-  function remakeValueV6215(row, keys) {
-    for (const key of keys) {
-      const value = row && row[key];
-      if (value !== null && value !== undefined && String(value).trim() !== '') return value;
-    }
+  function rValV6216(row, keys) {
+    for (const key of keys) if (row && row[key] !== null && row[key] !== undefined && String(row[key]).trim() !== '') return row[key];
     return '';
   }
+  function rNumV6216(v, d) { return Number(v || 0).toLocaleString(undefined, { minimumFractionDigits: d || 0, maximumFractionDigits: d || 0 }); }
+  function rPctV6216(v) { return (Number(v || 0) * 100).toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + '%'; }
+  function rCurV6216(v) { return Number(v || 0).toLocaleString(undefined, { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }); }
 
-  function remakeIsRemakeV6215(row) {
-    return !!row.isRemake || /^(y|yes|true|1|r|remake)$/i.test(String(row.remakeFlag || row.remake || ''));
+  function remakeFilteredRowsV6216() {
+    const rows = (window.remakeFactorState && window.remakeFactorState.rows) || [];
+    const f = {
+      year: (document.getElementById('remakeYearFilter') || {}).value || '',
+      department: (document.getElementById('remakeDepartmentFilter') || {}).value || '',
+      product: (document.getElementById('remakeProductFilter') || {}).value || '',
+      customer: (document.getElementById('remakeCustomerFilter') || {}).value || '',
+      reason: (document.getElementById('remakeReasonFilter') || {}).value || ''
+    };
+    return rows.filter(row => {
+      if (f.year && String(row.year) !== f.year) return false;
+      if (f.department && String(row.department || 'Unassigned') !== f.department) return false;
+      if (f.product && String(row.productName || row.productId || 'Unknown product') !== f.product) return false;
+      if (f.customer && String(row.customerName || row.customerId || 'Unknown customer') !== f.customer) return false;
+      if (f.reason && String(row.remakeReason || row.reason || 'Not specified') !== f.reason) return false;
+      return true;
+    });
   }
 
-  function remakeFilteredRowsV6215() {
-    const f = {
-      year: document.getElementById('remakeYearFilter') ? document.getElementById('remakeYearFilter').value : '',
-      department: document.getElementById('remakeDepartmentFilter') ? document.getElementById('remakeDepartmentFilter').value : '',
-      product: document.getElementById('remakeProductFilter') ? document.getElementById('remakeProductFilter').value : '',
-      customer: document.getElementById('remakeCustomerFilter') ? document.getElementById('remakeCustomerFilter').value : '',
-      reason: document.getElementById('remakeReasonFilter') ? document.getElementById('remakeReasonFilter').value : ''
-    };
-    return ((window.remakeFactorState && window.remakeFactorState.rows) || []).filter(row => {
+  function remakeSummaryV6216(rows) {
+    const totalCases = new Set(), remakeCases = new Set();
+    let totalUnits = 0, remakeUnits = 0, remakeDiscount = 0;
+    (rows || []).forEach(row => {
+      const caseId = String(row.caseId || row.caseID || row.caseNumber || '').trim();
+      if (caseId) totalCases.add(caseId);
+      const units = Number(row.quantity || row.units || 0) || 0;
+      totalUnits += units;
+      const flag = String(row.isRemake !== undefined ? row.isRemake : row.remakeFlag || row.remake || '').toLowerCase();
+      const isRemake = row.isRemake === true || /^(y|yes|true|1|r|remake)$/.test(flag);
+      if (isRemake) {
+        if (caseId) remakeCases.add(caseId);
+        remakeUnits += Number(row.remakeUnits || units || 0) || 0;
+        remakeDiscount += Number(row.remakeDiscount || 0) || 0;
+      }
+    });
+    return { totalCases: totalCases.size, remakeCases: remakeCases.size, totalUnits, remakeUnits, remakeDiscount, remakeCaseRate: totalCases.size ? remakeCases.size / totalCases.size : 0, remakeUnitRate: totalUnits ? remakeUnits / totalUnits : 0 };
+  }
+
+  function groupRemakeV6216(rows, getter) {
+    const map = new Map();
+    (rows || []).forEach(row => { const key = String(getter(row) || 'Not specified'); if (!map.has(key)) map.set(key, []); map.get(key).push(row); });
+    return Array.from(map.entries()).map(([key, group]) => Object.assign({ key }, remakeSummaryV6216(group)));
+  }
+
+  function fillRemakeSelectV6216(id, allText, values) {
+    const el = document.getElementById(id); if (!el) return;
+    const prev = el.value;
+    const vals = Array.from(new Set((values || []).map(v => String(v || '').trim()).filter(Boolean))).sort((a,b)=>a.localeCompare(b,undefined,{numeric:true,sensitivity:'base'}));
+    el.innerHTML = '<option value="">' + escHtmlV6216(allText) + '</option>' + vals.map(v => '<option value="' + escHtmlV6216(v) + '">' + escHtmlV6216(v) + '</option>').join('');
+    if (prev && vals.includes(prev)) el.value = prev;
+  }
+
+  function populateRemakeFiltersV6216() {
+    const rows = (window.remakeFactorState && window.remakeFactorState.rows) || [];
+    fillRemakeSelectV6216('remakeYearFilter', 'All years', rows.map(r => r.year).filter(Boolean).sort((a,b)=>Number(b)-Number(a)));
+    fillRemakeSelectV6216('remakeDepartmentFilter', 'All departments', rows.map(r => r.department || 'Unassigned'));
+    fillRemakeSelectV6216('remakeProductFilter', 'All products', rows.map(r => r.productName || r.productId || 'Unknown product'));
+    fillRemakeSelectV6216('remakeCustomerFilter', 'All customers', rows.map(r => r.customerName || r.customerId || 'Unknown customer'));
+    fillRemakeSelectV6216('remakeReasonFilter', 'All reasons', rows.map(r => r.remakeReason || r.reason || 'Not specified'));
+  }
+
+  function setRemakeTextV6216(id, value) { const el = document.getElementById(id); if (el) el.textContent = value; }
+  function setRemakeNoticeV6216(msg, type) { const el = document.getElementById('remakeNotice'); if (el) { el.className = 'remakeNotice' + (msg ? ' active' : '') + (type ? ' ' + type : ''); el.textContent = msg || ''; } }
+  function setRemakeLoadingV6216(loading) { ['remakeLoadBtn','remakeRefreshBtn'].forEach(id => { const el = document.getElementById(id); if (el) el.disabled = !!loading; }); if (window.remakeFactorState) window.remakeFactorState.loading = !!loading; }
+
+  function renderRemakeKpisV6216(summary) {
+    setRemakeTextV6216('remakeTotalCases', rNumV6216(summary.totalCases));
+    setRemakeTextV6216('remakeCases', rNumV6216(summary.remakeCases));
+    setRemakeTextV6216('remakeCaseRate', rPctV6216(summary.remakeCaseRate));
+    setRemakeTextV6216('remakeTotalUnits', rNumV6216(summary.totalUnits, 1));
+    setRemakeTextV6216('remakeUnits', rNumV6216(summary.remakeUnits, 1));
+    setRemakeTextV6216('remakeUnitRate', rPctV6216(summary.remakeUnitRate));
+    setRemakeTextV6216('remakeDiscount', rCurV6216(summary.remakeDiscount));
+    const label = document.querySelector('#remakeDiscount') && document.querySelector('#remakeDiscount').previousElementSibling;
+    if (label) label.textContent = 'Remake Discount';
+  }
+
+  function renderRemakeTrendV6216(rows) {
+    const container = document.getElementById('remakeTrendList'); if (!container) return;
+    const grouped = groupRemakeV6216(rows, r => r.month || 'Unknown').filter(r => r.key !== 'Unknown').sort((a,b)=>String(a.key).localeCompare(String(b.key))).slice(-24);
+    container.innerHTML = '<div class="remakeOverviewChartBox"><canvas id="' + REMAKE_CHART_ID_V6216 + '"></canvas></div>';
+    if (remakeChartsV6216[REMAKE_CHART_ID_V6216]) { try { remakeChartsV6216[REMAKE_CHART_ID_V6216].destroy(); } catch (e) {} }
+    const canvas = document.getElementById(REMAKE_CHART_ID_V6216); if (!canvas || !window.Chart) return;
+    remakeChartsV6216[REMAKE_CHART_ID_V6216] = new Chart(canvas.getContext('2d'), {
+      type: 'line',
+      data: { labels: grouped.map(r => r.key), datasets: [{ label: 'Remake rate', data: grouped.map(r => Number(r.remakeCaseRate || 0) * 100), borderColor: '#2563eb', backgroundColor: 'rgba(37,99,235,.16)', fill: 'origin', tension: .36, borderWidth: 3.4, pointRadius: 3.5, pointHoverRadius: 5.5, pointBackgroundColor: '#2563eb', pointBorderColor: '#fff', pointBorderWidth: 2 }] },
+      options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false }, plugins: { legend: { position:'top', align:'start', labels:{ boxWidth:18, boxHeight:2, font:{ size:11, weight:'700' } } }, tooltip: { callbacks: { label: ctx => 'Remake rate: ' + Number(ctx.raw || 0).toFixed(1) + '%' } } }, scales: { x: { grid:{ display:false }, ticks:{ color:'#334155', font:{ size:11, weight:'700' } } }, y: { beginAtZero:true, grid:{ color:'#edf0f5' }, ticks:{ callback:v=>Number(v||0).toFixed(0)+'%', color:'#667085' }, title:{ display:true, text:'Case Rate', color:'#202124', font:{ size:11, weight:'700' } } } } }
+    });
+  }
+
+  function setRemakeFilterV6216(id, value) { const el = document.getElementById(id); if (el) el.value = value; renderRemakeFactorDashboardV6216(); }
+  window.setRemakeFilterV6216 = setRemakeFilterV6216;
+
+  function renderRemakeTableV6216(id, rows, firstHeader, filterId) {
+    const table = document.getElementById(id); if (!table) return;
+    const visible = rows.sort((a,b)=>(b.remakeCases-a.remakeCases)||(b.remakeUnits-a.remakeUnits)||String(a.key).localeCompare(String(b.key))).slice(0,200);
+    table.innerHTML = '<thead><tr><th>' + escHtmlV6216(firstHeader) + '</th><th class="num">Total Cases</th><th class="num">Remake Cases</th><th class="num">Case Rate</th><th class="num">Remake Units</th><th class="num">Remake Discount</th></tr></thead><tbody>' + (visible.length ? visible.map(row => '<tr class="clickable" onclick="setRemakeFilterV6216(\'' + escJsV6216(filterId) + '\',\'' + escJsV6216(row.key) + '\')"><td>' + escHtmlV6216(row.key) + '</td><td class="num">' + rNumV6216(row.totalCases) + '</td><td class="num">' + rNumV6216(row.remakeCases) + '</td><td class="num">' + rPctV6216(row.remakeCaseRate) + '</td><td class="num">' + rNumV6216(row.remakeUnits,1) + '</td><td class="num">' + rCurV6216(row.remakeDiscount) + '</td></tr>').join('') : '<tr><td colspan="6">No matching rows.</td></tr>') + '</tbody>';
+  }
+
+  function renderRemakeFactorDashboardV6216() {
+    const page = document.getElementById('remakeFactorPage'); if (page) page.classList.add('remakeOverviewReadyV6216');
+    populateRemakeFiltersV6216();
+    const filtered = remakeFilteredRowsV6216();
+    const summary = remakeSummaryV6216(filtered);
+    renderRemakeKpisV6216(summary);
+    renderRemakeTrendV6216(filtered);
+    renderRemakeTableV6216('remakeReasonTable', groupRemakeV6216(filtered.filter(r => String(r.isRemake !== undefined ? r.isRemake : r.remakeFlag || r.remake || '').toLowerCase() !== 'false'), r => r.remakeReason || r.reason || 'Not specified'), 'Reason', 'remakeReasonFilter');
+    renderRemakeTableV6216('remakeDepartmentTable', groupRemakeV6216(filtered, r => r.department || 'Unassigned'), 'Department', 'remakeDepartmentFilter');
+    renderRemakeTableV6216('remakeProductTable', groupRemakeV6216(filtered, r => r.productName || r.productId || 'Unknown product'), 'Product', 'remakeProductFilter');
+    if (filtered.length) setRemakeNoticeV6216('', ''); else setRemakeNoticeV6216('No Remake Factor rows match the selected filters.', 'warn');
+  }
+  window.renderRemakeFactorDashboardV6216 = renderRemakeFactorDashboardV6216;
+  window.applyRemakeFactorFilters = function applyRemakeFactorFiltersV6216() { requestAnimationFrame(renderRemakeFactorDashboardV6216); };
+
+  function storeLocalRemakeV6216(data) { try { const json = JSON.stringify(data); localStorage.setItem(REMAKE_LOCAL_CACHE_KEY_V6216, json); localStorage.setItem('cdaRemakeFactorCache.v6215', json); } catch (error) {} }
+  function readLocalRemakeV6216() { try { return JSON.parse(localStorage.getItem(REMAKE_LOCAL_CACHE_KEY_V6216) || localStorage.getItem('cdaRemakeFactorCache.v6215') || 'null'); } catch (error) { return null; } }
+
+  function handleRemakeDataV6216(data, fromLocal) {
+    if (!window.remakeFactorState) window.remakeFactorState = {};
+    if (!data || !data.ok) { window.remakeFactorState.loaded = false; setRemakeNoticeV6216((data && data.message) || 'Remake cache could not load.', 'error'); return; }
+    window.remakeFactorState.data = data;
+    window.remakeFactorState.rows = normalizeRemakeRowsV6216(data);
+    window.remakeFactorState.loaded = true;
+    window.remakeFactorState.loading = false;
+    const stamp = data.generatedAt || data.lastRefreshAt || '';
+    setRemakeTextV6216('remakeLastRefresh', (fromLocal ? 'Saved browser cache: ' : 'Last refreshed: ') + (stamp || 'Loaded'));
+    renderRemakeFactorDashboardV6216();
+    if (!fromLocal) storeLocalRemakeV6216(data);
+  }
+
+  window.loadRemakeFactorData = function loadRemakeFactorDataV6216(forceRefresh) {
+    if (!window.remakeFactorState) window.remakeFactorState = {};
+    if (window.remakeFactorState.loading) return;
+    setRemakeLoadingV6216(true);
+    if (!forceRefresh) {
+      const cached = readLocalRemakeV6216();
+      if (cached && cached.ok) {
+        handleRemakeDataV6216(cached, true);
+        setRemakeNoticeV6216('Loading...', 'warn');
+      }
+    }
+    const request = forceRefresh ? { forceRefresh: true, quickRefresh: true, incrementalRefresh: true, openRefreshMonths: 1, lookbackMonths: 12, pageSize: 120, maxPages: 50, maxPagesPerChunk: 50, maxDetailFetches: 160, fetchProductMap: false, chunkByMonth: true } : { forceRefresh: false };
+    setRemakeNoticeV6216(forceRefresh ? 'Refreshing only the current open month, then merging with closed historical cache...' : 'Loading...', 'warn');
+    google.script.run.withSuccessHandler(data => { setRemakeLoadingV6216(false); handleRemakeDataV6216(data, false); }).withFailureHandler(error => { setRemakeLoadingV6216(false); if (window.remakeFactorState && window.remakeFactorState.loaded) setRemakeNoticeV6216('Server cache check failed. Keeping saved browser cache. ' + ((error && error.message) || String(error)), 'warn'); else setRemakeNoticeV6216((error && error.message) || String(error), 'error'); }).getRemakeFactorData(request);
+  };
+  window.refreshRemakeFactorData = function refreshRemakeFactorDataV6216() { window.loadRemakeFactorData(true); };
+
+  const previousSwitchTabV6216 = typeof switchTab === 'function' ? switchTab : null;
+  window.switchTab = switchTab = function switchTabV6216(tab) {
+    if (tab !== 'remakeFactor') return previousSwitchTabV6216 ? previousSwitchTabV6216.apply(this, arguments) : undefined;
+    state.activeTab = 'remakeFactor';
+    if (typeof closeUnderConstructionMenu === 'function') closeUnderConstructionMenu();
+    if (typeof closeDropdowns === 'function') closeDropdowns();
+    ['overviewOne','categoricalPage','overviewTwo'].forEach(id => { const el = document.getElementById(id); if (el) el.classList.remove('active'); });
+    const remake = document.getElementById('remakeFactorPage'); if (remake) { remake.classList.add('active'); remake.classList.add('remakeOverviewReadyV6216'); }
+    const nav = document.getElementById('overviewNavActions'); if (nav) nav.style.display = 'none';
+    const tabOne = document.getElementById('tabOneBtn'); if (tabOne) tabOne.classList.remove('active');
+    const remBtn = document.getElementById('remakeFactorTabBtn'); if (remBtn) remBtn.classList.add('active');
+    const uc = document.getElementById('underConstructionBtn'); if (uc) uc.classList.remove('active');
+    if (!window.remakeFactorState || !window.remakeFactorState.loaded) window.loadRemakeFactorData(false); else renderRemakeFactorDashboardV6216();
+  };
+
+  function installStylesV6216() {
+    if (document.getElementById(STYLE_ID_V6216)) return;
+    const style = document.createElement('style');
+    style.id = STYLE_ID_V6216;
+    style.textContent = `
+      #overviewOne .topBar.executiveTop .comparisonKpis { grid-template-columns: repeat(5, minmax(168px, 1fr)) !important; gap: 10px !important; }
+      #overviewOne .topBar.executiveTop .comparisonKpi { min-height: 78px !important; padding: 11px 14px 10px !important; border-radius: 9px !important; }
+      #overviewOne .topBar.executiveTop .comparisonKpi .label { font-size: 10.5px !important; margin-bottom: 5px !important; }
+      #overviewOne .topBar.executiveTop .comparisonKpi .value { font-size: clamp(22px, 1.9vw, 30px) !important; line-height: 1.02 !important; margin-bottom: 7px !important; }
+      #overviewOne .topBar.executiveTop .kpiSub { font-size: 11.5px !important; }
+      @media (max-width: 1320px) { #overviewOne .topBar.executiveTop .comparisonKpis { grid-template-columns: repeat(3, minmax(180px, 1fr)) !important; } }
+      @media (max-width: 860px) { #overviewOne .topBar.executiveTop .comparisonKpis { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; } }
+      #overviewFilterDeck.topOverviewFilterDeck .filterCard { border-radius: 10px !important; box-shadow: 0 1px 3px rgba(16,24,40,.10) !important; }
+      #overviewFilterDeck.topOverviewFilterDeck .dropdownButton { height: 36px !important; border-radius: 10px !important; padding: 8px 12px !important; font-weight: 800 !important; background: #fff !important; }
+      #overviewFilterDeck.topOverviewFilterDeck .dropdownButton::after { content: '' !important; width: 8px !important; height: 8px !important; border-right: 2px solid #667085 !important; border-bottom: 2px solid #667085 !important; transform: rotate(45deg) translateY(-2px) !important; margin-left: 10px !important; }
+      #overviewFilterDeck.topOverviewFilterDeck .dropdownPanel { border-radius: 12px !important; box-shadow: 0 18px 36px rgba(16,24,40,.20) !important; }
+      #overviewFilterDeck.topOverviewFilterDeck .dropdownPanelHeader { border-radius: 12px 12px 0 0 !important; background: #f8fafc !important; }
+      #overviewFilterDeck.topOverviewFilterDeck .dropdownPanelHeader button { border-radius: 8px !important; font-weight: 900 !important; }
