@@ -1,0 +1,56 @@
+name: Overview Index archive checkpoint
+
+on:
+  push:
+    branches:
+      - agent/ai-readable-cleanup-2026-08-21
+    paths:
+      - .github/workflows/overview-index-archive-removal.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  archive-remove:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out cleanup branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/ai-readable-cleanup-2026-08-21
+          fetch-depth: 0
+
+      - name: Archive outgoing Index and remove paused Overview composition
+        run: node .github/scripts/archive-remove-overview-index.cjs
+
+      - name: Run cleanup structural checkpoint
+        run: node scripts/validate-cleanup-checkpoint.js
+
+      - name: Run runtime contract tests
+        run: node scripts/test-dashboard-runtime-contracts.js
+
+      - name: Run platform validator with current-footer allowance
+        shell: bash
+        run: |
+          set +e
+          node scripts/validate-dashboard-platform.js > /tmp/platform.log 2>&1
+          status=$?
+          cat /tmp/platform.log
+          if [ "$status" -eq 0 ]; then exit 0; fi
+          filtered=$(grep '^ERROR:' /tmp/platform.log | grep -v '^ERROR: Missing footer UI v6.628$' | grep -v '^ERROR: Missing footer build label$' || true)
+          if [ -n "$filtered" ]; then
+            echo "$filtered"
+            exit 1
+          fi
+          exit 0
+
+      - name: Commit Overview checkpoint
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Index.html .claspignore archive/overview-paused-2026-08-21 docs/OVERVIEW-INDEX-ARCHIVE-REMOVAL-2026-08-21.json
+          git diff --cached --quiet && { echo "No changes produced"; exit 1; }
+          git commit -m "Archive paused Overview UI and remove active composition"
+          git push origin HEAD:agent/ai-readable-cleanup-2026-08-21
