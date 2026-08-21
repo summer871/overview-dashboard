@@ -19,6 +19,11 @@ function read(file) {
   return fs.readFileSync(full, 'utf8');
 }
 
+function readOptional(file) {
+  const full = path.join(root, file);
+  return fs.existsSync(full) ? fs.readFileSync(full, 'utf8') : '';
+}
+
 function sha256(text) {
   return crypto.createHash('sha256').update(text, 'utf8').digest('hex');
 }
@@ -109,8 +114,25 @@ if (duplicateReport) {
   try {
     const report = JSON.parse(duplicateReport);
     const main = read('DashboardMainScript.html');
+    const mainSha = sha256(main);
     assert(report.remainingTopLevelDuplicateFunctionNames === 0, 'Duplicate-cleanup report does not show zero remaining duplicate top-level functions.');
-    assert(report.sourceSha256After === sha256(main), 'DashboardMain has changed since the duplicate-cleanup report; rerun duplicate ownership audit before deleting more legacy functions.');
+
+    const overviewJsReportText = readOptional('docs/OVERVIEW-JS-ARCHIVE-REMOVAL-2026-08-21.json');
+    if (overviewJsReportText) {
+      try {
+        const overviewReport = JSON.parse(overviewJsReportText);
+        assert(overviewReport.sourceSha256Before === report.sourceSha256After, 'Overview JS cleanup did not start from the verified duplicate-cleanup DashboardMain baseline.');
+        assert(overviewReport.sourceSha256After === mainSha, 'DashboardMain has changed since the Overview JS cleanup report; rerun ownership audit before deleting more legacy functions.');
+        assert(overviewReport.remainingTopLevelDuplicateFunctionNames === 0, 'Overview JS cleanup report does not show zero remaining duplicate top-level functions.');
+        assert(overviewReport.archiveByteForByteVerified === true, 'Overview JS cleanup archive was not byte-for-byte verified.');
+        notes.push(`DashboardMain Overview JS checkpoint verified: ${overviewReport.removedFunctionCount} functions removed.`);
+      } catch (error) {
+        failures.push(`Overview JS cleanup report could not be validated: ${error.message}`);
+      }
+    } else {
+      assert(report.sourceSha256After === mainSha, 'DashboardMain has changed since the duplicate-cleanup report; rerun duplicate ownership audit before deleting more legacy functions.');
+    }
+
     notes.push(`DashboardMain bytes: ${Buffer.byteLength(main, 'utf8').toLocaleString()}`);
   } catch (error) {
     failures.push(`Duplicate cleanup report could not be validated: ${error.message}`);
