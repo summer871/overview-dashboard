@@ -1,107 +1,4 @@
 
-<script>
-window.CDA_REMAKE_TAB_FILTER_TOOLBAR_VERSION = 'v6.338';
-window.CDA_REMAKE_CACHE_ACTION_TOOLBAR_VERSION = 'v6.338';
-(function installRemakeV6337StableTabFilterToolbar(){
-  'use strict';
-  const BREAKPOINT_V6337 = 1280;
-  let syncFrameV6337 = 0;
-
-  function idV6337(id) { return document.getElementById(id); }
-  function activeRemakeV6337(page) {
-    if (!page) return false;
-    if (page.classList.contains('active')) return true;
-    try { return !!(window.state && window.state.activeTab === 'remakeFactor'); } catch (error) { return false; }
-  }
-  function syncSearchStateV6337() {
-    const source = idV6337('remakeGlobalSearchButtonV6304');
-    const proxy = idV6337('remakeTabSearchProxyV6337');
-    if (!proxy) return;
-    const expanded = !!(source && source.getAttribute('aria-expanded') === 'true');
-    proxy.setAttribute('aria-expanded', expanded ? 'true' : 'false');
-  }
-  function syncRemakeTabFiltersV6337() {
-    syncFrameV6337 = 0;
-    const page = idV6337('remakeFactorPage');
-    const tabs = document.querySelector('.managerTabs');
-    const host = idV6337('remakeTabFilterHostV6337');
-    const home = idV6337('remakeFilterHomeV6337');
-    const actionHome = idV6337('remakeCacheActionHomeV6338');
-    const searchProxy = idV6337('remakeTabSearchProxyV6337');
-    if (!page || !tabs || !host) return;
-
-    let pageBar = page.querySelector('.remakeFilterBarV6230');
-    let hostBar = host.querySelector('.remakeFilterBarV6230');
-    if (pageBar && hostBar && pageBar !== hostBar) {
-      hostBar.remove();
-      hostBar = null;
-    }
-    const bar = pageBar || hostBar;
-    let pageActions = page.querySelector('.remakeCacheActionBarV6338');
-    let hostActions = host.querySelector('.remakeCacheActionBarV6338');
-    if (pageActions && hostActions && pageActions !== hostActions) {
-      hostActions.remove();
-      hostActions = null;
-    }
-    const actions = pageActions || hostActions;
-    const dock = !!(bar && activeRemakeV6337(page) && window.innerWidth >= BREAKPOINT_V6337);
-
-    if (dock) {
-      host.hidden = false;
-      tabs.classList.add('remakeTabFiltersActiveV6337');
-      page.classList.add('remakeTabFiltersDockedV6337');
-      if (bar.parentElement !== host) host.insertBefore(bar, searchProxy || host.firstChild);
-      bar.classList.add('remakeTabFilterBarDockedV6337');
-      if (actions && actions.parentElement !== host) host.appendChild(actions);
-    } else {
-      if (bar && home && (bar.parentElement !== home.parentElement || bar.previousElementSibling !== home)) {
-        home.insertAdjacentElement('afterend', bar);
-      }
-      if (actions && actionHome && (actions.parentElement !== actionHome.parentElement || actions.previousElementSibling !== actionHome)) {
-        actionHome.insertAdjacentElement('afterend', actions);
-      }
-      if (bar) bar.classList.remove('remakeTabFilterBarDockedV6337');
-      host.hidden = true;
-      tabs.classList.remove('remakeTabFiltersActiveV6337');
-      page.classList.remove('remakeTabFiltersDockedV6337');
-    }
-    syncSearchStateV6337();
-  }
-  function scheduleSyncV6337() {
-    if (syncFrameV6337) return;
-    syncFrameV6337 = window.requestAnimationFrame(syncRemakeTabFiltersV6337);
-  }
-
-  window.syncRemakeTabFiltersV6337 = scheduleSyncV6337;
-  window.toggleRemakeTabSearchV6337 = function toggleRemakeTabSearchV6337(event) {
-    if (event) { event.preventDefault(); event.stopPropagation(); }
-    if (typeof window.toggleRemakeGlobalSearchV6304 === 'function') window.toggleRemakeGlobalSearchV6304(event);
-    window.requestAnimationFrame(syncSearchStateV6337);
-  };
-  window.resetRemakeTabFiltersV6337 = function resetRemakeTabFiltersV6337(event) {
-    if (event) { event.preventDefault(); event.stopPropagation(); }
-    if (typeof window.clearRemakeFilterV6230 === 'function') window.clearRemakeFilterV6230('all');
-    scheduleSyncV6337();
-  };
-
-  const pageV6337 = idV6337('remakeFactorPage');
-  if (pageV6337 && typeof MutationObserver === 'function') {
-    const observerV6337 = new MutationObserver(scheduleSyncV6337);
-    // v6.422 no-twitch: only direct structural changes can redock the toolbar.
-    // Page class changes are intentionally ignored because the sync function
-    // itself changes those classes and could otherwise cause redundant frames.
-    observerV6337.observe(pageV6337, { childList:true });
-    window.__remakeTabFilterObserverV6337 = observerV6337;
-  }
-  window.addEventListener('resize', scheduleSyncV6337);
-  document.addEventListener('click', function(){ window.setTimeout(syncSearchStateV6337, 0); });
-  document.addEventListener('DOMContentLoaded', scheduleSyncV6337);
-  scheduleSyncV6337();
-  window.setTimeout(scheduleSyncV6337, 400);
-  window.setTimeout(scheduleSyncV6337, 1300);
-})();
-</script>
-
 <style id="remakeV6344CeramistReadableLayoutStyles">
   /* v6.344: CERAMICS master/detail tables use explicit, complete column
      geometry. This override intentionally loads after the shared table styles
@@ -1557,3 +1454,244 @@ window.CDA_REMAKE_DROPDOWN_SUMMARY_VERSION = 'v6.398-clean-deselection-summary-t
     }
   }
 </style>
+<script>
+window.CDA_REMAKE_LAYOUT_REFRESH_VERSION = 'v6.408';
+(function installRemakePageReloadAndSectionsV6402(){
+  'use strict';
+
+  if (window.__cdaRemakePageReloadSectionsV6402) return;
+  window.__cdaRemakePageReloadSectionsV6402 = true;
+
+  const COLLAPSE_STORAGE_KEY_V6402 = 'cdaRemakeCollapsedSections.v6402';
+  const SCROLL_STORAGE_KEY_V6402 = 'cdaRemakePageOnlyReloadScroll.v6402';
+  const PAGE_RELOAD_DELAY_MS_V6402 = 2 * 60 * 60 * 1000;
+  const SECTION_DEFS_V6402 = [
+    { key: 'customer', cardId: 'remakeCustomerCardV6230', label: 'Customers' },
+    { key: 'technician', cardId: 'remakeCeramistCardV6342', label: 'Technicians' }
+  ];
+
+  function defaultSectionStateV6402(){
+    return { customer: true, technician: true };
+  }
+
+  function readSectionStateV6402(){
+    const state = defaultSectionStateV6402();
+    try {
+      const saved = JSON.parse(localStorage.getItem(COLLAPSE_STORAGE_KEY_V6402) || '{}');
+      SECTION_DEFS_V6402.forEach(function(def){
+        if (typeof saved[def.key] === 'boolean') state[def.key] = saved[def.key];
+      });
+    } catch (error) {}
+    return state;
+  }
+
+  function writeSectionStateV6402(state){
+    try { localStorage.setItem(COLLAPSE_STORAGE_KEY_V6402, JSON.stringify(state || defaultSectionStateV6402())); } catch (error) {}
+  }
+
+  function ensureSectionTitleInteractionV6408(def, title, collapsed){
+    if (!title) return;
+    title.setAttribute('data-remake-section-title-v6408', def.key);
+    title.setAttribute('role', 'button');
+    title.setAttribute('tabindex', '0');
+    title.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+    title.setAttribute('aria-label', (collapsed ? 'Expand ' : 'Collapse ') + def.label + ' section');
+    title.setAttribute('title', (collapsed ? 'Expand ' : 'Collapse ') + def.label + ' section');
+    if (title.__cdaRemakeSectionTitleV6408) return;
+    title.__cdaRemakeSectionTitleV6408 = true;
+    title.addEventListener('click', function(event){
+      if (event.defaultPrevented) return;
+      window.toggleRemakeSectionV6402(def.key);
+    });
+    title.addEventListener('keydown', function(event){
+      if (event.target !== title) return;
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      event.preventDefault();
+      window.toggleRemakeSectionV6402(def.key);
+    });
+  }
+
+  function ensureSectionToggleV6402(def, card, collapsed){
+    if (!card) return;
+    const header = card.querySelector(':scope > .remakeCardHeader');
+    if (!header) return;
+    const title = header.querySelector('.remakeCardTitle');
+    ensureSectionTitleInteractionV6408(def, title, collapsed);
+    let button = header.querySelector('[data-remake-section-toggle-v6402="' + def.key + '"]');
+    if (!button) {
+      button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'remakeSectionToggleV6402';
+      button.setAttribute('data-remake-section-toggle-v6402', def.key);
+      const chevron = document.createElement('span');
+      chevron.className = 'remakeSectionChevronV6402';
+      chevron.setAttribute('aria-hidden', 'true');
+      chevron.innerHTML = '&#9662;';
+      button.appendChild(chevron);
+      button.addEventListener('click', function(event){
+        event.preventDefault();
+        event.stopPropagation();
+        window.toggleRemakeSectionV6402(def.key);
+      });
+    }
+    if (title && button.parentNode !== title) title.appendChild(button);
+    else if (!title && button.parentNode !== header) header.insertBefore(button, header.firstChild);
+    button.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+    button.setAttribute('aria-label', (collapsed ? 'Expand ' : 'Collapse ') + def.label + ' section');
+    button.setAttribute('title', (collapsed ? 'Expand ' : 'Collapse ') + def.label + ' section');
+  }
+
+  function applyRemakeSectionStatesV6402(){
+    const state = readSectionStateV6402();
+    SECTION_DEFS_V6402.forEach(function(def){
+      const card = document.getElementById(def.cardId);
+      if (!card) return;
+      const collapsed = state[def.key] !== false;
+      card.classList.toggle('remakeSectionCollapsedV6402', collapsed);
+      card.setAttribute('data-remake-section-collapsed-v6402', collapsed ? '1' : '0');
+      ensureSectionToggleV6402(def, card, collapsed);
+    });
+  }
+
+  window.applyRemakeSectionStatesV6402 = applyRemakeSectionStatesV6402;
+  window.toggleRemakeSectionV6402 = function(key){
+    const def = SECTION_DEFS_V6402.find(function(item){ return item.key === key; });
+    if (!def) return;
+    const state = readSectionStateV6402();
+    state[key] = !(state[key] !== false);
+    writeSectionStateV6402(state);
+    applyRemakeSectionStatesV6402();
+  };
+
+  function restoreScrollAfterPageReloadV6402(){
+    try {
+      const saved = JSON.parse(localStorage.getItem(SCROLL_STORAGE_KEY_V6402) || 'null');
+      localStorage.removeItem(SCROLL_STORAGE_KEY_V6402);
+      if (!saved || !Number.isFinite(Number(saved.y)) || Date.now() - Number(saved.at || 0) > 10 * 60 * 1000) return;
+      window.setTimeout(function(){ window.scrollTo(0, Math.max(0, Number(saved.y))); }, 250);
+      window.setTimeout(function(){ window.scrollTo(0, Math.max(0, Number(saved.y))); }, 1100);
+    } catch (error) {}
+  }
+
+  function findVisibleWebAppUrlV6402(){
+    const candidates = [];
+    try {
+      const config = window.CDA_FINAL_PRESENTATION_CONFIG;
+      if (config && Array.isArray(config.locationSources)) candidates.push.apply(candidates, config.locationSources);
+    } catch (error) {}
+    try { candidates.push(document.referrer); } catch (error) {}
+    try { candidates.push(window.location.href); } catch (error) {}
+
+    for (let index = 0; index < candidates.length; index += 1) {
+      const candidate = String(candidates[index] || '').trim();
+      if (!candidate) continue;
+      try {
+        const url = new URL(candidate, window.location.href);
+        if (/^https:\/\/script\.google\.com$/i.test(url.origin) && /\/macros\/s\/.+\/(?:exec|dev)\/?$/i.test(url.pathname)) return url;
+      } catch (error) {}
+    }
+    return null;
+  }
+
+  let remakeMetaLastCheckedAtV6409 = 0;
+  let remakeAutoSyncTimerV6409 = 0;
+  const REMAKE_AUTO_SYNC_INTERVAL_MS_V6409 = 2 * 60 * 60 * 1000;
+  const REMAKE_FOCUS_SYNC_MIN_AGE_MS_V6409 = 10 * 60 * 1000;
+
+  function performRemakeAutomaticCacheSyncV6409(reason) {
+    if (typeof window.checkRemakeFactorServerMetaV6409 !== 'function') return Promise.resolve(false);
+    remakeMetaLastCheckedAtV6409 = Date.now();
+    return window.checkRemakeFactorServerMetaV6409({ force: true, reason: reason || 'scheduled' });
+  }
+
+  // Backward-compatible name retained for any old bookmark/debug code, but the
+  // behavior is now a cache-token synchronization rather than a page-only reload.
+  window.performRemakePageOnlyReloadV6402 = function performRemakePageOnlyReloadV6402() {
+    return performRemakeAutomaticCacheSyncV6409('legacy-manual-call');
+  };
+  window.performRemakeAutomaticCacheSyncV6409 = performRemakeAutomaticCacheSyncV6409;
+  window.CDA_REMAKE_PAGE_ONLY_RELOAD = {
+    version: 'v6.412',
+    intervalHours: 2,
+    rebuildsCache: false,
+    reloadsSavedCache: true,
+    refreshesApi: false,
+    behavior: 'show browser data immediately, use only optimized cache automatically, and rebuild/poll without automatic monthly-shard fallback'
+  };
+  window.CDA_REMAKE_AUTO_SYNC = window.CDA_REMAKE_PAGE_ONLY_RELOAD;
+
+  function installPageReloadTimerV6402(){
+    if (window.__cdaRemakePageReloadTimerV6402) window.clearTimeout(window.__cdaRemakePageReloadTimerV6402);
+    if (remakeAutoSyncTimerV6409) window.clearInterval(remakeAutoSyncTimerV6409);
+    remakeAutoSyncTimerV6409 = window.setInterval(function scheduledRemakeCacheSyncV6409(){
+      performRemakeAutomaticCacheSyncV6409('two-hour');
+    }, REMAKE_AUTO_SYNC_INTERVAL_MS_V6409);
+    window.__cdaRemakePageReloadTimerV6402 = window.setTimeout(function initialRemakeCacheSyncV6409(){
+      performRemakeAutomaticCacheSyncV6409('startup-safety');
+    }, 90 * 1000);
+  }
+
+  function installRemakeFocusSyncV6409(){
+    if (window.__cdaRemakeFocusSyncInstalledV6409) return;
+    window.__cdaRemakeFocusSyncInstalledV6409 = true;
+    const checkAfterReturn = function checkRemakeCacheAfterReturnV6409(){
+      if (document.visibilityState && document.visibilityState !== 'visible') return;
+      if (Date.now() - remakeMetaLastCheckedAtV6409 < REMAKE_FOCUS_SYNC_MIN_AGE_MS_V6409) return;
+      performRemakeAutomaticCacheSyncV6409('focus');
+    };
+    document.addEventListener('visibilitychange', checkAfterReturn);
+    window.addEventListener('focus', checkAfterReturn);
+  }
+
+  function observeShellReplacementV6402(){
+    const page = document.getElementById('remakeFactorPage');
+    if (!page) {
+      window.setTimeout(observeShellReplacementV6402, 300);
+      return;
+    }
+    if (window.__cdaRemakeSectionObserverV6402) return;
+    let applyQueuedV6408 = false;
+    window.__cdaRemakeSectionObserverV6402 = new MutationObserver(function(mutations){
+      const sectionHeaderChangedV6408 = (mutations || []).some(function(mutation){
+        if (!mutation || mutation.type !== 'childList') return false;
+        const target = mutation.target;
+        if (!target || target.nodeType !== 1) return false;
+        if (target === page) return true;
+        if (target.matches && target.matches('#remakeCustomerCardV6230, #remakeCeramistCardV6342')) return true;
+        if (target.closest && (
+          target.closest('#remakeCustomerCardV6230 > .remakeCardHeader') ||
+          target.closest('#remakeCeramistCardV6342 > .remakeCardHeader')
+        )) return true;
+        const changedNodesV6408 = Array.from(mutation.addedNodes || []).concat(Array.from(mutation.removedNodes || []));
+        return changedNodesV6408.some(function(node){
+          if (!node || node.nodeType !== 1) return false;
+          if (node.matches && node.matches('#remakeCustomerCardV6230, #remakeCeramistCardV6342, .remakeCardHeader, .remakeCardTitle')) return true;
+          return !!(node.querySelector && node.querySelector('#remakeCustomerCardV6230, #remakeCeramistCardV6342, .remakeCardHeader, .remakeCardTitle'));
+        });
+      });
+      if (!sectionHeaderChangedV6408 || applyQueuedV6408) return;
+      applyQueuedV6408 = true;
+      window.requestAnimationFrame(function(){
+        applyQueuedV6408 = false;
+        applyRemakeSectionStatesV6402();
+      });
+    });
+    // v6.408: watch inside the card headers because customer/technician pills
+    // can rewrite title text and remove the appended arrow button.
+    window.__cdaRemakeSectionObserverV6402.observe(page, { childList: true, subtree: true });
+  }
+
+  function startV6402(){
+    applyRemakeSectionStatesV6402();
+    restoreScrollAfterPageReloadV6402();
+    installPageReloadTimerV6402();
+    installRemakeFocusSyncV6409();
+    observeShellReplacementV6402();
+    window.setTimeout(applyRemakeSectionStatesV6402, 350);
+    window.setTimeout(applyRemakeSectionStatesV6402, 1300);
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', startV6402, { once: true });
+  else startV6402();
+})();
+</script>

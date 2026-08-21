@@ -1,0 +1,61 @@
+{
+  "datePt": "2026-08-21",
+  "checkpoint": "Final active Index cleanup for paused Overview references",
+  "source": "Index.html",
+  "behaviorChangeIntended": false,
+  "sourceGitBlobShaBefore": "97065bd9fee5b8957d422a8cd40bc037b5858c30",
+  "sourceSha256Before": "a0135992850278d80ce9116cd7cd0dec97271d2530d27bd6fd365e3d7d1ea660",
+  "sourceSha256After": "497a1ffba9ad8249985e46e751101666b6afc76a505248d46328d81e11fa4769",
+  "bytesBefore": 176702,
+  "bytesAfter": 175532,
+  "bytesRemoved": 1170,
+  "archivePath": "archive/overview-paused-2026-08-21/Index.pre-final-overview-reference-removal.html",
+  "archiveByteForByteVerified": true,
+  "overviewReferencesBefore": 9,
+  "overviewReferencesAfter": 0,
+  "overviewTwoReferencesBefore": 3,
+  "overviewTwoReferencesAfter": 0,
+  "overviewPageReferencesBefore": 5,
+  "overviewPageReferencesAfter": 0,
+  "removedDeadBlocks": [
+    "installV6160Layout Overview 2 relocation shim",
+    "#overviewPage branches in cdaAtomicStableStylesV6418",
+    "#overviewPage branch in dashboardElementV6418 scope",
+    "stale Overview reference in v6.412 fuzzy-search marker"
+  ],
+  "preservedLiveBehavior": [
+    "Remake atomic animation suppression",
+    "Remake atomic geometry stabilization",
+    "Remake table scrollbar stabilization",
+    "categorical atomic stabilization",
+    "tab-page animation cancellation scope",
+    "SharedFilterBar / Remake adapter / TAT controller / TAT adapter / SharedFooter includes"
+  ],
+  "protectedTokenCountsBefore": {
+    "#remakeFactorPage": 541,
+    "#categoricalPage": 6,
+    ".tabPage": 3,
+    "#remakeTabFilterHostV6337": 56,
+    "#tatTabFilterHostV6509": 4,
+    "includeDashboardFile('SharedFilterBar')": 1,
+    "includeDashboardFile('RemakeSharedFilterAdapterV6646')": 1,
+    "includeDashboardFile('TatDashboardControllerScript')": 1,
+    "includeDashboardFile('TatSharedFilterAdapterV6646')": 1,
+    "includeDashboardFile('SharedFooter')": 1
+  },
+  "protectedTokenCountsAfter": {
+    "#remakeFactorPage": 541,
+    "#categoricalPage": 6,
+    ".tabPage": 3,
+    "#remakeTabFilterHostV6337": 56,
+    "#tatTabFilterHostV6509": 4,
+    "includeDashboardFile('SharedFilterBar')": 1,
+    "includeDashboardFile('RemakeSharedFilterAdapterV6646')": 1,
+    "includeDashboardFile('TatDashboardControllerScript')": 1,
+    "includeDashboardFile('TatSharedFilterAdapterV6646')": 1,
+    "includeDashboardFile('SharedFooter')": 1
+  },
+  "scriptTagDelta": -1,
+  "styleTagDelta": 0,
+  "productionDeployment": false
+}
