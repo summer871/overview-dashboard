@@ -1,0 +1,15 @@
+{
+  "generatedAt": "2026-08-21T20:11:37.390Z",
+  "version": "v6.646",
+  "source": "Index.html",
+  "sourceSha256Before": "ea9d79d1622d5387af8ad89747e47967d9a73418e62b315790758e113c858780",
+  "sourceSha256After": "c73e8cc04afbbe75e499c8a7ae3e87ce7149bf8a38c245b71a9d63144d296fa7",
+  "adapter": "RemakeSharedFilterAdapterV6646.html",
+  "adapterSha256": "b5cfdd9b465610425ae753d667b59339ddfc5a068cfeec27ced792b1e30d6845",
+  "adapterLoadsAfterDashboardMain": true,
+  "legacyFilterDeleted": false,
+  "compactLegacyControlsRetained": true,
+  "desktopLegacyFilterHiddenOnlyAfterSharedMount": true,
+  "behaviorIntent": "Preserve existing Remake filter state/business logic while moving desktop dropdown/header presentation and interaction ownership to SharedFilterBar.",
+  "productionDeployment": false
+}

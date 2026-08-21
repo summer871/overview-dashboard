@@ -835,6 +835,7 @@ document.documentElement.classList.add('cdaRemakeTatBootV6501');
 
   <?!= includeDashboardFile('RemakeRootAttributionBrowserIntegrationV1351') ?>
   <?!= includeDashboardFile('DashboardMainScript', {dashboardBaseUrl: dashboardBaseUrl, dashboardPresentationVersion: dashboardPresentationVersion, dashboardPresentationMode: dashboardPresentationMode, dashboardPresentationSource: dashboardPresentationSource}) ?>
+<?!= includeDashboardFile('RemakeSharedFilterAdapterV6646') ?>
 <?!= includeDashboardFile('DashboardSupportScript01') ?>
 <script>
 /* v6.244 remake polish marker
