@@ -67,6 +67,10 @@ function removeButtonById(source, id) {
   };
 }
 
+function claspArchiveExcluded(text) {
+  return String(text || '').split(/\r?\n/).some(function(line){ return line.trim() === 'archive/**'; });
+}
+
 const before = fs.readFileSync(indexPath, 'utf8');
 const beforeSha = sha256(before);
 if (beforeSha !== expectedIndexSha256) {
@@ -96,27 +100,27 @@ after = result.source;
 removals.push({ id: 'overviewTwo', tag: 'section', bytes: result.bytes });
 
 [
-  ['tabOneBtn', /<button\\b[^>]*\\bid=["']tabOneBtn["']/i],
-  ['overviewNavActions', /<div\\b[^>]*\\bid=["']overviewNavActions["']/i],
-  ['overviewOne', /<section\\b[^>]*\\bid=["']overviewOne["']/i],
-  ['overviewTwo', /<section\\b[^>]*\\bid=["']overviewTwo["']/i]
+  ['tabOneBtn', /<button\b[^>]*\bid=["']tabOneBtn["']/i],
+  ['overviewNavActions', /<div\b[^>]*\bid=["']overviewNavActions["']/i],
+  ['overviewOne', /<section\b[^>]*\bid=["']overviewOne["']/i],
+  ['overviewTwo', /<section\b[^>]*\bid=["']overviewTwo["']/i]
 ].forEach(function(entry) {
   if (entry[1].test(after)) fail('Overview runtime node still present after removal: ' + entry[0]);
 });
 
-if (!/<section\\b[^>]*\\bid=["']remakeFactorPage["']/i.test(after)) fail('Protected Remake page markup disappeared.');
+if (!/<section\b[^>]*\bid=["']remakeFactorPage["']/i.test(after)) fail('Protected Remake page markup disappeared.');
 if (!after.includes("includeDashboardFile('TatDashboardControllerScript')")) fail('Protected TAT controller include disappeared.');
-if (!/<section\\b[^>]*\\bid=["']categoricalPage["']/i.test(after)) fail('Categorical placeholder changed unexpectedly.');
+if (!/<section\b[^>]*\bid=["']categoricalPage["']/i.test(after)) fail('Categorical placeholder changed unexpectedly.');
 
 fs.writeFileSync(indexPath, after, 'utf8');
 
 let claspignore = fs.readFileSync(claspignorePath, 'utf8');
-if (!/(?:^|\\n)archive\\/\\*\\*(?:\\n|$)/.test(claspignore)) {
+if (!claspArchiveExcluded(claspignore)) {
   if (!claspignore.endsWith('\n')) claspignore += '\n';
   claspignore += '# Archived and paused code is intentionally excluded from Apps Script source.\narchive/**\n';
   fs.writeFileSync(claspignorePath, claspignore, 'utf8');
 }
-if (!/(?:^|\\n)archive\\/\\*\\*(?:\\n|$)/.test(fs.readFileSync(claspignorePath, 'utf8'))) fail('archive/** is not protected by .claspignore.');
+if (!claspArchiveExcluded(fs.readFileSync(claspignorePath, 'utf8'))) fail('archive/** is not protected by .claspignore.');
 
 const afterSha = sha256(after);
 const archivedSha = sha256(fs.readFileSync(archiveIndexPath, 'utf8'));
