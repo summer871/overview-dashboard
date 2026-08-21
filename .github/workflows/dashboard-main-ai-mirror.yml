@@ -1,0 +1,63 @@
+name: Dashboard main AI-readable mirror
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - agent/ai-readable-cleanup-2026-08-21
+    paths:
+      - DashboardMainScript.html
+      - .github/scripts/split-dashboard-main-for-ai.cjs
+      - .github/workflows/dashboard-main-ai-mirror.yml
+
+permissions:
+  contents: write
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out cleanup branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/ai-readable-cleanup-2026-08-21
+          fetch-depth: 0
+
+      - name: Verify generator syntax
+        run: node --check .github/scripts/split-dashboard-main-for-ai.cjs
+
+      - name: Generate AI-readable mirror
+        run: node .github/scripts/split-dashboard-main-for-ai.cjs
+
+      - name: Verify runtime source unchanged
+        run: |
+          git diff --exit-code -- DashboardMainScript.html Index.html Code.js
+
+      - name: Verify generated chunks reconstruct source
+        run: |
+          node - <<'NODE'
+          const fs = require('fs');
+          const path = require('path');
+          const crypto = require('crypto');
+          const dir = 'docs/ai-readable/dashboard-main';
+          const manifest = JSON.parse(fs.readFileSync(path.join(dir, 'manifest.json'), 'utf8'));
+          const rebuilt = manifest.chunks.map(item => fs.readFileSync(item.file, 'utf8')).join('');
+          const source = fs.readFileSync(manifest.authoritativeSource, 'utf8');
+          const hash = value => crypto.createHash('sha256').update(value, 'utf8').digest('hex');
+          if (rebuilt !== source) throw new Error('Generated chunks do not reconstruct source exactly.');
+          if (hash(source) !== manifest.authoritativeSourceSha256) throw new Error('Source hash mismatch.');
+          if (!manifest.byteForByteReconstructionVerified) throw new Error('Manifest verification flag missing.');
+          console.log(`Verified ${manifest.chunkCount} chunks for ${manifest.authoritativeSourceBytes} bytes.`);
+          NODE
+
+      - name: Commit generated inspection mirror
+        run: |
+          if git diff --quiet -- docs/ai-readable/dashboard-main; then
+            echo 'Mirror already current.'
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- docs/ai-readable/dashboard-main
+          git commit -m "Generate AI-readable DashboardMainScript mirror"
+          git push origin HEAD:agent/ai-readable-cleanup-2026-08-21
