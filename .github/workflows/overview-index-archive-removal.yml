@@ -1,5 +1,6 @@
 name: Overview Index archive checkpoint
 
+# Existing workflow touched intentionally to trigger the guarded checkpoint.
 on:
   push:
     branches:
