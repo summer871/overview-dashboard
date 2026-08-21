@@ -1,0 +1,57 @@
+name: Index superseded CSS cleanup
+
+on:
+  pull_request:
+    branches:
+      - agent/v6.544-shared-table-platform-5118
+    paths:
+      - .github/scripts/remove-superseded-index-css.cjs
+      - .github/workflows/index-superseded-css-cleanup.yml
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out cleanup branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/ai-readable-cleanup-2026-08-21
+          fetch-depth: 0
+
+      - name: Install CSS parser
+        run: npm install --no-save --package-lock=false postcss@8
+
+      - name: Verify cleanup script syntax
+        run: node --check .github/scripts/remove-superseded-index-css.cjs
+
+      - name: Remove conservative superseded CSS rules
+        run: node .github/scripts/remove-superseded-index-css.cjs
+
+      - name: Regenerate Index inspection mirror
+        run: node .github/scripts/split-index-for-ai.cjs
+
+      - name: Verify cleanup
+        run: |
+          node - <<'NODE'
+          const fs = require('fs');
+          const report = JSON.parse(fs.readFileSync('docs/INDEX-SUPERSEDED-CSS-CLEANUP-2026-08-21.json','utf8'));
+          const manifest = JSON.parse(fs.readFileSync('docs/ai-readable/index/manifest.json','utf8'));
+          if (report.behaviorChangeIntended) throw new Error('Unexpected behavior-change flag.');
+          if (report.parser !== 'postcss') throw new Error('PostCSS verification missing.');
+          if (report.removedRules < 1 || report.removedBytes < 1) throw new Error('No CSS redundancy removed.');
+          if (!manifest.byteForByteReconstructionVerified) throw new Error('Updated Index mirror is not verified.');
+          if (manifest.authoritativeSourceSha256 !== report.sourceSha256After) throw new Error('Index mirror does not match cleaned source.');
+          NODE
+          test -z "$(git status --short --untracked-files=all | sed -E 's/^.. //' | grep -Ev '^(Index\.html|docs/INDEX-SUPERSEDED-CSS-CLEANUP-2026-08-21\.json|docs/ai-readable/index/)')"
+
+      - name: Commit CSS cleanup
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- Index.html docs/INDEX-SUPERSEDED-CSS-CLEANUP-2026-08-21.json docs/ai-readable/index
+          git commit -m "Remove conservative superseded Index CSS rules"
+          git pull --rebase origin agent/ai-readable-cleanup-2026-08-21
+          git push origin HEAD:agent/ai-readable-cleanup-2026-08-21
