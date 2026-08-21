@@ -27,7 +27,6 @@ const protectedTokens = [
   'remakeFactorPage',
   'remakeFactorTabBtn',
   'categoricalPage',
-  'cdaExecRemakeOnlyV6243',
   'remakeYearFilter',
   'remakeDepartmentFilter',
   'remakeProductFilter',
