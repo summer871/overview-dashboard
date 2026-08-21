@@ -61,14 +61,15 @@ const parent = moduleNames.map(function(name) { return "<?!= includeDashboardFil
 if (bytes(parent) > maxBytes) fail('Legacy parent composition exceeds 75KB.');
 let reconstructedLegacy = parent;
 chunks.forEach(function(chunk, index) {
-  reconstructedLegacy = reconstructedLegacy.replace("<?!= includeDashboardFile('" + moduleNames[index] + "') ?>", chunk);
+  const directive = "<?!= includeDashboardFile('" + moduleNames[index] + "') ?>";
+  reconstructedLegacy = reconstructedLegacy.replace(directive, function() { return chunk; });
 });
 if (reconstructedLegacy !== legacy) fail('Legacy parent recursive reconstruction failed.');
 
 const parentDirective = "<?!= includeDashboardFile('" + parentName + "') ?>";
 const next = original.slice(0, bodyStart) + parentDirective + original.slice(remakePos);
 if (count(next, parentDirective) !== 1) fail('Legacy parent include count is not one.');
-if (next.replace(parentDirective, reconstructedLegacy) !== original) fail('DashboardMain legacy recursive reconstruction failed.');
+if (next.replace(parentDirective, function() { return reconstructedLegacy; }) !== original) fail('DashboardMain legacy recursive reconstruction failed.');
 
 fs.mkdirSync(archiveDir, { recursive: true });
 fs.writeFileSync(archivePath, original, 'utf8');
