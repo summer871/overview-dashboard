@@ -1,0 +1,79 @@
+{
+  "datePt": "2026-08-21",
+  "checkpoint": "Remove stale deleted-Overview selectors from active Index boot stylesheet",
+  "source": "Index.html",
+  "behaviorChangeIntended": false,
+  "sourceGitBlobShaBefore": "06aaa322f73647f8aacbd1364cff5db7d7bfdc43",
+  "sourceSha256Before": "01754ee72aeebc215cb7b91cec34b1b364a6c49ee2367feb9d8287dcded324f6",
+  "sourceSha256After": "2112310c754e6599e8ae671bc422349e25d635d9e0daa080787f16501ec6c82d",
+  "bytesBefore": 185603,
+  "bytesAfter": 185534,
+  "bytesRemoved": 69,
+  "archivePath": "archive/overview-paused-2026-08-21/Index.pre-stale-overview-boot-selector-removal.html",
+  "archiveByteForByteVerified": true,
+  "staleBootTokenCountsBefore": {
+    "#tabOneBtn": 1,
+    "#overviewNavActions": 1,
+    "#overviewOne": 1,
+    "#overviewTwo": 1
+  },
+  "staleBootTokenCountsAfter": {
+    "#tabOneBtn": 0,
+    "#overviewNavActions": 0,
+    "#overviewOne": 0,
+    "#overviewTwo": 0
+  },
+  "staleGlobalTokenCountsBefore": {
+    "#tabOneBtn": 1,
+    "#overviewNavActions": 1,
+    "#overviewOne": 27,
+    "#overviewTwo": 4
+  },
+  "staleGlobalTokenCountsAfter": {
+    "#tabOneBtn": 0,
+    "#overviewNavActions": 0,
+    "#overviewOne": 26,
+    "#overviewTwo": 3
+  },
+  "protectedTokenCountsBefore": {
+    ".managerTabs > .tabGroup": 1,
+    "#underConstructionBtn": 1,
+    "#underConstructionMenu": 1,
+    "#categoricalTabBtn": 1,
+    "#categoricalPage": 7,
+    "#dropdownDebugOverlayV6199": 1,
+    "#dropdownDebugOverlayV6196": 1,
+    "#layoutEditButtonV6183": 1,
+    "#layoutEditPanelV6183": 1,
+    "#layoutCardEditorV6184": 1,
+    "#remakeFactorPage": 542,
+    "#remakeTabFilterHostV6337": 56,
+    "#tatTabFilterHostV6509": 4,
+    "includeDashboardFile('SharedFilterBar')": 1,
+    "includeDashboardFile('RemakeSharedFilterAdapterV6646')": 1,
+    "includeDashboardFile('TatDashboardControllerScript')": 1,
+    "includeDashboardFile('TatSharedFilterAdapterV6646')": 1
+  },
+  "protectedTokenCountsAfter": {
+    ".managerTabs > .tabGroup": 1,
+    "#underConstructionBtn": 1,
+    "#underConstructionMenu": 1,
+    "#categoricalTabBtn": 1,
+    "#categoricalPage": 7,
+    "#dropdownDebugOverlayV6199": 1,
+    "#dropdownDebugOverlayV6196": 1,
+    "#layoutEditButtonV6183": 1,
+    "#layoutEditPanelV6183": 1,
+    "#layoutCardEditorV6184": 1,
+    "#remakeFactorPage": 542,
+    "#remakeTabFilterHostV6337": 56,
+    "#tatTabFilterHostV6509": 4,
+    "includeDashboardFile('SharedFilterBar')": 1,
+    "includeDashboardFile('RemakeSharedFilterAdapterV6646')": 1,
+    "includeDashboardFile('TatDashboardControllerScript')": 1,
+    "includeDashboardFile('TatSharedFilterAdapterV6646')": 1
+  },
+  "scriptTagBoundaryCountsPreserved": true,
+  "styleTagBoundaryCountsPreserved": true,
+  "productionDeployment": false
+}
