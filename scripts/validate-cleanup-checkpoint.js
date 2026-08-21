@@ -53,7 +53,7 @@ function parseHtmlScripts(file) {
   const closes = (text.match(/<\/script>/gi) || []).length;
   assert(opens === closes, `${file}: script tag boundary mismatch (${opens} open / ${closes} close)`);
   executableScriptBlocks(file, text).forEach(block => {
-    const prepared = block.code.replace(/<\?[!=]?[\s\S]*?\?>/g, 'null');
+    const prepared = block.code.replace(/<\?[!=]?[\s\S]*?\?>/g, 'null;');
     try {
       new vm.Script(prepared, { filename: `${file}#script${block.index}` });
     } catch (error) {
@@ -69,25 +69,35 @@ function composedDashboardMainVerification() {
   try {
     const report = JSON.parse(semanticReportText);
     const archive = read(report.archivePath);
-    let reconstructed = main;
+    const parent = report.parentModule || null;
+    if (!parent || !parent.name || !parent.path) throw new Error('DashboardMain semantic extraction report is missing parentModule metadata.');
+    let parentContent = read(parent.path);
+    assert(Buffer.byteLength(parentContent, 'utf8') <= Number(report.maxModuleBytes || 75000), `${parent.name}: exceeds semantic-module byte limit.`);
+    assert(sha256(parentContent) === parent.sha256, `${parent.name}: SHA-256 no longer matches semantic extraction report.`);
+
     const modules = Array.isArray(report.modules) ? report.modules : [];
-    assert(modules.length > 0, 'DashboardMain semantic extraction report has no modules.');
+    assert(modules.length > 0, 'DashboardMain semantic extraction report has no child modules.');
     modules.forEach(module => {
       const content = read(module.path);
       const directive = `<?!= includeDashboardFile('${module.name}') ?>`;
-      const occurrences = reconstructed.split(directive).length - 1;
-      assert(occurrences === 1, `${module.name}: expected exactly one DashboardMain include directive, found ${occurrences}.`);
+      const occurrences = parentContent.split(directive).length - 1;
+      assert(occurrences === 1, `${module.name}: expected exactly one parent-module include directive, found ${occurrences}.`);
       assert(Buffer.byteLength(content, 'utf8') <= Number(report.maxModuleBytes || 75000), `${module.name}: exceeds semantic-module byte limit.`);
       assert(sha256(content) === module.sha256, `${module.name}: SHA-256 no longer matches semantic extraction report.`);
       try { new vm.Script(content, { filename: module.path }); }
       catch (error) { failures.push(`${module.name}: raw JavaScript fragment no longer parses: ${error.message}`); }
-      reconstructed = reconstructed.replace(directive, content);
+      parentContent = parentContent.replace(directive, content);
     });
-    assert(reconstructed === archive, 'Composed DashboardMain is not byte-for-byte identical to archived pre-extraction runtime.');
+
+    const parentDirective = `<?!= includeDashboardFile('${parent.name}') ?>`;
+    const parentOccurrences = main.split(parentDirective).length - 1;
+    assert(parentOccurrences === 1, `${parent.name}: expected exactly one DashboardMain include directive, found ${parentOccurrences}.`);
+    const reconstructed = main.replace(parentDirective, parentContent);
+    assert(reconstructed === archive, 'Recursively composed DashboardMain is not byte-for-byte identical to archived pre-extraction runtime.');
     assert(sha256(reconstructed) === report.sourceSha256Before, 'Composed DashboardMain SHA-256 does not match pre-extraction runtime.');
     assert(Buffer.byteLength(reconstructed, 'utf8') === report.sourceBytesBefore, 'Composed DashboardMain byte count does not match pre-extraction runtime.');
     assert(sha256(main) === report.sourceSha256After, 'DashboardMain composition file changed since semantic extraction report.');
-    notes.push(`DashboardMain composition verified: ${modules.length} semantic runtime fragments, ${Buffer.byteLength(main, 'utf8').toLocaleString()} composition bytes.`);
+    notes.push(`DashboardMain composition verified: parent ${parent.name} + ${modules.length} semantic runtime fragments, ${Buffer.byteLength(main, 'utf8').toLocaleString()} composition bytes.`);
     return { text: reconstructed, currentText: main, composed: true, report };
   } catch (error) {
     failures.push(`DashboardMain semantic extraction report could not be validated: ${error.message}`);
