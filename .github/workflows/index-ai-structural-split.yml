@@ -54,7 +54,7 @@ jobs:
 
       - name: Commit inspection mirror
         run: |
-          if git diff --quiet -- docs/ai-readable/index; then
+          if [ -z "$(git status --porcelain -- docs/ai-readable/index)" ]; then
             echo 'Index inspection mirror already current.'
             exit 0
           fi
