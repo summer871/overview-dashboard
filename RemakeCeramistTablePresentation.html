@@ -1,0 +1,577 @@
+<style id="remakeV6344CeramistReadableLayoutStyles">
+  /* v6.344: CERAMICS master/detail tables use explicit, complete column
+     geometry. This override intentionally loads after the shared table styles
+     so global 1% metric widths cannot crush these two tables. */
+  #remakeFactorPage.cleanRemakeV6230 .ceramistWorkspaceV6343 {
+    grid-template-columns:minmax(0,38%) minmax(0,62%) !important;
+    min-height:350px !important;
+  }
+  #remakeFactorPage.cleanRemakeV6230 .ceramistPreviewTableWrapV6342 {
+    width:100% !important;
+    max-width:100% !important;
+    height:310px !important;
+    overflow-y:auto !important;
+    overflow-x:hidden !important;
+    scrollbar-gutter:stable !important;
+  }
+  #remakeFactorPage.cleanRemakeV6230 #remakeCeramistTableV6342,
+  #remakeFactorPage.cleanRemakeV6230 #remakeCeramistDetailTableV6343 {
+    table-layout:fixed !important;
+    width:100% !important;
+    min-width:0 !important;
+    max-width:100% !important;
+  }
+  #remakeFactorPage.cleanRemakeV6230 #remakeCeramistTableV6342 th,
+  #remakeFactorPage.cleanRemakeV6230 #remakeCeramistTableV6342 td,
+  #remakeFactorPage.cleanRemakeV6230 #remakeCeramistDetailTableV6343 th,
+  #remakeFactorPage.cleanRemakeV6230 #remakeCeramistDetailTableV6343 td {
+    min-width:0 !important;
+    max-width:none !important;
+    padding:6px 7px !important;
+    line-height:1.15 !important;
+    white-space:nowrap !important;
+    overflow:hidden !important;
+    text-overflow:ellipsis !important;
+  }
+  #remakeFactorPage.cleanRemakeV6230 #remakeCeramistTableV6342 th:nth-child(1),
+  #remakeFactorPage.cleanRemakeV6230 #remakeCeramistTableV6342 td:nth-child(1) { width:28% !important; text-align:left !important; }
+  #remakeFactorPage.cleanRemakeV6230 #remakeCeramistTableV6342 th:nth-child(2),
+  #remakeFactorPage.cleanRemakeV6230 #remakeCeramistTableV6342 td:nth-child(2) { width:20% !important; text-align:left !important; }
+  #remakeFactorPage.cleanRemakeV6230 #remakeCeramistTableV6342 th:nth-child(3),
+  #remakeFactorPage.cleanRemakeV6230 #remakeCeramistTableV6342 td:nth-child(3) { width:10% !important; text-align:right !important; }
+  #remakeFactorPage.cleanRemakeV6230 #remakeCeramistTableV6342 th:nth-child(4),
+  #remakeFactorPage.cleanRemakeV6230 #remakeCeramistTableV6342 td:nth-child(4) { width:12% !important; text-align:right !important; }
+  #remakeFactorPage.cleanRemakeV6230 #remakeCeramistTableV6342 th:nth-child(5),
+  #remakeFactorPage.cleanRemakeV6230 #remakeCeramistTableV6342 td:nth-child(5) { width:13% !important; text-align:right !important; }
+  #remakeFactorPage.cleanRemakeV6230 #remakeCeramistTableV6342 th:nth-child(6),
+  #remakeFactorPage.cleanRemakeV6230 #remakeCeramistTableV6342 td:nth-child(6) { width:17% !important; text-align:right !important; }
+  #remakeFactorPage.cleanRemakeV6230 #remakeCeramistDetailTableV6343 th:nth-child(1),
+  #remakeFactorPage.cleanRemakeV6230 #remakeCeramistDetailTableV6343 td:nth-child(1) { width:44% !important; text-align:left !important; }
+  #remakeFactorPage.cleanRemakeV6230 #remakeCeramistDetailTableV6343 th:nth-child(2),
+  #remakeFactorPage.cleanRemakeV6230 #remakeCeramistDetailTableV6343 td:nth-child(2) { width:12% !important; text-align:right !important; }
+  #remakeFactorPage.cleanRemakeV6230 #remakeCeramistDetailTableV6343 th:nth-child(3),
+  #remakeFactorPage.cleanRemakeV6230 #remakeCeramistDetailTableV6343 td:nth-child(3) { width:14% !important; text-align:right !important; }
+  #remakeFactorPage.cleanRemakeV6230 #remakeCeramistDetailTableV6343 th:nth-child(4),
+  #remakeFactorPage.cleanRemakeV6230 #remakeCeramistDetailTableV6343 td:nth-child(4) { width:14% !important; text-align:right !important; }
+  #remakeFactorPage.cleanRemakeV6230 #remakeCeramistDetailTableV6343 th:nth-child(5),
+  #remakeFactorPage.cleanRemakeV6230 #remakeCeramistDetailTableV6343 td:nth-child(5) { width:16% !important; text-align:right !important; }
+  #remakeFactorPage.cleanRemakeV6230 .ceramistSectionRowV6348 td {
+    background:#eef2f6 !important;
+    color:#475467 !important;
+    font-weight:900 !important;
+    font-size:9.5px !important;
+    letter-spacing:.04em !important;
+    text-transform:uppercase !important;
+    text-align:left !important;
+    border-top:1px solid #d8dee8 !important;
+    border-bottom:1px solid #d8dee8 !important;
+  }
+  @media(max-width:1180px) {
+    #remakeFactorPage.cleanRemakeV6230 .ceramistWorkspaceV6343 { grid-template-columns:1fr !important; }
+    #remakeFactorPage.cleanRemakeV6230 .ceramistPanelV6343 + .ceramistPanelV6343 {
+      border-left:0 !important;
+      border-top:1px solid #dfe4eb !important;
+    }
+    #remakeFactorPage.cleanRemakeV6230 .ceramistPreviewTableWrapV6342 { height:280px !important; }
+  }
+</style>
+<script>window.CDA_REMAKE_CERAMIST_READABLE_LAYOUT_VERSION = 'v6.349';</script>
+
+
+<!-- v6.349: selected worker pinned first; worker labels cleaned; right table matches standard remake headers; current-remake worker removed; prior/root notes and case-number audit tooltips only. -->
+
+<script>
+window.CDA_CERAMIST_COMPACT_TOGGLE_ALIGNMENT_VERSION = 'v6.350';
+(function installCeramistV6350Alignment(){
+  if (document.getElementById('ceramistV6350AlignmentStyles')) return;
+  const style = document.createElement('style');
+  style.id = 'ceramistV6350AlignmentStyles';
+  style.textContent = `
+    #remakeFactorPage.cleanRemakeV6230 #remakeCeramistTableV6342 thead th:nth-child(1),
+    #remakeFactorPage.cleanRemakeV6230 #remakeCeramistTableV6342 thead th:nth-child(2),
+    #remakeFactorPage.cleanRemakeV6230 #remakeCeramistDetailTableV6343 thead th:nth-child(1) {
+      text-align:left !important;
+    }
+    #remakeFactorPage.cleanRemakeV6230 #remakeCeramistTableV6342 thead th:nth-child(n+3),
+    #remakeFactorPage.cleanRemakeV6230 #remakeCeramistDetailTableV6343 thead th:nth-child(n+2) {
+      text-align:center !important;
+    }
+    #remakeFactorPage.cleanRemakeV6230 #remakeCeramistTableV6342 tbody td:nth-child(2) {
+      text-align:left !important;
+    }
+    #remakeFactorPage.cleanRemakeV6230 #remakeCeramistTableV6342 tbody td:nth-child(n+3),
+    #remakeFactorPage.cleanRemakeV6230 #remakeCeramistDetailTableV6343 tbody td:nth-child(n+2) {
+      text-align:right !important;
+    }
+    @media(max-width:720px){
+      #remakeFactorPage.cleanRemakeV6230 .ceramistPreviewKpiV6342 {
+        flex:1 1 calc(50% - 6px) !important;
+        max-width:none !important;
+      }
+    }
+  `;
+  (document.body || document.documentElement).appendChild(style);
+})();
+</script>
+<!-- v6.350: compact KPIs, standard header alignment, and click-again row deselection. -->
+
+<script>
+window.CDA_CERAMIST_RIGHT_FILTERS_DEDUPE_VERSION = 'v6.351';
+(function installCeramistV6351Layout(){
+  if (document.getElementById('ceramistV6351LayoutStyles')) return;
+  const style = document.createElement('style');
+  style.id = 'ceramistV6351LayoutStyles';
+  style.textContent = `
+    #remakeFactorPage.cleanRemakeV6230 .ceramistTopControlsV6351 {
+      display:flex !important;
+      align-items:flex-start !important;
+      justify-content:space-between !important;
+      gap:12px !important;
+      padding:7px 10px !important;
+      border-bottom:1px solid #edf0f5 !important;
+      background:#fff !important;
+    }
+    #remakeFactorPage.cleanRemakeV6230 .ceramistTopControlsV6351 .ceramistPreviewKpisV6342 {
+      flex:0 0 auto !important;
+      display:flex !important;
+      align-items:stretch !important;
+      justify-content:flex-start !important;
+      flex-wrap:nowrap !important;
+      gap:5px !important;
+      padding:0 !important;
+      border:0 !important;
+      min-width:0 !important;
+    }
+    #remakeFactorPage.cleanRemakeV6230 .ceramistTopControlsV6351 .ceramistPreviewKpiV6342 {
+      flex:0 0 116px !important;
+      min-width:108px !important;
+      max-width:126px !important;
+      padding:5px 7px !important;
+      border-radius:6px !important;
+    }
+    #remakeFactorPage.cleanRemakeV6230 .ceramistTopControlsV6351 .ceramistPreviewKpiV6342:nth-child(3) {
+      flex-basis:128px !important;
+      max-width:138px !important;
+    }
+    #remakeFactorPage.cleanRemakeV6230 .ceramistTopControlsV6351 .ceramistPreviewKpiV6342 .label {
+      font-size:8px !important;
+      margin-bottom:2px !important;
+    }
+    #remakeFactorPage.cleanRemakeV6230 .ceramistTopControlsV6351 .ceramistPreviewKpiV6342 .value {
+      font-size:14px !important;
+    }
+    #remakeFactorPage.cleanRemakeV6230 .ceramistTopControlsV6351 .ceramistPreviewMetaV6342 {
+      flex:1 1 auto !important;
+      min-width:0 !important;
+      display:flex !important;
+      flex-direction:column !important;
+      align-items:flex-end !important;
+      justify-content:flex-start !important;
+      gap:3px !important;
+      padding:0 !important;
+      border:0 !important;
+      background:transparent !important;
+    }
+    #remakeFactorPage.cleanRemakeV6230 .ceramistTopControlsV6351 .ceramistFilterStackV6343 {
+      flex:0 1 auto !important;
+      width:auto !important;
+      max-width:100% !important;
+    }
+    #remakeFactorPage.cleanRemakeV6230 .ceramistTopControlsV6351 .ceramistFilterRowV6343,
+    #remakeFactorPage.cleanRemakeV6230 .ceramistTopControlsV6351 .ceramistFlagBarV6342 {
+      justify-content:flex-end !important;
+      gap:3px !important;
+    }
+    #remakeFactorPage.cleanRemakeV6230 .ceramistTopControlsV6351 .ceramistFlagButtonV6342 {
+      height:22px !important;
+      padding:0 7px !important;
+      font-size:9px !important;
+      letter-spacing:0 !important;
+    }
+    #remakeFactorPage.cleanRemakeV6230 .ceramistTopControlsV6351 .ceramistFilterSeparatorV6347 {
+      height:18px !important;
+      margin:0 3px !important;
+    }
+    #remakeFactorPage.cleanRemakeV6230 .ceramistTopControlsV6351 .ceramistPreviewStatusV6342 {
+      max-width:100% !important;
+      text-align:right !important;
+      font-size:9px !important;
+    }
+    @media(max-width:1320px) {
+      #remakeFactorPage.cleanRemakeV6230 .ceramistTopControlsV6351 {
+        flex-direction:column !important;
+        align-items:stretch !important;
+      }
+      #remakeFactorPage.cleanRemakeV6230 .ceramistTopControlsV6351 .ceramistPreviewMetaV6342,
+      #remakeFactorPage.cleanRemakeV6230 .ceramistTopControlsV6351 .ceramistFilterRowV6343,
+      #remakeFactorPage.cleanRemakeV6230 .ceramistTopControlsV6351 .ceramistFlagBarV6342 {
+        align-items:flex-end !important;
+        justify-content:flex-end !important;
+      }
+    }
+    @media(max-width:760px) {
+      #remakeFactorPage.cleanRemakeV6230 .ceramistTopControlsV6351 .ceramistPreviewKpisV6342 {
+        flex-wrap:wrap !important;
+      }
+      #remakeFactorPage.cleanRemakeV6230 .ceramistTopControlsV6351 .ceramistPreviewKpiV6342,
+      #remakeFactorPage.cleanRemakeV6230 .ceramistTopControlsV6351 .ceramistPreviewKpiV6342:nth-child(3) {
+        flex:1 1 calc(50% - 5px) !important;
+        max-width:none !important;
+      }
+      #remakeFactorPage.cleanRemakeV6230 .ceramistTopControlsV6351 .ceramistFilterRowV6343 {
+        justify-content:flex-start !important;
+      }
+    }
+  `;
+  (document.body || document.documentElement).appendChild(style);
+})();
+</script>
+<!-- v6.351: compact KPIs stay left; slim filters move right; duplicate mapped worker identities are consolidated. -->
+
+
+<style id="remakeV6354ConsistentTableTypographyStyles">
+  /* v6.354: one readable typography scale for standard Remake tables.
+     Earlier table-specific fit patches used several independent font sizes.
+     Standard, non-comparison views now share the same header/body sizing and
+     fit inside their cards without horizontal scrolling. */
+  #remakeFactorPage.cleanRemakeV6230 .remakeCardTitle,
+  #remakeFactorPage.cleanRemakeV6230 .ceramistPanelTitleV6343 {
+    font-size:12px !important;
+    line-height:1.2 !important;
+  }
+
+  #remakeFactorPage.cleanRemakeV6230 .remakeTable:not(.compareColumnsV6301) {
+    width:100% !important;
+    max-width:100% !important;
+    min-width:0 !important;
+    table-layout:fixed !important;
+    font-size:10.5px !important;
+    line-height:1.2 !important;
+  }
+
+  #remakeFactorPage.cleanRemakeV6230 .remakeTable:not(.compareColumnsV6301) thead th {
+    height:28px !important;
+    padding:5px 6px !important;
+    font-size:10px !important;
+    line-height:1.2 !important;
+    font-weight:900 !important;
+    white-space:nowrap !important;
+    overflow:hidden !important;
+    text-overflow:ellipsis !important;
+  }
+
+  #remakeFactorPage.cleanRemakeV6230 .remakeTable:not(.compareColumnsV6301) tbody td {
+    padding:5px 6px !important;
+    font-size:10.5px !important;
+    line-height:1.2 !important;
+    white-space:nowrap !important;
+    overflow:hidden !important;
+    text-overflow:ellipsis !important;
+  }
+
+  #remakeFactorPage.cleanRemakeV6230 .remakeTable:not(.compareColumnsV6301) .customerNameText,
+  #remakeFactorPage.cleanRemakeV6230 .remakeTable:not(.compareColumnsV6301) .remakeNameText,
+  #remakeFactorPage.cleanRemakeV6230 .remakeTable:not(.compareColumnsV6301) .productNameText {
+    font-size:10.5px !important;
+    line-height:1.2 !important;
+  }
+
+  #remakeFactorPage.cleanRemakeV6230 .remakeTable:not(.compareColumnsV6301) .inactiveBadge,
+  #remakeFactorPage.cleanRemakeV6230 .remakeTable:not(.compareColumnsV6301) .ceramistNoteBadgeV6343 {
+    font-size:8.5px !important;
+    line-height:1 !important;
+  }
+
+  /* The Ceramist selected worker is physically placed first in the tbody.
+     It should scroll normally rather than becoming a second sticky row. */
+  #remakeFactorPage.cleanRemakeV6230 #remakeCeramistTableV6342 tbody tr.selectedPinnedV6311 td,
+  #remakeFactorPage.cleanRemakeV6230 #remakeCeramistTableV6342 tbody tr.ceramistSelectedV6343 td {
+    position:static !important;
+    top:auto !important;
+  }
+  #remakeFactorPage.cleanRemakeV6230 #remakeCeramistTableV6342 tbody tr.selectedPinnedV6311 td {
+    box-shadow:none !important;
+  }
+
+  @media(min-width:981px) {
+    #remakeFactorPage.cleanRemakeV6230 .remakeTableWrap:has(#remakeReasonTable),
+    #remakeFactorPage.cleanRemakeV6230 .remakeTableWrap:has(#remakeDepartmentTable),
+    #remakeFactorPage.cleanRemakeV6230 .remakeTableWrap:has(#remakeProductTable),
+    #remakeFactorPage.cleanRemakeV6230 .remakeTableWrap:has(#remakeCustomerTable),
+    #remakeFactorPage.cleanRemakeV6230 .ceramistPreviewTableWrapV6342 {
+      overflow-x:hidden !important;
+    }
+
+    #remakeFactorPage.cleanRemakeV6230 #remakeReasonTable:not(.compareColumnsV6301) th,
+    #remakeFactorPage.cleanRemakeV6230 #remakeReasonTable:not(.compareColumnsV6301) td,
+    #remakeFactorPage.cleanRemakeV6230 #remakeDepartmentTable:not(.compareColumnsV6301) th,
+    #remakeFactorPage.cleanRemakeV6230 #remakeDepartmentTable:not(.compareColumnsV6301) td,
+    #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) th,
+    #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) td,
+    #remakeFactorPage.cleanRemakeV6230 #remakeCustomerTable:not(.compareColumnsV6301) th,
+    #remakeFactorPage.cleanRemakeV6230 #remakeCustomerTable:not(.compareColumnsV6301) td {
+      min-width:0 !important;
+      max-width:none !important;
+    }
+
+    #remakeFactorPage.cleanRemakeV6230 #remakeReasonTable:not(.compareColumnsV6301) th:first-child,
+    #remakeFactorPage.cleanRemakeV6230 #remakeReasonTable:not(.compareColumnsV6301) td:first-child {
+      width:45% !important;
+      text-align:left !important;
+    }
+    #remakeFactorPage.cleanRemakeV6230 #remakeReasonTable:not(.compareColumnsV6301) th:not(:first-child),
+    #remakeFactorPage.cleanRemakeV6230 #remakeReasonTable:not(.compareColumnsV6301) td:not(:first-child) {
+      width:11% !important;
+    }
+
+    #remakeFactorPage.cleanRemakeV6230 #remakeDepartmentTable:not(.compareColumnsV6301) th:first-child,
+    #remakeFactorPage.cleanRemakeV6230 #remakeDepartmentTable:not(.compareColumnsV6301) td:first-child,
+    #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) th:first-child,
+    #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) td:first-child {
+      width:34% !important;
+      text-align:left !important;
+    }
+    #remakeFactorPage.cleanRemakeV6230 #remakeDepartmentTable:not(.compareColumnsV6301) th:not(:first-child),
+    #remakeFactorPage.cleanRemakeV6230 #remakeDepartmentTable:not(.compareColumnsV6301) td:not(:first-child),
+    #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) th:not(:first-child),
+    #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) td:not(:first-child) {
+      width:9.42% !important;
+    }
+
+    #remakeFactorPage.cleanRemakeV6230 #remakeCustomerTable:not(.compareColumnsV6301) th:first-child,
+    #remakeFactorPage.cleanRemakeV6230 #remakeCustomerTable:not(.compareColumnsV6301) td:first-child {
+      width:44% !important;
+      min-width:0 !important;
+      max-width:none !important;
+      text-align:left !important;
+    }
+    #remakeFactorPage.cleanRemakeV6230 #remakeCustomerTable:not(.compareColumnsV6301) th:not(:first-child),
+    #remakeFactorPage.cleanRemakeV6230 #remakeCustomerTable:not(.compareColumnsV6301) td:not(:first-child) {
+      width:8% !important;
+    }
+  }
+
+  @media(max-width:980px) {
+    #remakeFactorPage.cleanRemakeV6230 .remakeTableWrap {
+      overflow-x:auto !important;
+    }
+  }
+</style>
+<script>window.CDA_REMAKE_CONSISTENT_TABLE_TYPOGRAPHY_VERSION = 'v6.354';</script>
+<!-- v6.354: consistent standard-table typography, fixed-width desktop fitting, and stable Ceramist scrolling. -->
+
+
+
+
+<style id="remakeV6357TypographyAndColumnChooserStyles">
+  /* v6.357: one readable table scale. Individual columns can be hidden from
+     the Columns menu, so text no longer needs to be reduced to make every
+     possible metric fit at the same time. */
+  #remakeFactorPage.cleanRemakeV6230 .remakeCardTitle,
+  #remakeFactorPage.cleanRemakeV6230 .ceramistPanelTitleV6343 {
+    font-size:12.5px !important;
+    line-height:1.25 !important;
+  }
+
+  #remakeFactorPage.cleanRemakeV6230 .remakeTable {
+    font-size:11.5px !important;
+    line-height:1.25 !important;
+  }
+
+  #remakeFactorPage.cleanRemakeV6230 .remakeTable thead th {
+    height:30px !important;
+    padding:6px 7px !important;
+    font-size:10.5px !important;
+    line-height:1.2 !important;
+    font-weight:900 !important;
+    white-space:nowrap !important;
+    overflow:hidden !important;
+    text-overflow:ellipsis !important;
+  }
+
+  #remakeFactorPage.cleanRemakeV6230 .remakeTable tbody td {
+    padding:6px 7px !important;
+    font-size:11.5px !important;
+    line-height:1.25 !important;
+    white-space:nowrap !important;
+    overflow:hidden !important;
+    text-overflow:ellipsis !important;
+  }
+
+  #remakeFactorPage.cleanRemakeV6230 .remakeTable .customerNameText,
+  #remakeFactorPage.cleanRemakeV6230 .remakeTable .remakeNameText,
+  #remakeFactorPage.cleanRemakeV6230 .remakeTable .productNameText {
+    font-size:11.5px !important;
+    line-height:1.25 !important;
+  }
+
+  #remakeFactorPage.cleanRemakeV6230 .remakeTable .inactiveBadge,
+  #remakeFactorPage.cleanRemakeV6230 .remakeTable .ceramistNoteBadgeV6343 {
+    font-size:9px !important;
+    line-height:1 !important;
+  }
+
+  /* Hidden columns are applied to the current DOM after every table render. */
+  #remakeFactorPage.cleanRemakeV6230 .columnHiddenV6357 {
+    display:none !important;
+  }
+
+  #remakeFactorPage.cleanRemakeV6230 .remakeColumnChooserButtonV6357 {
+    min-width:62px !important;
+    height:27px !important;
+    padding:0 8px !important;
+    border:1px solid #cfd6df !important;
+    border-radius:999px !important;
+    background:#fff !important;
+    color:#344054 !important;
+    font:900 9.5px/1 Roboto,Arial,sans-serif !important;
+    white-space:nowrap !important;
+    cursor:pointer !important;
+  }
+
+  #remakeFactorPage.cleanRemakeV6230 .remakeColumnChooserButtonV6357.hasHiddenColumnsV6357 {
+    border-color:#f2c94c !important;
+    background:#fff7d6 !important;
+    color:#7a4a00 !important;
+  }
+
+  .remakeColumnChooserPopoverV6357 {
+    position:fixed !important;
+    z-index:2147483000 !important;
+    width:236px !important;
+    max-width:calc(100vw - 20px) !important;
+    max-height:min(430px, calc(100vh - 20px)) !important;
+    overflow:auto !important;
+    box-sizing:border-box !important;
+    padding:9px !important;
+    border:1px solid #cfd6df !important;
+    border-radius:10px !important;
+    background:#fff !important;
+    box-shadow:0 10px 28px rgba(16,24,40,.22) !important;
+    color:#202124 !important;
+    font-family:Roboto,Arial,sans-serif !important;
+  }
+
+  .remakeColumnChooserHeaderV6357 {
+    display:flex !important;
+    align-items:flex-start !important;
+    justify-content:space-between !important;
+    gap:8px !important;
+    padding:1px 2px 7px !important;
+    border-bottom:1px solid #edf0f5 !important;
+  }
+
+  .remakeColumnChooserTitleV6357 {
+    font-size:12px !important;
+    line-height:1.2 !important;
+    font-weight:900 !important;
+  }
+
+  .remakeColumnChooserHintV6357 {
+    margin-top:2px !important;
+    color:#667085 !important;
+    font-size:9.5px !important;
+    line-height:1.25 !important;
+    font-weight:700 !important;
+  }
+
+  .remakeColumnChooserCloseV6357 {
+    width:24px !important;
+    height:24px !important;
+    padding:0 !important;
+    border:0 !important;
+    border-radius:6px !important;
+    background:#f2f4f7 !important;
+    color:#475467 !important;
+    font-size:17px !important;
+    line-height:1 !important;
+    cursor:pointer !important;
+  }
+
+  .remakeColumnChooserSectionV6357 {
+    padding:8px 1px 2px !important;
+  }
+
+  .remakeColumnChooserSectionTitleV6357 {
+    margin:0 0 5px !important;
+    color:#667085 !important;
+    font-size:9px !important;
+    line-height:1 !important;
+    font-weight:900 !important;
+    letter-spacing:.05em !important;
+    text-transform:uppercase !important;
+  }
+
+  .remakeColumnChooserOptionV6357 {
+    display:flex !important;
+    align-items:center !important;
+    gap:8px !important;
+    min-height:29px !important;
+    padding:3px 5px !important;
+    border-radius:6px !important;
+    color:#344054 !important;
+    font-size:11px !important;
+    line-height:1.2 !important;
+    font-weight:700 !important;
+    cursor:pointer !important;
+  }
+
+  .remakeColumnChooserOptionV6357:hover {
+    background:#f5f7fa !important;
+  }
+
+  .remakeColumnChooserOptionV6357 input {
+    width:15px !important;
+    height:15px !important;
+    margin:0 !important;
+    accent-color:#d89b00 !important;
+    flex:0 0 auto !important;
+  }
+
+  .remakeColumnChooserOptionV6357.isLockedV6357 {
+    color:#98a2b3 !important;
+    cursor:default !important;
+  }
+
+  .remakeColumnChooserLockV6357 {
+    margin-left:auto !important;
+    color:#98a2b3 !important;
+    font-size:9px !important;
+    font-weight:900 !important;
+    text-transform:uppercase !important;
+  }
+
+  .remakeColumnChooserFooterV6357 {
+    display:flex !important;
+    align-items:center !important;
+    justify-content:flex-end !important;
+    gap:6px !important;
+    margin-top:7px !important;
+    padding-top:8px !important;
+    border-top:1px solid #edf0f5 !important;
+  }
+
+  .remakeColumnChooserFooterV6357 button {
+    height:27px !important;
+    padding:0 9px !important;
+    border:1px solid #cfd6df !important;
+    border-radius:7px !important;
+    background:#fff !important;
+    color:#344054 !important;
+    font:900 10px/1 Roboto,Arial,sans-serif !important;
+    cursor:pointer !important;
+  }
+
+  .remakeColumnChooserFooterV6357 button.primaryV6357 {
+    border-color:#d89b00 !important;
+    background:#fff7d6 !important;
+    color:#7a4a00 !important;
+  }
+
+  @media(min-width:981px) {
+    #remakeFactorPage.cleanRemakeV6230 .remakeTableWrap,
+    #remakeFactorPage.cleanRemakeV6230 .ceramistPreviewTableWrapV6342 {
+      overflow-x:hidden !important;
+    }
+  }
+</style>

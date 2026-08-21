@@ -1,33 +1,21 @@
 {
-  "generatedAt": "2026-08-21T22:40:37.889Z",
+  "generatedAt": "2026-08-21T22:51:00.827Z",
   "authoritativeSource": "Index.html",
-  "authoritativeSourceBytes": 139762,
-  "authoritativeSourceSha256": "f7678829b26a72c064c7c2ec7973b3e8fbc3b2983ee7d753d796ccc382faac97",
+  "authoritativeSourceBytes": 55263,
+  "authoritativeSourceSha256": "c8d9040749fdedd50b9291a02eeb3cca2f46a3dba003067e76dad4230d4a7504",
   "maxAiReadableBytes": 75000,
   "targetBytes": 62000,
-  "chunkCount": 3,
+  "chunkCount": 1,
   "chunks": [
     {
       "file": "docs/ai-readable/index/IndexPart01.html.txt",
-      "bytes": 66429,
-      "sha256": "4b6801b066c99fde42b13a405004eabba27b6b88fa16ae7d76e36b413fe3a462",
-      "aiReadable": true
-    },
-    {
-      "file": "docs/ai-readable/index/IndexPart02.html.txt",
-      "bytes": 62064,
-      "sha256": "fe7ba12049818940c52bdd03c4c6a62d2f58848315e9fdf43016900d8efd79fa",
-      "aiReadable": true
-    },
-    {
-      "file": "docs/ai-readable/index/IndexPart03.html.txt",
-      "bytes": 11269,
-      "sha256": "e6d68ff46504007152226df0d49b12e7e70fb888698f0c863c230cba9509ff0e",
+      "bytes": 55263,
+      "sha256": "c8d9040749fdedd50b9291a02eeb3cca2f46a3dba003067e76dad4230d4a7504",
       "aiReadable": true
     }
   ],
   "byteForByteReconstructionVerified": true,
   "runtimeSourceChanged": false,
   "behaviorChangeIntended": false,
-  "note": "Inspection mirror only. These .txt chunks are not Apps Script runtime files and must never be included by Index.html."
+  "note": "Index.html is itself AI-readable. This single .txt mirror remains inspection-only and must never be included by Index.html."
 }

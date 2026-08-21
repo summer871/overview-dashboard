@@ -15,308 +15,7 @@
   <?!= includeDashboardFile('DashboardBaseStyles') ?>
   <?!= includeDashboardFile('RemakeTailStyles') ?>
 
-  <style id="remakeV6285TargetedFixes">
-    /* v6.286 targeted-only fixes: preserve the working remake presentation and existing functions. */
-    #remakeFactorPage.cleanRemakeV6230 .remakeChartModeBarV6230 button.active,
-    #remakeFactorPage.cleanRemakeV6230 .remakeChartModeBarV6230 button[aria-pressed="true"] {
-      background:#fff7d6 !important;
-      color:#7a4a00 !important;
-      border-color:#f2c94c !important;
-      box-shadow:0 0 0 1px rgba(242,201,76,.20),0 1px 3px rgba(245,158,11,.20) !important;
-    }
-  </style>
-
-  <style id="remakeV6286FinalChartState">
-    #remakeFactorPage.cleanRemakeV6230 .remakeChartModeBarV6230 button.active,
-    #remakeFactorPage.cleanRemakeV6230 .remakeChartModeBarV6230 button[aria-pressed="true"] {
-      background: #fff4c2 !important;
-      color: #704300 !important;
-      border-color: #f4b400 !important;
-      box-shadow: inset 0 0 0 1px rgba(244,180,0,.18), 0 1px 3px rgba(180,110,0,.18) !important;
-    }
-    #remakeFactorPage.cleanRemakeV6230 .remakeChartBoxV6230 canvas {
-      transition: opacity 80ms ease-out, filter 80ms ease-out;
-    }
-  </style>
-<style id="remakeV6324CompactFilterBarStyles">
-  /* v6.324 compact desktop filter bar. Existing searchable multi-select panels are unchanged. */
-  @media (min-width: 981px) {
-    #remakeFactorPage.cleanRemakeV6230 .remakeStickyTopV6245 {
-      padding-top: 4px !important;
-    }
-    #remakeFactorPage.cleanRemakeV6230 .remakeFilterBarV6230 {
-      display: grid !important;
-      grid-template-columns: minmax(96px,.56fr) minmax(138px,.82fr) minmax(164px,1fr) minmax(142px,.88fr) minmax(164px,1fr) minmax(138px,.82fr) !important;
-      gap: 6px !important;
-      align-items: center !important;
-      padding-right: 42px !important;
-      margin-bottom: 0 !important;
-    }
-    #remakeFactorPage.cleanRemakeV6230 .remakeFilter {
-      padding: 0 !important;
-      min-height: 38px !important;
-      border-radius: 9px !important;
-      box-shadow: 0 1px 2px rgba(20,32,42,.08) !important;
-      overflow: visible !important;
-    }
-    #remakeFactorPage.cleanRemakeV6230 .remakeFilter label {
-      position: absolute !important;
-      width: 1px !important;
-      height: 1px !important;
-      padding: 0 !important;
-      margin: -1px !important;
-      overflow: hidden !important;
-      clip: rect(0,0,0,0) !important;
-      white-space: nowrap !important;
-      border: 0 !important;
-    }
-    #remakeFactorPage.cleanRemakeV6230 .remakeDropdownButtonV6245 {
-      min-height: 38px !important;
-      height: 38px !important;
-      border: 0 !important;
-      border-radius: 9px !important;
-      padding: 0 30px 0 12px !important;
-      font-size: 11.5px !important;
-      font-weight: 800 !important;
-      background: #ffffff !important;
-    }
-    #remakeFactorPage.cleanRemakeV6230 .remakeDropdownButtonV6245.active {
-      border: 1px solid #94a3b8 !important;
-    }
-    #remakeFactorPage.cleanRemakeV6230 .remakeGlobalSearchBarV6304 {
-      top: 2px !important;
-      right: 2px !important;
-    }
-    #remakeFactorPage.cleanRemakeV6230 .remakeGlobalSearchButtonV6304 {
-      width: 36px !important;
-      height: 36px !important;
-    }
-    #remakeFactorPage.cleanRemakeV6230 .remakePillsV6230:not(:empty) {
-      margin-bottom: 1px !important;
-    }
-  }
-  @media (min-width: 981px) and (max-width: 1250px) {
-    #remakeFactorPage.cleanRemakeV6230 .remakeFilterBarV6230 {
-      grid-template-columns: repeat(3,minmax(0,1fr)) !important;
-    }
-  }
-</style>
-<script>window.CDA_REMAKE_FILTER_BAR_VERSION = 'v6.324-compact-desktop-html-fix';</script>
-
-<!-- v6.327 safe rollback: removed unstable top-tab docking; retained compact filter bar below tabs. -->
-
-
-<script>window.CDA_REMAKE_WORKER_DETAIL_CROSSFILTER_VERSION = 'v6.371-grey-out-own-dimension';</script>
-
-<style id="workerDetailCrossfilterStylesV6370">
-  #ceramistCaseDialogOverlayV6369 { display:none !important; }
-  #remakeFactorPage.cleanRemakeV6230 .ceramistDetailChevronV6368 { display:none !important; }
-</style>
-
-<script id="cdaRemakeTatBootClassV6501">
-document.documentElement.classList.add('cdaRemakeTatBootV6501');
-</script>
-<style id="cdaRemakeTatBootStylesV6501">
-  /* v6.628: keep the usable shell visible during data and saved-state hydration.
-     Individual inactive tabs are prepared while hidden by the tab controller. */
-  .managerTabs > .tabGroup,
-  #underConstructionBtn,
-  #underConstructionMenu,
-  #categoricalTabBtn,
-  #categoricalPage,
-  #dropdownDebugOverlayV6199,
-  #dropdownDebugOverlayV6196,
-  #layoutEditButtonV6183,
-  #layoutEditPanelV6183,
-  #layoutCardEditorV6184 { display:none !important; visibility:hidden !important; pointer-events:none !important; }
-  #singleShellClientError,
-  #singleShellDebugBanner { display:none !important; visibility:hidden !important; pointer-events:none !important; }
-</style>
-
-<style id="cdaRemakeUsabilityV6503Styles">
-  #remakeFactorPage.cleanRemakeV6230 .remakeFilter .remakeDropdownHeaderV6245 label.remakeVisibleToggleV6502,
-  #remakeTabFilterHostV6337 .remakeFilter .remakeDropdownHeaderV6245 label.remakeVisibleToggleV6502 {
-    display:inline-flex !important;
-    align-items:center !important;
-    gap:6px !important;
-    width:auto !important;
-    height:auto !important;
-    min-width:0 !important;
-    max-width:none !important;
-    min-height:29px !important;
-    padding:4px 9px !important;
-    border:1px solid #cbd5df !important;
-    border-radius:999px !important;
-    background:#fff !important;
-    color:#1f2937 !important;
-    font:800 11px/1 Roboto,Arial,sans-serif !important;
-    cursor:pointer !important;
-    white-space:nowrap !important;
-    position:relative !important;
-    inset:auto !important;
-    margin:0 !important;
-    overflow:visible !important;
-    clip:auto !important;
-    z-index:2 !important;
-    pointer-events:auto !important;
-  }
-  #remakeFactorPage.cleanRemakeV6230 .remakeFilter .remakeDropdownHeaderV6245 label.remakeVisibleToggleV6502 input,
-  #remakeTabFilterHostV6337 .remakeFilter .remakeDropdownHeaderV6245 label.remakeVisibleToggleV6502 input {
-    width:16px !important;
-    height:16px !important;
-    margin:0 !important;
-    accent-color:#d89b00 !important;
-    cursor:pointer !important;
-    position:relative !important;
-    z-index:3 !important;
-    pointer-events:auto !important;
-    flex:0 0 auto !important;
-  }
-  #remakeFactorPage.cleanRemakeV6230 .remakeVisibleToggleV6502:has(input:checked),
-  #remakeFactorPage.cleanRemakeV6230 .remakeVisibleToggleV6502:has(input:indeterminate),
-  #remakeTabFilterHostV6337 .remakeVisibleToggleV6502:has(input:checked),
-  #remakeTabFilterHostV6337 .remakeVisibleToggleV6502:has(input:indeterminate) {
-    border-color:#f2c94c !important;
-    background:#fff7d6 !important;
-    color:#7a4a00 !important;
-  }
-  body > .remakeColumnChooserPopoverV6357 {
-    max-width:calc(100vw - 20px) !important;
-    overscroll-behavior:contain !important;
-    pointer-events:auto !important;
-  }
-
-  #remakeFactorPage.cleanRemakeV6230 .remakeCustomerDetailPanelV6503 {
-    min-width:0 !important;
-    min-height:0 !important;
-    display:flex !important;
-    flex-direction:column !important;
-    background:#ffffff !important;
-    border:1px solid #dfe4ea !important;
-    border-radius:7px !important;
-    overflow:hidden !important;
-  }
-  #remakeFactorPage.cleanRemakeV6230 .remakeCustomerResponsibilitySummaryV6502 {
-    flex:0 0 auto !important;
-    padding:11px 12px 9px !important;
-    border-bottom:1px solid #e5e7eb !important;
-    background:#fbfcfe !important;
-  }
-  #remakeFactorPage.cleanRemakeV6230 .remakeCustomerBreakdownEmptyV6503 {
-    min-height:72px !important;
-    display:flex !important;
-    align-items:center !important;
-    justify-content:center !important;
-    padding:12px 16px !important;
-    color:#667085 !important;
-    font:700 11px/1.45 Roboto,Arial,sans-serif !important;
-    text-align:center !important;
-  }
-  #remakeFactorPage.cleanRemakeV6230 .remakeCustomerBreakdownHeadingV6503 {
-    display:flex !important;
-    align-items:flex-start !important;
-    justify-content:space-between !important;
-    gap:10px !important;
-    margin-bottom:9px !important;
-  }
-  #remakeFactorPage.cleanRemakeV6230 .remakeCustomerBreakdownHeadingV6503 strong {
-    display:block !important;
-    color:#172033 !important;
-    font:900 12px/1.25 Roboto,Arial,sans-serif !important;
-  }
-  #remakeFactorPage.cleanRemakeV6230 .remakeCustomerBreakdownHeadingV6503 span {
-    display:block !important;
-    margin-top:2px !important;
-    color:#667085 !important;
-    font:700 9.5px/1.25 Roboto,Arial,sans-serif !important;
-  }
-  #remakeFactorPage.cleanRemakeV6230 .remakeCustomerBreakdownGridV6503 {
-    display:grid !important;
-    grid-template-columns:repeat(3,minmax(0,1fr)) !important;
-    border-top:1px solid #e5e7eb !important;
-    border-left:1px solid #e5e7eb !important;
-    background:#fff !important;
-  }
-  #remakeFactorPage.cleanRemakeV6230 .remakeCustomerBreakdownMetricV6503 {
-    min-width:0 !important;
-    padding:8px 9px !important;
-    border-right:1px solid #e5e7eb !important;
-    border-bottom:1px solid #e5e7eb !important;
-    background:#fff !important;
-  }
-  #remakeFactorPage.cleanRemakeV6230 .remakeCustomerBreakdownMetricV6503 span {
-    display:block !important;
-    margin-bottom:4px !important;
-    color:#667085 !important;
-    font:800 8.5px/1.1 Roboto,Arial,sans-serif !important;
-    letter-spacing:.035em !important;
-    text-transform:uppercase !important;
-    white-space:nowrap !important;
-    overflow:hidden !important;
-    text-overflow:ellipsis !important;
-  }
-  #remakeFactorPage.cleanRemakeV6230 .remakeCustomerBreakdownMetricV6503 strong {
-    display:block !important;
-    color:#172033 !important;
-    font:900 15px/1.05 Roboto,Arial,sans-serif !important;
-    white-space:nowrap !important;
-  }
-  #remakeFactorPage.cleanRemakeV6230 .remakeCustomerBreakdownMetricV6503.responsibilityV6503 strong {
-    color:#7a4a00 !important;
-  }
-  #remakeFactorPage.cleanRemakeV6230 .remakeCustomerDetailPanelV6503 .remakeCustomerChartBoxV6230 {
-    flex:1 1 auto !important;
-    min-height:235px !important;
-    height:auto !important;
-    padding:10px 12px 12px !important;
-    position:relative !important;
-  }
-  #remakeFactorPage.cleanRemakeV6230 .remakeCustomerDetailEmptyChartV6503 {
-    position:absolute !important;
-    inset:10px 12px 12px !important;
-    display:flex !important;
-    align-items:center !important;
-    justify-content:center !important;
-    color:#98a2b3 !important;
-    font:700 11px/1.4 Roboto,Arial,sans-serif !important;
-    text-align:center !important;
-    pointer-events:none !important;
-  }
-  #remakeFactorPage.cleanRemakeV6230 #remakeCustomerTable:not(.compareColumnsV6301) {
-    min-width:1540px !important;
-  }
-  #remakeFactorPage.cleanRemakeV6230 #remakeCustomerTable.compareColumnsV6301 {
-    min-width:2960px !important;
-  }
-  @media(max-width:1380px) {
-    #remakeFactorPage.cleanRemakeV6230 .remakeCustomerBreakdownGridV6503 {
-      grid-template-columns:repeat(2,minmax(0,1fr)) !important;
-    }
-  }
-  @media(max-width:760px) {
-    #remakeFactorPage.cleanRemakeV6230 .remakeCustomerBreakdownGridV6503 {
-      grid-template-columns:repeat(2,minmax(0,1fr)) !important;
-    }
-  }
-</style>
-<script>window.CDA_REMAKE_USABILITY_VERSION = 'v6.504';</script>
-<style id="cdaRemakeUniversalResponsibilityV6504Styles">
-  #remakeFactorPage.cleanRemakeV6230 .remakeResponsibilityHeaderV6504{display:flex!important;align-items:flex-start!important;justify-content:space-between!important;gap:12px!important;margin-bottom:9px!important}
-  #remakeFactorPage.cleanRemakeV6230 .remakeResponsibilityKickerV6504{color:#7a4a00!important;font:900 9px/1 Roboto,Arial,sans-serif!important;letter-spacing:.075em!important;text-transform:uppercase!important;margin-bottom:4px!important}
-  #remakeFactorPage.cleanRemakeV6230 .remakeResponsibilityNameV6504{display:block!important;color:#172033!important;font:900 13px/1.25 Roboto,Arial,sans-serif!important;overflow:hidden!important;text-overflow:ellipsis!important}
-  #remakeFactorPage.cleanRemakeV6230 .remakeResponsibilityTypeV6504{display:block!important;color:#667085!important;font:700 9.5px/1.25 Roboto,Arial,sans-serif!important;margin-top:2px!important}
-  #remakeFactorPage.cleanRemakeV6230 .remakeResponsibilityMetricsV6504{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;border-top:1px solid #e5e7eb!important;border-left:1px solid #e5e7eb!important;background:#fff!important}
-  #remakeFactorPage.cleanRemakeV6230 .remakeResponsibilityMetricV6504{min-width:0!important;padding:8px 9px!important;border-right:1px solid #e5e7eb!important;border-bottom:1px solid #e5e7eb!important;background:#fff!important}
-  #remakeFactorPage.cleanRemakeV6230 .remakeResponsibilityMetricV6504 span{display:block!important;margin-bottom:4px!important;color:#667085!important;font:800 8.5px/1.1 Roboto,Arial,sans-serif!important;letter-spacing:.035em!important;text-transform:uppercase!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
-  #remakeFactorPage.cleanRemakeV6230 .remakeResponsibilityMetricV6504 strong{display:block!important;color:#172033!important;font:900 15px/1.05 Roboto,Arial,sans-serif!important;white-space:nowrap!important}
-  #remakeFactorPage.cleanRemakeV6230 .remakeResponsibilityMetricV6504.shareV6504 strong{color:#7a4a00!important}
-  #remakeFactorPage.cleanRemakeV6230 .remakeResponsibilityRateNoteV6504{padding:7px 9px 0!important;color:#667085!important;font:700 9.5px/1.35 Roboto,Arial,sans-serif!important}
-  #remakeFactorPage.cleanRemakeV6230 .remakeResponsibilityMultipleV6504,#remakeFactorPage.cleanRemakeV6230 .remakeResponsibilityEmptyV6504{min-height:104px!important;display:flex!important;align-items:center!important;justify-content:center!important;padding:16px!important;color:#667085!important;font:700 11px/1.5 Roboto,Arial,sans-serif!important;text-align:center!important}
-  #remakeFactorPage.cleanRemakeV6230 .remakeCustomerDetailPanelV6503 .remakeCustomerChartBoxV6230{min-height:205px!important}
-</style>
-<script>window.CDA_REMAKE_RESPONSIBILITY_VERSION = 'v6.504-universal-selected-item';</script>
-
-</head>
+  <?!= includeDashboardFile('RemakeHeadPresentationStyles') ?><?!= includeDashboardFile('SharedDashboardBootPresentation') ?><?!= includeDashboardFile('RemakeUsabilityPresentation') ?></head>
 <body>
   <div id="singleShellDebugBanner">DEBUG v6.209</div>
   <div id="singleShellClientError"></div>
@@ -1282,3 +981,59 @@ window.CDA_REMAKE_CACHE_ACTION_TOOLBAR_VERSION = 'v6.338';
   window.setTimeout(scheduleSyncV6337, 1300);
 })();
 </script>
+
+<?!= includeDashboardFile('RemakeCeramistTablePresentation') ?><?!= includeDashboardFile('DashboardSupportScript03') ?>
+<?!= includeDashboardFile('RemakeTableInteractionPresentation') ?><!-- v6.383 baseline: compact toolbar is mounted outside the rebuilt dashboard shell so
+     it cannot disappear during renders. Saved views use an inline editable
+     panel instead of browser prompt dialogs. -->
+<?!= includeDashboardFile('RemakeResponsiveStyles') ?>
+
+<?!= includeDashboardFile('RemakeCompactControlsPresentation') ?><?!= includeDashboardFile('DashboardSupportScript04') ?>
+
+
+<?!= includeDashboardFile('RemakeFilterSummaryPresentation') ?><?!= includeDashboardFile('RemakeSectionStateControllerV6402') ?>
+<?!= includeDashboardFile('RemakeKpiChooserV6403') ?>
+
+
+
+<?!= includeDashboardFile('SharedAtomicRenderingV6418') ?>
+
+
+<?!= includeDashboardFile('RemakeInteractionPolish') ?></body>
+</html>
+
+
+<!-- v6.407: stable chart month highlighting keeps values fixed and greys unselected months -->
+
+<script>window.CDA_REMAKE_GROUP_TOP_FILTER_VERSION = 'v6.401';</script>
+
+<script>window.CDA_REMAKE_STABLE_CHART_HIGHLIGHT_VERSION = 'v6.407';</script>
+
+<!-- v6.411: all normal data-loading, cache-checking, and cache-swap notices are displayed simply as Loading... while detailed errors remain unchanged. -->
+<!-- v6.412: Remake Factor dropdown/global searches use the Sales Customer Search-style fuzzy matcher: normalized text, compact text, tokens in any order, initials, partial words, and one-character typo tolerance. -->
+<script>window.CDA_REMAKE_SECTION_ARROW_VERSION = 'v6.408'; window.CDA_REMAKE_AUTO_SYNC_VERSION = 'v6.409';</script>
+
+<!-- v6.513: TAT keeps the Remake chart system, uses the same compact centered KPI sizing, removes the large coverage banner, and removes redundant card subtitles. -->
+<?!= includeDashboardFile('UnifiedControlsStyles') ?>
+<?!= includeDashboardFile('TatDashboardControllerScript') ?>
+<?!= includeDashboardFile('TatSharedFilterAdapterV6646') ?>
+
+
+
+<script>
+window.CDA_TAT_EXACT_REMAKE_PRESENTATION_VERSION = 'v6.513';
+</script>
+
+<!-- v6.513 keeps the actual Remake CSS aliases and adds the missing Remake KPI centering behavior for TAT. -->
+<?!= includeDashboardFile('TatRemakeAliasStyles') ?>
+
+<?!= includeDashboardFile('TatCompactPresentation') ?><!-- v6.517: safe intrinsic-width toolbar retry. Preserves the original TAT dropdown DOM and inline event handlers. -->
+<?!= includeDashboardFile('SharedTopParityStyles') ?>
+<?!= includeDashboardFile('SharedTableStyles') ?>
+<?!= includeDashboardFile('SharedTableModule') ?>
+
+
+<?!= includeDashboardFile('TatDropdownRepairPresentation') ?><?!= includeDashboardFile('SharedTopParityControllerV6527') ?>
+
+<!-- v6.531: shared application footer ownership for Remake and TAT. -->
+<?!= includeDashboardFile('SharedFooter') ?>
