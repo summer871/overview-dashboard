@@ -53,4 +53,5 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -- DashboardFuzzySearch.html Index.html docs/INDEX-CLEANUP-PASS1-2026-08-21.json
           git commit -m "Extract dashboard fuzzy search from Index"
+          git pull --rebase origin agent/ai-readable-cleanup-2026-08-21
           git push origin HEAD:agent/ai-readable-cleanup-2026-08-21
