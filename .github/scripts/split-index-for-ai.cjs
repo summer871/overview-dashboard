@@ -84,6 +84,7 @@ function safeSplitPositions(source) {
 }
 
 function buildChunks(source) {
+  if (bytes(source) <= maxAiReadableBytes) return [source];
   const positions = safeSplitPositions(source);
   const chunks = [];
   for (let i = 0; i < positions.length - 1; i += 1) {
@@ -100,13 +101,8 @@ function chunkPath(index) {
 const source = read(sourcePath);
 const sourceSha = sha256(source);
 const sourceBytes = bytes(source);
-
-if (sourceBytes <= maxAiReadableBytes) {
-  fail(`${sourcePath} is already below the AI-readable threshold.`);
-}
-
 const chunks = buildChunks(source);
-if (chunks.length < 2) fail('Expected multiple Index inspection chunks.');
+if (!chunks.length) fail('Expected at least one Index inspection chunk.');
 
 const reconstructed = chunks.join('');
 if (reconstructed !== source) fail('Chunk reconstruction is not byte-for-byte identical to Index.html.');
@@ -145,7 +141,9 @@ const manifest = {
   byteForByteReconstructionVerified: reconstructed === source && sha256(reconstructed) === sourceSha,
   runtimeSourceChanged: false,
   behaviorChangeIntended: false,
-  note: 'Inspection mirror only. These .txt chunks are not Apps Script runtime files and must never be included by Index.html.'
+  note: chunks.length === 1
+    ? 'Index.html is itself AI-readable. This single .txt mirror remains inspection-only and must never be included by Index.html.'
+    : 'Inspection mirror only. These .txt chunks are not Apps Script runtime files and must never be included by Index.html.'
 };
 
 fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n', 'utf8');
