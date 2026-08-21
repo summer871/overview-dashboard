@@ -1,20 +1,21 @@
 'use strict';
 
 const fs = require('fs');
+const path = require('path');
 const crypto = require('crypto');
 
 const sourcePath = 'DashboardMainScript.html';
-const indexPath = 'Index.html';
-const chunkPrefix = 'DashboardMainScriptPart';
-const maxChunkBytes = 90000;
+const outputDir = 'docs/ai-readable/dashboard-main';
+const chunkPrefix = 'DashboardMainScript-Part';
+const targetChunkBytes = 70000;
 
 function fail(message) {
   throw new Error(message);
 }
 
-function read(path) {
-  if (!fs.existsSync(path)) fail(`Missing required file: ${path}`);
-  return fs.readFileSync(path, 'utf8');
+function read(filePath) {
+  if (!fs.existsSync(filePath)) fail(`Missing required file: ${filePath}`);
+  return fs.readFileSync(filePath, 'utf8');
 }
 
 function sha256(value) {
@@ -25,93 +26,71 @@ function byteLength(value) {
   return Buffer.byteLength(value, 'utf8');
 }
 
-function splitAtSafeBoundaries(source) {
+function splitByWholeLines(source) {
   const lines = source.split(/(?<=\n)/);
   const chunks = [];
   let current = '';
-  let scriptDepth = 0;
-
-  function flush() {
-    if (!current) return;
-    chunks.push(current);
-    current = '';
-  }
 
   for (const line of lines) {
-    current += line;
-    const opens = (line.match(/<script(?:\s|>)/gi) || []).length;
-    const closes = (line.match(/<\/script>/gi) || []).length;
-    scriptDepth += opens - closes;
-
-    if (byteLength(current) >= maxChunkBytes && scriptDepth === 0) {
-      flush();
+    if (current && byteLength(current) + byteLength(line) > targetChunkBytes) {
+      chunks.push(current);
+      current = '';
     }
+    current += line;
   }
 
-  flush();
+  if (current) chunks.push(current);
   return chunks;
 }
 
 const source = read(sourcePath);
-const index = read(indexPath);
-const sourceSha = sha256(source);
 const sourceBytes = byteLength(source);
+const sourceSha = sha256(source);
 
-if (sourceBytes < maxChunkBytes) {
-  fail(`${sourcePath} is already below the configured AI readability threshold.`);
+if (sourceBytes <= targetChunkBytes) {
+  fail(`${sourcePath} is already below the configured AI readability target.`);
 }
 
-const includePattern = /<\?!= includeDashboardFile\('DashboardMainScript', \{dashboardBaseUrl: dashboardBaseUrl, dashboardPresentationVersion: dashboardPresentationVersion, dashboardPresentationMode: dashboardPresentationMode, dashboardPresentationSource: dashboardPresentationSource\}\) \?>/;
-const includeMatch = index.match(includePattern);
-if (!includeMatch) fail('Could not find the canonical DashboardMainScript include in Index.html.');
-if ((index.match(includePattern) || []).length !== 1) fail('Expected exactly one DashboardMainScript include.');
+const chunks = splitByWholeLines(source);
+if (chunks.length < 2) fail('Expected multiple readable chunks.');
+if (chunks.join('') !== source) fail('Generated chunks do not reconstruct the source byte-for-byte.');
+if (sha256(chunks.join('')) !== sourceSha) fail('Generated chunks do not match the source SHA-256.');
 
-const chunks = splitAtSafeBoundaries(source);
-if (chunks.length < 2) fail('Expected more than one output chunk.');
+fs.rmSync(outputDir, { recursive: true, force: true });
+fs.mkdirSync(outputDir, { recursive: true });
 
-chunks.forEach((chunk, i) => {
-  const bytes = byteLength(chunk);
-  if (bytes > maxChunkBytes * 1.15) {
-    fail(`Chunk ${i + 1} is unexpectedly large at ${bytes} bytes.`);
-  }
-});
-
-const rebuilt = chunks.join('');
-if (rebuilt !== source) fail('Split output does not reconstruct the original source byte-for-byte.');
-if (sha256(rebuilt) !== sourceSha) fail('Split output hash does not match the source hash.');
-
-const includeLines = chunks.map((_, i) => {
-  const file = `${chunkPrefix}${String(i + 1).padStart(2, '0')}`;
-  return `<?!= includeDashboardFile('${file}', {dashboardBaseUrl: dashboardBaseUrl, dashboardPresentationVersion: dashboardPresentationVersion, dashboardPresentationMode: dashboardPresentationMode, dashboardPresentationSource: dashboardPresentationSource}) ?>`;
-});
-
-const nextIndex = index.replace(includePattern, includeLines.join('\n'));
-if (nextIndex === index) fail('Index include replacement did not change the file.');
-
-chunks.forEach((chunk, i) => {
-  const file = `${chunkPrefix}${String(i + 1).padStart(2, '0')}.html`;
-  if (fs.existsSync(file)) fail(`Refusing to overwrite existing file: ${file}`);
-  fs.writeFileSync(file, chunk, 'utf8');
-});
-fs.writeFileSync(indexPath, nextIndex, 'utf8');
-fs.unlinkSync(sourcePath);
-
-const manifest = {
-  generatedAt: new Date().toISOString(),
-  sourcePath,
-  sourceBytes,
-  sourceSha256: sourceSha,
-  maxChunkBytes,
-  chunkCount: chunks.length,
-  chunks: chunks.map((chunk, i) => ({
-    file: `${chunkPrefix}${String(i + 1).padStart(2, '0')}.html`,
+const entries = chunks.map((chunk, index) => {
+  const fileName = `${chunkPrefix}${String(index + 1).padStart(2, '0')}.txt`;
+  const relativePath = path.posix.join(outputDir, fileName);
+  fs.writeFileSync(relativePath, chunk, 'utf8');
+  return {
+    part: index + 1,
+    file: relativePath,
     bytes: byteLength(chunk),
     sha256: sha256(chunk)
-  })),
+  };
+});
+
+const manifest = {
+  generatedAtUtc: new Date().toISOString(),
+  authoritativeSource: sourcePath,
+  authoritativeSourceBytes: sourceBytes,
+  authoritativeSourceSha256: sourceSha,
+  targetChunkBytes,
+  chunkCount: entries.length,
+  chunks: entries,
   byteForByteReconstructionVerified: true,
-  behaviorChangeIntended: false,
-  note: 'Mechanical source split only. No logic, markup, styles, strings, or ordering changed inside DashboardMainScript payload.'
+  runtimeFilesChanged: false,
+  purpose: 'Read-only AI inspection mirror for legacy cleanup. These chunks are generated evidence, not runtime owners and must never be edited directly.'
 };
 
-fs.writeFileSync('docs/DASHBOARD-MAIN-AI-SPLIT-MANIFEST.json', JSON.stringify(manifest, null, 2) + '\n', 'utf8');
+fs.writeFileSync(
+  path.posix.join(outputDir, 'manifest.json'),
+  JSON.stringify(manifest, null, 2) + '\n',
+  'utf8'
+);
+
+const readme = `# DashboardMainScript AI-readable mirror\n\nThis directory is generated from \`${sourcePath}\` for inspection only.\n\n- Authoritative runtime source: \`${sourcePath}\`\n- Source SHA-256: \`${sourceSha}\`\n- Source bytes: ${sourceBytes}\n- Generated parts: ${entries.length}\n- Reconstruction: byte-for-byte verified\n\nDo not edit these part files. Regenerate them with \`.github/scripts/split-dashboard-main-for-ai.cjs\`. The purpose is to let AI reviewers trace active and legacy code before a real semantic refactor removes the monolith.\n`;
+fs.writeFileSync(path.posix.join(outputDir, 'README.md'), readme, 'utf8');
+
 console.log(JSON.stringify(manifest, null, 2));
