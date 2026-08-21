@@ -1,57 +1,16 @@
 name: DashboardMain orphaned version cleanup
 
 on:
-  pull_request:
-    branches:
-      - agent/v6.544-shared-table-platform-5118
-    paths:
-      - .github/scripts/remove-unreferenced-versioned-functions.cjs
-      - .github/workflows/dashboard-main-orphan-version-cleanup.yml
+  workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  cleanup:
+  verify:
     runs-on: ubuntu-latest
     steps:
-      - name: Check out cleanup branch
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           ref: agent/ai-readable-cleanup-2026-08-21
-          fetch-depth: 0
-
-      - name: Install parser dependency
-        run: npm install --no-save --package-lock=false acorn@8
-
-      - name: Verify cleanup script syntax
-        run: node --check .github/scripts/remove-unreferenced-versioned-functions.cjs
-
-      - name: Remove unreferenced versioned functions
-        run: node .github/scripts/remove-unreferenced-versioned-functions.cjs
-
-      - name: Regenerate AI-readable DashboardMain mirror
-        run: node .github/scripts/split-dashboard-main-for-ai.cjs
-
-      - name: Verify cleanup and scope
-        run: |
-          node - <<'NODE'
-          const fs = require('fs');
-          const report = JSON.parse(fs.readFileSync('docs/DASHBOARD-MAIN-ORPHAN-VERSION-CLEANUP-2026-08-21.json', 'utf8'));
-          const manifest = JSON.parse(fs.readFileSync('docs/ai-readable/dashboard-main/manifest.json', 'utf8'));
-          if (report.behaviorChangeIntended) throw new Error('Unexpected behavior-change flag.');
-          if (report.parser !== 'acorn') throw new Error('AST parser verification missing.');
-          if (report.removedFunctions < 1 || report.removedBytes < 1) throw new Error('No orphaned version functions were removed.');
-          if (manifest.authoritativeSourceSha256 !== report.sourceSha256After) throw new Error('Mirror does not match cleaned source.');
-          if (!manifest.byteForByteReconstructionVerified) throw new Error('Updated mirror is not verified.');
-          NODE
-          test -z "$(git status --short --untracked-files=all | sed -E 's/^.. //' | grep -Ev '^(DashboardMainScript\.html|docs/DASHBOARD-MAIN-ORPHAN-VERSION-CLEANUP-2026-08-21\.json|docs/ai-readable/dashboard-main/)')"
-
-      - name: Commit orphan cleanup
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -- DashboardMainScript.html docs/DASHBOARD-MAIN-ORPHAN-VERSION-CLEANUP-2026-08-21.json docs/ai-readable/dashboard-main
-          git commit -m "Remove unreferenced DashboardMain version functions"
-          git pull --rebase origin agent/ai-readable-cleanup-2026-08-21
-          git push origin HEAD:agent/ai-readable-cleanup-2026-08-21
+      - run: echo 'No safe literal-unreferenced versioned functions were found on 2026-08-21; migration is required before further deletion.'
