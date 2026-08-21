@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-08-21T22:12:03.244Z",
+  "generatedAt": "2026-08-21T22:40:37.889Z",
   "authoritativeSource": "Index.html",
-  "authoritativeSourceBytes": 175532,
-  "authoritativeSourceSha256": "497a1ffba9ad8249985e46e751101666b6afc76a505248d46328d81e11fa4769",
+  "authoritativeSourceBytes": 139762,
+  "authoritativeSourceSha256": "f7678829b26a72c064c7c2ec7973b3e8fbc3b2983ee7d753d796ccc382faac97",
   "maxAiReadableBytes": 75000,
   "targetBytes": 62000,
   "chunkCount": 3,
@@ -15,14 +15,14 @@
     },
     {
       "file": "docs/ai-readable/index/IndexPart02.html.txt",
-      "bytes": 69922,
-      "sha256": "162fabea8c177ffcfeccda8150ec115e744b85aa30e209238644d762a550fe81",
+      "bytes": 62064,
+      "sha256": "fe7ba12049818940c52bdd03c4c6a62d2f58848315e9fdf43016900d8efd79fa",
       "aiReadable": true
     },
     {
       "file": "docs/ai-readable/index/IndexPart03.html.txt",
-      "bytes": 39181,
-      "sha256": "6414d6eb5e86a6fc646c487a26258bde0b5de0de6bda45d249f05f401999d257",
+      "bytes": 11269,
+      "sha256": "e6d68ff46504007152226df0d49b12e7e70fb888698f0c863c230cba9509ff0e",
       "aiReadable": true
     }
   ],

@@ -1,0 +1,326 @@
+<style id="remakeV6402PageReloadCollapseStyles">
+  /* v6.402: page-only reload and compact collapsible detail sections. */
+  #remakeFactorPage.cleanRemakeV6230 .remakeSectionToggleV6402 {
+    width: 22px !important;
+    height: 22px !important;
+    min-width: 22px !important;
+    margin: -3px 0 -3px 4px !important;
+    padding: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border: 0 !important;
+    border-radius: 50% !important;
+    background: transparent !important;
+    color: #667085 !important;
+    box-shadow: none !important;
+    cursor: pointer !important;
+    vertical-align: middle !important;
+  }
+
+  #remakeFactorPage.cleanRemakeV6230 .remakeSectionToggleV6402:hover,
+  #remakeFactorPage.cleanRemakeV6230 .remakeSectionToggleV6402:focus-visible {
+    background: #f2f4f7 !important;
+    color: #344054 !important;
+    outline: none !important;
+  }
+
+
+  /* v6.408: the section name is also an accessible expand/collapse target. */
+  #remakeFactorPage.cleanRemakeV6230 .remakeCardTitle[data-remake-section-title-v6408] {
+    cursor: pointer !important;
+    user-select: none !important;
+  }
+
+  #remakeFactorPage.cleanRemakeV6230 .remakeCardTitle[data-remake-section-title-v6408]:focus-visible {
+    outline: 2px solid rgba(37,99,235,.35) !important;
+    outline-offset: 3px !important;
+    border-radius: 4px !important;
+  }
+
+  #remakeFactorPage.cleanRemakeV6230 .remakeSectionChevronV6402 {
+    display: inline-block !important;
+    width: 12px !important;
+    font-size: 12px !important;
+    line-height: 1 !important;
+    transform: rotate(0deg);
+    transform-origin: center !important;
+    transition: transform .10s ease !important;
+  }
+
+  #remakeFactorPage.cleanRemakeV6230 .remakeSectionCollapsedV6402 {
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  #remakeFactorPage.cleanRemakeV6230 #remakeCustomerCardV6230.remakeSectionCollapsedV6402,
+  #remakeFactorPage.cleanRemakeV6230 #remakeCeramistCardV6342.remakeSectionCollapsedV6402 {
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+  }
+
+  #remakeFactorPage.cleanRemakeV6230 .remakeSectionCollapsedV6402 > :not(.remakeCardHeader) {
+    display: none !important;
+  }
+
+  #remakeFactorPage.cleanRemakeV6230 .remakeSectionCollapsedV6402 > .remakeCardHeader {
+    border-bottom: 0 !important;
+  }
+
+  #remakeFactorPage.cleanRemakeV6230 .remakeSectionCollapsedV6402 .remakeSectionChevronV6402 {
+    transform: rotate(-90deg) !important;
+  }
+
+  @media (max-width: 760px) {
+    #remakeFactorPage.cleanRemakeV6230 .remakeSectionToggleV6402 {
+      width: 24px !important;
+      height: 24px !important;
+      min-width: 24px !important;
+      margin-left: 3px !important;
+    }
+  }
+</style>
+<script>
+window.CDA_REMAKE_LAYOUT_REFRESH_VERSION = 'v6.408';
+(function installRemakePageReloadAndSectionsV6402(){
+  'use strict';
+
+  if (window.__cdaRemakePageReloadSectionsV6402) return;
+  window.__cdaRemakePageReloadSectionsV6402 = true;
+
+  const COLLAPSE_STORAGE_KEY_V6402 = 'cdaRemakeCollapsedSections.v6402';
+  const SCROLL_STORAGE_KEY_V6402 = 'cdaRemakePageOnlyReloadScroll.v6402';
+  const PAGE_RELOAD_DELAY_MS_V6402 = 2 * 60 * 60 * 1000;
+  const SECTION_DEFS_V6402 = [
+    { key: 'customer', cardId: 'remakeCustomerCardV6230', label: 'Customers' },
+    { key: 'technician', cardId: 'remakeCeramistCardV6342', label: 'Technicians' }
+  ];
+
+  function defaultSectionStateV6402(){
+    return { customer: true, technician: true };
+  }
+
+  function readSectionStateV6402(){
+    const state = defaultSectionStateV6402();
+    try {
+      const saved = JSON.parse(localStorage.getItem(COLLAPSE_STORAGE_KEY_V6402) || '{}');
+      SECTION_DEFS_V6402.forEach(function(def){
+        if (typeof saved[def.key] === 'boolean') state[def.key] = saved[def.key];
+      });
+    } catch (error) {}
+    return state;
+  }
+
+  function writeSectionStateV6402(state){
+    try { localStorage.setItem(COLLAPSE_STORAGE_KEY_V6402, JSON.stringify(state || defaultSectionStateV6402())); } catch (error) {}
+  }
+
+  function ensureSectionTitleInteractionV6408(def, title, collapsed){
+    if (!title) return;
+    title.setAttribute('data-remake-section-title-v6408', def.key);
+    title.setAttribute('role', 'button');
+    title.setAttribute('tabindex', '0');
+    title.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+    title.setAttribute('aria-label', (collapsed ? 'Expand ' : 'Collapse ') + def.label + ' section');
+    title.setAttribute('title', (collapsed ? 'Expand ' : 'Collapse ') + def.label + ' section');
+    if (title.__cdaRemakeSectionTitleV6408) return;
+    title.__cdaRemakeSectionTitleV6408 = true;
+    title.addEventListener('click', function(event){
+      if (event.defaultPrevented) return;
+      window.toggleRemakeSectionV6402(def.key);
+    });
+    title.addEventListener('keydown', function(event){
+      if (event.target !== title) return;
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      event.preventDefault();
+      window.toggleRemakeSectionV6402(def.key);
+    });
+  }
+
+  function ensureSectionToggleV6402(def, card, collapsed){
+    if (!card) return;
+    const header = card.querySelector(':scope > .remakeCardHeader');
+    if (!header) return;
+    const title = header.querySelector('.remakeCardTitle');
+    ensureSectionTitleInteractionV6408(def, title, collapsed);
+    let button = header.querySelector('[data-remake-section-toggle-v6402="' + def.key + '"]');
+    if (!button) {
+      button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'remakeSectionToggleV6402';
+      button.setAttribute('data-remake-section-toggle-v6402', def.key);
+      const chevron = document.createElement('span');
+      chevron.className = 'remakeSectionChevronV6402';
+      chevron.setAttribute('aria-hidden', 'true');
+      chevron.innerHTML = '&#9662;';
+      button.appendChild(chevron);
+      button.addEventListener('click', function(event){
+        event.preventDefault();
+        event.stopPropagation();
+        window.toggleRemakeSectionV6402(def.key);
+      });
+    }
+    if (title && button.parentNode !== title) title.appendChild(button);
+    else if (!title && button.parentNode !== header) header.insertBefore(button, header.firstChild);
+    button.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+    button.setAttribute('aria-label', (collapsed ? 'Expand ' : 'Collapse ') + def.label + ' section');
+    button.setAttribute('title', (collapsed ? 'Expand ' : 'Collapse ') + def.label + ' section');
+  }
+
+  function applyRemakeSectionStatesV6402(){
+    const state = readSectionStateV6402();
+    SECTION_DEFS_V6402.forEach(function(def){
+      const card = document.getElementById(def.cardId);
+      if (!card) return;
+      const collapsed = state[def.key] !== false;
+      card.classList.toggle('remakeSectionCollapsedV6402', collapsed);
+      card.setAttribute('data-remake-section-collapsed-v6402', collapsed ? '1' : '0');
+      ensureSectionToggleV6402(def, card, collapsed);
+    });
+  }
+
+  window.applyRemakeSectionStatesV6402 = applyRemakeSectionStatesV6402;
+  window.toggleRemakeSectionV6402 = function(key){
+    const def = SECTION_DEFS_V6402.find(function(item){ return item.key === key; });
+    if (!def) return;
+    const state = readSectionStateV6402();
+    state[key] = !(state[key] !== false);
+    writeSectionStateV6402(state);
+    applyRemakeSectionStatesV6402();
+  };
+
+  function restoreScrollAfterPageReloadV6402(){
+    try {
+      const saved = JSON.parse(localStorage.getItem(SCROLL_STORAGE_KEY_V6402) || 'null');
+      localStorage.removeItem(SCROLL_STORAGE_KEY_V6402);
+      if (!saved || !Number.isFinite(Number(saved.y)) || Date.now() - Number(saved.at || 0) > 10 * 60 * 1000) return;
+      window.setTimeout(function(){ window.scrollTo(0, Math.max(0, Number(saved.y))); }, 250);
+      window.setTimeout(function(){ window.scrollTo(0, Math.max(0, Number(saved.y))); }, 1100);
+    } catch (error) {}
+  }
+
+  function findVisibleWebAppUrlV6402(){
+    const candidates = [];
+    try {
+      const config = window.CDA_FINAL_PRESENTATION_CONFIG;
+      if (config && Array.isArray(config.locationSources)) candidates.push.apply(candidates, config.locationSources);
+    } catch (error) {}
+    try { candidates.push(document.referrer); } catch (error) {}
+    try { candidates.push(window.location.href); } catch (error) {}
+
+    for (let index = 0; index < candidates.length; index += 1) {
+      const candidate = String(candidates[index] || '').trim();
+      if (!candidate) continue;
+      try {
+        const url = new URL(candidate, window.location.href);
+        if (/^https:\/\/script\.google\.com$/i.test(url.origin) && /\/macros\/s\/.+\/(?:exec|dev)\/?$/i.test(url.pathname)) return url;
+      } catch (error) {}
+    }
+    return null;
+  }
+
+  let remakeMetaLastCheckedAtV6409 = 0;
+  let remakeAutoSyncTimerV6409 = 0;
+  const REMAKE_AUTO_SYNC_INTERVAL_MS_V6409 = 2 * 60 * 60 * 1000;
+  const REMAKE_FOCUS_SYNC_MIN_AGE_MS_V6409 = 10 * 60 * 1000;
+
+  function performRemakeAutomaticCacheSyncV6409(reason) {
+    if (typeof window.checkRemakeFactorServerMetaV6409 !== 'function') return Promise.resolve(false);
+    remakeMetaLastCheckedAtV6409 = Date.now();
+    return window.checkRemakeFactorServerMetaV6409({ force: true, reason: reason || 'scheduled' });
+  }
+
+  // Backward-compatible name retained for any old bookmark/debug code, but the
+  // behavior is now a cache-token synchronization rather than a page-only reload.
+  window.performRemakePageOnlyReloadV6402 = function performRemakePageOnlyReloadV6402() {
+    return performRemakeAutomaticCacheSyncV6409('legacy-manual-call');
+  };
+  window.performRemakeAutomaticCacheSyncV6409 = performRemakeAutomaticCacheSyncV6409;
+  window.CDA_REMAKE_PAGE_ONLY_RELOAD = {
+    version: 'v6.412',
+    intervalHours: 2,
+    rebuildsCache: false,
+    reloadsSavedCache: true,
+    refreshesApi: false,
+    behavior: 'show browser data immediately, use only optimized cache automatically, and rebuild/poll without automatic monthly-shard fallback'
+  };
+  window.CDA_REMAKE_AUTO_SYNC = window.CDA_REMAKE_PAGE_ONLY_RELOAD;
+
+  function installPageReloadTimerV6402(){
+    if (window.__cdaRemakePageReloadTimerV6402) window.clearTimeout(window.__cdaRemakePageReloadTimerV6402);
+    if (remakeAutoSyncTimerV6409) window.clearInterval(remakeAutoSyncTimerV6409);
+    remakeAutoSyncTimerV6409 = window.setInterval(function scheduledRemakeCacheSyncV6409(){
+      performRemakeAutomaticCacheSyncV6409('two-hour');
+    }, REMAKE_AUTO_SYNC_INTERVAL_MS_V6409);
+    window.__cdaRemakePageReloadTimerV6402 = window.setTimeout(function initialRemakeCacheSyncV6409(){
+      performRemakeAutomaticCacheSyncV6409('startup-safety');
+    }, 90 * 1000);
+  }
+
+  function installRemakeFocusSyncV6409(){
+    if (window.__cdaRemakeFocusSyncInstalledV6409) return;
+    window.__cdaRemakeFocusSyncInstalledV6409 = true;
+    const checkAfterReturn = function checkRemakeCacheAfterReturnV6409(){
+      if (document.visibilityState && document.visibilityState !== 'visible') return;
+      if (Date.now() - remakeMetaLastCheckedAtV6409 < REMAKE_FOCUS_SYNC_MIN_AGE_MS_V6409) return;
+      performRemakeAutomaticCacheSyncV6409('focus');
+    };
+    document.addEventListener('visibilitychange', checkAfterReturn);
+    window.addEventListener('focus', checkAfterReturn);
+  }
+
+  function observeShellReplacementV6402(){
+    const page = document.getElementById('remakeFactorPage');
+    if (!page) {
+      window.setTimeout(observeShellReplacementV6402, 300);
+      return;
+    }
+    if (window.__cdaRemakeSectionObserverV6402) return;
+    let applyQueuedV6408 = false;
+    window.__cdaRemakeSectionObserverV6402 = new MutationObserver(function(mutations){
+      const sectionHeaderChangedV6408 = (mutations || []).some(function(mutation){
+        if (!mutation || mutation.type !== 'childList') return false;
+        const target = mutation.target;
+        if (!target || target.nodeType !== 1) return false;
+        if (target === page) return true;
+        if (target.matches && target.matches('#remakeCustomerCardV6230, #remakeCeramistCardV6342')) return true;
+        if (target.closest && (
+          target.closest('#remakeCustomerCardV6230 > .remakeCardHeader') ||
+          target.closest('#remakeCeramistCardV6342 > .remakeCardHeader')
+        )) return true;
+        const changedNodesV6408 = Array.from(mutation.addedNodes || []).concat(Array.from(mutation.removedNodes || []));
+        return changedNodesV6408.some(function(node){
+          if (!node || node.nodeType !== 1) return false;
+          if (node.matches && node.matches('#remakeCustomerCardV6230, #remakeCeramistCardV6342, .remakeCardHeader, .remakeCardTitle')) return true;
+          return !!(node.querySelector && node.querySelector('#remakeCustomerCardV6230, #remakeCeramistCardV6342, .remakeCardHeader, .remakeCardTitle'));
+        });
+      });
+      if (!sectionHeaderChangedV6408 || applyQueuedV6408) return;
+      applyQueuedV6408 = true;
+      window.requestAnimationFrame(function(){
+        applyQueuedV6408 = false;
+        applyRemakeSectionStatesV6402();
+      });
+    });
+    // v6.408: watch inside the card headers because customer/technician pills
+    // can rewrite title text and remove the appended arrow button.
+    window.__cdaRemakeSectionObserverV6402.observe(page, { childList: true, subtree: true });
+  }
+
+  function startV6402(){
+    applyRemakeSectionStatesV6402();
+    restoreScrollAfterPageReloadV6402();
+    installPageReloadTimerV6402();
+    installRemakeFocusSyncV6409();
+    observeShellReplacementV6402();
+    window.setTimeout(applyRemakeSectionStatesV6402, 350);
+    window.setTimeout(applyRemakeSectionStatesV6402, 1300);
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', startV6402, { once: true });
+  else startV6402();
+})();
+</script>
