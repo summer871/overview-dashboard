@@ -3,6 +3,7 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const { execFileSync } = require('child_process');
 const postcss = require('postcss');
 
 const sourcePath = 'DashboardBaseStyles.html';
@@ -88,12 +89,9 @@ function protectedTokenCounts(value) {
 
 const original = fs.readFileSync(sourcePath, 'utf8');
 const originalSha256 = sha256(original);
-
-// Git blob SHA cannot be derived with plain SHA-256; keep the known GitHub blob in the report
-// and use SHA-256 plus the archive copy for the executable content guard.
-const expectedSha256 = 'f1a60ea180e1dc505af75b8442791b51f21ad9f774592e048e767f203f22e22b';
-if (originalSha256 !== expectedSha256) {
-  fail('DashboardBaseStyles.html SHA-256 guard failed. Expected ' + expectedSha256 + ' but found ' + originalSha256 + '. Re-audit before cleanup.');
+const actualBlobSha = execFileSync('git', ['hash-object', sourcePath], { encoding: 'utf8' }).trim();
+if (actualBlobSha !== expectedBlobSha) {
+  fail('DashboardBaseStyles.html Git blob guard failed. Expected ' + expectedBlobSha + ' but found ' + actualBlobSha + '. Re-audit before cleanup.');
 }
 
 fs.mkdirSync(archiveDir, { recursive: true });
@@ -128,7 +126,6 @@ blocks.forEach(function(block, blockIndex) {
     if (!branches.length) return;
     if (!branches.every(isOverviewOnlySelector)) return;
 
-    // Extra safety: no clearly protected active-dashboard token may appear in a removed selector.
     if (/#remakeFactorPage|#remakeTabFilterHostV6337|#tatTabFilterHostV6509|\.remake|\.cdaFilter/i.test(selector)) {
       fail('Refusing mixed/protected selector: ' + selector);
     }
@@ -177,8 +174,6 @@ while ((match = styleRe.exec(next))) {
 }
 if (parsedBlocksAfter !== blocks.length) fail('Style block count changed unexpectedly.');
 
-// Every remaining rule that still contains an Overview marker must either be mixed/shared,
-// or belong to a construct we intentionally retained. This is evidence, not a failure.
 const remainingOverviewSelectors = [];
 styleRe.lastIndex = 0;
 while ((match = styleRe.exec(next))) {
@@ -197,7 +192,7 @@ const report = {
   datePt: '2026-08-21',
   checkpoint: 'Overview-only CSS removal',
   source: sourcePath,
-  sourceGitBlobShaBefore: expectedBlobSha,
+  sourceGitBlobShaBefore: actualBlobSha,
   sourceSha256Before: originalSha256,
   sourceSha256After: sha256(next),
   bytesBefore: Buffer.byteLength(original, 'utf8'),
