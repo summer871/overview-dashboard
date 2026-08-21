@@ -1,3 +1,16 @@
+  /* v6.388 first-open optimization: use the nightly browser-ready consolidated gzip cache before falling back to monthly Drive shards. */
+  function remakeDictionaryValueV6388(values, index, fallback) {
+    const numericIndex = Number(index);
+    if (!Array.isArray(values) || !Number.isFinite(numericIndex) || numericIndex < 0 || numericIndex >= values.length) return fallback;
+    const value = values[numericIndex];
+    return value === undefined || value === null ? fallback : value;
+  }
+
+  function remakeCustomerLabelV6388(customerId, customerName, practiceName) {
+    const id = String(customerId || '').trim();
+    const name = String(customerName || '').trim();
+    const practice = String(practiceName || '').trim();
+    const cleanName = name && name !== id ? name : '';
     const cleanPractice = practice && practice !== id ? practice : '';
     let label = cleanName && cleanPractice && cleanName !== cleanPractice
       ? cleanName + ' - ' + cleanPractice
@@ -690,7 +703,3 @@
     startupV6230();
   }
 
-  startupOnceV6624();
-})();
-
-</script>

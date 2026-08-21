@@ -53,7 +53,8 @@ function parseHtmlScripts(file) {
   const closes = (text.match(/<\/script>/gi) || []).length;
   assert(opens === closes, `${file}: script tag boundary mismatch (${opens} open / ${closes} close)`);
   executableScriptBlocks(file, text).forEach(block => {
-    const prepared = block.code.replace(/<\?[!=]?[\s\S]*?\?>/g, 'null;');
+    let prepared = block.code.replace(/<\?!=\s*includeDashboardFile\([\s\S]*?\)\s*\?>/g, 'void 0;\n');
+    prepared = prepared.replace(/<\?[!=]?[\s\S]*?\?>/g, 'null');
     try {
       new vm.Script(prepared, { filename: `${file}#script${block.index}` });
     } catch (error) {

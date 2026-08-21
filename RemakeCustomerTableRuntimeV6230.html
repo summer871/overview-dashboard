@@ -1,0 +1,54 @@
+  function renderCustomerTableV6230(customerGroups) {
+    const table = idV6230('remakeCustomerTable');
+    if (!table) return;
+    const scope = comparisonScopeV6295(normalizedRowsV6230());
+    const year = scope.currentYear || 'Current';
+    const priorYear = scope.priorYear || 'Prior';
+    const priorYearLabelV6312 = shortYearLabelV6312(priorYear);
+    const compare = tableCompareOnV6297('customer');
+    const selectedCustomers = new Set(filterValuesV6245('customer').map(String));
+    const remakeCustomers = (customerGroups || []).filter(row => row && numV6230(row.remakeCases) > 0);
+    const allCustomerRows = sortedRowsV6230(remakeCustomers, 'customer');
+    const sorted = selectedRowsFirstV6311(allCustomerRows, selectedCustomers, row => row.key, 300);
+    uiV6230.lastTables.customer = sorted;
+    const title = idV6230('remakeCustomerTitleV6251');
+    if (title) title.textContent = 'Customers';
+    renderCustomerResponsibilitySummaryV6503(customerGroups);
+    table.classList.toggle('compareColumnsV6301', compare);
+    const header = '<thead><tr>'
+      + thV6230('customer', 'customerName', 'Customer Name', false)
+      + metricHeaderCellsV6301('customer', 'totalCases', 'Cases', priorYearLabelV6312 + ' Cases', compare, 'Total Cases', priorYear + ' Total Cases')
+      + metricHeaderCellsV6301('customer', 'remakeCases', 'Rmk Cases', priorYearLabelV6312 + ' Rmk Cases', compare, 'Remake Cases', priorYear + ' Remake Cases')
+      + metricHeaderCellsV6301('customer', 'shareCases', 'Case Share %', priorYearLabelV6312 + ' Case Share %', compare, '% of All Remake Cases', priorYear + ' % of All Remake Cases')
+      + metricHeaderCellsV6301('customer', 'remakeCaseRate', 'Case Rate %', priorYearLabelV6312 + ' Case Rate %', compare, 'Customer Remake Case Rate', priorYear + ' Customer Remake Case Rate')
+      + metricHeaderCellsV6301('customer', 'totalUnits', 'Units', priorYearLabelV6312 + ' Units', compare, 'Total Units', priorYear + ' Total Units')
+      + metricHeaderCellsV6301('customer', 'remakeUnits', 'Rmk Units', priorYearLabelV6312 + ' Rmk Units', compare, 'Remake Units', priorYear + ' Remake Units')
+      + metricHeaderCellsV6301('customer', 'shareUnits', 'Unit Share %', priorYearLabelV6312 + ' Unit Share %', compare, '% of All Remake Units', priorYear + ' % of All Remake Units')
+      + metricHeaderCellsV6301('customer', 'remakeUnitRate', 'Unit Rate %', priorYearLabelV6312 + ' Unit Rate %', compare, 'Customer Remake Unit Rate', priorYear + ' Customer Remake Unit Rate')
+      + metricHeaderCellsV6301('customer', 'remakeDiscount', 'Rmk Disc.', priorYearLabelV6312 + ' Rmk Disc.', compare, 'Remake Discount', priorYear + ' Remake Discount')
+      + '</tr></thead>';
+    const columnCount = compare ? 28 : 10;
+    if (!sorted.length) { table.innerHTML = header + '<tbody><tr><td colspan="' + columnCount + '">No matching rows.</td></tr></tbody>'; return; }
+    table.innerHTML = header + '<tbody>' + sorted.map(row => {
+      const isSelected = selectedCustomers.has(String(row.key));
+      const selectedClass = isSelected ? ' selectedV6230' : '';
+      const dimClass = selectedCustomers.size && !isSelected ? ' dimmedV6266' : '';
+      const inactive = row.customerActive === false;
+      const badge = inactive ? '<span class="inactiveBadge">Inactive</span>' : '';
+      return '<tr class="clickable' + selectedClass + dimClass + '" onclick="applyRemakeTableFilterV6230(\'customer\',\'' + escJsV6230(row.key) + '\',event)">'
+        + '<td class="customerNameCell"><span class="customerNameText">' + escV6230(row.customerDisplayLabel || row.label || row.customerName || row.key) + '</span>' + badge + '</td>'
+        + metricValueCellsV6301(compare, row.totalCases, row.priorTotalCases, v => fmtCountV6230(v), 'relative', false, true)
+        + metricValueCellsV6301(compare, row.remakeCases, row.priorRemakeCases, v => fmtCountV6230(v), 'relative', true, false)
+        + metricValueCellsV6301(compare, row.shareCases, row.priorShareCases, v => fmtPctV6230(v), 'points', true, false)
+        + metricValueCellsV6301(compare, row.remakeCaseRate, row.priorRemakeCaseRate, v => fmtPctV6230(v), 'points', true, false)
+        + metricValueCellsV6301(compare, row.totalUnits, row.priorTotalUnits, v => fmtCountV6230(v, 1), 'relative', false, true)
+        + metricValueCellsV6301(compare, row.remakeUnits, row.priorRemakeUnits, v => fmtCountV6230(v, 1), 'relative', true, false)
+        + metricValueCellsV6301(compare, row.shareUnits, row.priorShareUnits, v => fmtPctV6230(v), 'points', true, false)
+        + metricValueCellsV6301(compare, row.remakeUnitRate, row.priorRemakeUnitRate, v => fmtPctV6230(v), 'points', true, false)
+        + metricValueCellsV6301(compare, row.remakeDiscount, row.priorRemakeDiscount, v => fmtCurrencyV6230(v), 'relative', true, false)
+        + '</tr>';
+    }).join('') + '</tbody>';
+    applySelectedRowPinningV6311(table);
+  }
+
+

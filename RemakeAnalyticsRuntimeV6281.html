@@ -1,199 +1,3 @@
-  window.selectVisibleRemakeOptionsV6245=function(kind){ pushRemakeUndoV6266(); const current=effectiveSelectionSetV6250(kind); visibleOptionsForDropdownV6245(kind).forEach(opt=>current.add(String(opt.value))); commitEffectiveSelectionV6389(kind,Array.from(current)); persistUiV6230(); renderDashboardV6230(); };
-  window.toggleVisibleRemakeOptionsV6502=function(kind,checked,event){
-    if(event) event.stopPropagation();
-    pushRemakeUndoV6266();
-    const current=effectiveSelectionSetV6250(kind);
-    const visible=visibleOptionsForDropdownV6245(kind);
-    visible.forEach(function(opt){
-      const value=String(opt.value);
-      if(checked) current.add(value); else current.delete(value);
-    });
-    commitEffectiveSelectionV6389(kind,Array.from(current));
-    persistUiV6230();
-    renderDashboardV6230();
-  };
-  window.toggleRemakeOnlySelectedV6245=function(kind){ uiV6230.selectedOnlyV6245[kind]=false; window.renderRemakeDropdownListV6245(kind); };
-  window.clearRemakeMultiFilterV6245=function(kind){ pushRemakeUndoV6266(); setFilterValuesV6245(kind,[]); persistUiV6230(); renderDashboardV6230(); };
-  window.selectNoneRemakeOptionsV6308=function(kind){ pushRemakeUndoV6266(); setFilterValuesV6245(kind,[REMAKE_NONE_FILTER_VALUE_V6308]); persistUiV6230(); renderDashboardV6230(); };
-  window.applyRemakeFilterSnapshotV6389=function(filters,exclusions){
-    const sourceFilters=filters&&typeof filters==='object'?filters:{};
-    const sourceExclusions=exclusions&&typeof exclusions==='object'?exclusions:{};
-    Object.keys(filterMetaV6245).forEach(function(kind){
-      const excluded=Array.isArray(sourceExclusions[kind])?sourceExclusions[kind].map(String).filter(Boolean):[];
-      const selected=Array.isArray(sourceFilters[kind])?sourceFilters[kind].map(String).filter(Boolean):[];
-      if(excluded.length) setFilterExclusionsV6389(kind,excluded);
-      else setFilterValuesV6245(kind,selected);
-    });
-    persistUiV6230();
-    syncFilterControlsV6230();
-    renderDashboardV6230();
-  };
-  document.addEventListener('click',function(event){ const target=event&&event.target; if(target&&target.closest&&target.closest('.remakeMultiFilterV6245')) return; Object.keys(filterMetaV6245).forEach(kind=>{const meta=filterMetaV6245[kind]; const panel=idV6230(meta.panelId); const button=idV6230(meta.buttonId); if(panel) panel.classList.remove('open'); if(button) button.classList.remove('active');}); });
-
-  const globalSearchKindsV6304 = ['year','department','product','customer','reason'];
-  let globalSearchDraftV6305 = null;
-  function createGlobalSearchDraftV6305() {
-    const draft = {};
-    globalSearchKindsV6304.forEach(function(kind) {
-      draft[kind] = effectiveSelectionSetV6250(kind);
-    });
-    return draft;
-  }
-  function ensureGlobalSearchDraftV6305() {
-    if (!globalSearchDraftV6305) globalSearchDraftV6305 = createGlobalSearchDraftV6305();
-    return globalSearchDraftV6305;
-  }
-  function globalSearchDraftSetV6305(kind) {
-    const draft = ensureGlobalSearchDraftV6305();
-    if (!draft[kind]) draft[kind] = new Set();
-    return draft[kind];
-  }
-  function globalSearchDraftCountV6305() {
-    const draft = ensureGlobalSearchDraftV6305();
-    return globalSearchKindsV6304.reduce(function(total, kind){
-      if (!draft[kind]) return total;
-      return total + Array.from(draft[kind]).filter(function(value){ return value !== REMAKE_NONE_FILTER_VALUE_V6308; }).length;
-    }, 0);
-  }
-  function updateGlobalSearchActionsV6305() {
-    const count = globalSearchDraftCountV6305();
-    const countNode = idV6230('remakeGlobalSearchCountV6305');
-    const actions = idV6230('remakeGlobalSearchActionsV6305');
-    if (countNode) countNode.textContent = count + (count === 1 ? ' selected' : ' selected');
-    if (actions) actions.classList.toggle('hasSelections', count > 0);
-  }
-  function globalSearchMatchesV6304(query) {
-    const clean = textV6230(query, '');
-    if (!clean) return [];
-    const matches = [];
-    globalSearchKindsV6304.forEach(function(kind) {
-      const meta = filterMetaV6245[kind];
-      allOptionsForDropdownV6245(kind).forEach(function(option) {
-        const label = textV6230(option && option.label, option && option.value);
-        const value = textV6230(option && option.value, label);
-        const fuzzyScore = window.dashboardFuzzySearchV6412.score(
-          label + ' ' + value + ' ' + (meta ? meta.label : kind),
-          clean
-        );
-        if (fuzzyScore <= 0) return;
-        matches.push({ kind: kind, kindLabel: meta ? meta.label : kind, label: label, value: value, score: fuzzyScore });
-      });
-    });
-    return matches.sort(function(a,b){ return b.score-a.score || globalSearchKindsV6304.indexOf(a.kind)-globalSearchKindsV6304.indexOf(b.kind) || a.label.localeCompare(b.label,undefined,{numeric:true,sensitivity:'base'}); }).slice(0,60);
-  }
-  window.renderRemakeGlobalSearchV6304 = function renderRemakeGlobalSearchV6304() {
-    const input = idV6230('remakeGlobalSearchInputV6304');
-    const results = idV6230('remakeGlobalSearchResultsV6304');
-    if (!results) return;
-    ensureGlobalSearchDraftV6305();
-    updateGlobalSearchActionsV6305();
-    const query = input ? input.value : '';
-    if (!textV6230(query,'')) {
-      results.innerHTML = '<div class="remakeGlobalSearchEmptyV6304">Search all five dropdowns, check everything you need, then choose Apply.</div>';
-      return;
-    }
-    const matches = globalSearchMatchesV6304(query);
-    if (!matches.length) {
-      results.innerHTML = '<div class="remakeGlobalSearchEmptyV6304">No matching filter values.</div>';
-      return;
-    }
-    results.innerHTML = matches.map(function(match){
-      const selected = globalSearchDraftSetV6305(match.kind).has(String(match.value));
-      const inputId = 'remakeGlobalSearchChoiceV6305_' + match.kind + '_' + Math.abs(hashStringV6305(String(match.value)));
-      return '<label class="remakeGlobalSearchResultV6304' + (selected ? ' selected' : '') + '" for="' + escV6230(inputId) + '">'
-        + '<span class="remakeGlobalSearchKindV6304">' + escV6230(match.kindLabel) + '</span>'
-        + '<span class="remakeGlobalSearchLabelV6304">' + escV6230(match.label) + '</span>'
-        + '<input id="' + escV6230(inputId) + '" class="remakeGlobalSearchCheckboxV6305" type="checkbox" ' + (selected ? 'checked ' : '')
-        + 'onchange="toggleRemakeGlobalSearchDraftV6305(\'' + escJsV6230(match.kind) + '\',\'' + escJsV6230(match.value) + '\',this.checked)">'
-        + '</label>';
-    }).join('');
-  };
-  function hashStringV6305(value) {
-    let hash = 0;
-    const text = String(value || '');
-    for (let i = 0; i < text.length; i += 1) hash = ((hash << 5) - hash + text.charCodeAt(i)) | 0;
-    return hash;
-  }
-  window.toggleRemakeGlobalSearchDraftV6305 = function toggleRemakeGlobalSearchDraftV6305(kind, value, checked) {
-    if (!filterMetaV6245[kind]) return;
-    const selected = globalSearchDraftSetV6305(kind);
-    const text = String(value);
-    if (checked) { selected.delete(REMAKE_NONE_FILTER_VALUE_V6308); selected.add(text); }
-    else selected.delete(text);
-    window.renderRemakeGlobalSearchV6304();
-  };
-  window.clearRemakeGlobalSearchDraftV6305 = function clearRemakeGlobalSearchDraftV6305() {
-    const draft = ensureGlobalSearchDraftV6305();
-    globalSearchKindsV6304.forEach(function(kind){ draft[kind] = new Set(); });
-    window.renderRemakeGlobalSearchV6304();
-  };
-  function globalSearchSelectionsChangedV6305() {
-    const draft = ensureGlobalSearchDraftV6305();
-    return globalSearchKindsV6304.some(function(kind){
-      const current = Array.from(effectiveSelectionSetV6250(kind)).map(String).sort();
-      const next = Array.from(draft[kind] || []).map(String).sort();
-      return current.length !== next.length || current.some(function(value,index){ return value !== next[index]; });
-    });
-  }
-  window.applyRemakeGlobalSearchSelectionsV6305 = function applyRemakeGlobalSearchSelectionsV6305() {
-    const draft = ensureGlobalSearchDraftV6305();
-    const changed = globalSearchSelectionsChangedV6305();
-    if (changed) pushRemakeUndoV6266();
-    globalSearchKindsV6304.forEach(function(kind){
-      commitEffectiveSelectionV6389(kind, Array.from(draft[kind] || []));
-    });
-    persistUiV6230();
-    syncFilterControlsV6230();
-    window.closeRemakeGlobalSearchV6304();
-    if (changed) renderDashboardV6230();
-  };
-  window.openRemakeGlobalSearchV6304 = function openRemakeGlobalSearchV6304() {
-    const panel = idV6230('remakeGlobalSearchPanelV6304');
-    const button = idV6230('remakeGlobalSearchButtonV6304');
-    if (!panel) return;
-    Object.keys(filterMetaV6245).forEach(function(kind){ const meta=filterMetaV6245[kind]; const dropdown=idV6230(meta.panelId); const trigger=idV6230(meta.buttonId); if(dropdown) dropdown.classList.remove('open'); if(trigger) trigger.classList.remove('active'); });
-    globalSearchDraftV6305 = createGlobalSearchDraftV6305();
-    panel.classList.add('open');
-    if (button) button.setAttribute('aria-expanded','true');
-    window.renderRemakeGlobalSearchV6304();
-    const input = idV6230('remakeGlobalSearchInputV6304');
-    if (input) setTimeout(function(){ input.focus(); input.select(); }, 20);
-  };
-  window.closeRemakeGlobalSearchV6304 = function closeRemakeGlobalSearchV6304() {
-    const panel = idV6230('remakeGlobalSearchPanelV6304');
-    const button = idV6230('remakeGlobalSearchButtonV6304');
-    if (panel) panel.classList.remove('open');
-    if (button) button.setAttribute('aria-expanded','false');
-    globalSearchDraftV6305 = null;
-  };
-  window.toggleRemakeGlobalSearchV6304 = function toggleRemakeGlobalSearchV6304(event) {
-    if (event) { event.preventDefault(); event.stopPropagation(); }
-    const panel = idV6230('remakeGlobalSearchPanelV6304');
-    if (panel && panel.classList.contains('open')) window.closeRemakeGlobalSearchV6304();
-    else window.openRemakeGlobalSearchV6304();
-  };
-  window.handleRemakeGlobalSearchKeyV6304 = function handleRemakeGlobalSearchKeyV6304(event) {
-    if (!event) return;
-    if (event.key === 'Escape') { event.preventDefault(); window.closeRemakeGlobalSearchV6304(); return; }
-    if (event.key === 'Enter') {
-      const first = document.querySelector('#remakeGlobalSearchResultsV6304 .remakeGlobalSearchCheckboxV6305');
-      if (first) { event.preventDefault(); first.click(); }
-    }
-  };
-  window.applyRemakeGlobalSearchResultV6304 = function applyRemakeGlobalSearchResultV6304(kind, value) {
-    if (!filterMetaV6245[kind]) return;
-    const selected = globalSearchDraftSetV6305(kind);
-    const text = String(value);
-    if (selected.has(text)) selected.delete(text);
-    else { selected.delete(REMAKE_NONE_FILTER_VALUE_V6308); selected.add(text); }
-    window.renderRemakeGlobalSearchV6304();
-  };
-  document.addEventListener('click', function closeGlobalSearchOutsideV6304(event) {
-    const target = event && event.target;
-    if (target && target.closest && target.closest('#remakeFactorPage .remakeGlobalSearchBarV6304')) return;
-    window.closeRemakeGlobalSearchV6304();
-  });
-
   function kpiYearValuesV6281(rows) {
     return Array.from(new Set((rows || []).map(row => Number(row.year)).filter(year => Number.isFinite(year)))).sort((a, b) => a - b);
   }
@@ -1188,3 +992,68 @@
       metrics = {
         remakeCases:numV6230(row.remakeCases),
         remakeUnits:numV6230(row.remakeUnits),
+        remakeDiscount:Math.abs(numV6230(row.remakeDiscount)),
+        caseShare:caseTotal ? numV6230(row.remakeCases) / caseTotal : 0,
+        unitShare:unitTotal ? numV6230(row.remakeUnits) / unitTotal : 0,
+        discountShare:discountTotal ? Math.abs(numV6230(row.remakeDiscount)) / discountTotal : 0,
+        caseRate:0,
+        unitRate:0
+      };
+    } else {
+      metrics = computedResponsibilityMetricsV6504(kind,value);
+    }
+    const fallbackLabel = typeof filterOptionLabelV6245 === 'function' ? filterOptionLabelV6245(kind,value) : value;
+    const label = kind === 'customer'
+      ? ((row && (row.customerDisplayLabel || row.label || row.customerName || row.key)) || fallbackLabel || value)
+      : ((row && (row.label || row.customerName || row.key)) || fallbackLabel || value);
+    return Object.assign({state:'ready',kind:kind,label:label,rateAvailable:rateAvailable},metrics);
+  }
+  function renderCustomerResponsibilitySummaryV6503() {
+    const host = idV6230('remakeCustomerResponsibilitySummaryV6502');
+    if (!host) return;
+    const item = responsibilityItemV6504();
+    if (item.state === 'empty') {
+      host.innerHTML = '<div class="remakeResponsibilityEmptyV6504">Select one customer, department, product, product group, remake reason, or technician. This panel will show how much of the current filtered remake total came from that item.</div>';
+      return;
+    }
+    if (item.state === 'multiple') {
+      host.innerHTML = '<div class="remakeResponsibilityMultipleV6504">' + escV6230(String(item.count)) + ' ' + escV6230(responsibilityKindLabelV6504(item.kind).toLowerCase()) + ' values are selected. Choose one item to see its individual responsibility share.</div>';
+      return;
+    }
+    if (item.state !== 'ready') {
+      host.innerHTML = '<div class="remakeResponsibilityEmptyV6504">The selected item is loading in the current filter context.</div>';
+      return;
+    }
+    const rates = item.rateAvailable
+      ? '<div class="remakeResponsibilityMetricV6504"><span>Internal case rate</span><strong>' + escV6230(fmtPctV6230(item.caseRate)) + '</strong></div><div class="remakeResponsibilityMetricV6504"><span>Internal unit rate</span><strong>' + escV6230(fmtPctV6230(item.unitRate)) + '</strong></div>'
+      : '';
+    const note = item.rateAvailable ? '' : '<div class="remakeResponsibilityRateNoteV6504">An internal rate is not shown because this selection does not have a reliable all-work denominator in the current cache.</div>';
+    host.innerHTML = '<div class="remakeResponsibilityHeaderV6504"><div><div class="remakeResponsibilityKickerV6504">Selected item responsibility</div><strong class="remakeResponsibilityNameV6504">' + escV6230(item.label) + '</strong><span class="remakeResponsibilityTypeV6504">' + escV6230(responsibilityKindLabelV6504(item.kind)) + '</span></div></div><div class="remakeResponsibilityMetricsV6504">'
+      + '<div class="remakeResponsibilityMetricV6504"><span>Remake cases</span><strong>' + escV6230(fmtCountV6230(item.remakeCases)) + '</strong></div><div class="remakeResponsibilityMetricV6504 shareV6504"><span>Case share</span><strong>' + escV6230(fmtPctV6230(item.caseShare)) + '</strong></div>'
+      + '<div class="remakeResponsibilityMetricV6504"><span>Remake units</span><strong>' + escV6230(fmtCountV6230(item.remakeUnits,1)) + '</strong></div><div class="remakeResponsibilityMetricV6504 shareV6504"><span>Unit share</span><strong>' + escV6230(fmtPctV6230(item.unitShare)) + '</strong></div>'
+      + '<div class="remakeResponsibilityMetricV6504"><span>Remake discount</span><strong>' + escV6230(fmtCurrencyV6230(item.remakeDiscount)) + '</strong></div><div class="remakeResponsibilityMetricV6504 shareV6504"><span>Discount share</span><strong>' + escV6230(fmtPctV6230(item.discountShare)) + '</strong></div>' + rates + '</div>' + note;
+  }
+
+  /* v6.303 customer ranking rule.
+     The chart must always represent the highest remake-rate customers in the
+     active filter context. Table sorting is presentation-only and may reorder
+     that fixed leader set, but it must never change the chart membership/order. */
+  function customerHighestRateRowsV6303(customerGroups, limit) {
+    const remakeCustomers = (customerGroups || []).filter(row => row && numV6230(row.remakeCases) > 0);
+    const eligible = remakeCustomers.filter(row => numV6230(row.totalCases) >= 5 || numV6230(row.remakeCases) > 1);
+    const source = eligible.length ? eligible : remakeCustomers;
+    return source.slice().sort((a, b) => {
+      const rateGap = numV6230(b.remakeCaseRate) - numV6230(a.remakeCaseRate);
+      if (Math.abs(rateGap) > 0.0000001) return rateGap;
+      const remakeGap = numV6230(b.remakeCases) - numV6230(a.remakeCases);
+      if (Math.abs(remakeGap) > 0.0000001) return remakeGap;
+      const caseGap = numV6230(b.totalCases) - numV6230(a.totalCases);
+      if (Math.abs(caseGap) > 0.0000001) return caseGap;
+      return String(a.customerDisplayLabel || a.label || a.customerName || a.key || '').localeCompare(String(b.customerDisplayLabel || b.label || b.customerName || b.key || ''), undefined, { numeric: true, sensitivity: 'base' });
+    }).slice(0, limit || 12);
+  }
+  function customerLeaderRowsV6244(customerGroups, limit) {
+    return sortedRowsV6230(customerHighestRateRowsV6303(customerGroups, limit), 'customer');
+  }
+
+

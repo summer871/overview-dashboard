@@ -1,10 +1,10 @@
 {
-  "generatedAtUtc": "2026-08-21T20:04:14.720Z",
+  "generatedAtUtc": "2026-08-21T23:16:49.365Z",
   "authoritativeSource": "DashboardMainScript.html",
-  "authoritativeSourceBytes": 1223667,
-  "authoritativeSourceSha256": "e491f6db408e2e57bc82d02cf13575f59e5f64bd8f8ad00499332a73c5355a50",
+  "authoritativeSourceBytes": 776674,
+  "authoritativeSourceSha256": "c699841f394d25ae29c4113f3364a2eb2f7cda06df8c30b2a27add8f6e6ff0ef",
   "targetChunkBytes": 70000,
-  "chunkCount": 18,
+  "chunkCount": 12,
   "chunks": [
     {
       "part": 1,
@@ -75,44 +75,8 @@
     {
       "part": 12,
       "file": "docs/ai-readable/dashboard-main/DashboardMainScript-Part12.txt",
-      "bytes": 69793,
-      "sha256": "171f621b679012a77cfbfe2443f8758fdfe1b1f8cc11e2fa6b27bb15a122025c"
-    },
-    {
-      "part": 13,
-      "file": "docs/ai-readable/dashboard-main/DashboardMainScript-Part13.txt",
-      "bytes": 69953,
-      "sha256": "09c0bff920dbb8e1d32ef0ce2667d7f0d894f0c4682a7561d25e451e4f62b16e"
-    },
-    {
-      "part": 14,
-      "file": "docs/ai-readable/dashboard-main/DashboardMainScript-Part14.txt",
-      "bytes": 69983,
-      "sha256": "c0fa34e551fe7e076c6c3e7cdf77d31607e0d858b4d385868a1816ba76d58368"
-    },
-    {
-      "part": 15,
-      "file": "docs/ai-readable/dashboard-main/DashboardMainScript-Part15.txt",
-      "bytes": 69994,
-      "sha256": "d97fc375e84cf042e6b85aa28dd864f9a3d16473c7ccadab8b062303184ed7c2"
-    },
-    {
-      "part": 16,
-      "file": "docs/ai-readable/dashboard-main/DashboardMainScript-Part16.txt",
-      "bytes": 69967,
-      "sha256": "ee31126b7cf23dc89bfe01c8c07b48fe12874a1be159ff6285ff5039369b8c57"
-    },
-    {
-      "part": 17,
-      "file": "docs/ai-readable/dashboard-main/DashboardMainScript-Part17.txt",
-      "bytes": 69959,
-      "sha256": "3e18822d0e223904f937c74cd9587562181dc8829bad970c8408714f4a67f10d"
-    },
-    {
-      "part": 18,
-      "file": "docs/ai-readable/dashboard-main/DashboardMainScript-Part18.txt",
-      "bytes": 34668,
-      "sha256": "d846d7052285f2f024754077d794e6affd2bb100107bb791a6395f3953856992"
+      "bytes": 7324,
+      "sha256": "7be18ea14f9f5a51c8d249f463f76b39386029f2914144f596a930f0be791a16"
     }
   ],
   "byteForByteReconstructionVerified": true,

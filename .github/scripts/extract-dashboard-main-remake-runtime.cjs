@@ -108,7 +108,7 @@ blocks.forEach(function(block) {
   if (count(parent, directive) !== 1) fail(block.def.name + ': expected exactly one child include in ' + parentName + '.');
 });
 
-const preparedParent = parent.replace(/<\?[!=]?[\s\S]*?\?>/g, 'null;');
+const preparedParent = parent.replace(/<\?[!=]?[\s\S]*?\?>/g, 'void 0;\n');
 try { new vm.Script(preparedParent, { filename: parentPath }); }
 catch (error) { fail(parentName + ': parent composition shell is not parseable with placeholder children: ' + error.message); }
 
@@ -123,7 +123,8 @@ const next = original.slice(0, runtimeStart) + parentDirective + original.slice(
 if (count(next, parentDirective) !== 1) fail('DashboardMain parent include count is not exactly one.');
 if (next.includes(iifeMarker) || next.includes(runtimeStartMarker)) fail('Isolated Remake runtime still remains inline in DashboardMain.');
 
-const preparedMain = next.replace(/<\?[!=]?[\s\S]*?\?>/g, 'null;');
+let preparedMain = next.replace(parentDirective, 'void 0;\n');
+preparedMain = preparedMain.replace(/<\?[!=]?[\s\S]*?\?>/g, 'null');
 const outerMatch = preparedMain.match(/^<script>([\s\S]*)<\/script>\s*$/i);
 if (!outerMatch) fail('DashboardMain outer script boundary changed unexpectedly.');
 try { new vm.Script(outerMatch[1], { filename: sourcePath }); }

@@ -1,0 +1,146 @@
+{
+  "datePt": "2026-08-21",
+  "checkpoint": "DashboardMain single-parent Remake semantic runtime extraction",
+  "behaviorChangeIntended": false,
+  "source": "DashboardMainScript.html",
+  "sourceBytesBefore": 1223667,
+  "sourceSha256Before": "e491f6db408e2e57bc82d02cf13575f59e5f64bd8f8ad00499332a73c5355a50",
+  "sourceBytesAfter": 776674,
+  "sourceSha256After": "c699841f394d25ae29c4113f3364a2eb2f7cda06df8c30b2a27add8f6e6ff0ef",
+  "bytesRemovedFromDashboardMain": 446993,
+  "archivePath": "archive/dashboard-main-semantic-extraction-2026-08-21/DashboardMainScript.pre-remake-runtime-extraction.html",
+  "archiveByteForByteVerified": true,
+  "compositionByteForByteReconstructionVerified": true,
+  "recursiveCompositionVerified": true,
+  "runtimeWasFinalDashboardMainBlock": true,
+  "parentModule": {
+    "name": "RemakeMainRuntimeV6230",
+    "path": "RemakeMainRuntimeV6230.html",
+    "bytes": 1191,
+    "sha256": "d160940386b100a031f80c590219a2fe2b239e77d14a6a521cf4b891f65cc466",
+    "includeCountInDashboardMain": 1
+  },
+  "maxModuleBytes": 75000,
+  "modules": [
+    {
+      "name": "RemakeRuntimeCoreV6230",
+      "path": "RemakeRuntimeCoreV6230.html",
+      "bytes": 33646,
+      "sha256": "f8a74098cb3ee19d1fd42c217f2de5245b8e4a0da555ab48292d470969707146",
+      "rawJavaScriptFragment": true,
+      "independentlyParseable": true,
+      "includeCountInParent": 1
+    },
+    {
+      "name": "RemakeRuntimePresentationV6230",
+      "path": "RemakeRuntimePresentationV6230.html",
+      "bytes": 36723,
+      "sha256": "0ddc0ff11d693328cbc1c58f6bf8b3070665fea5ad2a0fccc0ffd71c41e834b0",
+      "rawJavaScriptFragment": true,
+      "independentlyParseable": true,
+      "includeCountInParent": 1
+    },
+    {
+      "name": "RemakeFilterRuntimeV6245",
+      "path": "RemakeFilterRuntimeV6245.html",
+      "bytes": 72789,
+      "sha256": "931dae5fffdfc5017da51170a5249ad36d4149a43e15cec84397bacd8d13f74a",
+      "rawJavaScriptFragment": true,
+      "independentlyParseable": true,
+      "includeCountInParent": 1
+    },
+    {
+      "name": "RemakeAnalyticsRuntimeV6281",
+      "path": "RemakeAnalyticsRuntimeV6281.html",
+      "bytes": 64272,
+      "sha256": "474bf5420f9687c449c84f2a7e5dba29572e1d8dd25e80836a5ba0b70e17b17a",
+      "rawJavaScriptFragment": true,
+      "independentlyParseable": true,
+      "includeCountInParent": 1
+    },
+    {
+      "name": "RemakeCustomerTableRuntimeV6230",
+      "path": "RemakeCustomerTableRuntimeV6230.html",
+      "bytes": 4905,
+      "sha256": "71faa52021704137ebfe53c1eef30b54f4e8ee0c2e08c021621eaacbbbcae440",
+      "rawJavaScriptFragment": true,
+      "independentlyParseable": true,
+      "includeCountInParent": 1
+    },
+    {
+      "name": "RemakeTechnicianCoreRuntimeV6342",
+      "path": "RemakeTechnicianCoreRuntimeV6342.html",
+      "bytes": 3509,
+      "sha256": "02d01f099c3cbbef3a39c227d5704a314e9c96b75e4f4c5e4f8d7cb5535fb953",
+      "rawJavaScriptFragment": true,
+      "independentlyParseable": true,
+      "includeCountInParent": 1
+    },
+    {
+      "name": "RemakeTechnicianPopulationRuntimeV6569",
+      "path": "RemakeTechnicianPopulationRuntimeV6569.html",
+      "bytes": 64991,
+      "sha256": "70fc0a169367140c433aa045aca3d59ac1271e0b4357bd32dd7de0e77b8aa1d0",
+      "rawJavaScriptFragment": true,
+      "independentlyParseable": true,
+      "includeCountInParent": 1
+    },
+    {
+      "name": "RemakeCustomerChartRuntimeV6504",
+      "path": "RemakeCustomerChartRuntimeV6504.html",
+      "bytes": 2757,
+      "sha256": "115e30a48b69344ab0cfdaa257a1ff9ef1d577af6d53d6e03ff0e4e99b6cf70d",
+      "rawJavaScriptFragment": true,
+      "independentlyParseable": true,
+      "includeCountInParent": 1
+    },
+    {
+      "name": "RemakeTransitionRuntimeV6300",
+      "path": "RemakeTransitionRuntimeV6300.html",
+      "bytes": 55305,
+      "sha256": "f95148195aaeb76d2da51c783493a28801ebec9273beec3f7b5f2397b3d42baf",
+      "rawJavaScriptFragment": true,
+      "independentlyParseable": true,
+      "includeCountInParent": 1
+    },
+    {
+      "name": "RemakePopoutBridgeRuntimeV6339",
+      "path": "RemakePopoutBridgeRuntimeV6339.html",
+      "bytes": 9748,
+      "sha256": "f1b437b1759fdc69f50e2c162ae6c9e670fd4756d23617946676bbf304b951a4",
+      "rawJavaScriptFragment": true,
+      "independentlyParseable": true,
+      "includeCountInParent": 1
+    },
+    {
+      "name": "RemakePopoutWindowRuntimeV6339",
+      "path": "RemakePopoutWindowRuntimeV6339.html",
+      "bytes": 42463,
+      "sha256": "83acbd91698a9e18267cdce7ed5ccdd33081cace5cec588ce4f693260e95fccc",
+      "rawJavaScriptFragment": true,
+      "independentlyParseable": true,
+      "includeCountInParent": 1
+    },
+    {
+      "name": "RemakePopoutControllerRuntimeV6339",
+      "path": "RemakePopoutControllerRuntimeV6339.html",
+      "bytes": 20131,
+      "sha256": "9bc0959f45df054df8d4ccb5c29611387316aca24716f754b65c77eae92eaf55",
+      "rawJavaScriptFragment": true,
+      "independentlyParseable": true,
+      "includeCountInParent": 1
+    },
+    {
+      "name": "RemakeCacheRuntimeV6388",
+      "path": "RemakeCacheRuntimeV6388.html",
+      "bytes": 35413,
+      "sha256": "973e2628c8aafe22cd29414bf6ef9831f4de0393097bd2400166928ff87bc622",
+      "rawJavaScriptFragment": true,
+      "independentlyParseable": true,
+      "includeCountInParent": 1
+    }
+  ],
+  "logicRewritten": false,
+  "executionOrderChanged": false,
+  "productionDeployment": false
+}

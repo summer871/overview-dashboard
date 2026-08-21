@@ -1,190 +1,3 @@
-        remakeDiscount:Math.abs(numV6230(row.remakeDiscount)),
-        caseShare:caseTotal ? numV6230(row.remakeCases) / caseTotal : 0,
-        unitShare:unitTotal ? numV6230(row.remakeUnits) / unitTotal : 0,
-        discountShare:discountTotal ? Math.abs(numV6230(row.remakeDiscount)) / discountTotal : 0,
-        caseRate:0,
-        unitRate:0
-      };
-    } else {
-      metrics = computedResponsibilityMetricsV6504(kind,value);
-    }
-    const fallbackLabel = typeof filterOptionLabelV6245 === 'function' ? filterOptionLabelV6245(kind,value) : value;
-    const label = kind === 'customer'
-      ? ((row && (row.customerDisplayLabel || row.label || row.customerName || row.key)) || fallbackLabel || value)
-      : ((row && (row.label || row.customerName || row.key)) || fallbackLabel || value);
-    return Object.assign({state:'ready',kind:kind,label:label,rateAvailable:rateAvailable},metrics);
-  }
-  function renderCustomerResponsibilitySummaryV6503() {
-    const host = idV6230('remakeCustomerResponsibilitySummaryV6502');
-    if (!host) return;
-    const item = responsibilityItemV6504();
-    if (item.state === 'empty') {
-      host.innerHTML = '<div class="remakeResponsibilityEmptyV6504">Select one customer, department, product, product group, remake reason, or technician. This panel will show how much of the current filtered remake total came from that item.</div>';
-      return;
-    }
-    if (item.state === 'multiple') {
-      host.innerHTML = '<div class="remakeResponsibilityMultipleV6504">' + escV6230(String(item.count)) + ' ' + escV6230(responsibilityKindLabelV6504(item.kind).toLowerCase()) + ' values are selected. Choose one item to see its individual responsibility share.</div>';
-      return;
-    }
-    if (item.state !== 'ready') {
-      host.innerHTML = '<div class="remakeResponsibilityEmptyV6504">The selected item is loading in the current filter context.</div>';
-      return;
-    }
-    const rates = item.rateAvailable
-      ? '<div class="remakeResponsibilityMetricV6504"><span>Internal case rate</span><strong>' + escV6230(fmtPctV6230(item.caseRate)) + '</strong></div><div class="remakeResponsibilityMetricV6504"><span>Internal unit rate</span><strong>' + escV6230(fmtPctV6230(item.unitRate)) + '</strong></div>'
-      : '';
-    const note = item.rateAvailable ? '' : '<div class="remakeResponsibilityRateNoteV6504">An internal rate is not shown because this selection does not have a reliable all-work denominator in the current cache.</div>';
-    host.innerHTML = '<div class="remakeResponsibilityHeaderV6504"><div><div class="remakeResponsibilityKickerV6504">Selected item responsibility</div><strong class="remakeResponsibilityNameV6504">' + escV6230(item.label) + '</strong><span class="remakeResponsibilityTypeV6504">' + escV6230(responsibilityKindLabelV6504(item.kind)) + '</span></div></div><div class="remakeResponsibilityMetricsV6504">'
-      + '<div class="remakeResponsibilityMetricV6504"><span>Remake cases</span><strong>' + escV6230(fmtCountV6230(item.remakeCases)) + '</strong></div><div class="remakeResponsibilityMetricV6504 shareV6504"><span>Case share</span><strong>' + escV6230(fmtPctV6230(item.caseShare)) + '</strong></div>'
-      + '<div class="remakeResponsibilityMetricV6504"><span>Remake units</span><strong>' + escV6230(fmtCountV6230(item.remakeUnits,1)) + '</strong></div><div class="remakeResponsibilityMetricV6504 shareV6504"><span>Unit share</span><strong>' + escV6230(fmtPctV6230(item.unitShare)) + '</strong></div>'
-      + '<div class="remakeResponsibilityMetricV6504"><span>Remake discount</span><strong>' + escV6230(fmtCurrencyV6230(item.remakeDiscount)) + '</strong></div><div class="remakeResponsibilityMetricV6504 shareV6504"><span>Discount share</span><strong>' + escV6230(fmtPctV6230(item.discountShare)) + '</strong></div>' + rates + '</div>' + note;
-  }
-
-  /* v6.303 customer ranking rule.
-     The chart must always represent the highest remake-rate customers in the
-     active filter context. Table sorting is presentation-only and may reorder
-     that fixed leader set, but it must never change the chart membership/order. */
-  function customerHighestRateRowsV6303(customerGroups, limit) {
-    const remakeCustomers = (customerGroups || []).filter(row => row && numV6230(row.remakeCases) > 0);
-    const eligible = remakeCustomers.filter(row => numV6230(row.totalCases) >= 5 || numV6230(row.remakeCases) > 1);
-    const source = eligible.length ? eligible : remakeCustomers;
-    return source.slice().sort((a, b) => {
-      const rateGap = numV6230(b.remakeCaseRate) - numV6230(a.remakeCaseRate);
-      if (Math.abs(rateGap) > 0.0000001) return rateGap;
-      const remakeGap = numV6230(b.remakeCases) - numV6230(a.remakeCases);
-      if (Math.abs(remakeGap) > 0.0000001) return remakeGap;
-      const caseGap = numV6230(b.totalCases) - numV6230(a.totalCases);
-      if (Math.abs(caseGap) > 0.0000001) return caseGap;
-      return String(a.customerDisplayLabel || a.label || a.customerName || a.key || '').localeCompare(String(b.customerDisplayLabel || b.label || b.customerName || b.key || ''), undefined, { numeric: true, sensitivity: 'base' });
-    }).slice(0, limit || 12);
-  }
-  function customerLeaderRowsV6244(customerGroups, limit) {
-    return sortedRowsV6230(customerHighestRateRowsV6303(customerGroups, limit), 'customer');
-  }
-
-
-  function renderCustomerTableV6230(customerGroups) {
-    const table = idV6230('remakeCustomerTable');
-    if (!table) return;
-    const scope = comparisonScopeV6295(normalizedRowsV6230());
-    const year = scope.currentYear || 'Current';
-    const priorYear = scope.priorYear || 'Prior';
-    const priorYearLabelV6312 = shortYearLabelV6312(priorYear);
-    const compare = tableCompareOnV6297('customer');
-    const selectedCustomers = new Set(filterValuesV6245('customer').map(String));
-    const remakeCustomers = (customerGroups || []).filter(row => row && numV6230(row.remakeCases) > 0);
-    const allCustomerRows = sortedRowsV6230(remakeCustomers, 'customer');
-    const sorted = selectedRowsFirstV6311(allCustomerRows, selectedCustomers, row => row.key, 300);
-    uiV6230.lastTables.customer = sorted;
-    const title = idV6230('remakeCustomerTitleV6251');
-    if (title) title.textContent = 'Customers';
-    renderCustomerResponsibilitySummaryV6503(customerGroups);
-    table.classList.toggle('compareColumnsV6301', compare);
-    const header = '<thead><tr>'
-      + thV6230('customer', 'customerName', 'Customer Name', false)
-      + metricHeaderCellsV6301('customer', 'totalCases', 'Cases', priorYearLabelV6312 + ' Cases', compare, 'Total Cases', priorYear + ' Total Cases')
-      + metricHeaderCellsV6301('customer', 'remakeCases', 'Rmk Cases', priorYearLabelV6312 + ' Rmk Cases', compare, 'Remake Cases', priorYear + ' Remake Cases')
-      + metricHeaderCellsV6301('customer', 'shareCases', 'Case Share %', priorYearLabelV6312 + ' Case Share %', compare, '% of All Remake Cases', priorYear + ' % of All Remake Cases')
-      + metricHeaderCellsV6301('customer', 'remakeCaseRate', 'Case Rate %', priorYearLabelV6312 + ' Case Rate %', compare, 'Customer Remake Case Rate', priorYear + ' Customer Remake Case Rate')
-      + metricHeaderCellsV6301('customer', 'totalUnits', 'Units', priorYearLabelV6312 + ' Units', compare, 'Total Units', priorYear + ' Total Units')
-      + metricHeaderCellsV6301('customer', 'remakeUnits', 'Rmk Units', priorYearLabelV6312 + ' Rmk Units', compare, 'Remake Units', priorYear + ' Remake Units')
-      + metricHeaderCellsV6301('customer', 'shareUnits', 'Unit Share %', priorYearLabelV6312 + ' Unit Share %', compare, '% of All Remake Units', priorYear + ' % of All Remake Units')
-      + metricHeaderCellsV6301('customer', 'remakeUnitRate', 'Unit Rate %', priorYearLabelV6312 + ' Unit Rate %', compare, 'Customer Remake Unit Rate', priorYear + ' Customer Remake Unit Rate')
-      + metricHeaderCellsV6301('customer', 'remakeDiscount', 'Rmk Disc.', priorYearLabelV6312 + ' Rmk Disc.', compare, 'Remake Discount', priorYear + ' Remake Discount')
-      + '</tr></thead>';
-    const columnCount = compare ? 28 : 10;
-    if (!sorted.length) { table.innerHTML = header + '<tbody><tr><td colspan="' + columnCount + '">No matching rows.</td></tr></tbody>'; return; }
-    table.innerHTML = header + '<tbody>' + sorted.map(row => {
-      const isSelected = selectedCustomers.has(String(row.key));
-      const selectedClass = isSelected ? ' selectedV6230' : '';
-      const dimClass = selectedCustomers.size && !isSelected ? ' dimmedV6266' : '';
-      const inactive = row.customerActive === false;
-      const badge = inactive ? '<span class="inactiveBadge">Inactive</span>' : '';
-      return '<tr class="clickable' + selectedClass + dimClass + '" onclick="applyRemakeTableFilterV6230(\'customer\',\'' + escJsV6230(row.key) + '\',event)">'
-        + '<td class="customerNameCell"><span class="customerNameText">' + escV6230(row.customerDisplayLabel || row.label || row.customerName || row.key) + '</span>' + badge + '</td>'
-        + metricValueCellsV6301(compare, row.totalCases, row.priorTotalCases, v => fmtCountV6230(v), 'relative', false, true)
-        + metricValueCellsV6301(compare, row.remakeCases, row.priorRemakeCases, v => fmtCountV6230(v), 'relative', true, false)
-        + metricValueCellsV6301(compare, row.shareCases, row.priorShareCases, v => fmtPctV6230(v), 'points', true, false)
-        + metricValueCellsV6301(compare, row.remakeCaseRate, row.priorRemakeCaseRate, v => fmtPctV6230(v), 'points', true, false)
-        + metricValueCellsV6301(compare, row.totalUnits, row.priorTotalUnits, v => fmtCountV6230(v, 1), 'relative', false, true)
-        + metricValueCellsV6301(compare, row.remakeUnits, row.priorRemakeUnits, v => fmtCountV6230(v, 1), 'relative', true, false)
-        + metricValueCellsV6301(compare, row.shareUnits, row.priorShareUnits, v => fmtPctV6230(v), 'points', true, false)
-        + metricValueCellsV6301(compare, row.remakeUnitRate, row.priorRemakeUnitRate, v => fmtPctV6230(v), 'points', true, false)
-        + metricValueCellsV6301(compare, row.remakeDiscount, row.priorRemakeDiscount, v => fmtCurrencyV6230(v), 'relative', true, false)
-        + '</tr>';
-    }).join('') + '</tbody>';
-    applySelectedRowPinningV6311(table);
-  }
-
-
-  function ceramistCaseKeyV6342(row) {
-    return textV6230(row && (row.remakeCaseNumber || row.caseNumber || row.caseId), '');
-  }
-  function ceramistDistinctCaseCountV6342(rows) {
-    return new Set((rows || []).map(ceramistCaseKeyV6342).filter(Boolean)).size;
-  }
-  function ceramistIsAttributedV6343(row) {
-    const worker = textV6230(row && row.responsibleCeramist, '');
-    return String(row && row.attributionStatus || '') === 'attributed' && !!worker && worker !== '[Unattributed]';
-  }
-  function ceramistTryInContextV6348(row) {
-    const values = [
-      row && row.caseStatus,
-      row && row.status,
-      row && row.Cases_Status,
-      row && row.invoiceDateTryIn,
-      row && row.Cases_InvoiceDateTryIn,
-      row && row.currentInvoiceDateTryIn,
-      row && row.tryInStatus,
-      row && row.isTryIn
-    ];
-    return values.some(function(value) {
-      if (value === true) return true;
-      return /try\s*-?\s*in|invoice[^a-z0-9]*for[^a-z0-9]*try/i.test(String(value || ''));
-    });
-  }
-  function ceramistEnrichTryInFromMainV6348(rows, mainRows) {
-    const lookup = new Map();
-    (mainRows || []).forEach(function(row) {
-      const caseKey = textV6230(row && row.caseId, '');
-      const productKey = textV6230(row && (row.productId || row.productKey), '');
-      if (!caseKey || !productKey) return;
-      const key = caseKey + '\u0001' + productKey;
-      const current = lookup.get(key) || { caseStatus:'', invoiceDateTryIn:'', isTryIn:false };
-      current.caseStatus = current.caseStatus || textV6230(row && row.caseStatus, '');
-      current.invoiceDateTryIn = current.invoiceDateTryIn || textV6230(row && row.invoiceDateTryIn, '');
-      current.isTryIn = current.isTryIn || ceramistTryInContextV6348(row);
-      lookup.set(key, current);
-    });
-    return (rows || []).map(function(row) {
-      const caseKey = textV6230(row && (row.remakeCaseNumber || row.caseNumber || row.caseId), '');
-      const productKey = textV6230(row && (row.productId || row.productKey), '');
-      const context = lookup.get(caseKey + '\u0001' + productKey);
-      if (context) {
-        if (!row.caseStatus && context.caseStatus) row.caseStatus = context.caseStatus;
-        if (!row.invoiceDateTryIn && context.invoiceDateTryIn) row.invoiceDateTryIn = context.invoiceDateTryIn;
-        row.isTryInContext = row.isTryInContext === true || context.isTryIn === true;
-      }
-      const type = textV6230(row && (row.responsibleWorkerType || row.responsibleCeramistTechnicianType), '');
-      const responsible = textV6230(row && row.responsibleCeramist, '[Unattributed]');
-      if (responsible === '[Unattributed]') {
-        row.responsibleWorkerCategory = 'Unattributed';
-        row.responsibleWorkerSection = 'Unattributed';
-      } else if (/^ceramist$/i.test(type)) {
-        row.responsibleWorkerCategory = 'Ceramist';
-        row.responsibleWorkerSection = 'Ceramists';
-      } else {
-        row.responsibleWorkerCategory = row.isTryInContext === true ? 'Technician - Try-in' : 'Technician';
-        row.responsibleWorkerSection = 'Technicians / Try-ins';
-      }
-      return row;
-    });
-  }
-  // v6.573: Reconcile the complete Remake population to the Ceramist sidecar
-  // with the authoritative numeric current case number retained by the compact
-  // browser payload. GUID case IDs are intentionally not used as attribution
-  // join keys. When an older browser cache lacks caseNumber, keep the proven
-  // sidecar view instead of falsely labeling every remake row Unattributed.
   let ceramistPopulationMemoV6569 = {
     signature:'',
     rows:[],
@@ -1348,3 +1161,181 @@
     const ok = !!(data && data.ok && Array.isArray(data.rows) && rowShapeReady && !emptySavedBrowserPayloadV6570);
     if (receivedRows.length) {
       ceramistPopulationMemoV6569.signature = '';
+      ceramistPopulationSidecarRefreshQueuedV6570 = false;
+    }
+    ceramistStateV6342.loading = false;
+    ceramistStateV6342.loaded = true;
+    ceramistStateV6342.ok = ok;
+    ceramistStateV6342.rows = ok ? receivedRows : [];
+    ceramistStateV6342.stats = data && data.stats || {};
+    ceramistStateV6342.version = data && data.version || '';
+    ceramistStateV6342.generatedAt = data && data.generatedAt || '';
+    ceramistStateV6342.caseLevelRefreshedAt = data && data.caseLevelRefreshedAt || '';
+    ceramistStateV6342.cacheToken = data && data.cacheToken || '';
+    ceramistStateV6342.driveUpdatedAt = data && data.driveUpdatedAt || '';
+    ceramistStateV6342.badgeUpdatedAt = data && data.badgeUpdatedAt || '';
+    ceramistStateV6342.browserCached = fromBrowser === true;
+    ceramistStateV6342.syncing = false;
+    ceramistStateV6342.message = emptySavedBrowserPayloadV6570
+      ? 'The saved technician browser cache was empty and is being replaced from the nightly source.'
+      : (rowShapeReady
+        ? (data && data.message || '')
+        : 'The technician attribution cache contains an invalid row and could not be reconciled with the Remake population.');
+    if (ok) {
+      const stamp = ceramistStateV6342.caseLevelRefreshedAt || ceramistStateV6342.generatedAt || ceramistStateV6342.driveUpdatedAt;
+      ceramistStateV6342.statusText = 'Worker cache updated: ' + (stamp ? ceramistCacheStampV6342(stamp) : 'date unavailable') + (fromBrowser ? ' · saved browser copy' : ' · nightly source');
+    } else {
+      ceramistStateV6342.statusText = '';
+    }
+    renderCeramistAnalysisV6342();
+    return ok;
+  }
+
+  function setCeramistStatusTextV6364(value) {
+    ceramistStateV6342.statusText = String(value || '');
+    const status = idV6230('remakeCeramistStatusV6342');
+    if (status && ceramistStateV6342.loaded && ceramistStateV6342.ok) status.textContent = ceramistStateV6342.statusText;
+  }
+
+  function requestCeramistServerPayloadV6364(loadGenerationV6346, keepCachedVisibleV6364) {
+    if (!window.google || !google.script || !google.script.run) {
+      if (keepCachedVisibleV6364 && ceramistStateV6342.ok) {
+        ceramistStateV6342.syncing = false;
+        setCeramistStatusTextV6364('Worker cache: saved copy · server check unavailable');
+        return;
+      }
+      ceramistStateV6342.loading = false;
+      ceramistStateV6342.loaded = true;
+      ceramistStateV6342.ok = false;
+      ceramistStateV6342.message = 'Apps Script bridge is unavailable for the Ceramist preview.';
+      renderCeramistAnalysisV6342();
+      return;
+    }
+    if (keepCachedVisibleV6364) {
+      ceramistStateV6342.syncing = true;
+      setCeramistStatusTextV6364('Worker cache: updating from nightly source...');
+    }
+    google.script.run
+      .withSuccessHandler(function(data) {
+        if (loadGenerationV6346 !== ceramistLoadGenerationV6346 || mainCacheSwapActiveV6346) return;
+        const applied = applyCeramistPayloadV6364(data, false);
+        if (applied) scheduleCeramistBrowserCacheWriteV6364(data);
+      })
+      .withFailureHandler(function(error) {
+        if (loadGenerationV6346 !== ceramistLoadGenerationV6346 || mainCacheSwapActiveV6346) return;
+        ceramistStateV6342.syncing = false;
+        if (keepCachedVisibleV6364 && ceramistStateV6342.ok) {
+          setCeramistStatusTextV6364('Worker cache: saved copy · nightly check failed');
+          console.warn('Ceramist nightly payload refresh failed', error);
+          return;
+        }
+        ceramistStateV6342.loading = false;
+        ceramistStateV6342.loaded = true;
+        ceramistStateV6342.ok = false;
+        ceramistStateV6342.rows = [];
+        ceramistStateV6342.message = 'Ceramist preview could not load. Replace CeramistRemakeProfiler.gs with v7.6 and set its cache file property. ' + (error && error.message ? error.message : String(error || ''));
+        renderCeramistAnalysisV6342();
+      })
+      .getCeramistRemakeAnalysisData();
+  }
+
+  function checkCeramistServerMetaV6364(loadGenerationV6346, cachedTokenV6364) {
+    if (!window.google || !google.script || !google.script.run) {
+      setCeramistStatusTextV6364('Worker cache: saved copy · server check unavailable');
+      return;
+    }
+    ceramistStateV6342.syncing = true;
+    setCeramistStatusTextV6364('Loading...');
+    google.script.run
+      .withSuccessHandler(function(meta) {
+        if (loadGenerationV6346 !== ceramistLoadGenerationV6346 || mainCacheSwapActiveV6346) return;
+        ceramistStateV6342.syncing = false;
+        const serverToken = meta && meta.cacheToken || '';
+        ceramistStateV6342.driveUpdatedAt = meta && meta.driveUpdatedAt || ceramistStateV6342.driveUpdatedAt;
+        ceramistStateV6342.badgeUpdatedAt = meta && meta.badgeUpdatedAt || ceramistStateV6342.badgeUpdatedAt;
+        if (meta && meta.ok && serverToken && cachedTokenV6364 && serverToken === cachedTokenV6364) {
+          const stamp = ceramistStateV6342.caseLevelRefreshedAt || ceramistStateV6342.generatedAt || ceramistStateV6342.driveUpdatedAt;
+          setCeramistStatusTextV6364('Worker cache updated: ' + (stamp ? ceramistCacheStampV6342(stamp) : 'date unavailable') + ' · saved copy is current');
+          return;
+        }
+        requestCeramistServerPayloadV6364(loadGenerationV6346, true);
+      })
+      .withFailureHandler(function(error) {
+        if (loadGenerationV6346 !== ceramistLoadGenerationV6346 || mainCacheSwapActiveV6346) return;
+        ceramistStateV6342.syncing = false;
+        setCeramistStatusTextV6364('Worker cache: saved copy · nightly check failed');
+        console.warn('Ceramist cache metadata check failed', error);
+      })
+      .getCeramistRemakeAnalysisCacheMeta();
+  }
+
+  function loadCeramistRemakeAnalysisV6342(force) {
+    if (ceramistStateV6342.loading || (ceramistStateV6342.loaded && !force)) return;
+    if (mainCacheSwapActiveV6346 || browserCacheWriteScheduledV6346) {
+      armCeramistLazyLoadV6346();
+      return;
+    }
+    disconnectCeramistLazyLoadV6346();
+    const loadGenerationV6346 = ++ceramistLoadGenerationV6346;
+    ceramistStateV6342.loading = true;
+    ceramistStateV6342.loaded = false;
+    ceramistStateV6342.ok = false;
+    ceramistStateV6342.statusText = '';
+    renderCeramistAnalysisV6342();
+
+    if (force) {
+      requestCeramistServerPayloadV6364(loadGenerationV6346, false);
+      return;
+    }
+
+    readCeramistFastCacheV6364()
+      .then(function(cached) {
+        if (loadGenerationV6346 !== ceramistLoadGenerationV6346 || mainCacheSwapActiveV6346) return;
+        if (cached && applyCeramistPayloadV6364(cached, true)) {
+          checkCeramistServerMetaV6364(loadGenerationV6346, cached.cacheToken || '');
+          return;
+        }
+        if (cached) deleteCeramistFastCacheV6364().catch(function(){});
+        ceramistStateV6342.loading = true;
+        ceramistStateV6342.loaded = false;
+        renderCeramistAnalysisV6342();
+        requestCeramistServerPayloadV6364(loadGenerationV6346, false);
+      })
+      .catch(function() {
+        if (loadGenerationV6346 !== ceramistLoadGenerationV6346 || mainCacheSwapActiveV6346) return;
+        requestCeramistServerPayloadV6364(loadGenerationV6346, false);
+      });
+  }
+
+  window.setCeramistCaseStatusV6343 = function setCeramistCaseStatusV6343(value) {
+    const allowed = ['all','full','partial','unattributed'];
+    ceramistStateV6342.caseStatus = allowed.indexOf(String(value)) >= 0 ? String(value) : 'all';
+    renderCeramistAnalysisV6342();
+  };
+  window.setCeramistDiagnosticV6343 = function setCeramistDiagnosticV6343(value) {
+    const allowed = ['none','multi','rootMissing','noteEvidence'];
+    ceramistStateV6342.diagnosticFlag = allowed.indexOf(String(value)) >= 0 ? String(value) : 'none';
+    renderCeramistAnalysisV6342();
+  };
+  window.setCeramistBreakdownV6343 = function setCeramistBreakdownV6343(value) {
+    const allowed = ['product','group','department','customer','reason'];
+    ceramistStateV6342.breakdown = allowed.indexOf(String(value)) >= 0 ? String(value) : 'product';
+    renderCeramistAnalysisV6342();
+  };
+  window.selectCeramistV6343 = function selectCeramistV6343(value) {
+    const next = String(value || '');
+    if (next && next === String(ceramistStateV6342.selectedCeramist || '')) {
+      ceramistStateV6342.selectedCeramist = '';
+      ceramistStateV6342.selectionCleared = true;
+    } else {
+      ceramistStateV6342.selectedCeramist = next;
+      ceramistStateV6342.selectionCleared = !next;
+    }
+    renderCeramistAnalysisV6342();
+  };
+  window.setCeramistFlagV6342 = function setCeramistFlagV6342(flag) {
+    if (flag === 'unattributed') window.setCeramistCaseStatusV6343('unattributed');
+    else window.setCeramistDiagnosticV6343(flag === 'all' ? 'none' : flag);
+  };
+
+
