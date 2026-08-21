@@ -1,0 +1,94 @@
+{
+  "datePt": "2026-08-21",
+  "checkpoint": "Stale paused-Overview support references removal",
+  "behaviorChangeIntended": false,
+  "scope": "Only references to DOM nodes already removed from active Index composition: tabOneBtn, overviewNavActions, overviewOne, overviewTwo.",
+  "files": [
+    {
+      "path": "DashboardSupportScript01.html",
+      "sourceGitBlobShaBefore": "f13c601f725426387b88f46a69af1b5c636a6c0b",
+      "sourceSha256Before": "901f82000ae8543532f1ba8a4dc96d1a828eb240b7df777f53d2173812078d21",
+      "sourceSha256After": "66316b7b7fdf072570c8b270c996e4e14ab48494aedb9cfd893b1a36b33240ad",
+      "bytesBefore": 20459,
+      "bytesAfter": 19921,
+      "bytesRemoved": 538,
+      "archivePath": "archive/overview-paused-2026-08-21/DashboardSupportScript01.pre-stale-overview-ref-removal.html",
+      "archiveByteForByteVerified": true,
+      "staleTargetCountsBefore": {
+        "tabOneBtn": 5,
+        "overviewNavActions": 3,
+        "overviewOne": 4,
+        "overviewTwo": 4
+      },
+      "staleTargetCountsAfter": {
+        "tabOneBtn": 0,
+        "overviewNavActions": 0,
+        "overviewOne": 0,
+        "overviewTwo": 0
+      },
+      "protectedTokenCountsBefore": {
+        "remakeFactorPage": 3,
+        "remakeFactorTabBtn": 4,
+        "categoricalPage": 4,
+        "remakeYearFilter": 0,
+        "remakeDepartmentFilter": 0,
+        "remakeProductFilter": 0,
+        "remakeCustomerFilter": 0,
+        "remakeReasonFilter": 0
+      },
+      "protectedTokenCountsAfter": {
+        "remakeFactorPage": 3,
+        "remakeFactorTabBtn": 4,
+        "categoricalPage": 4,
+        "remakeYearFilter": 0,
+        "remakeDepartmentFilter": 0,
+        "remakeProductFilter": 0,
+        "remakeCustomerFilter": 0,
+        "remakeReasonFilter": 0
+      }
+    },
+    {
+      "path": "DashboardSupportScript04.html",
+      "sourceGitBlobShaBefore": "ccc827d01dc6439709e8d97ecbda8abca9fe3a21",
+      "sourceSha256Before": "b7168ae650029cc2d71f0966fbfba4ddce73221c93d9fcc0a21d581613b01a0d",
+      "sourceSha256After": "8c1458c0c6e2ce57d22f753aa65a82f09ce37ac6105651a0ecff1d82a1be3c0f",
+      "bytesBefore": 37011,
+      "bytesAfter": 36979,
+      "bytesRemoved": 32,
+      "archivePath": "archive/overview-paused-2026-08-21/DashboardSupportScript04.pre-stale-overview-ref-removal.html",
+      "archiveByteForByteVerified": true,
+      "staleTargetCountsBefore": {
+        "overviewOne": 1,
+        "overviewTwo": 1
+      },
+      "staleTargetCountsAfter": {
+        "overviewOne": 0,
+        "overviewTwo": 0
+      },
+      "protectedTokenCountsBefore": {
+        "remakeFactorPage": 4,
+        "remakeFactorTabBtn": 1,
+        "categoricalPage": 1,
+        "remakeYearFilter": 1,
+        "remakeDepartmentFilter": 1,
+        "remakeProductFilter": 1,
+        "remakeCustomerFilter": 1,
+        "remakeReasonFilter": 1
+      },
+      "protectedTokenCountsAfter": {
+        "remakeFactorPage": 4,
+        "remakeFactorTabBtn": 1,
+        "categoricalPage": 1,
+        "remakeYearFilter": 1,
+        "remakeDepartmentFilter": 1,
+        "remakeProductFilter": 1,
+        "remakeCustomerFilter": 1,
+        "remakeReasonFilter": 1
+      }
+    }
+  ],
+  "syntaxValidatedWithNodeVm": true,
+  "categoricalPlaceholderPreserved": true,
+  "remakeTatBehaviorTouched": false,
+  "productionDeployment": false
+}

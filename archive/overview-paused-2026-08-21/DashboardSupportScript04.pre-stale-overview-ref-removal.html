@@ -39,8 +39,8 @@ window.CDA_REMAKE_COMPACT_VERSION = 'v6.385-minimal-saved-views-menu';
         const style = window.getComputedStyle(page);
         const visible = style.display !== 'none' && style.visibility !== 'hidden' &&
           (page.getClientRects().length > 0 || page.offsetHeight > 0 || page.offsetWidth > 0);
-        const nonRemakePageActive = !!document.querySelector('#categoricalPage.active');
-        if (visible && !nonRemakePageActive) return true;
+        const overviewActive = !!document.querySelector('#overviewOne.active, #overviewTwo.active, #categoricalPage.active');
+        if (visible && !overviewActive) return true;
       } catch (error) {}
     }
     try { return !!(window.state && window.state.activeTab === 'remakeFactor'); }
