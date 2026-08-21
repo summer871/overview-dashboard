@@ -1,0 +1,13 @@
+{
+  "generatedAt": "2026-08-21T19:58:46.691Z",
+  "source": "Index.html",
+  "sourceSha256Before": "5a47d0ff8f2d9b4de0c57d8aaa78c02ead3c6c16ae8072e2a08aaabf7602974b",
+  "sourceSha256After": "8973e2241075ea49318d33b1a57a94e6f462452dbe0798428f60f680b06d31fa",
+  "target": "DashboardFuzzySearch.html",
+  "extractedBytes": 4804,
+  "reconstructionVerified": true,
+  "behaviorChangeIntended": false,
+  "overviewChanged": false,
+  "sharedFilterChanged": false,
+  "note": "Mechanical extraction of the existing dashboardFuzzySearchV6412 script into a semantic include. Script bytes and load position are preserved."
+}
