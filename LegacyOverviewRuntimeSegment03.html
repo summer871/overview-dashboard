@@ -1,3 +1,401 @@
+        <button onclick="exportComponentData('${escapeJs(componentId)}')"><span>Export data</span><span>CSV</span></button>
+        <button onclick="saveComponentPng('${escapeJs(componentId)}')"><span>Save as PNG</span></button>
+        <button onclick="copyComponentImage('${escapeJs(componentId)}')"><span>Copy image</span></button>
+        ${sortBlock}
+      `;
+    }
+
+    function buildComponentSortButtons(componentId, config) {
+      if (componentId === 'customerTable') {
+        return `
+          <button onclick="setCustomerColumnSort('customerName'); closeComponentMenu();"><span>CustomerName</span></button>
+          <button onclick="setCustomerColumnSort('priorRevenue'); closeComponentMenu();"><span>2025</span></button>
+          <button onclick="setCustomerColumnSort('currentRevenue'); closeComponentMenu();"><span>2026</span></button>
+          <button onclick="setCustomerColumnSort('gap'); closeComponentMenu();"><span>26v25</span></button>
+        `;
+      }
+      if (componentId === 'productTable') {
+        return `
+          <button onclick="setProductColumnSort('productsDescription'); closeComponentMenu();"><span>Products_Description</span></button>
+          <button onclick="setProductColumnSort('priorRevenue'); closeComponentMenu();"><span>2025</span></button>
+          <button onclick="setProductColumnSort('currentRevenue'); closeComponentMenu();"><span>2026</span></button>
+          <button onclick="setProductColumnSort('gap'); closeComponentMenu();"><span>26v25</span></button>
+        `;
+      }
+      return '';
+    }
+
+    function closeComponentMenu() {
+      const menu = document.getElementById('componentMenu');
+      if (menu) {
+        menu.classList.remove('open');
+        menu.style.display = 'none';
+      }
+      document.querySelectorAll('.componentMenuBtn.active').forEach(btn => btn.classList.remove('active'));
+    }
+
+    document.addEventListener('click', event => {
+      const menu = document.getElementById('componentMenu');
+      if (menu && menu.classList.contains('open') && !event.target.closest('.componentMenu') && !event.target.closest('.componentMenuBtn')) {
+        closeComponentMenu();
+      }
+    });
+
+    document.addEventListener('keydown', event => {
+      if (event.key === 'Escape') closeComponentMenu();
+    });
+
+    function resetComponentSelection(componentId) {
+      const config = componentMenuConfigs[componentId] || {};
+      if (config.resetKind === 'month') {
+        state.selectedMonth = null;
+        state.selectedMonths = new Set();
+        state.monthSelectionMode = 'none';
+        state.lastSelectedMonth = null;
+        state.focusChartId = null;
+      } else if (config.resetKind === 'customer') {
+        state.selectedCustomerIds = new Set();
+        state.tableSelectedCustomerIds = new Set();
+        state.lastSelectedCustomerId = null;
+        state.customerColumnSort = null;
+        state.customerSort = 'losses';
+        state.customerMetric = 'revenue';
+      } else if (config.resetKind === 'product') {
+        state.selectedProductKeys = new Set();
+        state.tableSelectedProductKeys = new Set();
+        state.lastSelectedProductKey = null;
+        state.productColumnSort = null;
+        state.productSort = 'losses';
+        state.productMetric = 'revenue';
+      }
+      closeComponentMenu();
+      renderAll();
+    }
+
+    function refreshComponentData(componentId) {
+      closeComponentMenu();
+      showStatus('Refreshing latest dashboard cache...');
+      fetchLatestDashboardData();
+    }
+
+    function exportComponentData(componentId) {
+      const config = componentMenuConfigs[componentId];
+      if (!config) return;
+
+      const rows = config.type === 'chart'
+        ? getChartExportRows(config.canvasId)
+        : getTableExportRows(config.tableSelector);
+
+      if (!rows.length) {
+        showStatus('No visible data to export for ' + config.title + '.', 'warn');
+        return;
+      }
+
+      downloadTextFile(slugify(config.title) + '.csv', rowsToCsv(rows), 'text/csv;charset=utf-8');
+      closeComponentMenu();
+    }
+
+    function getChartExportRows(canvasId) {
+      const chart = charts[canvasId];
+      if (!chart || !chart.data) return [];
+      const datasets = chart.data.datasets || [];
+      const header = ['Label'].concat(datasets.map(dataset => String(dataset.label || 'Value')));
+      const rows = [header];
+      (chart.data.labels || []).forEach((label, index) => {
+        rows.push([String(label)].concat(datasets.map(dataset => dataset.data && dataset.data[index] !== undefined && dataset.data[index] !== null ? dataset.data[index] : '')));
+      });
+      return rows;
+    }
+
+    function getTableExportRows(tableSelector) {
+      const tbody = document.querySelector(tableSelector);
+      const table = tbody ? tbody.closest('table') : null;
+      if (!table) return [];
+      const header = [...table.querySelectorAll('thead th')].map(th => cleanCellText(th.textContent));
+      const rows = [header];
+      [...table.querySelectorAll('tbody tr')].forEach(tr => {
+        rows.push([...tr.querySelectorAll('td')].map(td => cleanCellText(td.textContent)));
+      });
+      return rows;
+    }
+
+    function cleanCellText(value) {
+      return String(value || '').replace(/▲|▼/g, '').replace(/\s+/g, ' ').trim();
+    }
+
+    function rowsToCsv(rows) {
+      return rows.map(row => row.map(cell => {
+        const text = String(cell === null || cell === undefined ? '' : cell);
+        return '"' + text.replace(/"/g, '""') + '"';
+      }).join(',')).join('\r\n');
+    }
+
+    function downloadTextFile(fileName, text, mimeType) {
+      const blob = new Blob([text], { type: mimeType || 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    async function renderComponentToPngBlob(componentId) {
+      const config = componentMenuConfigs[componentId];
+      if (!config) return null;
+
+      const card = getComponentCard(componentId);
+      if (card && window.html2canvas) {
+        const activeMenuButtons = [...card.querySelectorAll('.componentMenuBtn.active')];
+        activeMenuButtons.forEach(button => button.classList.remove('active'));
+        const canvas = await html2canvas(card, {
+          backgroundColor: '#ffffff',
+          scale: Math.min(2, window.devicePixelRatio || 1.5),
+          useCORS: true,
+          logging: false,
+          scrollX: 0,
+          scrollY: 0
+        });
+        activeMenuButtons.forEach(button => button.classList.add('active'));
+        return new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+      }
+
+      const canvas = config.canvasId ? document.getElementById(config.canvasId) : null;
+      if (canvas && canvas.toBlob) {
+        return new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+      }
+
+      return null;
+    }
+
+    function blobToObjectUrl(blob) {
+      return URL.createObjectURL(blob);
+    }
+
+    async function saveComponentPng(componentId) {
+      const config = componentMenuConfigs[componentId];
+      if (!config) return;
+      closeComponentMenu();
+
+      try {
+        showStatus('Preparing ' + config.title + ' PNG...');
+        const blob = await renderComponentToPngBlob(componentId);
+        if (!blob) {
+          showStatus('Could not create PNG for ' + config.title + '.', 'warn');
+          return;
+        }
+        const url = blobToObjectUrl(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = slugify(config.title) + '.png';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1200);
+        showStatus('Downloaded ' + config.title + ' PNG.', 'good');
+      } catch (error) {
+        showStatus('Could not create PNG for ' + config.title + '. Try Export data instead.', 'warn');
+      }
+    }
+
+    async function copyComponentImage(componentId) {
+      const config = componentMenuConfigs[componentId];
+      if (!config) return;
+      closeComponentMenu();
+
+      if (!navigator.clipboard || !window.ClipboardItem) {
+        await saveComponentPng(componentId);
+        showStatus('Image copy is not available in this browser, so the PNG was downloaded instead.', 'warn');
+        return;
+      }
+
+      try {
+        const blob = await renderComponentToPngBlob(componentId);
+        if (!blob) {
+          showStatus('Could not create image for ' + config.title + '.', 'warn');
+          return;
+        }
+        await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+        showStatus('Copied ' + config.title + ' image to clipboard.', 'good');
+      } catch (error) {
+        await saveComponentPng(componentId);
+        showStatus('Clipboard copy was blocked, so the PNG was downloaded instead.', 'warn');
+      }
+    }
+
+    function copyComponentLink(componentId) {
+      const config = componentMenuConfigs[componentId];
+      const card = getComponentCard(componentId);
+      const hash = '#component-' + componentId;
+      const url = window.location.href.split('#')[0] + hash;
+      history.replaceState(null, '', hash);
+      if (card) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(url)
+          .then(() => showStatus('Copied link to ' + (config ? config.title : 'component') + '.', 'good'))
+          .catch(() => showStatus('Component link: ' + url, 'warn'));
+      } else {
+        showStatus('Component link: ' + url, 'warn');
+      }
+      closeComponentMenu();
+    }
+
+    function getComponentCard(componentId) {
+      const config = componentMenuConfigs[componentId];
+      if (!config) return null;
+      if (config.canvasId) {
+        const canvas = document.getElementById(config.canvasId);
+        return canvas ? canvas.closest('.card') : null;
+      }
+      if (config.tableSelector) {
+        const tableBody = document.querySelector(config.tableSelector);
+        return tableBody ? tableBody.closest('.card') : null;
+      }
+      return null;
+    }
+
+    function scrollToLinkedComponent() {
+      const hash = String(window.location.hash || '');
+      if (!hash.startsWith('#component-')) return;
+      const componentId = hash.replace('#component-', '');
+      const card = getComponentCard(componentId);
+      if (card) {
+        card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        card.classList.add('chartFocusActive');
+        setTimeout(() => card.classList.remove('chartFocusActive'), 1800);
+      }
+    }
+
+    function slugify(value) {
+      return String(value || 'component')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '') || 'component';
+    }
+
+
+    function destroyChartsForTab(tabKey) {
+      (visibleChartIdsByTab[tabKey] || []).forEach(canvasId => {
+        if (charts[canvasId]) {
+          charts[canvasId].destroy();
+          delete charts[canvasId];
+        }
+      });
+    }
+
+    function drawChart(canvasId, config) {
+      const canvas = document.getElementById(canvasId);
+      if (!canvas) return;
+      if (charts[canvasId]) charts[canvasId].destroy();
+      const card = canvas.closest('.card');
+      if (card) card.classList.add('chartFocusCard');
+      charts[canvasId] = new Chart(canvas.getContext('2d'), config);
+    }
+
+    function bumpSelectedRowsToTop(rows, keyFn, selectedSet) {
+      if (!selectedSet || !selectedSet.size || !Array.isArray(rows)) return rows;
+      rows.forEach((row, index) => { row.__selectedSortIndex = index; });
+      rows.sort((a, b) => {
+        const aSelected = selectedSet.has(keyFn(a)) ? 1 : 0;
+        const bSelected = selectedSet.has(keyFn(b)) ? 1 : 0;
+        const selectedDiff = bSelected - aSelected;
+        if (selectedDiff) return selectedDiff;
+        return (a.__selectedSortIndex || 0) - (b.__selectedSortIndex || 0);
+      });
+      rows.forEach(row => { delete row.__selectedSortIndex; });
+      return rows;
+    }
+
+    function renderTables() {
+      renderCustomerTable();
+      renderProductTable();
+    }
+
+    function renderCustomerTable() {
+      // Keep the Customer Movers inventory visible when customers are selected.
+      // Selected customers are bumped to the top, while product/department/year/month filters
+      // still cross-filter this table.
+      const rows = groupBy(getFilteredFacts({ customer: true }), row => row.customerId, row => ({
+        customerId: row.customerId,
+        customerName: row.customerName,
+        customerActive: true,
+        currentRevenue: 0,
+        priorRevenue: 0,
+        currentUnits: 0,
+        priorUnits: 0
+      }), (acc, row) => {
+        if (row.customerActive === false) acc.customerActive = false;
+        if (row.year === (payload.config.currentYear || 2026)) {
+          acc.currentRevenue += row.netRevenue;
+          acc.currentUnits += row.units;
+        }
+        if (row.year === (payload.config.priorYear || 2025)) {
+          acc.priorRevenue += row.netRevenue;
+          acc.priorUnits += row.units;
+        }
+      }).map(row => ({
+        ...row,
+        gap: row.currentRevenue - row.priorRevenue,
+        unitGap: row.currentUnits - row.priorUnits
+      }));
+
+      updateMoverMetricHeaders('customer');
+      sortCustomerRows(rows);
+      bumpSelectedRowsToTop(rows, row => row.customerId, state.tableSelectedCustomerIds);
+
+      const visibleRows = rows.slice(0, 500);
+      state.lastCustomerTableIds = visibleRows.map(row => row.customerId);
+      const unitsMode = state.customerMetric === 'units';
+
+      document.getElementById('customerTable').innerHTML = visibleRows.map(row => {
+        const priorValue = unitsMode ? row.priorUnits : row.priorRevenue;
+        const currentValue = unitsMode ? row.currentUnits : row.currentRevenue;
+        const gapValue = unitsMode ? row.unitGap : row.gap;
+        return `
+          <tr class="clickable ${state.tableSelectedCustomerIds && state.tableSelectedCustomerIds.has(row.customerId) ? 'active' : ''}" onclick="setCustomer('${escapeJs(row.customerId)}', event)">
+            <td>${escapeHtml(row.customerId)}</td>
+            <td class="customerNameCell"><span class="customerNameText">${escapeHtml(row.customerName)}</span>${row.customerActive === false ? ' <span class="inactiveBadge">Inactive</span>' : ''}</td>
+            <td>${formatMoverValue(priorValue, unitsMode)}</td>
+            <td>${formatMoverValue(currentValue, unitsMode)}</td>
+            <td class="${gapValue < 0 ? 'negative' : 'positive'}">${formatMoverValue(gapValue, unitsMode)}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function renderProductTable() {
+      // Keep the Product Movers inventory visible when products are selected.
+      // Selected products are bumped to the top, while customer/department/year/month filters
+      // still cross-filter this table.
+      const rows = groupBy(getFilteredFacts({ product: true }), row => productKey(row), row => ({
+        key: productKey(row),
+        productId: row.productId,
+        productsDescription: row.productsDescription,
+        productsDepartment: row.productsDepartment,
+        currentRevenue: 0,
+        priorRevenue: 0,
+        currentUnits: 0,
+        priorUnits: 0
+      }), (acc, row) => {
+        if (row.year === (payload.config.currentYear || 2026)) {
+          acc.currentRevenue += row.netRevenue;
+          acc.currentUnits += row.units;
+        }
+        if (row.year === (payload.config.priorYear || 2025)) {
+          acc.priorRevenue += row.netRevenue;
+          acc.priorUnits += row.units;
+        }
+      }).map(row => ({
+        ...row,
+        gap: row.currentRevenue - row.priorRevenue,
+        unitGap: row.currentUnits - row.priorUnits
+      }));
+
+      updateMoverMetricHeaders('product');
+      sortProductRows(rows);
       bumpSelectedRowsToTop(rows, row => row.key, state.tableSelectedProductKeys);
 
       const visibleRows = rows.slice(0, 1000);
@@ -1102,479 +1500,3 @@
     }
 
     function getYtdComparisonRowsThroughCurrentMonth() {
-      const rows = getOverviewTwoComparisonRows();
-      const latestMonth = getLatestComparisonMonth(rows);
-      return rows.filter(row => Number(row.monthNum || 0) <= latestMonth);
-    }
-
-    function getOverviewTwoComparisonYears(rows) {
-      const availableYears = [...new Set(rows.map(row => Number(row.year)).filter(Boolean))].sort((a, b) => b - a);
-      const selectedYears = state.years ? [...state.years].map(Number).filter(year => availableYears.includes(year)).sort((a, b) => b - a) : [];
-      const years = [];
-      selectedYears.forEach(year => { if (!years.includes(year)) years.push(year); });
-      availableYears.forEach(year => { if (years.length < 3 && !years.includes(year)) years.push(year); });
-      return years.slice(0, 3);
-    }
-
-    function renderOverviewTwoSnapshotHeader(metrics) {
-      const period = hasMonthFilter()
-        ? getSelectedMonths().map(month => monthLabels[month - 1]).join(', ')
-        : 'YTD performance';
-      setText('o2SnapshotPeriod', period || 'YTD performance');
-      const tone = document.getElementById('o2SnapshotTone');
-      if (!tone) return;
-      const gap = Number(metrics && metrics.gap || 0);
-      const pct = metrics && metrics.gapPct !== null && metrics.gapPct !== undefined ? metrics.gapPct : null;
-      tone.classList.toggle('good', gap > 0);
-      tone.classList.toggle('bad', gap < 0);
-      tone.textContent = pct === null ? formatCompactSigned(gap) : formatSignedPercent(pct);
-    }
-
-    function renderOverviewTwoYearStack() {
-      const holder = document.getElementById('o2YearStackRows');
-      if (!holder) return;
-      const rows = getYtdComparisonRowsThroughCurrentMonth();
-      const latestMonth = getLatestComparisonMonth(getOverviewTwoComparisonRows());
-      const years = getOverviewTwoComparisonYears(rows);
-      const totals = new Map();
-      years.forEach(year => totals.set(year, 0));
-      rows.forEach(row => {
-        const year = Number(row.year);
-        if (totals.has(year)) totals.set(year, (totals.get(year) || 0) + Number(row.netRevenue || 0));
-      });
-
-      setText('o2YearStackAsOf', latestMonth ? 'Through ' + monthLabels[latestMonth - 1] : 'Same YTD window');
-      if (!years.length) {
-        holder.innerHTML = '<div class="o2YearRowV150"><span class="year">-</span><span class="amount">No data</span><span class="delta">-</span></div>';
-        return;
-      }
-
-      holder.innerHTML = years.map((year, idx) => {
-        const amount = totals.get(year) || 0;
-        const olderYear = years[idx + 1];
-        const olderAmount = olderYear ? (totals.get(olderYear) || 0) : null;
-        const gap = olderAmount !== null ? amount - olderAmount : null;
-        const pct = olderAmount ? gap / Math.abs(olderAmount) : null;
-        const deltaClass = gap === null ? '' : gap > 0 ? 'good' : gap < 0 ? 'bad' : '';
-        const deltaText = gap === null ? '-' : formatSignedPercent(pct);
-        return '<div class="o2YearRowV150">'
-          + '<span class="year">' + year + '</span>'
-          + '<span class="amount">' + formatCurrency(amount) + '</span>'
-          + '<span class="delta ' + deltaClass + '">' + deltaText + '</span>'
-          + '</div>';
-      }).join('');
-    }
-
-    function getMonthlyYoyRows() {
-      const rows = getOverviewTwoComparisonRows();
-      const { currentYear, priorYear } = getCurrentPriorYears();
-      const latestMonth = getLatestComparisonMonth(rows);
-      const months = [];
-      for (let month = 1; month <= latestMonth; month++) months.push(month);
-      return months.map(month => {
-        const current = rows.filter(row => row.year === currentYear && row.monthNum === month).reduce((sum, row) => sum + Number(row.netRevenue || 0), 0);
-        const prior = rows.filter(row => row.year === priorYear && row.monthNum === month).reduce((sum, row) => sum + Number(row.netRevenue || 0), 0);
-        const gap = current - prior;
-        const pct = prior ? gap / Math.abs(prior) : null;
-        return { month, current, prior, gap, pct };
-      });
-    }
-
-    function renderOverviewTwoMonthlyYoYStrip() {
-      const holder = document.getElementById('o2MonthlyYoyTiles');
-      if (!holder) return;
-      const rawRows = getMonthlyYoyRows();
-      let currentRun = 0;
-      let priorRun = 0;
-      const rows = rawRows.map(row => {
-        currentRun += Number(row.current || 0);
-        priorRun += Number(row.prior || 0);
-        return Object.assign({}, row, { ytdGap: currentRun - priorRun });
-      });
-
-      const latest = rows.length ? rows[rows.length - 1] : null;
-      const worst = rows.length ? rows.reduce((min, row) => row.gap < min.gap ? row : min, rows[0]) : null;
-      const positiveCount = rows.filter(row => row.gap > 0).length;
-      const maxAbsYtdGap = Math.max(1, ...rows.map(row => Math.abs(Number(row.ytdGap || 0))));
-
-      setPaceValue('o2PaceYtdGap', latest ? formatCompactSigned(latest.ytdGap) : '-', latest ? latest.ytdGap : 0);
-      setText('o2PaceYtdGapSub', latest ? 'Through ' + monthLabels[latest.month - 1] : 'Through current month');
-      setPaceValue('o2PaceWorstMonth', worst ? monthLabels[worst.month - 1] : '-', worst ? worst.gap : 0);
-      setText('o2PaceWorstMonthSub', worst ? formatCompactSigned(worst.gap) + ' monthly drag' : 'Monthly drag');
-      setPaceValue('o2PacePositiveMonths', rows.length ? positiveCount + ' / ' + rows.length : '-', positiveCount);
-
-      holder.style.setProperty('--pace-month-count', String(Math.max(rows.length, 6)));
-      if (!rows.length) {
-        holder.innerHTML = '<div class="o2PaceEmptyV156">No monthly comparison data available.</div>';
-        return;
-      }
-
-      holder.innerHTML = rows.map(row => {
-        const monthlyClass = row.gap > 0 ? 'good' : row.gap < 0 ? 'bad' : 'neutral';
-        const ytdClass = row.ytdGap > 0 ? 'good' : row.ytdGap < 0 ? 'bad' : 'neutral';
-        const pct = row.pct === null ? '-' : formatSignedPercent(row.pct);
-        const ytdBarWidth = Math.max(8, Math.round(Math.abs(Number(row.ytdGap || 0)) / maxAbsYtdGap * 100));
-        const title = monthLabels[row.month - 1] + ': monthly ' + formatCompactSigned(row.gap) + ', cumulative gap ' + formatCompactSigned(row.ytdGap);
-        return '<div class="o2PaceMonthV156 o2PaceMonthV158 ' + monthlyClass + '" title="' + escapeHtml(title) + '">'
-          + '<div class="o2PaceMonthLabelV156 o2PaceMonthLabelV158">' + monthLabels[row.month - 1] + '</div>'
-          + '<div class="o2PaceMonthlyV156 o2PaceMonthlyV158 ' + monthlyClass + '"><span>' + pct + '</span></div>'
-          + '<div class="o2PaceYtdV156 o2PaceYtdV158 ' + ytdClass + '"><b>' + formatCompactSigned(row.ytdGap) + '</b><div class="o2PaceBarTrackV156 o2PaceBarTrackV158"><i style="width:' + ytdBarWidth + '%"></i></div></div>'
-          + '</div>';
-      }).join('');
-    }
-
-    function setPaceValue(id, value, toneValue) {
-      const el = document.getElementById(id);
-      if (!el) return;
-      el.textContent = value;
-      el.classList.toggle('good', Number(toneValue || 0) > 0);
-      el.classList.toggle('bad', Number(toneValue || 0) < 0);
-    }
-
-    function drawOverviewTwoGapPath() {
-      const canvasId = 'o2GapPath';
-      const canvas = document.getElementById(canvasId);
-      if (!canvas) return;
-      const rows = getOverviewTwoComparisonRows();
-      const { currentYear, priorYear } = getCurrentPriorYears();
-      const latestMonth = getLatestComparisonMonth(rows);
-      const months = [];
-      for (let month = 1; month <= latestMonth; month++) months.push(month);
-
-      let currentRun = 0;
-      let priorRun = 0;
-      const gaps = months.map(month => {
-        currentRun += rows.filter(row => row.year === currentYear && row.monthNum === month).reduce((sum, row) => sum + Number(row.netRevenue || 0), 0);
-        priorRun += rows.filter(row => row.year === priorYear && row.monthNum === month).reduce((sum, row) => sum + Number(row.netRevenue || 0), 0);
-        return currentRun - priorRun;
-      });
-
-      if (charts[canvasId]) charts[canvasId].destroy();
-      charts[canvasId] = new Chart(canvas.getContext('2d'), {
-        type: 'line',
-        data: {
-          labels: months.map(month => monthLabels[month - 1]),
-          datasets: [{
-            label: 'YTD gap',
-            data: gaps,
-            borderColor: '#b42318',
-            backgroundColor: 'rgba(180, 35, 24, 0.08)',
-            pointRadius: 3,
-            pointHoverRadius: 5,
-            pointBackgroundColor: gaps.map(value => value >= 0 ? '#067647' : '#b42318'),
-            pointBorderColor: '#ffffff',
-            pointBorderWidth: 1.5,
-            tension: 0.32,
-            fill: true
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          interaction: { mode: 'index', intersect: false },
-          onClick: (event, elements) => {
-            if (!elements || !elements.length) return;
-            const index = elements[0].index;
-            const month = months[index];
-            if (month) applyMonthSelection(month, isAdditiveEvent(event), isRangeEvent(event));
-          },
-          plugins: {
-            legend: { display: false },
-            tooltip: {
-              callbacks: {
-                label: context => 'YTD gap: ' + formatCurrency(context.parsed.y || 0)
-              }
-            }
-          },
-          scales: {
-            x: {
-              grid: { display: false },
-              ticks: { color: '#667085', font: { size: 10, weight: '700' } }
-            },
-            y: {
-              grid: { color: '#eef1f5', borderDash: [3, 4] },
-              ticks: {
-                color: '#667085',
-                font: { size: 10, weight: '700' },
-                callback: value => formatAxisNumber(value)
-              }
-            }
-          }
-        }
-      });
-    }
-
-
-
-    /* v6.152 insight panels: more analytics instead of stretching existing visuals. */
-    function renderOverviewTwoInsightPanels() {
-      const rows = getYtdComparisonRowsThroughCurrentMonth();
-      const metrics = summarize(rows);
-      renderOverviewTwoRevenueGapDrivers(metrics);
-      renderOverviewTwoCustomerHealth(rows);
-      renderOverviewTwoMixShift(rows);
-      renderOverviewTwoBiggestMoves(rows);
-      updateOverviewTwoDeepDive();
-    }
-
-    function renderOverviewTwoRevenueGapDrivers(metrics) {
-      const holder = document.getElementById('o2RevenueGapDrivers');
-      if (!holder) return;
-      const unitImpact = (Number(metrics.units || 0) - Number(metrics.priorUnits || 0)) * Number(metrics.priorAvgPrice || 0);
-      const avgImpact = (Number(metrics.avgPrice || 0) - Number(metrics.priorAvgPrice || 0)) * Number(metrics.units || 0);
-      const customerImpact = (Number(metrics.customers || 0) - Number(metrics.priorCustomers || 0)) * Number(metrics.priorRpac || 0);
-      const valueImpact = (Number(metrics.rpac || 0) - Number(metrics.priorRpac || 0)) * Number(metrics.customers || 0);
-      const rows = [
-        { name: 'Units impact', value: unitImpact },
-        { name: 'Avg $ / unit impact', value: avgImpact },
-        { name: 'Customer count impact', value: customerImpact },
-        { name: 'Revenue / customer impact', value: valueImpact }
-      ];
-      holder.innerHTML = rows.map(item => insightRowHtml(item.name, formatCompactSigned(item.value), item.value)).join('');
-    }
-
-    function renderOverviewTwoCustomerHealth(rows) {
-      const holder = document.getElementById('o2CustomerHealth');
-      if (!holder) return;
-      const grouped = groupCurrentPrior(rows, row => row.customerId || row.customerName || 'Unassigned', row => row.customerName || row.customerId || 'Unassigned customer');
-      const growing = grouped.filter(item => item.current > item.prior && item.prior > 0);
-      const declining = grouped.filter(item => item.current < item.prior && item.current > 0 && item.prior > 0);
-      const newOrReactive = grouped.filter(item => item.current > 0 && item.prior <= 0);
-      const lost = grouped.filter(item => item.current <= 0 && item.prior > 0);
-      const decliningGap = declining.reduce((total, item) => total + Math.min(0, item.current - item.prior), 0);
-      const lostPrior = lost.reduce((total, item) => total + item.prior, 0);
-      const newRevenue = newOrReactive.reduce((total, item) => total + item.current, 0);
-      const growingGap = growing.reduce((total, item) => total + Math.max(0, item.current - item.prior), 0);
-      holder.innerHTML = [
-        healthTileHtml('Growing', growing.length, formatCompactSigned(growingGap), 'good'),
-        healthTileHtml('Declining', declining.length, formatCompactSigned(decliningGap), 'bad'),
-        healthTileHtml('New / reactivated', newOrReactive.length, formatCurrency(newRevenue), 'good'),
-        healthTileHtml('Lost', lost.length, formatCurrency(lostPrior) + ' prior', 'bad')
-      ].join('');
-    }
-
-    function renderOverviewTwoMixShift(rows) {
-      const holder = document.getElementById('o2MixShift');
-      if (!holder) return;
-      const grouped = groupCurrentPrior(rows, row => row.productsDepartment || 'Unassigned', row => row.productsDepartment || 'Unassigned');
-      grouped.forEach(item => {
-        item.gap = item.current - item.prior;
-        item.absGap = Math.abs(item.gap);
-      });
-      const top = grouped.sort((a, b) => b.absGap - a.absGap).slice(0, 5);
-      if (!top.length) {
-        holder.innerHTML = '<div class="o2InsightRowV152"><span class="name">No department data</span><span class="value">-</span></div>';
-        return;
-      }
-      holder.innerHTML = top.map(item => insightRowHtml(item.name, formatCompactSigned(item.gap), item.gap)).join('');
-    }
-
-    function renderOverviewTwoBiggestMoves(rows) {
-      const holder = document.getElementById('o2BiggestMoves');
-      if (!holder) return;
-      const customers = groupCurrentPrior(rows, row => row.customerId || row.customerName || 'Unassigned', row => row.customerName || row.customerId || 'Unassigned customer');
-      const products = groupCurrentPrior(rows, row => productKey(row), row => row.productsDescription || 'Unassigned product');
-      customers.forEach(item => item.gap = item.current - item.prior);
-      products.forEach(item => item.gap = item.current - item.prior);
-      const bestCustomer = customers.length ? customers.slice().sort((a, b) => b.gap - a.gap)[0] : null;
-      const worstCustomer = customers.length ? customers.slice().sort((a, b) => a.gap - b.gap)[0] : null;
-      const bestProduct = products.length ? products.slice().sort((a, b) => b.gap - a.gap)[0] : null;
-      const worstProduct = products.length ? products.slice().sort((a, b) => a.gap - b.gap)[0] : null;
-      const rowsOut = [
-        { label: 'Best customer', item: bestCustomer },
-        { label: 'Largest customer loss', item: worstCustomer },
-        { label: 'Best product', item: bestProduct },
-        { label: 'Largest product loss', item: worstProduct }
-      ];
-      holder.innerHTML = rowsOut.map(row => {
-        if (!row.item) return insightRowHtml(row.label, '-', 0);
-        return '<div class="o2InsightRowV152" title="' + escapeHtml(row.label + ': ' + row.item.name) + '">'
-          + '<span class="name">' + escapeHtml(row.label + ': ' + row.item.name) + '</span>'
-          + '<span class="value ' + insightToneClass(row.item.gap) + '">' + escapeHtml(formatCompactSigned(row.item.gap)) + '</span>'
-          + '</div>';
-      }).join('');
-    }
-
-    function groupCurrentPrior(rows, keyFn, nameFn) {
-      const { currentYear, priorYear } = getCurrentPriorYears();
-      const map = new Map();
-      rows.forEach(row => {
-        const key = String(keyFn(row) || 'Unassigned');
-        if (!map.has(key)) map.set(key, { key, name: nameFn(row) || key, current: 0, prior: 0 });
-        const item = map.get(key);
-        if (row.year === currentYear) item.current += Number(row.netRevenue || 0);
-        if (row.year === priorYear) item.prior += Number(row.netRevenue || 0);
-      });
-      return [...map.values()];
-    }
-
-    function insightToneClass(value) {
-      const n = Number(value || 0);
-      return n > 0 ? 'good' : n < 0 ? 'bad' : '';
-    }
-
-    function insightRowHtml(name, value, toneValue) {
-      return '<div class="o2InsightRowV152" title="' + escapeHtml(name + ': ' + value) + '">'
-        + '<span class="name">' + escapeHtml(name) + '</span>'
-        + '<span class="value ' + insightToneClass(toneValue) + '">' + escapeHtml(value) + '</span>'
-        + '</div>';
-    }
-
-    function healthTileHtml(label, value, sub, cls) {
-      return '<div class="o2HealthTileV152 ' + (cls || '') + '">'
-        + '<div class="label">' + escapeHtml(label) + '</div>'
-        + '<div class="value">' + escapeHtml(formatNumber(value)) + '</div>'
-        + '<div class="sub">' + escapeHtml(sub || '-') + '</div>'
-        + '</div>';
-    }
-
-
-    /* v6.155 deep dive tabs: keep all analytics, show one lower panel at a time. */
-    function setOverviewTwoDeepDive(mode) {
-      if (!state) return;
-      state.overviewTwoDeepDive = mode || 'gap';
-      updateOverviewTwoDeepDive();
-    }
-
-    function updateOverviewTwoDeepDive() {
-      const mode = state && state.overviewTwoDeepDive ? state.overviewTwoDeepDive : 'gap';
-      const config = {
-        gap: {
-          tab: 'o2DeepTabGap',
-          panel: 'o2DeepPanelGap',
-          title: 'Deep Dive: Gap Drivers',
-          subtitle: 'Unit, price, customer-count, and revenue-per-customer impact in the current YTD window.'
-        },
-        health: {
-          tab: 'o2DeepTabHealth',
-          panel: 'o2DeepPanelHealth',
-          title: 'Deep Dive: Customer Health',
-          subtitle: 'A cleaner view of growing, declining, new/reactivated, and lost customer groups.'
-        },
-        mix: {
-          tab: 'o2DeepTabMix',
-          panel: 'o2DeepPanelMix',
-          title: 'Deep Dive: Department Mix',
-          subtitle: 'Largest department shifts behind the selected year-to-date performance.'
-        },
-        moves: {
-          tab: 'o2DeepTabMoves',
-          panel: 'o2DeepPanelMoves',
-          title: 'Deep Dive: Biggest Moves',
-          subtitle: 'Best and worst customer/product movements in one focused view.'
-        }
-      };
-      const selected = config[mode] || config.gap;
-      Object.keys(config).forEach(key => {
-        const tab = document.getElementById(config[key].tab);
-        const panel = document.getElementById(config[key].panel);
-        if (tab) tab.classList.toggle('active', config[key].tab === selected.tab);
-        if (panel) panel.classList.toggle('active', config[key].panel === selected.panel);
-      });
-      const title = document.getElementById('o2DeepDiveTitle');
-      const subtitle = document.getElementById('o2DeepDiveSubtitle');
-      if (title) title.textContent = selected.title;
-      if (subtitle) subtitle.textContent = selected.subtitle;
-    }
-
-
-    /* v6.153 interactive executive insights. */
-    function setOverviewTwoInsightMode(mode) {
-      if (!state) return;
-      state.o2InsightMode = mode || 'explain';
-      renderOverviewTwoExecutiveInsights();
-    }
-
-    function renderOverviewTwoExecutiveInsights() {
-      const holder = document.getElementById('o2ExecutiveInsights');
-      if (!holder || !payload || !facts || !facts.length) return;
-
-      const mode = state.o2InsightMode || 'explain';
-      const overview = document.getElementById('overviewTwo');
-      if (overview) overview.classList.remove('o2BossViewV153');
-      updateOverviewTwoInsightButtons(mode);
-
-      const rows = getYtdComparisonRowsThroughCurrentMonth();
-      const metrics = summarize(rows);
-      const context = buildOverviewTwoInsightContext(rows, metrics);
-      const content = buildOverviewTwoInsightContent(mode, context);
-
-      const title = document.getElementById('o2ExecutiveInsightsTitle');
-      const subtitle = document.getElementById('o2ExecutiveInsightsSubtitle');
-      const badge = document.getElementById('o2ExecutiveInsightsBadge');
-      if (title) title.textContent = content.title;
-      if (subtitle) subtitle.textContent = content.subtitle;
-      if (badge) badge.textContent = content.badge;
-
-      holder.innerHTML = '<div class="o2InsightNarrativeV153">'
-        + '<div class="o2InsightLeadV153 ' + insightToneClass(content.toneValue) + '">' + escapeHtml(content.lead) + '</div>'
-        + '<div class="o2InsightBulletsV153">' + content.bullets.map((item, index) => insightBulletHtml(index + 1, item.label, item.value, item.tone)).join('') + '</div>'
-        + '</div>'
-        + '<div class="o2InsightStatGridV153">' + content.stats.map(item => insightStatHtml(item.label, item.value, item.sub)).join('') + '</div>';
-    }
-
-    function updateOverviewTwoInsightButtons(mode) {
-      const ids = {
-        explain: 'o2InsightBtnExplain',
-        loss: 'o2InsightBtnLoss',
-        growth: 'o2InsightBtnGrowth'
-      };
-      Object.keys(ids).forEach(key => {
-        const btn = document.getElementById(ids[key]);
-        if (btn) btn.classList.toggle('active', key === mode);
-      });
-    }
-
-    function buildOverviewTwoInsightContext(rows, metrics) {
-      const monthly = getMonthlyYoyRows();
-      const customers = groupCurrentPrior(rows, row => row.customerId || row.customerName || 'Unassigned', row => row.customerName || row.customerId || 'Unassigned customer');
-      const products = groupCurrentPrior(rows, row => productKey(row), row => row.productsDescription || 'Unassigned product');
-      const departments = groupCurrentPrior(rows, row => row.productsDepartment || 'Unassigned', row => row.productsDepartment || 'Unassigned');
-      [customers, products, departments].forEach(list => list.forEach(item => {
-        item.gap = Number(item.current || 0) - Number(item.prior || 0);
-        item.gapPct = item.prior ? item.gap / Math.abs(item.prior) : null;
-        item.absGap = Math.abs(item.gap || 0);
-      }));
-
-      const monthWorst = monthly.length ? monthly.slice().sort((a, b) => a.gap - b.gap)[0] : null;
-      const monthBest = monthly.length ? monthly.slice().sort((a, b) => b.gap - a.gap)[0] : null;
-      const lossCustomers = customers.filter(item => item.gap < 0).sort((a, b) => a.gap - b.gap);
-      const gainCustomers = customers.filter(item => item.gap > 0).sort((a, b) => b.gap - a.gap);
-      const lossProducts = products.filter(item => item.gap < 0).sort((a, b) => a.gap - b.gap);
-      const gainProducts = products.filter(item => item.gap > 0).sort((a, b) => b.gap - a.gap);
-      const lossDepartments = departments.filter(item => item.gap < 0).sort((a, b) => a.gap - b.gap);
-      const gainDepartments = departments.filter(item => item.gap > 0).sort((a, b) => b.gap - a.gap);
-      const lostCustomers = customers.filter(item => Number(item.current || 0) <= 0 && Number(item.prior || 0) > 0);
-      const newCustomers = customers.filter(item => Number(item.current || 0) > 0 && Number(item.prior || 0) <= 0);
-      const growingCustomers = customers.filter(item => item.gap > 0 && item.prior > 0);
-      const decliningCustomers = customers.filter(item => item.gap < 0 && item.current > 0 && item.prior > 0);
-      const atRiskRevenue = lostCustomers.reduce((sum, item) => sum + Number(item.prior || 0), 0);
-      const winRevenue = gainCustomers.reduce((sum, item) => sum + Math.max(0, Number(item.gap || 0)), 0);
-      const lossRevenue = lossCustomers.reduce((sum, item) => sum + Math.min(0, Number(item.gap || 0)), 0);
-
-      return {
-        metrics,
-        monthly,
-        monthWorst,
-        monthBest,
-        customers,
-        products,
-        departments,
-        lossCustomers,
-        gainCustomers,
-        lossProducts,
-        gainProducts,
-        lossDepartments,
-        gainDepartments,
-        lostCustomers,
-        newCustomers,
-        growingCustomers,
-        decliningCustomers,
-        atRiskRevenue,
-        winRevenue,
-        lossRevenue
-      };
-    }
-
-    function buildOverviewTwoInsightContent(mode, context) {
-      if (mode === 'loss') return buildOverviewTwoLossWatchContent(context);

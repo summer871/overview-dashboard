@@ -1,613 +1,3 @@
-  function applyOneBlockLayoutV6184(key, layout) {
-    const el = blockElementV6184(key);
-    if (!el) return;
-    const next = normalizeBlockLayoutV6184(key, layout);
-    el.style.setProperty('--blockX', next.x + 'px');
-    el.style.setProperty('--blockY', next.y + 'px');
-    el.style.setProperty('--blockW', next.w + 'px');
-    el.style.setProperty('--blockH', next.h + 'px');
-    el.style.setProperty('--blockZ', String(next.z));
-    el.classList.add('blockMovedV6184');
-  }
-
-  function applyAllBlockLayoutsV6184(markTuned) {
-    const overview = overviewOneV6184();
-    if (!overview) return;
-    currentBlockLayoutV6184 = currentBlockLayoutV6184 || readSavedBlockLayoutV6184() || {};
-
-    const hasSaved = Object.keys(readSavedBlockLayoutV6184()).length > 0;
-    if (markTuned || hasSaved) overview.classList.add('blockLayoutTunedV6184');
-
-    BLOCKS_V6184.forEach(block => {
-      if (currentBlockLayoutV6184[block.key]) {
-        applyOneBlockLayoutV6184(block.key, currentBlockLayoutV6184[block.key]);
-      }
-    });
-  }
-
-  function installStylesV6184() {
-    if (document.getElementById(STYLE_ID_V6184)) return;
-
-    const style = document.createElement('style');
-    style.id = STYLE_ID_V6184;
-    style.textContent = `
-      #overviewOne .grid {
-        position: relative !important;
-      }
-
-      #overviewOne .layoutBlockEditableV6184 {
-        position: relative !important;
-        transform-origin: top left !important;
-      }
-
-      #overviewOne.blockLayoutTunedV6184 .layoutBlockEditableV6184.blockMovedV6184,
-      body.layoutEditModeV6183 #overviewOne .layoutBlockEditableV6184.blockMovedV6184 {
-        width: var(--blockW) !important;
-        height: var(--blockH) !important;
-        transform: translate(var(--blockX), var(--blockY)) !important;
-        z-index: var(--blockZ) !important;
-      }
-
-      body.layoutEditModeV6183 #overviewOne .layoutBlockEditableV6184 {
-        outline: 2px dashed rgba(35, 91, 142, .45) !important;
-        outline-offset: -3px !important;
-        cursor: move !important;
-      }
-
-      body.layoutEditModeV6183 #overviewOne .layoutBlockEditableV6184.layoutSelectedBlockV6184 {
-        outline-color: rgba(245, 158, 11, .88) !important;
-        box-shadow: 0 0 0 3px rgba(245, 158, 11, .14), 0 8px 24px rgba(16,24,40,.16) !important;
-      }
-
-      body.layoutEditModeV6183 #overviewOne .layoutBlockEditableV6184::after {
-        content: attr(data-layout-label) !important;
-        position: absolute !important;
-        left: 8px !important;
-        top: 8px !important;
-        z-index: 30 !important;
-        pointer-events: none !important;
-        padding: 3px 6px !important;
-        border-radius: 999px !important;
-        background: rgba(24, 36, 51, .88) !important;
-        color: #fff !important;
-        font: 800 10px/1 Roboto, Arial, sans-serif !important;
-        letter-spacing: .02em !important;
-      }
-
-      .layoutResizeHandleV6184 {
-        display: none !important;
-        position: absolute !important;
-        right: 4px !important;
-        bottom: 4px !important;
-        z-index: 40 !important;
-        width: 16px !important;
-        height: 16px !important;
-        border-radius: 5px !important;
-        border: 1px solid rgba(35,91,142,.55) !important;
-        background:
-          linear-gradient(135deg, transparent 0 45%, rgba(35,91,142,.9) 46% 55%, transparent 56%),
-          rgba(255,255,255,.94) !important;
-        box-shadow: 0 2px 6px rgba(16,24,40,.18) !important;
-        cursor: nwse-resize !important;
-      }
-
-      body.layoutEditModeV6183 #overviewOne .layoutResizeHandleV6184 {
-        display: block !important;
-      }
-
-      #layoutCardEditorV6184 {
-        border-top: 1px solid #edf0f5 !important;
-        padding-top: 8px !important;
-        margin-top: 8px !important;
-      }
-
-      #layoutCardEditorV6184 .layoutEditGroupTitleV6184 {
-        font-size: 11px !important;
-        font-weight: 900 !important;
-        color: #344054 !important;
-        margin-bottom: 6px !important;
-      }
-
-      #layoutCardEditorV6184 .layoutEditHintV6184 {
-        font-size: 10.5px !important;
-        color: #667085 !important;
-        line-height: 1.3 !important;
-        margin: 0 0 8px !important;
-      }
-
-      #layoutCardEditorV6184 select {
-        width: 100% !important;
-        height: 30px !important;
-        border: 1px solid #d8dde6 !important;
-        border-radius: 8px !important;
-        background: #fff !important;
-        color: #344054 !important;
-        font-size: 11px !important;
-        font-weight: 800 !important;
-        padding: 0 7px !important;
-        margin: 0 0 7px !important;
-      }
-
-      #layoutCardEditorV6184 .layoutCardButtonsV6184 {
-        display: flex !important;
-        gap: 6px !important;
-        flex-wrap: wrap !important;
-      }
-
-      #layoutCardEditorV6184 button {
-        border: 1px solid #d8dde6 !important;
-        background: #f8fafc !important;
-        color: #344054 !important;
-        border-radius: 9px !important;
-        padding: 7px 9px !important;
-        font-size: 11px !important;
-        font-weight: 900 !important;
-        cursor: pointer !important;
-      }
-
-      #layoutCardEditorV6184 button.primary {
-        background: #182433 !important;
-        color: #fff !important;
-        border-color: #182433 !important;
-      }
-
-      /* Extra safety: default/status pills should not show as active values. */
-      #overviewOne #activeFilterPillBarV6170 .layoutHiddenPillV6183,
-      #overviewOne #activeFilterPillBarV6170 .layoutHiddenPillV6184 {
-        display: none !important;
-      }
-    `;
-    document.head.appendChild(style);
-  }
-
-  function setDebugVersionV6184() {
-    document.querySelectorAll('body *').forEach(el => {
-      const value = (el.textContent || '').trim();
-      if (/^DEBUG v6\.\d+/.test(value) && value.length < 300) {
-        el.textContent = VERSION_TEXT_V6184;
-      }
-    });
-  }
-
-  function prepareBlocksV6184() {
-    installStylesV6184();
-
-    BLOCKS_V6184.forEach(block => {
-      const el = blockElementV6184(block.key);
-      if (!el) return;
-
-      el.classList.add('layoutBlockEditableV6184');
-      el.setAttribute('data-layout-block', block.key);
-      el.setAttribute('data-layout-label', block.label);
-
-      if (!el.querySelector(':scope > .layoutResizeHandleV6184')) {
-        const handle = document.createElement('div');
-        handle.className = 'layoutResizeHandleV6184';
-        handle.setAttribute('aria-hidden', 'true');
-        el.appendChild(handle);
-      }
-    });
-
-    applyAllBlockLayoutsV6184(false);
-    updateSelectedBlockV6184();
-  }
-
-  function injectPanelControlsV6184() {
-    const panel = document.getElementById('layoutEditPanelV6183');
-    if (!panel || document.getElementById('layoutCardEditorV6184')) return;
-
-    const group = document.createElement('div');
-    group.id = 'layoutCardEditorV6184';
-    group.innerHTML = [
-      '<div class="layoutEditGroupTitleV6184">Dashboard cards</div>',
-      '<p class="layoutEditHintV6184">Drag any outlined card to fill gaps. Use the bottom-right corner to resize. Save keeps the layout for this browser.</p>',
-      '<select id="layoutCardSelectV6184">',
-      BLOCKS_V6184.map(block => '<option value="' + block.key + '">' + block.label + '</option>').join(''),
-      '</select>',
-      '<div class="layoutCardButtonsV6184">',
-      '<button type="button" class="primary" id="layoutBringFrontV6184">Bring front</button>',
-      '<button type="button" id="layoutResetCardsV6184">Reset cards</button>',
-      '</div>'
-    ].join('');
-
-    const buttons = panel.querySelector('.layoutButtonsV6183');
-    if (buttons && buttons.parentNode) buttons.parentNode.insertBefore(group, buttons);
-    else panel.appendChild(group);
-
-    const select = document.getElementById('layoutCardSelectV6184');
-    const bringFront = document.getElementById('layoutBringFrontV6184');
-    const resetCards = document.getElementById('layoutResetCardsV6184');
-    const saveBtn = document.getElementById('layoutSaveBtnV6183');
-    const resetBtn = document.getElementById('layoutResetBtnV6183');
-
-    if (select) {
-      select.value = selectedBlockKeyV6184;
-      select.addEventListener('change', () => {
-        selectedBlockKeyV6184 = select.value || 'revenue';
-        updateSelectedBlockV6184();
-      });
-    }
-
-    if (bringFront) bringFront.addEventListener('click', bringSelectedBlockFrontV6184);
-    if (resetCards) resetCards.addEventListener('click', clearBlockLayoutV6184);
-
-    // Make the existing Save / Reset buttons save/reset the card layout too.
-    if (saveBtn && !saveBtn.__v6184BlocksHooked) {
-      saveBtn.addEventListener('click', saveBlockLayoutV6184);
-      saveBtn.__v6184BlocksHooked = true;
-    }
-
-    if (resetBtn && !resetBtn.__v6184BlocksHooked) {
-      resetBtn.addEventListener('click', clearBlockLayoutV6184);
-      resetBtn.__v6184BlocksHooked = true;
-    }
-  }
-
-  function updateSelectedBlockV6184() {
-    BLOCKS_V6184.forEach(block => {
-      const el = blockElementV6184(block.key);
-      if (el) el.classList.toggle('layoutSelectedBlockV6184', block.key === selectedBlockKeyV6184 && isEditModeV6184());
-    });
-    const select = document.getElementById('layoutCardSelectV6184');
-    if (select && select.value !== selectedBlockKeyV6184) select.value = selectedBlockKeyV6184;
-  }
-
-  function selectBlockV6184(key) {
-    selectedBlockKeyV6184 = key || selectedBlockKeyV6184 || 'revenue';
-    updateSelectedBlockV6184();
-  }
-
-  function bringSelectedBlockFrontV6184() {
-    const key = selectedBlockKeyV6184 || 'revenue';
-    const layout = getCurrentBlockLayoutV6184(key);
-    zCounterV6184 += 1;
-    layout.z = zCounterV6184;
-    currentBlockLayoutV6184[key] = layout;
-    applyOneBlockLayoutV6184(key, layout);
-    flashStatusV6184('Front');
-  }
-
-  function flashStatusV6184(text) {
-    const status = document.getElementById('layoutEditStatusV6183');
-    if (!status) return;
-    status.textContent = text;
-    window.clearTimeout(status.__timerV6184);
-    status.__timerV6184 = window.setTimeout(() => { status.textContent = ''; }, 1400);
-  }
-
-  function isInteractiveTargetV6184(target) {
-    return !!(target && target.closest && target.closest('button, a, input, select, textarea, canvas, .dropdownPanel, .tableScroll, .layoutResizeHandleV6184'));
-  }
-
-  function startBlockDragV6184(event) {
-    if (!isEditModeV6184()) return;
-    const block = event.target.closest && event.target.closest('.layoutBlockEditableV6184');
-    if (!block || isInteractiveTargetV6184(event.target)) return;
-    if (event.button !== undefined && event.button !== 0) return;
-
-    const key = block.getAttribute('data-layout-block');
-    if (!key) return;
-
-    event.preventDefault();
-    event.stopPropagation();
-    selectBlockV6184(key);
-
-    const layout = getCurrentBlockLayoutV6184(key);
-    dragStateV6184 = {
-      mode: 'move',
-      key,
-      startX: event.clientX,
-      startY: event.clientY,
-      startLayout: Object.assign({}, layout)
-    };
-
-    try { block.setPointerCapture(event.pointerId); } catch (err) {}
-    window.addEventListener('pointermove', continueBlockDragV6184, true);
-    window.addEventListener('pointerup', endBlockDragV6184, true);
-  }
-
-  function startBlockResizeV6184(event) {
-    if (!isEditModeV6184()) return;
-    const block = event.target.closest && event.target.closest('.layoutBlockEditableV6184');
-    if (!block) return;
-    const key = block.getAttribute('data-layout-block');
-    if (!key) return;
-
-    event.preventDefault();
-    event.stopPropagation();
-    selectBlockV6184(key);
-
-    const layout = getCurrentBlockLayoutV6184(key);
-    dragStateV6184 = {
-      mode: 'resize',
-      key,
-      startX: event.clientX,
-      startY: event.clientY,
-      startLayout: Object.assign({}, layout)
-    };
-
-    try { event.target.setPointerCapture(event.pointerId); } catch (err) {}
-    window.addEventListener('pointermove', continueBlockDragV6184, true);
-    window.addEventListener('pointerup', endBlockDragV6184, true);
-  }
-
-  function continueBlockDragV6184(event) {
-    if (!dragStateV6184) return;
-    event.preventDefault();
-
-    const dx = event.clientX - dragStateV6184.startX;
-    const dy = event.clientY - dragStateV6184.startY;
-    const next = Object.assign({}, dragStateV6184.startLayout);
-
-    if (dragStateV6184.mode === 'move') {
-      next.x = dragStateV6184.startLayout.x + dx;
-      next.y = dragStateV6184.startLayout.y + dy;
-    } else {
-      next.w = dragStateV6184.startLayout.w + dx;
-      next.h = dragStateV6184.startLayout.h + dy;
-    }
-
-    const normalized = normalizeBlockLayoutV6184(dragStateV6184.key, next);
-    currentBlockLayoutV6184[dragStateV6184.key] = normalized;
-    applyOneBlockLayoutV6184(dragStateV6184.key, normalized);
-    window.dispatchEvent(new Event('resize'));
-  }
-
-  function endBlockDragV6184(event) {
-    if (dragStateV6184) event.preventDefault();
-    dragStateV6184 = null;
-    window.removeEventListener('pointermove', continueBlockDragV6184, true);
-    window.removeEventListener('pointerup', endBlockDragV6184, true);
-    window.dispatchEvent(new Event('resize'));
-  }
-
-  function bindBlockEventsV6184() {
-    const grid = gridV6184();
-    if (!grid || grid.__v6184BlocksBound) return;
-    grid.addEventListener('pointerdown', startBlockDragV6184, true);
-    grid.addEventListener('pointerdown', event => {
-      if (event.target && event.target.classList && event.target.classList.contains('layoutResizeHandleV6184')) {
-        startBlockResizeV6184(event);
-      }
-    }, true);
-    grid.__v6184BlocksBound = true;
-  }
-
-  function hideExtraDefaultPillsV6184() {
-    const bar = document.getElementById('activeFilterPillBarV6170');
-    if (!bar) return;
-    const defaultText = /^(customers:\s*all|products:\s*all|main depts|all depts|ytd|mtd|no chart\/table highlights)$/i;
-
-    bar.querySelectorAll('.v6170Pill').forEach(pill => {
-      const text = (pill.textContent || '').replace('×', '').replace(/\s+/g, ' ').trim();
-      if (defaultText.test(text)) {
-        pill.classList.add('layoutHiddenPillV6184');
-        pill.style.display = 'none';
-      }
-    });
-
-    bar.querySelectorAll('.v6170PillSection').forEach(section => {
-      const hasVisible = Array.from(section.querySelectorAll('.v6170Pill')).some(pill => {
-        return !pill.classList.contains('layoutHiddenPillV6183') &&
-               !pill.classList.contains('layoutHiddenPillV6184') &&
-               pill.style.display !== 'none';
-      });
-      section.style.display = hasVisible ? 'inline-flex' : 'none';
-    });
-  }
-
-  function syncEditModeStateV6184() {
-    const overview = overviewOneV6184();
-    if (!overview) return;
-    overview.classList.toggle('layoutAllBlocksEditActiveV6184', isEditModeV6184());
-    updateSelectedBlockV6184();
-  }
-
-  function afterRenderV6184() {
-    installStylesV6184();
-    prepareBlocksV6184();
-    injectPanelControlsV6184();
-    bindBlockEventsV6184();
-    hideExtraDefaultPillsV6184();
-    setDebugVersionV6184();
-    syncEditModeStateV6184();
-  }
-
-  const observerV6184 = new MutationObserver(() => {
-    syncEditModeStateV6184();
-    injectPanelControlsV6184();
-  });
-  observerV6184.observe(document.body, { attributes: true, attributeFilter: ['class'] });
-
-  const previousRenderAllV6184 = typeof renderAll === 'function' ? renderAll : null;
-  if (previousRenderAllV6184 && !renderAll.__v6184Wrapped) {
-    const wrappedRenderAllV6184 = function renderAllV6184() {
-      const result = previousRenderAllV6184.apply(this, arguments);
-      window.setTimeout(afterRenderV6184, 0);
-      return result;
-    };
-    wrappedRenderAllV6184.__v6184Wrapped = true;
-    renderAll = wrappedRenderAllV6184;
-  }
-
-  const previousHandleDataV6184 = typeof handleData === 'function' ? handleData : null;
-  if (previousHandleDataV6184 && !handleData.__v6184Wrapped) {
-    const wrappedHandleDataV6184 = function handleDataV6184() {
-      const result = previousHandleDataV6184.apply(this, arguments);
-      window.setTimeout(afterRenderV6184, 160);
-      return result;
-    };
-    wrappedHandleDataV6184.__v6184Wrapped = true;
-    handleData = wrappedHandleDataV6184;
-  }
-
-  afterRenderV6184();
-  setTimeout(afterRenderV6184, 0);
-  setTimeout(afterRenderV6184, 300);
-  setTimeout(afterRenderV6184, 1000);
-})();
-
-
-
-/* v6.185 year master control
-   Built on v6.184.
-   Year is now the top-level scope:
-   - Year control is visually promoted and shown first.
-   - Product, customer, and department dropdown lists only show items with data inside the selected year(s).
-   - Department dropdown totals are summed inside the selected year scope.
-   - Charts continue to receive only selected-year data and only selected-year datasets.
-   - Year dropdown itself stays independent so users can always switch years. */
-(function installYearMasterControlV6185() {
-  const VERSION_TEXT_V6185 = 'DEBUG v6.185 yearMasterControl - year controls dropdown inventory and chart scope';
-  const STYLE_ID_V6185 = 'yearMasterControlStylesV6185';
-
-  function selectedYearsArrayV6185() {
-    return [...(state.years || new Set())]
-      .map(year => Number(year))
-      .filter(year => Number.isFinite(year))
-      .sort((a, b) => b - a);
-  }
-
-  function selectedYearLabelV6185() {
-    const years = selectedYearsArrayV6185();
-    if (!years.length) return 'No year selected';
-    return years.join(', ');
-  }
-
-  function allAvailableYearsV6185() {
-    const years = new Set();
-    (facts || []).forEach(row => {
-      const year = Number(row.year);
-      if (Number.isFinite(year)) years.add(year);
-    });
-    if (!years.size && payload && payload.config) {
-      if (payload.config.currentYear) years.add(Number(payload.config.currentYear));
-      if (payload.config.priorYear) years.add(Number(payload.config.priorYear));
-    }
-    return [...years].sort((a, b) => b - a);
-  }
-
-  function selectedYearSetV6185() {
-    return new Set(selectedYearsArrayV6185());
-  }
-
-  function rowInSelectedYearScopeV6185(row) {
-    const years = selectedYearSetV6185();
-    if (!years.size) return false;
-    return years.has(Number(row.year));
-  }
-
-  function productKeysInSelectedYearScopeV6185(rows) {
-    const result = new Set();
-    (rows || []).forEach(row => {
-      if (rowInSelectedYearScopeV6185(row)) result.add(productKey(row));
-    });
-    return result;
-  }
-
-  function customerIdsInSelectedYearScopeV6185(rows) {
-    const result = new Set();
-    (rows || []).forEach(row => {
-      if (rowInSelectedYearScopeV6185(row) && row.customerId) result.add(row.customerId);
-    });
-    return result;
-  }
-
-  function departmentNamesInSelectedYearScopeV6185(rows) {
-    const result = new Set();
-    (rows || []).forEach(row => {
-      if (rowInSelectedYearScopeV6185(row) && row.productsDepartment) result.add(row.productsDepartment);
-    });
-    return result;
-  }
-
-  function installStylesV6185() {
-    if (document.getElementById(STYLE_ID_V6185)) return;
-
-    const style = document.createElement('style');
-    style.id = STYLE_ID_V6185;
-    style.textContent = `
-      /* Promote Year as the primary control without using a "Filters" label. */
-      #overviewFilterDeck.topOverviewFilterDeck {
-        grid-template-columns: minmax(176px, 244px) minmax(105px, 132px) minmax(135px, 192px) minmax(148px, 210px) !important;
-        width: min(800px, 100%) !important;
-        max-width: 800px !important;
-      }
-
-      #overviewFilterDeck.topOverviewFilterDeck .filterCard:nth-child(4) {
-        grid-column: 1 !important;
-        grid-row: 1 !important;
-      }
-
-      #overviewFilterDeck.topOverviewFilterDeck .filterCard:nth-child(1) {
-        grid-column: 2 !important;
-        grid-row: 1 !important;
-      }
-
-      #overviewFilterDeck.topOverviewFilterDeck .filterCard:nth-child(2) {
-        grid-column: 3 !important;
-        grid-row: 1 !important;
-      }
-
-      #overviewFilterDeck.topOverviewFilterDeck .filterCard:nth-child(3) {
-        grid-column: 4 !important;
-        grid-row: 1 !important;
-      }
-
-      #overviewFilterDeck.topOverviewFilterDeck .filterCard:nth-child(4) .dropdownButton {
-        height: 32px !important;
-        min-height: 32px !important;
-        border: 1px solid #9aa8bc !important;
-        background: #ffffff !important;
-        color: #172033 !important;
-        font-size: 12px !important;
-        font-weight: 950 !important;
-        letter-spacing: .01em !important;
-        box-shadow: 0 1px 4px rgba(16,24,40,.12) !important;
-      }
-
-      #overviewFilterDeck.topOverviewFilterDeck .filterCard:nth-child(4)::before {
-        content: 'Year scope' !important;
-        position: absolute !important;
-        top: -13px !important;
-        left: 2px !important;
-        color: #667085 !important;
-        font: 900 9px/1 Roboto, Arial, sans-serif !important;
-        letter-spacing: .055em !important;
-        text-transform: uppercase !important;
-        pointer-events: none !important;
-      }
-
-      #overviewOne .yearMasterScopedHintV6185 {
-        color: #667085 !important;
-        font-size: 10.5px !important;
-        font-weight: 800 !important;
-        margin-left: auto !important;
-        white-space: nowrap !important;
-      }
-
-      @media (max-width: 980px) {
-        #overviewFilterDeck.topOverviewFilterDeck {
-          grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-          width: 100% !important;
-          max-width: none !important;
-        }
-
-        #overviewFilterDeck.topOverviewFilterDeck .filterCard:nth-child(4),
-        #overviewFilterDeck.topOverviewFilterDeck .filterCard:nth-child(1),
-        #overviewFilterDeck.topOverviewFilterDeck .filterCard:nth-child(2),
-        #overviewFilterDeck.topOverviewFilterDeck .filterCard:nth-child(3) {
-          grid-column: auto !important;
-          grid-row: auto !important;
-        }
-      }
-    `;
-    document.head.appendChild(style);
-  }
-
-  function setDebugVersionV6185() {
-    document.querySelectorAll('body *').forEach(el => {
-      const value = (el.textContent || '').trim();
       if (/^DEBUG v6\.\d+/.test(value) && value.length < 300) {
         el.textContent = VERSION_TEXT_V6185;
       }
@@ -1864,3 +1254,401 @@
 
     if (snapSelect) {
       snapSelect.value = String(snapSizeV6188());
+      snapSelect.addEventListener('change', () => setSnapSizeV6188(snapSelect.value));
+    }
+
+    if (frontBtn) frontBtn.addEventListener('click', bringSelectedKpiFrontV6188);
+    if (resetBtn) resetBtn.addEventListener('click', clearKpiLayoutV6188);
+
+    if (saveBtn && !saveBtn.__v6188KpiHooked) {
+      saveBtn.addEventListener('click', writeSavedKpiLayoutV6188);
+      saveBtn.__v6188KpiHooked = true;
+    }
+
+    if (allResetBtn && !allResetBtn.__v6188KpiHooked) {
+      allResetBtn.addEventListener('click', clearKpiLayoutV6188);
+      allResetBtn.__v6188KpiHooked = true;
+    }
+  }
+
+  function updateSelectedKpiV6188() {
+    KPI_CARDS_V6188.forEach(card => {
+      const el = kpiCardV6188(card.key);
+      if (el) el.classList.toggle('kpiSelectedCardV6188', isEditModeV6188() && card.key === selectedKpiKeyV6188);
+    });
+    const select = document.getElementById('kpiCardSelectV6188');
+    if (select && select.value !== selectedKpiKeyV6188) select.value = selectedKpiKeyV6188;
+  }
+
+  function selectKpiV6188(key) {
+    selectedKpiKeyV6188 = key || selectedKpiKeyV6188 || 'revenue';
+    updateSelectedKpiV6188();
+  }
+
+  function bringSelectedKpiFrontV6188() {
+    const key = selectedKpiKeyV6188 || 'revenue';
+    const layout = getKpiLayoutV6188(key);
+    zCounterV6188 += 1;
+    layout.z = zCounterV6188;
+    currentKpiLayoutV6188[key] = layout;
+    applyOneKpiLayoutV6188(key, layout);
+    flashStatusV6188('Front');
+  }
+
+  function flashStatusV6188(text) {
+    const status = document.getElementById('layoutEditStatusV6183');
+    if (!status) return;
+    status.textContent = text;
+    window.clearTimeout(status.__v6188Timer);
+    status.__v6188Timer = window.setTimeout(() => {
+      status.textContent = '';
+    }, 1400);
+  }
+
+  function isInteractiveV6188(target) {
+    return !!(target && target.closest && target.closest('button, a, input, select, textarea, canvas, .dropdownPanel, .tableScroll, .kpiResizeHandleV6188'));
+  }
+
+  function startKpiMoveV6188(event) {
+    if (!isEditModeV6188()) return;
+    const card = event.target.closest && event.target.closest('.comparisonKpi.kpiCardEditableV6188');
+    if (!card || isInteractiveV6188(event.target)) return;
+    if (event.button !== undefined && event.button !== 0) return;
+
+    const key = card.getAttribute('data-kpi-card-key');
+    if (!key) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+    selectKpiV6188(key);
+
+    const layout = getKpiLayoutV6188(key);
+    dragStateV6188 = {
+      mode: 'move',
+      key,
+      startX: event.clientX,
+      startY: event.clientY,
+      startLayout: Object.assign({}, layout)
+    };
+
+    try { card.setPointerCapture(event.pointerId); } catch (err) {}
+    window.addEventListener('pointermove', continueKpiDragV6188, true);
+    window.addEventListener('pointerup', endKpiDragV6188, true);
+  }
+
+  function startKpiResizeV6188(event) {
+    if (!isEditModeV6188()) return;
+    const card = event.target.closest && event.target.closest('.comparisonKpi.kpiCardEditableV6188');
+    if (!card) return;
+    const key = card.getAttribute('data-kpi-card-key');
+    if (!key) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+    selectKpiV6188(key);
+
+    const layout = getKpiLayoutV6188(key);
+    dragStateV6188 = {
+      mode: 'resize',
+      key,
+      startX: event.clientX,
+      startY: event.clientY,
+      startLayout: Object.assign({}, layout)
+    };
+
+    try { event.target.setPointerCapture(event.pointerId); } catch (err) {}
+    window.addEventListener('pointermove', continueKpiDragV6188, true);
+    window.addEventListener('pointerup', endKpiDragV6188, true);
+  }
+
+  function continueKpiDragV6188(event) {
+    if (!dragStateV6188) return;
+    event.preventDefault();
+    event.stopPropagation();
+
+    const dx = event.clientX - dragStateV6188.startX;
+    const dy = event.clientY - dragStateV6188.startY;
+    const next = Object.assign({}, dragStateV6188.startLayout);
+
+    if (dragStateV6188.mode === 'move') {
+      next.x = dragStateV6188.startLayout.x + dx;
+      next.y = dragStateV6188.startLayout.y + dy;
+    } else {
+      next.w = dragStateV6188.startLayout.w + dx;
+      next.h = dragStateV6188.startLayout.h + dy;
+    }
+
+    const normalized = normalizeKpiLayoutV6188(dragStateV6188.key, next);
+    currentKpiLayoutV6188[dragStateV6188.key] = normalized;
+    applyOneKpiLayoutV6188(dragStateV6188.key, normalized);
+    window.dispatchEvent(new Event('resize'));
+  }
+
+  function endKpiDragV6188(event) {
+    if (dragStateV6188) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    dragStateV6188 = null;
+    window.removeEventListener('pointermove', continueKpiDragV6188, true);
+    window.removeEventListener('pointerup', endKpiDragV6188, true);
+    window.dispatchEvent(new Event('resize'));
+  }
+
+  function bindKpiEventsV6188() {
+    const strip = kpiStripV6188();
+    if (!strip || strip.__v6188KpiEventsBound) return;
+
+    strip.addEventListener('pointerdown', event => {
+      if (event.target && event.target.classList && event.target.classList.contains('kpiResizeHandleV6188')) {
+        startKpiResizeV6188(event);
+        return;
+      }
+      startKpiMoveV6188(event);
+    }, true);
+
+    strip.__v6188KpiEventsBound = true;
+  }
+
+  function syncKpiEditModeV6188() {
+    const strip = kpiStripV6188();
+    if (strip) {
+      strip.classList.toggle('kpiSnapGridActiveV6188', isEditModeV6188());
+      strip.style.setProperty('--kpiSnapGridV6188', snapSizeV6188() + 'px');
+    }
+    updateSelectedKpiV6188();
+  }
+
+  function setDebugVersionV6188() {
+    document.querySelectorAll('body *').forEach(el => {
+      const value = (el.textContent || '').trim();
+      if (/^DEBUG v6\.\d+/.test(value) && value.length < 300) {
+        el.textContent = VERSION_TEXT_V6188;
+      }
+    });
+  }
+
+  function afterRenderV6188() {
+    installStylesV6188();
+    prepareKpiCardsV6188();
+    injectKpiPanelV6188();
+    bindKpiEventsV6188();
+    syncKpiEditModeV6188();
+    setDebugVersionV6188();
+  }
+
+  const observerV6188 = new MutationObserver(() => {
+    injectKpiPanelV6188();
+    syncKpiEditModeV6188();
+  });
+  observerV6188.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+
+  const previousRenderAllV6188 = typeof renderAll === 'function' ? renderAll : null;
+  if (previousRenderAllV6188 && !renderAll.__v6188Wrapped) {
+    const wrappedRenderAllV6188 = function renderAllV6188() {
+      const result = previousRenderAllV6188.apply(this, arguments);
+      window.setTimeout(afterRenderV6188, 0);
+      return result;
+    };
+    wrappedRenderAllV6188.__v6188Wrapped = true;
+    renderAll = wrappedRenderAllV6188;
+  }
+
+  const previousHandleDataV6188 = typeof handleData === 'function' ? handleData : null;
+  if (previousHandleDataV6188 && !handleData.__v6188Wrapped) {
+    const wrappedHandleDataV6188 = function handleDataV6188() {
+      const result = previousHandleDataV6188.apply(this, arguments);
+      window.setTimeout(afterRenderV6188, 160);
+      return result;
+    };
+    wrappedHandleDataV6188.__v6188Wrapped = true;
+    handleData = wrappedHandleDataV6188;
+  }
+
+  afterRenderV6188();
+  setTimeout(afterRenderV6188, 0);
+  setTimeout(afterRenderV6188, 300);
+  setTimeout(afterRenderV6188, 1000);
+})();
+
+
+
+/* v6.190 safe compact dropdowns - no refresh hooks
+   Built from v6.188 stable baseline.
+   Keeps edit mode + KPI snap grid.
+   Adds compact dropdown sizing with CSS only.
+   Does not wrap refresh/render/handleData, so it should not crash during refresh. */
+(function installSafeCompactDropdownsNoRefreshHooksV6190() {
+  const STYLE_ID_V6190 = 'safeCompactDropdownsNoRefreshHooksStylesV6190';
+
+  if (document.getElementById(STYLE_ID_V6190)) return;
+
+  const style = document.createElement('style');
+  style.id = STYLE_ID_V6190;
+  style.textContent = `
+    #overviewFilterDeck.topOverviewFilterDeck .dropdownPanel {
+      width: auto !important;
+      min-width: 0 !important;
+      max-width: calc(100vw - 28px) !important;
+      top: 34px !important;
+      z-index: 2147483000 !important;
+    }
+
+    #overviewFilterDeck.topOverviewFilterDeck #yearDropdownPanel.yearDropdownPanel {
+      width: 300px !important;
+      min-width: 300px !important;
+      max-width: min(300px, calc(100vw - 28px)) !important;
+      left: 0 !important;
+      right: auto !important;
+    }
+
+    #overviewFilterDeck.topOverviewFilterDeck #departmentDropdownPanel {
+      width: 390px !important;
+      min-width: 390px !important;
+      max-width: min(390px, calc(100vw - 28px)) !important;
+      left: 0 !important;
+      right: auto !important;
+    }
+
+    #overviewFilterDeck.topOverviewFilterDeck #productDropdownPanel.productDropdownPanel {
+      width: 500px !important;
+      min-width: 500px !important;
+      max-width: min(500px, calc(100vw - 28px)) !important;
+      left: 0 !important;
+      right: auto !important;
+    }
+
+    #overviewFilterDeck.topOverviewFilterDeck #customerDropdownPanel.customerDropdownPanel {
+      width: 500px !important;
+      min-width: 500px !important;
+      max-width: min(500px, calc(100vw - 28px)) !important;
+      left: auto !important;
+      right: 0 !important;
+    }
+
+    #overviewFilterDeck.topOverviewFilterDeck .dropdownPanelHeader {
+      gap: 6px !important;
+      padding: 7px 8px !important;
+    }
+
+    #overviewFilterDeck.topOverviewFilterDeck .dropdownPanelHeader button {
+      height: 26px !important;
+      padding: 0 9px !important;
+      font-size: 11px !important;
+      border-radius: 7px !important;
+    }
+
+    #overviewFilterDeck.topOverviewFilterDeck .dropdownSearch {
+      height: 30px !important;
+      min-height: 30px !important;
+      margin: 7px 8px 5px !important;
+      width: calc(100% - 16px) !important;
+      font-size: 11px !important;
+    }
+
+    #overviewFilterDeck.topOverviewFilterDeck .sectionHeader.compactHeader {
+      padding: 7px 9px !important;
+      font-size: 11px !important;
+    }
+
+    #overviewFilterDeck.topOverviewFilterDeck .dropdownList {
+      max-height: min(360px, calc(100vh - 225px)) !important;
+      overflow-y: auto !important;
+    }
+
+    #overviewFilterDeck.topOverviewFilterDeck #yearList.dropdownList {
+      max-height: 210px !important;
+    }
+
+    #overviewFilterDeck.topOverviewFilterDeck .yearRow,
+    #overviewFilterDeck.topOverviewFilterDeck .deptRow,
+    #overviewFilterDeck.topOverviewFilterDeck .multiRow {
+      min-height: 30px !important;
+      padding: 5px 9px !important;
+    }
+
+    #overviewFilterDeck.topOverviewFilterDeck .multiRow .labelSide,
+    #overviewFilterDeck.topOverviewFilterDeck .deptRow .labelSide,
+    #overviewFilterDeck.topOverviewFilterDeck .yearRow .labelSide {
+      min-width: 0 !important;
+    }
+
+    #overviewFilterDeck.topOverviewFilterDeck .rowLabel,
+    #overviewFilterDeck.topOverviewFilterDeck .optionLabel,
+    #overviewFilterDeck.topOverviewFilterDeck .labelSide span:last-child {
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
+      white-space: nowrap !important;
+    }
+
+    @media (max-width: 900px) {
+      #overviewFilterDeck.topOverviewFilterDeck #yearDropdownPanel.yearDropdownPanel,
+      #overviewFilterDeck.topOverviewFilterDeck #departmentDropdownPanel,
+      #overviewFilterDeck.topOverviewFilterDeck #productDropdownPanel.productDropdownPanel,
+      #overviewFilterDeck.topOverviewFilterDeck #customerDropdownPanel.customerDropdownPanel {
+        left: 0 !important;
+        right: auto !important;
+        width: calc(100vw - 28px) !important;
+        min-width: 0 !important;
+        max-width: calc(100vw - 28px) !important;
+      }
+    }
+  `;
+  document.head.appendChild(style);
+
+  const bannerText = 'DEBUG v6.190 safeCompactDropdownsNoRefreshHooks - compact dropdowns, no refresh hooks, edit mode retained';
+  setTimeout(() => {
+    document.querySelectorAll('body *').forEach(el => {
+      const value = (el.textContent || '').trim();
+      if (/^DEBUG v6\.\d+/.test(value) && value.length < 300) {
+        el.textContent = bannerText;
+      }
+    });
+  }, 0);
+})();
+
+
+
+/* v6.194 stable filters rollback
+   Built from v6.190 safe baseline.
+   Purpose:
+   - Roll back the filter-breaking chart-mode/dropdown hook experiments.
+   - Keep edit mode, KPI snap-grid, compact KPI text, clean wrapped pills, and safe compact dropdown sizing.
+   - Remove the extra Year scope label.
+   - Keep Product/Dept/Group/Category table switching from clearing table focus. */
+(function installStableFiltersRollbackV6194() {
+  const STYLE_ID_V6194 = 'stableFiltersRollbackStylesV6194';
+  const VERSION_TEXT_V6194 = 'DEBUG v6.194 stableFiltersRollback - safe filters, edit mode retained, no chart-mode filter hooks';
+
+  if (!document.getElementById(STYLE_ID_V6194)) {
+    const style = document.createElement('style');
+    style.id = STYLE_ID_V6194;
+    style.textContent = `
+      #overviewFilterDeck.topOverviewFilterDeck .filterCard:nth-child(4)::before {
+        content: none !important;
+        display: none !important;
+      }
+
+      /* Keep dropdown lists scrollable without changing dropdown behavior. */
+      #overviewFilterDeck.topOverviewFilterDeck,
+      #overviewFilterDeck.topOverviewFilterDeck .filterCard {
+        overflow: visible !important;
+      }
+
+      #overviewFilterDeck.topOverviewFilterDeck .dropdownPanel.open {
+        display: flex !important;
+        flex-direction: column !important;
+        max-height: min(520px, calc(100vh - 96px)) !important;
+        overflow: hidden !important;
+      }
+
+      #overviewFilterDeck.topOverviewFilterDeck .dropdownList,
+      #overviewFilterDeck.topOverviewFilterDeck #departmentList,
+      #overviewFilterDeck.topOverviewFilterDeck #productList,
+      #overviewFilterDeck.topOverviewFilterDeck #customerList,
+      #overviewFilterDeck.topOverviewFilterDeck #yearList {
+        flex: 1 1 auto !important;
+        min-height: 120px !important;
+        max-height: min(380px, calc(100vh - 245px)) !important;
+        overflow-y: auto !important;
+        overflow-x: hidden !important;

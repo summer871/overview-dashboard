@@ -63,47 +63,71 @@ function parseHtmlScripts(file) {
   });
 }
 
+function expandSemanticReport(baseText, report, label) {
+  const archive = read(report.archivePath);
+  const parent = report.parentModule || null;
+  if (!parent || !parent.name || !parent.path) throw new Error(label + ' report is missing parentModule metadata.');
+  let parentContent = read(parent.path);
+  assert(Buffer.byteLength(parentContent, 'utf8') <= Number(report.maxModuleBytes || 75000), parent.name + ': exceeds semantic-module byte limit.');
+  assert(sha256(parentContent) === parent.sha256, parent.name + ': SHA-256 no longer matches ' + label + ' report.');
+  const modules = Array.isArray(report.modules) ? report.modules : [];
+  assert(modules.length > 0, label + ' report has no child modules.');
+  modules.forEach(module => {
+    const content = read(module.path);
+    const directive = `<?!= includeDashboardFile('${module.name}') ?>`;
+    const occurrences = parentContent.split(directive).length - 1;
+    assert(occurrences === 1, module.name + ': expected exactly one parent include directive, found ' + occurrences + '.');
+    assert(Buffer.byteLength(content, 'utf8') <= Number(report.maxModuleBytes || 75000), module.name + ': exceeds semantic-module byte limit.');
+    assert(sha256(content) === module.sha256, module.name + ': SHA-256 no longer matches ' + label + ' report.');
+    if (module.rawJavaScriptFragment === true) {
+      try { new vm.Script(content, { filename: module.path }); }
+      catch (error) { failures.push(module.name + ': raw JavaScript fragment no longer parses: ' + error.message); }
+    }
+    parentContent = parentContent.replace(directive, function() { return content; });
+  });
+  const parentDirective = `<?!= includeDashboardFile('${parent.name}') ?>`;
+  const parentOccurrences = baseText.split(parentDirective).length - 1;
+  assert(parentOccurrences === 1, parent.name + ': expected exactly one parent include directive, found ' + parentOccurrences + '.');
+  const reconstructed = baseText.replace(parentDirective, function() { return parentContent; });
+  assert(reconstructed === archive, label + ' composition is not byte-for-byte identical to its archived outgoing runtime.');
+  assert(sha256(reconstructed) === report.sourceSha256Before, label + ' composed SHA-256 does not match pre-extraction runtime.');
+  assert(Buffer.byteLength(reconstructed, 'utf8') === report.sourceBytesBefore, label + ' composed byte count does not match pre-extraction runtime.');
+  assert(sha256(baseText) === report.sourceSha256After, label + ' composition source changed since extraction report.');
+  notes.push(label + ' composition verified: parent ' + parent.name + ' + ' + modules.length + ' modules.');
+  return reconstructed;
+}
+
 function composedDashboardMainVerification() {
   const main = read('DashboardMainScript.html');
-  const semanticReportText = readOptional('docs/DASHBOARD-MAIN-REMAKE-SEMANTIC-EXTRACTION-2026-08-21.json');
-  if (!semanticReportText) return { text: main, currentText: main, composed: false, report: null };
-  try {
-    const report = JSON.parse(semanticReportText);
-    const archive = read(report.archivePath);
-    const parent = report.parentModule || null;
-    if (!parent || !parent.name || !parent.path) throw new Error('DashboardMain semantic extraction report is missing parentModule metadata.');
-    let parentContent = read(parent.path);
-    assert(Buffer.byteLength(parentContent, 'utf8') <= Number(report.maxModuleBytes || 75000), `${parent.name}: exceeds semantic-module byte limit.`);
-    assert(sha256(parentContent) === parent.sha256, `${parent.name}: SHA-256 no longer matches semantic extraction report.`);
+  let reconstructed = main;
+  let composed = false;
+  let report = null;
 
-    const modules = Array.isArray(report.modules) ? report.modules : [];
-    assert(modules.length > 0, 'DashboardMain semantic extraction report has no child modules.');
-    modules.forEach(module => {
-      const content = read(module.path);
-      const directive = `<?!= includeDashboardFile('${module.name}') ?>`;
-      const occurrences = parentContent.split(directive).length - 1;
-      assert(occurrences === 1, `${module.name}: expected exactly one parent-module include directive, found ${occurrences}.`);
-      assert(Buffer.byteLength(content, 'utf8') <= Number(report.maxModuleBytes || 75000), `${module.name}: exceeds semantic-module byte limit.`);
-      assert(sha256(content) === module.sha256, `${module.name}: SHA-256 no longer matches semantic extraction report.`);
-      try { new vm.Script(content, { filename: module.path }); }
-      catch (error) { failures.push(`${module.name}: raw JavaScript fragment no longer parses: ${error.message}`); }
-      parentContent = parentContent.replace(directive, content);
-    });
-
-    const parentDirective = `<?!= includeDashboardFile('${parent.name}') ?>`;
-    const parentOccurrences = main.split(parentDirective).length - 1;
-    assert(parentOccurrences === 1, `${parent.name}: expected exactly one DashboardMain include directive, found ${parentOccurrences}.`);
-    const reconstructed = main.replace(parentDirective, parentContent);
-    assert(reconstructed === archive, 'Recursively composed DashboardMain is not byte-for-byte identical to archived pre-extraction runtime.');
-    assert(sha256(reconstructed) === report.sourceSha256Before, 'Composed DashboardMain SHA-256 does not match pre-extraction runtime.');
-    assert(Buffer.byteLength(reconstructed, 'utf8') === report.sourceBytesBefore, 'Composed DashboardMain byte count does not match pre-extraction runtime.');
-    assert(sha256(main) === report.sourceSha256After, 'DashboardMain composition file changed since semantic extraction report.');
-    notes.push(`DashboardMain composition verified: parent ${parent.name} + ${modules.length} semantic runtime fragments, ${Buffer.byteLength(main, 'utf8').toLocaleString()} composition bytes.`);
-    return { text: reconstructed, currentText: main, composed: true, report };
-  } catch (error) {
-    failures.push(`DashboardMain semantic extraction report could not be validated: ${error.message}`);
-    return { text: main, currentText: main, composed: false, report: null };
+  const legacyText = readOptional('docs/DASHBOARD-MAIN-LEGACY-SEMANTIC-EXTRACTION-2026-08-21.json');
+  if (legacyText) {
+    try {
+      const legacyReport = JSON.parse(legacyText);
+      reconstructed = expandSemanticReport(reconstructed, legacyReport, 'DashboardMain legacy');
+      composed = true;
+      report = legacyReport;
+    } catch (error) {
+      failures.push('DashboardMain legacy extraction report could not be validated: ' + error.message);
+    }
   }
+
+  const remakeText = readOptional('docs/DASHBOARD-MAIN-REMAKE-SEMANTIC-EXTRACTION-2026-08-21.json');
+  if (remakeText) {
+    try {
+      const remakeReport = JSON.parse(remakeText);
+      reconstructed = expandSemanticReport(reconstructed, remakeReport, 'DashboardMain Remake');
+      composed = true;
+      report = remakeReport;
+    } catch (error) {
+      failures.push('DashboardMain Remake extraction report could not be validated: ' + error.message);
+    }
+  }
+
+  return { text: reconstructed, currentText: main, composed, report };
 }
 
 const requiredRuntimeFiles = [

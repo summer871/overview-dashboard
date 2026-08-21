@@ -1,0 +1,119 @@
+{
+  "datePt": "2026-08-21",
+  "checkpoint": "DashboardMain legacy dashboard runtime staging extraction",
+  "behaviorChangeIntended": false,
+  "source": "DashboardMainScript.html",
+  "sourceBytesBefore": 776674,
+  "sourceSha256Before": "c699841f394d25ae29c4113f3364a2eb2f7cda06df8c30b2a27add8f6e6ff0ef",
+  "sourceBytesAfter": 125,
+  "sourceSha256After": "33b3d96364964d308b9e8b6cf29b151a842d2e5f3363ba5f6b93fc95d42b41b4",
+  "bytesRemovedFromDashboardMain": 776549,
+  "archivePath": "archive/dashboard-main-semantic-extraction-2026-08-21/DashboardMainScript.pre-legacy-runtime-extraction.html",
+  "archiveByteForByteVerified": true,
+  "recursiveCompositionVerified": true,
+  "parentModule": {
+    "name": "LegacyDashboardRuntime",
+    "path": "LegacyDashboardRuntime.html",
+    "bytes": 806,
+    "sha256": "83359e719332a755238e3d7fd1a7048f9e1436e938cdfbfc3e8e9cc862c2a8cc"
+  },
+  "maxModuleBytes": 75000,
+  "modules": [
+    {
+      "name": "LegacyOverviewRuntimeSegment01",
+      "path": "LegacyOverviewRuntimeSegment01.html",
+      "bytes": 62000,
+      "sha256": "8a93948f3a270055618a749d3b1463273233f24424ce4196da1cef520b7eb70d",
+      "stagingSegment": true
+    },
+    {
+      "name": "LegacyOverviewRuntimeSegment02",
+      "path": "LegacyOverviewRuntimeSegment02.html",
+      "bytes": 61914,
+      "sha256": "d51353aaa99f9f2d55f1d4b49d8fb6c977fa1f54b8d0471edb0ecc243a85321f",
+      "stagingSegment": true
+    },
+    {
+      "name": "LegacyOverviewRuntimeSegment03",
+      "path": "LegacyOverviewRuntimeSegment03.html",
+      "bytes": 61977,
+      "sha256": "26018180bb9e185d398d39f0aaca05eb09d2e8aa37b307c4ceb62ad908b74e68",
+      "stagingSegment": true
+    },
+    {
+      "name": "LegacyOverviewRuntimeSegment04",
+      "path": "LegacyOverviewRuntimeSegment04.html",
+      "bytes": 61867,
+      "sha256": "0b4c098ada80f3a0d642520addb426eb2ad24a1580aa32931ab0d32e83a369b5",
+      "stagingSegment": true
+    },
+    {
+      "name": "LegacyOverviewRuntimeSegment05",
+      "path": "LegacyOverviewRuntimeSegment05.html",
+      "bytes": 61980,
+      "sha256": "71915cf2e80ac0de0aeb20513036e400f9698a1cd93f6b122fb899f12e75f024",
+      "stagingSegment": true
+    },
+    {
+      "name": "LegacyOverviewRuntimeSegment06",
+      "path": "LegacyOverviewRuntimeSegment06.html",
+      "bytes": 61959,
+      "sha256": "cb73686aac85f825f7f86b9b9f7d07649f66c4fb4286cfd1312fe755d729a687",
+      "stagingSegment": true
+    },
+    {
+      "name": "LegacyOverviewRuntimeSegment07",
+      "path": "LegacyOverviewRuntimeSegment07.html",
+      "bytes": 61986,
+      "sha256": "32d4004f8a938de6a6deb333972911c5095e77b377805c4ee6751eb7ce18bceb",
+      "stagingSegment": true
+    },
+    {
+      "name": "LegacyOverviewRuntimeSegment08",
+      "path": "LegacyOverviewRuntimeSegment08.html",
+      "bytes": 61839,
+      "sha256": "ff125d5af965fbbb4e0af6975a1ed15c0d3cd63839502ec3ba210a34f6e0ca8e",
+      "stagingSegment": true
+    },
+    {
+      "name": "LegacyOverviewRuntimeSegment09",
+      "path": "LegacyOverviewRuntimeSegment09.html",
+      "bytes": 61999,
+      "sha256": "b81bb68caacdc797fb1b3ca4136f430a7af41bcd5bf4859b0b1407e75faf0cf5",
+      "stagingSegment": true
+    },
+    {
+      "name": "LegacyOverviewRuntimeSegment10",
+      "path": "LegacyOverviewRuntimeSegment10.html",
+      "bytes": 61986,
+      "sha256": "d05e49edc91b9630f0da531344f647dd74139dc5f5610fdc06ab7431cbe8f5e6",
+      "stagingSegment": true
+    },
+    {
+      "name": "LegacyOverviewRuntimeSegment11",
+      "path": "LegacyOverviewRuntimeSegment11.html",
+      "bytes": 61957,
+      "sha256": "7802cffbd0a0feef73a0065f2b0d1c41ca81fd1d4fea18a7d2b2c9588a8ad21f",
+      "stagingSegment": true
+    },
+    {
+      "name": "LegacyOverviewRuntimeSegment12",
+      "path": "LegacyOverviewRuntimeSegment12.html",
+      "bytes": 61741,
+      "sha256": "20db783468e8be5dfbdc8985d70954e399a6abad2af664aca99651b933cc2a94",
+      "stagingSegment": true
+    },
+    {
+      "name": "LegacyOverviewRuntimeSegment13",
+      "path": "LegacyOverviewRuntimeSegment13.html",
+      "bytes": 33398,
+      "sha256": "a70733ef007d3d3a8cd68c86aeb29a17b3477ed588bc932f6edfe0a660fc1d5c",
+      "stagingSegment": true
+    }
+  ],
+  "domain": "legacy dashboard / paused Overview staging",
+  "note": "Behavior-preserving staging only. Segment files retain exact legacy bytes so ownership/removal can be audited safely before deletion.",
+  "logicRewritten": false,
+  "executionOrderChanged": false,
+  "productionDeployment": false
+}

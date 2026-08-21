@@ -23,12 +23,12 @@ function expandFunctionSource() {
       try { new vm.Script(content, { filename: module.path }); }
       catch (error) { failures.push(module.name + ': raw JavaScript fragment no longer parses: ' + error.message); }
     }
-    parentContent = parentContent.replace(directive, content);
+    parentContent = parentContent.replace(directive, function() { return content; });
   });
   const parentDirective = \`<?!= includeDashboardFile('\${parent.name}') ?>\`;
   const parentOccurrences = baseText.split(parentDirective).length - 1;
   assert(parentOccurrences === 1, parent.name + ': expected exactly one parent include directive, found ' + parentOccurrences + '.');
-  const reconstructed = baseText.replace(parentDirective, parentContent);
+  const reconstructed = baseText.replace(parentDirective, function() { return parentContent; });
   assert(reconstructed === archive, label + ' composition is not byte-for-byte identical to its archived outgoing runtime.');
   assert(sha256(reconstructed) === report.sourceSha256Before, label + ' composed SHA-256 does not match pre-extraction runtime.');
   assert(Buffer.byteLength(reconstructed, 'utf8') === report.sourceBytesBefore, label + ' composed byte count does not match pre-extraction runtime.');

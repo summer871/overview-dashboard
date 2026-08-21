@@ -1,3 +1,59 @@
+      } else if (excludedCustomers.length) {
+        addPillV6209(
+          pills,
+          shortListLabelV6209(excludedCustomers, 'Excluded customer', 'Excluded customers', 2),
+          'customer',
+          false,
+          valuesTitleV6209('Excluded customers', excludedCustomers)
+        );
+      }
+    } catch (error) {}
+
+    try {
+      if (state.customerActiveOnly) {
+        addPillV6209(pills, 'Active customers only', 'activeOnly', false, 'Customer filter: inactive customers are hidden');
+      }
+    } catch (error) {}
+
+    try {
+      const customerFocus = toArrayV6209(state.v6165CustomerFocus || state.tableSelectedCustomerIds).map(customerNameV6209).filter(Boolean).sort((a, b) => a.localeCompare(b));
+      if (customerFocus.length) {
+        addPillV6209(pills, shortListLabelV6209(customerFocus, 'Customer highlighted', 'Customers highlighted', 2), 'customerFocus', true, valuesTitleV6209('Highlighted customers', customerFocus));
+      }
+    } catch (error) {}
+
+    try {
+      const productFocus = toArrayV6209(state.v6165ProductFocus || state.tableSelectedProductKeys).map(productNameV6209).filter(Boolean).sort((a, b) => a.localeCompare(b));
+      if (productFocus.length) {
+        addPillV6209(pills, shortListLabelV6209(productFocus, 'Product highlighted', 'Products highlighted', 2), 'productFocus', true, valuesTitleV6209('Highlighted products', productFocus));
+      }
+    } catch (error) {}
+
+    return pills;
+  }
+
+  function installStylesV6209() {
+    if (document.getElementById(STYLE_ID_V6209)) return;
+    const style = document.createElement('style');
+    style.id = STYLE_ID_V6209;
+    style.textContent = `
+      #singleShellDebugBanner {
+        position: sticky !important;
+        top: 0 !important;
+        z-index: 2147482000 !important;
+      }
+
+      #overviewOne #legacyChipRow,
+      #overviewOne #chipRow,
+      #overviewOne #activeFilterPillBarV6170 {
+        display: none !important;
+        visibility: hidden !important;
+        width: 0 !important;
+        height: 0 !important;
+        min-width: 0 !important;
+        min-height: 0 !important;
+        max-height: 0 !important;
+        margin: 0 !important;
         padding: 0 !important;
         overflow: hidden !important;
         pointer-events: none !important;
@@ -1434,226 +1490,3 @@
   }
 
   function factMatchesProductFocusV6213(row) {
-    ensureInteractionStateV6213();
-    if (!state.v6165ProductFocus || !state.v6165ProductFocus.size) return true;
-    return state.v6165ProductFocus.has(activeProductKeyForRowV6213(row));
-  }
-
-  const previousGetFilteredFactsV6213 = typeof getFilteredFacts === 'function' ? getFilteredFacts : null;
-  if (previousGetFilteredFactsV6213 && !getFilteredFacts.__v6213InteractionRepair) {
-    const getFilteredFactsV6213 = function getFilteredFactsV6213(ignore = {}) {
-      ensureInteractionStateV6213();
-      const opts = ignore || {};
-      const baseOpts = Object.assign({}, opts, {
-        v6165CustomerFocus: true,
-        v6165ProductFocus: true
-      });
-      let rows = previousGetFilteredFactsV6213(baseOpts);
-      if (!opts.v6165CustomerFocus && !opts.noInteractionFocus && state.v6165CustomerFocus && state.v6165CustomerFocus.size) {
-        rows = rows.filter(row => state.v6165CustomerFocus.has(row.customerId));
-      }
-      if (!opts.v6165ProductFocus && !opts.noInteractionFocus && state.v6165ProductFocus && state.v6165ProductFocus.size) {
-        rows = rows.filter(row => factMatchesProductFocusV6213(row));
-      }
-      return rows;
-    };
-    getFilteredFactsV6213.__v6213InteractionRepair = true;
-    getFilteredFacts = getFilteredFactsV6213;
-  }
-
-  function clearCustomerFocusV6213() {
-    ensureInteractionStateV6213();
-    state.v6165CustomerFocus.clear();
-    state.v6165CustomerClickOrder = [];
-    state.tableSelectedCustomerIds = new Set();
-  }
-
-  function clearProductFocusV6213() {
-    ensureInteractionStateV6213();
-    state.v6165ProductFocus.clear();
-    state.v6165ProductClickOrder = [];
-    state.tableSelectedProductKeys = new Set();
-  }
-
-  setCustomer = function setCustomerV6213(value, event) {
-    ensureInteractionStateV6213();
-    const id = String(value || '');
-    if (!id) {
-      clearCustomerFocusV6213();
-      renderAll();
-      return;
-    }
-    const selected = state.v6165CustomerFocus;
-    const additive = eventIsAdditiveV6213(event);
-
-    if (additive) {
-      if (selected.has(id)) {
-        selected.delete(id);
-        state.v6165CustomerClickOrder = (state.v6165CustomerClickOrder || []).filter(item => item !== id);
-      } else {
-        selected.add(id);
-        rememberFirstV6213('v6165CustomerClickOrder', id);
-      }
-    } else {
-      selected.clear();
-      selected.add(id);
-      state.v6165CustomerClickOrder = [id];
-    }
-
-    state.tableSelectedCustomerIds = new Set(selected);
-    renderAll();
-  };
-  window.setCustomer = setCustomer;
-
-  setProduct = function setProductV6213(value, event) {
-    ensureInteractionStateV6213();
-    const key = String(value || '');
-    if (!key) {
-      clearProductFocusV6213();
-      renderAll();
-      return;
-    }
-    if (state.v6165ProductFocusMode !== state.v6165ProductMode) {
-      clearProductFocusV6213();
-      state.v6165ProductFocusMode = state.v6165ProductMode;
-    }
-    const selected = state.v6165ProductFocus;
-    const additive = eventIsAdditiveV6213(event);
-
-    if (additive) {
-      if (selected.has(key)) {
-        selected.delete(key);
-        state.v6165ProductClickOrder = (state.v6165ProductClickOrder || []).filter(item => item !== key);
-      } else {
-        selected.add(key);
-        rememberFirstV6213('v6165ProductClickOrder', key);
-      }
-    } else {
-      selected.clear();
-      selected.add(key);
-      state.v6165ProductClickOrder = [key];
-    }
-
-    state.tableSelectedProductKeys = new Set(selected);
-    renderAll();
-  };
-  window.setProduct = setProduct;
-
-  function installProductModeButtonsV6213() {
-    const area = document.querySelector('#overviewOne .areaProductTable .cardActions');
-    if (!area) return;
-    const old = area.querySelector('.productModeButtonsV6165');
-    if (old) old.classList.add('productModeButtonsV6213');
-    if (area.querySelector('.productModeButtonsV6213')) return;
-    const wrap = document.createElement('div');
-    wrap.className = 'tableToggles productModeButtonsV6213';
-    wrap.innerHTML = [
-      ['product', 'Product'], ['department', 'Dept'], ['group', 'Group'], ['category', 'Category']
-    ].map(pair => '<button type="button" class="tinyBtn" data-product-mode-v6213="' + pair[0] + '" onclick="setProductModeV6213(\'' + pair[0] + '\')">' + pair[1] + '</button>').join('');
-    area.insertBefore(wrap, area.firstChild);
-  }
-
-  window.setProductModeV6213 = function setProductModeV6213(mode) {
-    ensureInteractionStateV6213();
-    const allowed = new Set(['product', 'department', 'group', 'category']);
-    const next = allowed.has(mode) ? mode : 'product';
-    if (state.v6165ProductMode !== next) {
-      state.v6165ProductMode = next;
-      state.v6165ProductFocusMode = next;
-      clearProductFocusV6213();
-    }
-    renderAll();
-  };
-  window.setProductModeV6212 = window.setProductModeV6213;
-  window.setProductModeV6165 = window.setProductModeV6213;
-
-  function updateProductModeChromeV6213() {
-    const config = productModeConfigV6213();
-    document.querySelectorAll('[data-product-mode-v6165], [data-product-mode-v6212], [data-product-mode-v6213]').forEach(button => {
-      const mode = button.getAttribute('data-product-mode-v6165') || button.getAttribute('data-product-mode-v6212') || button.getAttribute('data-product-mode-v6213');
-      button.classList.toggle('active', mode === config.mode);
-    });
-    const title = document.querySelector('#overviewOne .areaProductTable .chartTitle');
-    if (title) title.textContent = config.label + ' Movers';
-    const firstHeader = document.querySelector('#overviewOne .areaProductTable thead th:first-child');
-    if (firstHeader) {
-      const glyph = firstHeader.querySelector('.sortGlyph');
-      firstHeader.childNodes[0].nodeValue = config.label + ' ';
-      if (glyph) glyph.id = 'productSort_productsDescription';
-    }
-  }
-
-  renderCustomerTable = function renderCustomerTableV6213() {
-    ensureInteractionStateV6213();
-    const baseRows = getFilteredFacts({ v6165CustomerFocus: true });
-    const rows = groupBy(baseRows, row => row.customerId, row => ({
-      customerId: row.customerId,
-      customerName: row.customerName,
-      customerActive: true,
-      currentRevenue: 0,
-      priorRevenue: 0,
-      currentUnits: 0,
-      priorUnits: 0
-    }), (acc, row) => {
-      if (row.customerActive === false) acc.customerActive = false;
-      if (row.year === (payload.config.currentYear || 2026)) { acc.currentRevenue += row.netRevenue; acc.currentUnits += row.units; }
-      if (row.year === (payload.config.priorYear || 2025)) { acc.priorRevenue += row.netRevenue; acc.priorUnits += row.units; }
-    }).map(row => ({ ...row, gap: row.currentRevenue - row.priorRevenue, unitGap: row.currentUnits - row.priorUnits }));
-
-    updateMoverMetricHeaders('customer');
-    sortCustomerRows(rows);
-    selectedFirstV6213(rows, row => row.customerId, state.v6165CustomerFocus, state.v6165CustomerClickOrder);
-
-    const visibleRows = rows.slice(0, 500);
-    state.lastCustomerTableIds = visibleRows.map(row => row.customerId);
-    const unitsMode = state.customerMetric === 'units';
-    const tbody = document.getElementById('customerTable');
-    if (!tbody) return;
-    tbody.innerHTML = visibleRows.map(row => {
-      const priorValue = unitsMode ? row.priorUnits : row.priorRevenue;
-      const currentValue = unitsMode ? row.currentUnits : row.currentRevenue;
-      const gapValue = unitsMode ? row.unitGap : row.gap;
-      const active = state.v6165CustomerFocus && state.v6165CustomerFocus.has(row.customerId);
-      return '<tr class="clickable ' + (active ? 'active v6213PinnedRow' : '') + '" title="Click to hold this customer. Ctrl/Cmd-click to add or remove." onclick="setCustomer(\'' + escapeJs(row.customerId) + '\', event)">'
-        + '<td>' + escapeHtml(row.customerId) + '</td>'
-        + '<td class="customerNameCell"><span class="customerNameText">' + escapeHtml(row.customerName) + '</span>' + (row.customerActive === false ? ' <span class="inactiveBadge">Inactive</span>' : '') + '</td>'
-        + '<td>' + formatMoverValue(priorValue, unitsMode) + '</td>'
-        + '<td>' + formatMoverValue(currentValue, unitsMode) + '</td>'
-        + '<td class="' + (gapValue < 0 ? 'negative' : 'positive') + '">' + formatMoverValue(gapValue, unitsMode) + '</td>'
-        + '</tr>';
-    }).join('');
-  };
-
-  renderProductTable = function renderProductTableV6213() {
-    ensureInteractionStateV6213();
-    installProductModeButtonsV6213();
-    updateProductModeChromeV6213();
-    const config = productModeConfigV6213();
-    const baseRows = getFilteredFacts({ v6165ProductFocus: true });
-    const rows = groupBy(baseRows, row => config.key(row), row => ({
-      key: config.key(row),
-      productsDescription: config.name(row),
-      name: config.name(row),
-      currentRevenue: 0,
-      priorRevenue: 0,
-      currentUnits: 0,
-      priorUnits: 0
-    }), (acc, row) => {
-      if (row.year === (payload.config.currentYear || 2026)) { acc.currentRevenue += row.netRevenue; acc.currentUnits += row.units; }
-      if (row.year === (payload.config.priorYear || 2025)) { acc.priorRevenue += row.netRevenue; acc.priorUnits += row.units; }
-    }).map(row => ({ ...row, gap: row.currentRevenue - row.priorRevenue, unitGap: row.currentUnits - row.priorUnits }));
-
-    updateMoverMetricHeaders('product');
-    sortProductRows(rows);
-    selectedFirstV6213(rows, row => row.key, state.v6165ProductFocus, state.v6165ProductClickOrder);
-
-    const visibleRows = rows.slice(0, 1000);
-    state.lastProductTableKeys = visibleRows.map(row => row.key);
-    const unitsMode = state.productMetric === 'units';
-    const tbody = document.getElementById('productTable');
-    if (!tbody) return;
-    tbody.innerHTML = visibleRows.map(row => {
-      const priorValue = unitsMode ? row.priorUnits : row.priorRevenue;
-      const currentValue = unitsMode ? row.currentUnits : row.currentRevenue;
-      const gapValue = unitsMode ? row.unitGap : row.gap;
-      const active = state.v6165ProductFocus && state.v6165ProductFocus.has(row.key);

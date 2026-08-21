@@ -1,3 +1,243 @@
+      return values;
+    }
+
+    function getAvailableProductSetForDropdown() {
+      const rows = getFilteredFacts({ product: true });
+      const values = new Set(rows.map(row => productKey(row)).filter(Boolean));
+      return values;
+    }
+
+    function getAvailableCustomerSetForDropdown() {
+      const rows = getFilteredFacts({ customer: true });
+      const values = new Set(rows.map(row => row.customerId).filter(Boolean));
+      return values;
+    }
+
+    function getDepartmentListSetForDropdown() {
+      const available = getAvailableDepartmentSetForDropdown();
+      if (available.size) return available;
+      return isLinkedDropdownZeroState() ? new Set(getAllDepartments()) : available;
+    }
+
+    function getProductListSetForDropdown() {
+      const available = getAvailableProductSetForDropdown();
+      if (available.size) return available;
+      return isLinkedDropdownZeroState() ? fullProductKeySet() : available;
+    }
+
+    function getCustomerListSetForDropdown() {
+      const available = getAvailableCustomerSetForDropdown();
+      if (available.size) return available;
+      return isLinkedDropdownZeroState() ? fullCustomerIdSet() : available;
+    }
+
+    function isSetRestrictedToContext(availableSet, fullSet) {
+      if (!availableSet || !fullSet) return false;
+      if (!fullSet.size) return false;
+      return availableSet.size < fullSet.size;
+    }
+
+    function selectedProductCountInSet(availableSet) {
+      const available = availableSet || fullProductKeySet();
+      if (state.productFilterMode === 'CUSTOM') {
+        return getSelectedProductKeys().filter(key => available.has(key)).length;
+      }
+      const excluded = state.excludedProductKeys || new Set();
+      let count = 0;
+      available.forEach(key => {
+        if (!excluded.has(key)) count += 1;
+      });
+      return count;
+    }
+
+    function selectedCustomerCountInSet(availableSet) {
+      const available = availableSet || fullCustomerIdSet();
+      if (state.customerFilterMode === 'CUSTOM') {
+        return getSelectedCustomerIds().filter(id => available.has(id)).length;
+      }
+      const excluded = state.excludedCustomerIds || new Set();
+      let count = 0;
+      available.forEach(id => {
+        if (!excluded.has(id)) count += 1;
+      });
+      return count;
+    }
+
+
+    function selectVisibleDepartments(event) {
+      // Backward-compatible alias for older inline handlers.
+      selectAllDepartments(event);
+    }
+
+
+
+    function selectDefaultYears(event) {
+      prepareDropdownAction(event);
+      state.years = new Set([payload.config.currentYear, payload.config.priorYear]);
+      renderAll();
+    }
+
+    function selectAllYears(event) {
+      prepareDropdownAction(event);
+      state.years = new Set([2026, 2025, 2024]);
+      renderAll();
+    }
+
+
+
+    function getProductDepartmentFromKey(key) {
+      const option = productOptions.find(item => item.key === key);
+      if (option && option.department) return option.department;
+      const parts = String(key || '').split('||');
+      return parts.length >= 3 ? parts[2] : '';
+    }
+
+    function syncDepartmentsToAllProductInventory() {
+      // When Product Select all is used, the product filter should truly mean
+      // every product in the dropdown inventory. If Departments stays on Main
+      // Departments, then the dashboard is still restricted even though the
+      // Product control says All products. Keep the parent filter in sync.
+      const productDepartments = new Set(productOptions.map(item => item.department).filter(Boolean));
+      const departments = productDepartments.size ? productDepartments : new Set(getAllDepartments());
+      state.deptMode = 'ALL';
+      state.selectedDepartments = new Set(departments);
+    }
+
+    function includeProductDepartmentInFilter(key) {
+      const department = getProductDepartmentFromKey(key);
+      if (!department) return;
+      if (!state.selectedDepartments) state.selectedDepartments = new Set();
+      if (state.selectedDepartments.has(department)) return;
+
+      // Google Sheets-style behavior: when a manager directly checks a product
+      // from outside the active department context, make the department filter
+      // inclusive enough for that product to appear instead of returning a blank dashboard.
+      state.selectedDepartments.add(department);
+      state.deptMode = 'CUSTOM';
+    }
+
+    function includeSelectedProductDepartmentsInFilter() {
+      getSelectedProductKeys().forEach(key => includeProductDepartmentInFilter(key));
+    }
+
+
+
+
+
+
+
+    function selectVisibleProducts(event) {
+      // Backward-compatible alias for older inline handlers.
+      selectAllProducts(event);
+    }
+
+
+
+
+
+    function selectVisibleCustomers(event) {
+      // Backward-compatible alias for older inline handlers.
+      selectAllCustomers(event);
+    }
+
+    function toggleYear(year, event) {
+      if (event) event.stopPropagation();
+      clearMoverTablePinnedSelections();
+
+      // Years now behave like the other dropdown checkboxes:
+      // clicking a year adds/removes it without clearing the rest.
+      if (!state.years) state.years = new Set();
+      if (state.years.has(year)) {
+        state.years.delete(year);
+      } else {
+        state.years.add(year);
+      }
+
+      renderAll();
+    }
+
+    function setProductSort(mode) {
+      state.productSort = mode;
+      state.productColumnSort = null;
+      renderAll();
+    }
+
+    function setCustomerSort(mode) {
+      state.customerSort = mode;
+      state.customerColumnSort = null;
+      renderAll();
+    }
+
+    function setProductMetric(metric) {
+      state.productMetric = metric === 'units' && state.productMetric !== 'units' ? 'units' : 'revenue';
+      state.productColumnSort = null;
+      renderAll();
+    }
+
+    function setCustomerMetric(metric) {
+      state.customerMetric = metric === 'units' && state.customerMetric !== 'units' ? 'units' : 'revenue';
+      state.customerColumnSort = null;
+      renderAll();
+    }
+
+    function getMetricColumn(metric, role) {
+      const units = metric === 'units';
+      if (role === 'prior') return units ? 'priorUnits' : 'priorRevenue';
+      if (role === 'current') return units ? 'currentUnits' : 'currentRevenue';
+      return units ? 'unitGap' : 'gap';
+    }
+
+    function setProductMetricColumnSort(role) {
+      setProductColumnSort(getMetricColumn(state.productMetric, role));
+    }
+
+    function setCustomerMetricColumnSort(role) {
+      setCustomerColumnSort(getMetricColumn(state.customerMetric, role));
+    }
+
+    function setProductColumnSort(column) {
+      state.productColumnSort = nextColumnSort(state.productColumnSort, column);
+      renderAll();
+    }
+
+    function setCustomerColumnSort(column) {
+      state.customerColumnSort = nextColumnSort(state.customerColumnSort, column);
+      renderAll();
+    }
+
+    function nextColumnSort(currentSort, column) {
+      if (!currentSort || currentSort.column !== column) {
+        return { column, dir: 'asc' };
+      }
+
+      return { column, dir: currentSort.dir === 'asc' ? 'desc' : 'asc' };
+    }
+
+    function resetFiltersForPageRefresh() {
+      state.deptMode = 'MAIN';
+      state.periodMode = 'YTD';
+      state.selectedMonth = null;
+      state.selectedMonths = new Set();
+      state.monthSelectionMode = 'none';
+      state.lastSelectedMonth = null;
+      syncSelectedMonthLegacy();
+
+      state.selectedProductKeys = new Set();
+      state.selectedCustomerIds = new Set();
+      state.tableSelectedProductKeys = new Set();
+      state.tableSelectedCustomerIds = new Set();
+      state.excludedProductKeys = new Set();
+      state.excludedCustomerIds = new Set();
+      state.productFilterMode = 'ALL';
+      state.customerFilterMode = 'ALL';
+      state.customerActiveOnly = false;
+      state.lastSelectedProductKey = null;
+      state.lastSelectedCustomerId = null;
+      state.lastProductTableKeys = [];
+      state.lastCustomerTableIds = [];
+
+      state.productSearch = '';
+      state.customerSearch = '';
       state.departmentSearch = '';
       state.collapseSelectedDepartments = false;
       state.collapseSelectedProducts = false;
@@ -1256,401 +1496,3 @@
       return `
         <div class="componentMenuTitle">${escapeHtml(config.title)}</div>
         <button onclick="resetComponentSelection('${escapeJs(componentId)}')"><span>Reset component filter</span></button>
-        <button onclick="exportComponentData('${escapeJs(componentId)}')"><span>Export data</span><span>CSV</span></button>
-        <button onclick="saveComponentPng('${escapeJs(componentId)}')"><span>Save as PNG</span></button>
-        <button onclick="copyComponentImage('${escapeJs(componentId)}')"><span>Copy image</span></button>
-        ${sortBlock}
-      `;
-    }
-
-    function buildComponentSortButtons(componentId, config) {
-      if (componentId === 'customerTable') {
-        return `
-          <button onclick="setCustomerColumnSort('customerName'); closeComponentMenu();"><span>CustomerName</span></button>
-          <button onclick="setCustomerColumnSort('priorRevenue'); closeComponentMenu();"><span>2025</span></button>
-          <button onclick="setCustomerColumnSort('currentRevenue'); closeComponentMenu();"><span>2026</span></button>
-          <button onclick="setCustomerColumnSort('gap'); closeComponentMenu();"><span>26v25</span></button>
-        `;
-      }
-      if (componentId === 'productTable') {
-        return `
-          <button onclick="setProductColumnSort('productsDescription'); closeComponentMenu();"><span>Products_Description</span></button>
-          <button onclick="setProductColumnSort('priorRevenue'); closeComponentMenu();"><span>2025</span></button>
-          <button onclick="setProductColumnSort('currentRevenue'); closeComponentMenu();"><span>2026</span></button>
-          <button onclick="setProductColumnSort('gap'); closeComponentMenu();"><span>26v25</span></button>
-        `;
-      }
-      return '';
-    }
-
-    function closeComponentMenu() {
-      const menu = document.getElementById('componentMenu');
-      if (menu) {
-        menu.classList.remove('open');
-        menu.style.display = 'none';
-      }
-      document.querySelectorAll('.componentMenuBtn.active').forEach(btn => btn.classList.remove('active'));
-    }
-
-    document.addEventListener('click', event => {
-      const menu = document.getElementById('componentMenu');
-      if (menu && menu.classList.contains('open') && !event.target.closest('.componentMenu') && !event.target.closest('.componentMenuBtn')) {
-        closeComponentMenu();
-      }
-    });
-
-    document.addEventListener('keydown', event => {
-      if (event.key === 'Escape') closeComponentMenu();
-    });
-
-    function resetComponentSelection(componentId) {
-      const config = componentMenuConfigs[componentId] || {};
-      if (config.resetKind === 'month') {
-        state.selectedMonth = null;
-        state.selectedMonths = new Set();
-        state.monthSelectionMode = 'none';
-        state.lastSelectedMonth = null;
-        state.focusChartId = null;
-      } else if (config.resetKind === 'customer') {
-        state.selectedCustomerIds = new Set();
-        state.tableSelectedCustomerIds = new Set();
-        state.lastSelectedCustomerId = null;
-        state.customerColumnSort = null;
-        state.customerSort = 'losses';
-        state.customerMetric = 'revenue';
-      } else if (config.resetKind === 'product') {
-        state.selectedProductKeys = new Set();
-        state.tableSelectedProductKeys = new Set();
-        state.lastSelectedProductKey = null;
-        state.productColumnSort = null;
-        state.productSort = 'losses';
-        state.productMetric = 'revenue';
-      }
-      closeComponentMenu();
-      renderAll();
-    }
-
-    function refreshComponentData(componentId) {
-      closeComponentMenu();
-      showStatus('Refreshing latest dashboard cache...');
-      fetchLatestDashboardData();
-    }
-
-    function exportComponentData(componentId) {
-      const config = componentMenuConfigs[componentId];
-      if (!config) return;
-
-      const rows = config.type === 'chart'
-        ? getChartExportRows(config.canvasId)
-        : getTableExportRows(config.tableSelector);
-
-      if (!rows.length) {
-        showStatus('No visible data to export for ' + config.title + '.', 'warn');
-        return;
-      }
-
-      downloadTextFile(slugify(config.title) + '.csv', rowsToCsv(rows), 'text/csv;charset=utf-8');
-      closeComponentMenu();
-    }
-
-    function getChartExportRows(canvasId) {
-      const chart = charts[canvasId];
-      if (!chart || !chart.data) return [];
-      const datasets = chart.data.datasets || [];
-      const header = ['Label'].concat(datasets.map(dataset => String(dataset.label || 'Value')));
-      const rows = [header];
-      (chart.data.labels || []).forEach((label, index) => {
-        rows.push([String(label)].concat(datasets.map(dataset => dataset.data && dataset.data[index] !== undefined && dataset.data[index] !== null ? dataset.data[index] : '')));
-      });
-      return rows;
-    }
-
-    function getTableExportRows(tableSelector) {
-      const tbody = document.querySelector(tableSelector);
-      const table = tbody ? tbody.closest('table') : null;
-      if (!table) return [];
-      const header = [...table.querySelectorAll('thead th')].map(th => cleanCellText(th.textContent));
-      const rows = [header];
-      [...table.querySelectorAll('tbody tr')].forEach(tr => {
-        rows.push([...tr.querySelectorAll('td')].map(td => cleanCellText(td.textContent)));
-      });
-      return rows;
-    }
-
-    function cleanCellText(value) {
-      return String(value || '').replace(/▲|▼/g, '').replace(/\s+/g, ' ').trim();
-    }
-
-    function rowsToCsv(rows) {
-      return rows.map(row => row.map(cell => {
-        const text = String(cell === null || cell === undefined ? '' : cell);
-        return '"' + text.replace(/"/g, '""') + '"';
-      }).join(',')).join('\r\n');
-    }
-
-    function downloadTextFile(fileName, text, mimeType) {
-      const blob = new Blob([text], { type: mimeType || 'text/plain;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = fileName;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
-    }
-
-    async function renderComponentToPngBlob(componentId) {
-      const config = componentMenuConfigs[componentId];
-      if (!config) return null;
-
-      const card = getComponentCard(componentId);
-      if (card && window.html2canvas) {
-        const activeMenuButtons = [...card.querySelectorAll('.componentMenuBtn.active')];
-        activeMenuButtons.forEach(button => button.classList.remove('active'));
-        const canvas = await html2canvas(card, {
-          backgroundColor: '#ffffff',
-          scale: Math.min(2, window.devicePixelRatio || 1.5),
-          useCORS: true,
-          logging: false,
-          scrollX: 0,
-          scrollY: 0
-        });
-        activeMenuButtons.forEach(button => button.classList.add('active'));
-        return new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
-      }
-
-      const canvas = config.canvasId ? document.getElementById(config.canvasId) : null;
-      if (canvas && canvas.toBlob) {
-        return new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
-      }
-
-      return null;
-    }
-
-    function blobToObjectUrl(blob) {
-      return URL.createObjectURL(blob);
-    }
-
-    async function saveComponentPng(componentId) {
-      const config = componentMenuConfigs[componentId];
-      if (!config) return;
-      closeComponentMenu();
-
-      try {
-        showStatus('Preparing ' + config.title + ' PNG...');
-        const blob = await renderComponentToPngBlob(componentId);
-        if (!blob) {
-          showStatus('Could not create PNG for ' + config.title + '.', 'warn');
-          return;
-        }
-        const url = blobToObjectUrl(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = slugify(config.title) + '.png';
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        setTimeout(() => URL.revokeObjectURL(url), 1200);
-        showStatus('Downloaded ' + config.title + ' PNG.', 'good');
-      } catch (error) {
-        showStatus('Could not create PNG for ' + config.title + '. Try Export data instead.', 'warn');
-      }
-    }
-
-    async function copyComponentImage(componentId) {
-      const config = componentMenuConfigs[componentId];
-      if (!config) return;
-      closeComponentMenu();
-
-      if (!navigator.clipboard || !window.ClipboardItem) {
-        await saveComponentPng(componentId);
-        showStatus('Image copy is not available in this browser, so the PNG was downloaded instead.', 'warn');
-        return;
-      }
-
-      try {
-        const blob = await renderComponentToPngBlob(componentId);
-        if (!blob) {
-          showStatus('Could not create image for ' + config.title + '.', 'warn');
-          return;
-        }
-        await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
-        showStatus('Copied ' + config.title + ' image to clipboard.', 'good');
-      } catch (error) {
-        await saveComponentPng(componentId);
-        showStatus('Clipboard copy was blocked, so the PNG was downloaded instead.', 'warn');
-      }
-    }
-
-    function copyComponentLink(componentId) {
-      const config = componentMenuConfigs[componentId];
-      const card = getComponentCard(componentId);
-      const hash = '#component-' + componentId;
-      const url = window.location.href.split('#')[0] + hash;
-      history.replaceState(null, '', hash);
-      if (card) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(url)
-          .then(() => showStatus('Copied link to ' + (config ? config.title : 'component') + '.', 'good'))
-          .catch(() => showStatus('Component link: ' + url, 'warn'));
-      } else {
-        showStatus('Component link: ' + url, 'warn');
-      }
-      closeComponentMenu();
-    }
-
-    function getComponentCard(componentId) {
-      const config = componentMenuConfigs[componentId];
-      if (!config) return null;
-      if (config.canvasId) {
-        const canvas = document.getElementById(config.canvasId);
-        return canvas ? canvas.closest('.card') : null;
-      }
-      if (config.tableSelector) {
-        const tableBody = document.querySelector(config.tableSelector);
-        return tableBody ? tableBody.closest('.card') : null;
-      }
-      return null;
-    }
-
-    function scrollToLinkedComponent() {
-      const hash = String(window.location.hash || '');
-      if (!hash.startsWith('#component-')) return;
-      const componentId = hash.replace('#component-', '');
-      const card = getComponentCard(componentId);
-      if (card) {
-        card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        card.classList.add('chartFocusActive');
-        setTimeout(() => card.classList.remove('chartFocusActive'), 1800);
-      }
-    }
-
-    function slugify(value) {
-      return String(value || 'component')
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-+|-+$/g, '') || 'component';
-    }
-
-
-    function destroyChartsForTab(tabKey) {
-      (visibleChartIdsByTab[tabKey] || []).forEach(canvasId => {
-        if (charts[canvasId]) {
-          charts[canvasId].destroy();
-          delete charts[canvasId];
-        }
-      });
-    }
-
-    function drawChart(canvasId, config) {
-      const canvas = document.getElementById(canvasId);
-      if (!canvas) return;
-      if (charts[canvasId]) charts[canvasId].destroy();
-      const card = canvas.closest('.card');
-      if (card) card.classList.add('chartFocusCard');
-      charts[canvasId] = new Chart(canvas.getContext('2d'), config);
-    }
-
-    function bumpSelectedRowsToTop(rows, keyFn, selectedSet) {
-      if (!selectedSet || !selectedSet.size || !Array.isArray(rows)) return rows;
-      rows.forEach((row, index) => { row.__selectedSortIndex = index; });
-      rows.sort((a, b) => {
-        const aSelected = selectedSet.has(keyFn(a)) ? 1 : 0;
-        const bSelected = selectedSet.has(keyFn(b)) ? 1 : 0;
-        const selectedDiff = bSelected - aSelected;
-        if (selectedDiff) return selectedDiff;
-        return (a.__selectedSortIndex || 0) - (b.__selectedSortIndex || 0);
-      });
-      rows.forEach(row => { delete row.__selectedSortIndex; });
-      return rows;
-    }
-
-    function renderTables() {
-      renderCustomerTable();
-      renderProductTable();
-    }
-
-    function renderCustomerTable() {
-      // Keep the Customer Movers inventory visible when customers are selected.
-      // Selected customers are bumped to the top, while product/department/year/month filters
-      // still cross-filter this table.
-      const rows = groupBy(getFilteredFacts({ customer: true }), row => row.customerId, row => ({
-        customerId: row.customerId,
-        customerName: row.customerName,
-        customerActive: true,
-        currentRevenue: 0,
-        priorRevenue: 0,
-        currentUnits: 0,
-        priorUnits: 0
-      }), (acc, row) => {
-        if (row.customerActive === false) acc.customerActive = false;
-        if (row.year === (payload.config.currentYear || 2026)) {
-          acc.currentRevenue += row.netRevenue;
-          acc.currentUnits += row.units;
-        }
-        if (row.year === (payload.config.priorYear || 2025)) {
-          acc.priorRevenue += row.netRevenue;
-          acc.priorUnits += row.units;
-        }
-      }).map(row => ({
-        ...row,
-        gap: row.currentRevenue - row.priorRevenue,
-        unitGap: row.currentUnits - row.priorUnits
-      }));
-
-      updateMoverMetricHeaders('customer');
-      sortCustomerRows(rows);
-      bumpSelectedRowsToTop(rows, row => row.customerId, state.tableSelectedCustomerIds);
-
-      const visibleRows = rows.slice(0, 500);
-      state.lastCustomerTableIds = visibleRows.map(row => row.customerId);
-      const unitsMode = state.customerMetric === 'units';
-
-      document.getElementById('customerTable').innerHTML = visibleRows.map(row => {
-        const priorValue = unitsMode ? row.priorUnits : row.priorRevenue;
-        const currentValue = unitsMode ? row.currentUnits : row.currentRevenue;
-        const gapValue = unitsMode ? row.unitGap : row.gap;
-        return `
-          <tr class="clickable ${state.tableSelectedCustomerIds && state.tableSelectedCustomerIds.has(row.customerId) ? 'active' : ''}" onclick="setCustomer('${escapeJs(row.customerId)}', event)">
-            <td>${escapeHtml(row.customerId)}</td>
-            <td class="customerNameCell"><span class="customerNameText">${escapeHtml(row.customerName)}</span>${row.customerActive === false ? ' <span class="inactiveBadge">Inactive</span>' : ''}</td>
-            <td>${formatMoverValue(priorValue, unitsMode)}</td>
-            <td>${formatMoverValue(currentValue, unitsMode)}</td>
-            <td class="${gapValue < 0 ? 'negative' : 'positive'}">${formatMoverValue(gapValue, unitsMode)}</td>
-          </tr>
-        `;
-      }).join('');
-    }
-
-    function renderProductTable() {
-      // Keep the Product Movers inventory visible when products are selected.
-      // Selected products are bumped to the top, while customer/department/year/month filters
-      // still cross-filter this table.
-      const rows = groupBy(getFilteredFacts({ product: true }), row => productKey(row), row => ({
-        key: productKey(row),
-        productId: row.productId,
-        productsDescription: row.productsDescription,
-        productsDepartment: row.productsDepartment,
-        currentRevenue: 0,
-        priorRevenue: 0,
-        currentUnits: 0,
-        priorUnits: 0
-      }), (acc, row) => {
-        if (row.year === (payload.config.currentYear || 2026)) {
-          acc.currentRevenue += row.netRevenue;
-          acc.currentUnits += row.units;
-        }
-        if (row.year === (payload.config.priorYear || 2025)) {
-          acc.priorRevenue += row.netRevenue;
-          acc.priorUnits += row.units;
-        }
-      }).map(row => ({
-        ...row,
-        gap: row.currentRevenue - row.priorRevenue,
-        unitGap: row.currentUnits - row.priorUnits
-      }));
-
-      updateMoverMetricHeaders('product');
-      sortProductRows(rows);

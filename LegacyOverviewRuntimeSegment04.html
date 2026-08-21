@@ -1,3 +1,479 @@
+      const rows = getOverviewTwoComparisonRows();
+      const latestMonth = getLatestComparisonMonth(rows);
+      return rows.filter(row => Number(row.monthNum || 0) <= latestMonth);
+    }
+
+    function getOverviewTwoComparisonYears(rows) {
+      const availableYears = [...new Set(rows.map(row => Number(row.year)).filter(Boolean))].sort((a, b) => b - a);
+      const selectedYears = state.years ? [...state.years].map(Number).filter(year => availableYears.includes(year)).sort((a, b) => b - a) : [];
+      const years = [];
+      selectedYears.forEach(year => { if (!years.includes(year)) years.push(year); });
+      availableYears.forEach(year => { if (years.length < 3 && !years.includes(year)) years.push(year); });
+      return years.slice(0, 3);
+    }
+
+    function renderOverviewTwoSnapshotHeader(metrics) {
+      const period = hasMonthFilter()
+        ? getSelectedMonths().map(month => monthLabels[month - 1]).join(', ')
+        : 'YTD performance';
+      setText('o2SnapshotPeriod', period || 'YTD performance');
+      const tone = document.getElementById('o2SnapshotTone');
+      if (!tone) return;
+      const gap = Number(metrics && metrics.gap || 0);
+      const pct = metrics && metrics.gapPct !== null && metrics.gapPct !== undefined ? metrics.gapPct : null;
+      tone.classList.toggle('good', gap > 0);
+      tone.classList.toggle('bad', gap < 0);
+      tone.textContent = pct === null ? formatCompactSigned(gap) : formatSignedPercent(pct);
+    }
+
+    function renderOverviewTwoYearStack() {
+      const holder = document.getElementById('o2YearStackRows');
+      if (!holder) return;
+      const rows = getYtdComparisonRowsThroughCurrentMonth();
+      const latestMonth = getLatestComparisonMonth(getOverviewTwoComparisonRows());
+      const years = getOverviewTwoComparisonYears(rows);
+      const totals = new Map();
+      years.forEach(year => totals.set(year, 0));
+      rows.forEach(row => {
+        const year = Number(row.year);
+        if (totals.has(year)) totals.set(year, (totals.get(year) || 0) + Number(row.netRevenue || 0));
+      });
+
+      setText('o2YearStackAsOf', latestMonth ? 'Through ' + monthLabels[latestMonth - 1] : 'Same YTD window');
+      if (!years.length) {
+        holder.innerHTML = '<div class="o2YearRowV150"><span class="year">-</span><span class="amount">No data</span><span class="delta">-</span></div>';
+        return;
+      }
+
+      holder.innerHTML = years.map((year, idx) => {
+        const amount = totals.get(year) || 0;
+        const olderYear = years[idx + 1];
+        const olderAmount = olderYear ? (totals.get(olderYear) || 0) : null;
+        const gap = olderAmount !== null ? amount - olderAmount : null;
+        const pct = olderAmount ? gap / Math.abs(olderAmount) : null;
+        const deltaClass = gap === null ? '' : gap > 0 ? 'good' : gap < 0 ? 'bad' : '';
+        const deltaText = gap === null ? '-' : formatSignedPercent(pct);
+        return '<div class="o2YearRowV150">'
+          + '<span class="year">' + year + '</span>'
+          + '<span class="amount">' + formatCurrency(amount) + '</span>'
+          + '<span class="delta ' + deltaClass + '">' + deltaText + '</span>'
+          + '</div>';
+      }).join('');
+    }
+
+    function getMonthlyYoyRows() {
+      const rows = getOverviewTwoComparisonRows();
+      const { currentYear, priorYear } = getCurrentPriorYears();
+      const latestMonth = getLatestComparisonMonth(rows);
+      const months = [];
+      for (let month = 1; month <= latestMonth; month++) months.push(month);
+      return months.map(month => {
+        const current = rows.filter(row => row.year === currentYear && row.monthNum === month).reduce((sum, row) => sum + Number(row.netRevenue || 0), 0);
+        const prior = rows.filter(row => row.year === priorYear && row.monthNum === month).reduce((sum, row) => sum + Number(row.netRevenue || 0), 0);
+        const gap = current - prior;
+        const pct = prior ? gap / Math.abs(prior) : null;
+        return { month, current, prior, gap, pct };
+      });
+    }
+
+    function renderOverviewTwoMonthlyYoYStrip() {
+      const holder = document.getElementById('o2MonthlyYoyTiles');
+      if (!holder) return;
+      const rawRows = getMonthlyYoyRows();
+      let currentRun = 0;
+      let priorRun = 0;
+      const rows = rawRows.map(row => {
+        currentRun += Number(row.current || 0);
+        priorRun += Number(row.prior || 0);
+        return Object.assign({}, row, { ytdGap: currentRun - priorRun });
+      });
+
+      const latest = rows.length ? rows[rows.length - 1] : null;
+      const worst = rows.length ? rows.reduce((min, row) => row.gap < min.gap ? row : min, rows[0]) : null;
+      const positiveCount = rows.filter(row => row.gap > 0).length;
+      const maxAbsYtdGap = Math.max(1, ...rows.map(row => Math.abs(Number(row.ytdGap || 0))));
+
+      setPaceValue('o2PaceYtdGap', latest ? formatCompactSigned(latest.ytdGap) : '-', latest ? latest.ytdGap : 0);
+      setText('o2PaceYtdGapSub', latest ? 'Through ' + monthLabels[latest.month - 1] : 'Through current month');
+      setPaceValue('o2PaceWorstMonth', worst ? monthLabels[worst.month - 1] : '-', worst ? worst.gap : 0);
+      setText('o2PaceWorstMonthSub', worst ? formatCompactSigned(worst.gap) + ' monthly drag' : 'Monthly drag');
+      setPaceValue('o2PacePositiveMonths', rows.length ? positiveCount + ' / ' + rows.length : '-', positiveCount);
+
+      holder.style.setProperty('--pace-month-count', String(Math.max(rows.length, 6)));
+      if (!rows.length) {
+        holder.innerHTML = '<div class="o2PaceEmptyV156">No monthly comparison data available.</div>';
+        return;
+      }
+
+      holder.innerHTML = rows.map(row => {
+        const monthlyClass = row.gap > 0 ? 'good' : row.gap < 0 ? 'bad' : 'neutral';
+        const ytdClass = row.ytdGap > 0 ? 'good' : row.ytdGap < 0 ? 'bad' : 'neutral';
+        const pct = row.pct === null ? '-' : formatSignedPercent(row.pct);
+        const ytdBarWidth = Math.max(8, Math.round(Math.abs(Number(row.ytdGap || 0)) / maxAbsYtdGap * 100));
+        const title = monthLabels[row.month - 1] + ': monthly ' + formatCompactSigned(row.gap) + ', cumulative gap ' + formatCompactSigned(row.ytdGap);
+        return '<div class="o2PaceMonthV156 o2PaceMonthV158 ' + monthlyClass + '" title="' + escapeHtml(title) + '">'
+          + '<div class="o2PaceMonthLabelV156 o2PaceMonthLabelV158">' + monthLabels[row.month - 1] + '</div>'
+          + '<div class="o2PaceMonthlyV156 o2PaceMonthlyV158 ' + monthlyClass + '"><span>' + pct + '</span></div>'
+          + '<div class="o2PaceYtdV156 o2PaceYtdV158 ' + ytdClass + '"><b>' + formatCompactSigned(row.ytdGap) + '</b><div class="o2PaceBarTrackV156 o2PaceBarTrackV158"><i style="width:' + ytdBarWidth + '%"></i></div></div>'
+          + '</div>';
+      }).join('');
+    }
+
+    function setPaceValue(id, value, toneValue) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.textContent = value;
+      el.classList.toggle('good', Number(toneValue || 0) > 0);
+      el.classList.toggle('bad', Number(toneValue || 0) < 0);
+    }
+
+    function drawOverviewTwoGapPath() {
+      const canvasId = 'o2GapPath';
+      const canvas = document.getElementById(canvasId);
+      if (!canvas) return;
+      const rows = getOverviewTwoComparisonRows();
+      const { currentYear, priorYear } = getCurrentPriorYears();
+      const latestMonth = getLatestComparisonMonth(rows);
+      const months = [];
+      for (let month = 1; month <= latestMonth; month++) months.push(month);
+
+      let currentRun = 0;
+      let priorRun = 0;
+      const gaps = months.map(month => {
+        currentRun += rows.filter(row => row.year === currentYear && row.monthNum === month).reduce((sum, row) => sum + Number(row.netRevenue || 0), 0);
+        priorRun += rows.filter(row => row.year === priorYear && row.monthNum === month).reduce((sum, row) => sum + Number(row.netRevenue || 0), 0);
+        return currentRun - priorRun;
+      });
+
+      if (charts[canvasId]) charts[canvasId].destroy();
+      charts[canvasId] = new Chart(canvas.getContext('2d'), {
+        type: 'line',
+        data: {
+          labels: months.map(month => monthLabels[month - 1]),
+          datasets: [{
+            label: 'YTD gap',
+            data: gaps,
+            borderColor: '#b42318',
+            backgroundColor: 'rgba(180, 35, 24, 0.08)',
+            pointRadius: 3,
+            pointHoverRadius: 5,
+            pointBackgroundColor: gaps.map(value => value >= 0 ? '#067647' : '#b42318'),
+            pointBorderColor: '#ffffff',
+            pointBorderWidth: 1.5,
+            tension: 0.32,
+            fill: true
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          onClick: (event, elements) => {
+            if (!elements || !elements.length) return;
+            const index = elements[0].index;
+            const month = months[index];
+            if (month) applyMonthSelection(month, isAdditiveEvent(event), isRangeEvent(event));
+          },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: context => 'YTD gap: ' + formatCurrency(context.parsed.y || 0)
+              }
+            }
+          },
+          scales: {
+            x: {
+              grid: { display: false },
+              ticks: { color: '#667085', font: { size: 10, weight: '700' } }
+            },
+            y: {
+              grid: { color: '#eef1f5', borderDash: [3, 4] },
+              ticks: {
+                color: '#667085',
+                font: { size: 10, weight: '700' },
+                callback: value => formatAxisNumber(value)
+              }
+            }
+          }
+        }
+      });
+    }
+
+
+
+    /* v6.152 insight panels: more analytics instead of stretching existing visuals. */
+    function renderOverviewTwoInsightPanels() {
+      const rows = getYtdComparisonRowsThroughCurrentMonth();
+      const metrics = summarize(rows);
+      renderOverviewTwoRevenueGapDrivers(metrics);
+      renderOverviewTwoCustomerHealth(rows);
+      renderOverviewTwoMixShift(rows);
+      renderOverviewTwoBiggestMoves(rows);
+      updateOverviewTwoDeepDive();
+    }
+
+    function renderOverviewTwoRevenueGapDrivers(metrics) {
+      const holder = document.getElementById('o2RevenueGapDrivers');
+      if (!holder) return;
+      const unitImpact = (Number(metrics.units || 0) - Number(metrics.priorUnits || 0)) * Number(metrics.priorAvgPrice || 0);
+      const avgImpact = (Number(metrics.avgPrice || 0) - Number(metrics.priorAvgPrice || 0)) * Number(metrics.units || 0);
+      const customerImpact = (Number(metrics.customers || 0) - Number(metrics.priorCustomers || 0)) * Number(metrics.priorRpac || 0);
+      const valueImpact = (Number(metrics.rpac || 0) - Number(metrics.priorRpac || 0)) * Number(metrics.customers || 0);
+      const rows = [
+        { name: 'Units impact', value: unitImpact },
+        { name: 'Avg $ / unit impact', value: avgImpact },
+        { name: 'Customer count impact', value: customerImpact },
+        { name: 'Revenue / customer impact', value: valueImpact }
+      ];
+      holder.innerHTML = rows.map(item => insightRowHtml(item.name, formatCompactSigned(item.value), item.value)).join('');
+    }
+
+    function renderOverviewTwoCustomerHealth(rows) {
+      const holder = document.getElementById('o2CustomerHealth');
+      if (!holder) return;
+      const grouped = groupCurrentPrior(rows, row => row.customerId || row.customerName || 'Unassigned', row => row.customerName || row.customerId || 'Unassigned customer');
+      const growing = grouped.filter(item => item.current > item.prior && item.prior > 0);
+      const declining = grouped.filter(item => item.current < item.prior && item.current > 0 && item.prior > 0);
+      const newOrReactive = grouped.filter(item => item.current > 0 && item.prior <= 0);
+      const lost = grouped.filter(item => item.current <= 0 && item.prior > 0);
+      const decliningGap = declining.reduce((total, item) => total + Math.min(0, item.current - item.prior), 0);
+      const lostPrior = lost.reduce((total, item) => total + item.prior, 0);
+      const newRevenue = newOrReactive.reduce((total, item) => total + item.current, 0);
+      const growingGap = growing.reduce((total, item) => total + Math.max(0, item.current - item.prior), 0);
+      holder.innerHTML = [
+        healthTileHtml('Growing', growing.length, formatCompactSigned(growingGap), 'good'),
+        healthTileHtml('Declining', declining.length, formatCompactSigned(decliningGap), 'bad'),
+        healthTileHtml('New / reactivated', newOrReactive.length, formatCurrency(newRevenue), 'good'),
+        healthTileHtml('Lost', lost.length, formatCurrency(lostPrior) + ' prior', 'bad')
+      ].join('');
+    }
+
+    function renderOverviewTwoMixShift(rows) {
+      const holder = document.getElementById('o2MixShift');
+      if (!holder) return;
+      const grouped = groupCurrentPrior(rows, row => row.productsDepartment || 'Unassigned', row => row.productsDepartment || 'Unassigned');
+      grouped.forEach(item => {
+        item.gap = item.current - item.prior;
+        item.absGap = Math.abs(item.gap);
+      });
+      const top = grouped.sort((a, b) => b.absGap - a.absGap).slice(0, 5);
+      if (!top.length) {
+        holder.innerHTML = '<div class="o2InsightRowV152"><span class="name">No department data</span><span class="value">-</span></div>';
+        return;
+      }
+      holder.innerHTML = top.map(item => insightRowHtml(item.name, formatCompactSigned(item.gap), item.gap)).join('');
+    }
+
+    function renderOverviewTwoBiggestMoves(rows) {
+      const holder = document.getElementById('o2BiggestMoves');
+      if (!holder) return;
+      const customers = groupCurrentPrior(rows, row => row.customerId || row.customerName || 'Unassigned', row => row.customerName || row.customerId || 'Unassigned customer');
+      const products = groupCurrentPrior(rows, row => productKey(row), row => row.productsDescription || 'Unassigned product');
+      customers.forEach(item => item.gap = item.current - item.prior);
+      products.forEach(item => item.gap = item.current - item.prior);
+      const bestCustomer = customers.length ? customers.slice().sort((a, b) => b.gap - a.gap)[0] : null;
+      const worstCustomer = customers.length ? customers.slice().sort((a, b) => a.gap - b.gap)[0] : null;
+      const bestProduct = products.length ? products.slice().sort((a, b) => b.gap - a.gap)[0] : null;
+      const worstProduct = products.length ? products.slice().sort((a, b) => a.gap - b.gap)[0] : null;
+      const rowsOut = [
+        { label: 'Best customer', item: bestCustomer },
+        { label: 'Largest customer loss', item: worstCustomer },
+        { label: 'Best product', item: bestProduct },
+        { label: 'Largest product loss', item: worstProduct }
+      ];
+      holder.innerHTML = rowsOut.map(row => {
+        if (!row.item) return insightRowHtml(row.label, '-', 0);
+        return '<div class="o2InsightRowV152" title="' + escapeHtml(row.label + ': ' + row.item.name) + '">'
+          + '<span class="name">' + escapeHtml(row.label + ': ' + row.item.name) + '</span>'
+          + '<span class="value ' + insightToneClass(row.item.gap) + '">' + escapeHtml(formatCompactSigned(row.item.gap)) + '</span>'
+          + '</div>';
+      }).join('');
+    }
+
+    function groupCurrentPrior(rows, keyFn, nameFn) {
+      const { currentYear, priorYear } = getCurrentPriorYears();
+      const map = new Map();
+      rows.forEach(row => {
+        const key = String(keyFn(row) || 'Unassigned');
+        if (!map.has(key)) map.set(key, { key, name: nameFn(row) || key, current: 0, prior: 0 });
+        const item = map.get(key);
+        if (row.year === currentYear) item.current += Number(row.netRevenue || 0);
+        if (row.year === priorYear) item.prior += Number(row.netRevenue || 0);
+      });
+      return [...map.values()];
+    }
+
+    function insightToneClass(value) {
+      const n = Number(value || 0);
+      return n > 0 ? 'good' : n < 0 ? 'bad' : '';
+    }
+
+    function insightRowHtml(name, value, toneValue) {
+      return '<div class="o2InsightRowV152" title="' + escapeHtml(name + ': ' + value) + '">'
+        + '<span class="name">' + escapeHtml(name) + '</span>'
+        + '<span class="value ' + insightToneClass(toneValue) + '">' + escapeHtml(value) + '</span>'
+        + '</div>';
+    }
+
+    function healthTileHtml(label, value, sub, cls) {
+      return '<div class="o2HealthTileV152 ' + (cls || '') + '">'
+        + '<div class="label">' + escapeHtml(label) + '</div>'
+        + '<div class="value">' + escapeHtml(formatNumber(value)) + '</div>'
+        + '<div class="sub">' + escapeHtml(sub || '-') + '</div>'
+        + '</div>';
+    }
+
+
+    /* v6.155 deep dive tabs: keep all analytics, show one lower panel at a time. */
+    function setOverviewTwoDeepDive(mode) {
+      if (!state) return;
+      state.overviewTwoDeepDive = mode || 'gap';
+      updateOverviewTwoDeepDive();
+    }
+
+    function updateOverviewTwoDeepDive() {
+      const mode = state && state.overviewTwoDeepDive ? state.overviewTwoDeepDive : 'gap';
+      const config = {
+        gap: {
+          tab: 'o2DeepTabGap',
+          panel: 'o2DeepPanelGap',
+          title: 'Deep Dive: Gap Drivers',
+          subtitle: 'Unit, price, customer-count, and revenue-per-customer impact in the current YTD window.'
+        },
+        health: {
+          tab: 'o2DeepTabHealth',
+          panel: 'o2DeepPanelHealth',
+          title: 'Deep Dive: Customer Health',
+          subtitle: 'A cleaner view of growing, declining, new/reactivated, and lost customer groups.'
+        },
+        mix: {
+          tab: 'o2DeepTabMix',
+          panel: 'o2DeepPanelMix',
+          title: 'Deep Dive: Department Mix',
+          subtitle: 'Largest department shifts behind the selected year-to-date performance.'
+        },
+        moves: {
+          tab: 'o2DeepTabMoves',
+          panel: 'o2DeepPanelMoves',
+          title: 'Deep Dive: Biggest Moves',
+          subtitle: 'Best and worst customer/product movements in one focused view.'
+        }
+      };
+      const selected = config[mode] || config.gap;
+      Object.keys(config).forEach(key => {
+        const tab = document.getElementById(config[key].tab);
+        const panel = document.getElementById(config[key].panel);
+        if (tab) tab.classList.toggle('active', config[key].tab === selected.tab);
+        if (panel) panel.classList.toggle('active', config[key].panel === selected.panel);
+      });
+      const title = document.getElementById('o2DeepDiveTitle');
+      const subtitle = document.getElementById('o2DeepDiveSubtitle');
+      if (title) title.textContent = selected.title;
+      if (subtitle) subtitle.textContent = selected.subtitle;
+    }
+
+
+    /* v6.153 interactive executive insights. */
+    function setOverviewTwoInsightMode(mode) {
+      if (!state) return;
+      state.o2InsightMode = mode || 'explain';
+      renderOverviewTwoExecutiveInsights();
+    }
+
+    function renderOverviewTwoExecutiveInsights() {
+      const holder = document.getElementById('o2ExecutiveInsights');
+      if (!holder || !payload || !facts || !facts.length) return;
+
+      const mode = state.o2InsightMode || 'explain';
+      const overview = document.getElementById('overviewTwo');
+      if (overview) overview.classList.remove('o2BossViewV153');
+      updateOverviewTwoInsightButtons(mode);
+
+      const rows = getYtdComparisonRowsThroughCurrentMonth();
+      const metrics = summarize(rows);
+      const context = buildOverviewTwoInsightContext(rows, metrics);
+      const content = buildOverviewTwoInsightContent(mode, context);
+
+      const title = document.getElementById('o2ExecutiveInsightsTitle');
+      const subtitle = document.getElementById('o2ExecutiveInsightsSubtitle');
+      const badge = document.getElementById('o2ExecutiveInsightsBadge');
+      if (title) title.textContent = content.title;
+      if (subtitle) subtitle.textContent = content.subtitle;
+      if (badge) badge.textContent = content.badge;
+
+      holder.innerHTML = '<div class="o2InsightNarrativeV153">'
+        + '<div class="o2InsightLeadV153 ' + insightToneClass(content.toneValue) + '">' + escapeHtml(content.lead) + '</div>'
+        + '<div class="o2InsightBulletsV153">' + content.bullets.map((item, index) => insightBulletHtml(index + 1, item.label, item.value, item.tone)).join('') + '</div>'
+        + '</div>'
+        + '<div class="o2InsightStatGridV153">' + content.stats.map(item => insightStatHtml(item.label, item.value, item.sub)).join('') + '</div>';
+    }
+
+    function updateOverviewTwoInsightButtons(mode) {
+      const ids = {
+        explain: 'o2InsightBtnExplain',
+        loss: 'o2InsightBtnLoss',
+        growth: 'o2InsightBtnGrowth'
+      };
+      Object.keys(ids).forEach(key => {
+        const btn = document.getElementById(ids[key]);
+        if (btn) btn.classList.toggle('active', key === mode);
+      });
+    }
+
+    function buildOverviewTwoInsightContext(rows, metrics) {
+      const monthly = getMonthlyYoyRows();
+      const customers = groupCurrentPrior(rows, row => row.customerId || row.customerName || 'Unassigned', row => row.customerName || row.customerId || 'Unassigned customer');
+      const products = groupCurrentPrior(rows, row => productKey(row), row => row.productsDescription || 'Unassigned product');
+      const departments = groupCurrentPrior(rows, row => row.productsDepartment || 'Unassigned', row => row.productsDepartment || 'Unassigned');
+      [customers, products, departments].forEach(list => list.forEach(item => {
+        item.gap = Number(item.current || 0) - Number(item.prior || 0);
+        item.gapPct = item.prior ? item.gap / Math.abs(item.prior) : null;
+        item.absGap = Math.abs(item.gap || 0);
+      }));
+
+      const monthWorst = monthly.length ? monthly.slice().sort((a, b) => a.gap - b.gap)[0] : null;
+      const monthBest = monthly.length ? monthly.slice().sort((a, b) => b.gap - a.gap)[0] : null;
+      const lossCustomers = customers.filter(item => item.gap < 0).sort((a, b) => a.gap - b.gap);
+      const gainCustomers = customers.filter(item => item.gap > 0).sort((a, b) => b.gap - a.gap);
+      const lossProducts = products.filter(item => item.gap < 0).sort((a, b) => a.gap - b.gap);
+      const gainProducts = products.filter(item => item.gap > 0).sort((a, b) => b.gap - a.gap);
+      const lossDepartments = departments.filter(item => item.gap < 0).sort((a, b) => a.gap - b.gap);
+      const gainDepartments = departments.filter(item => item.gap > 0).sort((a, b) => b.gap - a.gap);
+      const lostCustomers = customers.filter(item => Number(item.current || 0) <= 0 && Number(item.prior || 0) > 0);
+      const newCustomers = customers.filter(item => Number(item.current || 0) > 0 && Number(item.prior || 0) <= 0);
+      const growingCustomers = customers.filter(item => item.gap > 0 && item.prior > 0);
+      const decliningCustomers = customers.filter(item => item.gap < 0 && item.current > 0 && item.prior > 0);
+      const atRiskRevenue = lostCustomers.reduce((sum, item) => sum + Number(item.prior || 0), 0);
+      const winRevenue = gainCustomers.reduce((sum, item) => sum + Math.max(0, Number(item.gap || 0)), 0);
+      const lossRevenue = lossCustomers.reduce((sum, item) => sum + Math.min(0, Number(item.gap || 0)), 0);
+
+      return {
+        metrics,
+        monthly,
+        monthWorst,
+        monthBest,
+        customers,
+        products,
+        departments,
+        lossCustomers,
+        gainCustomers,
+        lossProducts,
+        gainProducts,
+        lossDepartments,
+        gainDepartments,
+        lostCustomers,
+        newCustomers,
+        growingCustomers,
+        decliningCustomers,
+        atRiskRevenue,
+        winRevenue,
+        lossRevenue
+      };
+    }
+
+    function buildOverviewTwoInsightContent(mode, context) {
+      if (mode === 'loss') return buildOverviewTwoLossWatchContent(context);
       if (mode === 'growth') return buildOverviewTwoGrowthWinsContent(context);
       return buildOverviewTwoExplainGapContent(context);
     }
@@ -742,647 +1218,3 @@
 
       renderCustomerTable = function renderCustomerTableV6165() {
         ensureV6165State();
-        const rows = groupBy(getFilteredFacts({ v6165CustomerFocus: true, v6165ProductFocus: true }), row => row.customerId, row => ({
-          customerId: row.customerId,
-          customerName: row.customerName,
-          customerActive: true,
-          currentRevenue: 0,
-          priorRevenue: 0,
-          currentUnits: 0,
-          priorUnits: 0
-        }), (acc, row) => {
-          if (row.customerActive === false) acc.customerActive = false;
-          if (row.year === (payload.config.currentYear || 2026)) { acc.currentRevenue += row.netRevenue; acc.currentUnits += row.units; }
-          if (row.year === (payload.config.priorYear || 2025)) { acc.priorRevenue += row.netRevenue; acc.priorUnits += row.units; }
-        }).map(row => ({ ...row, gap: row.currentRevenue - row.priorRevenue, unitGap: row.currentUnits - row.priorUnits }));
-        updateMoverMetricHeaders('customer');
-        sortCustomerRows(rows);
-        selectedFirstV6165(rows, row => row.customerId, state.v6165CustomerFocus, state.v6165CustomerClickOrder);
-        const visibleRows = rows.slice(0, 500);
-        state.lastCustomerTableIds = visibleRows.map(row => row.customerId);
-        const unitsMode = state.customerMetric === 'units';
-        const tbody = document.getElementById('customerTable');
-        if (!tbody) return;
-        tbody.innerHTML = visibleRows.map(row => {
-          const priorValue = unitsMode ? row.priorUnits : row.priorRevenue;
-          const currentValue = unitsMode ? row.currentUnits : row.currentRevenue;
-          const gapValue = unitsMode ? row.unitGap : row.gap;
-          const active = state.v6165CustomerFocus && state.v6165CustomerFocus.has(row.customerId);
-          return '<tr class="clickable ' + (active ? 'active v6165PinnedRow' : '') + '" onclick="setCustomer(\'' + escapeJs(row.customerId) + '\', event)">'
-            + '<td>' + escapeHtml(row.customerId) + '</td>'
-            + '<td class="customerNameCell"><span class="customerNameText">' + escapeHtml(row.customerName) + '</span>' + (row.customerActive === false ? ' <span class="inactiveBadge">Inactive</span>' : '') + '</td>'
-            + '<td>' + formatMoverValue(priorValue, unitsMode) + '</td>'
-            + '<td>' + formatMoverValue(currentValue, unitsMode) + '</td>'
-            + '<td class="' + (gapValue < 0 ? 'negative' : 'positive') + '">' + formatMoverValue(gapValue, unitsMode) + '</td>'
-            + '</tr>';
-        }).join('');
-      };
-
-      renderProductTable = function renderProductTableV6165() {
-        ensureV6165State();
-        installProductModeButtonsV6165();
-        updateProductModeButtonsV6165();
-        const modeConfig = productModeConfigV6165();
-        const rows = groupBy(getFilteredFacts({ v6165CustomerFocus: true, v6165ProductFocus: true }), row => modeConfig.key(row), row => ({
-          key: modeConfig.key(row),
-          name: modeConfig.name(row),
-          productsDescription: modeConfig.name(row),
-          productsDepartment: row.productsDepartment,
-          productsGroup: row.productsGroup,
-          productsCategory: row.productsCategory,
-          currentRevenue: 0,
-          priorRevenue: 0,
-          currentUnits: 0,
-          priorUnits: 0
-        }), (acc, row) => {
-          if (row.year === (payload.config.currentYear || 2026)) { acc.currentRevenue += row.netRevenue; acc.currentUnits += row.units; }
-          if (row.year === (payload.config.priorYear || 2025)) { acc.priorRevenue += row.netRevenue; acc.priorUnits += row.units; }
-        }).map(row => ({ ...row, gap: row.currentRevenue - row.priorRevenue, unitGap: row.currentUnits - row.priorUnits }));
-        updateMoverMetricHeaders('product');
-        sortProductRows(rows);
-        selectedFirstV6165(rows, row => row.key, state.v6165ProductFocus, state.v6165ProductClickOrder);
-        const visibleRows = rows.slice(0, 1000);
-        state.lastProductTableKeys = visibleRows.map(row => row.key);
-        const unitsMode = state.productMetric === 'units';
-        const tbody = document.getElementById('productTable');
-        if (!tbody) return;
-        tbody.innerHTML = visibleRows.map(row => {
-          const priorValue = unitsMode ? row.priorUnits : row.priorRevenue;
-          const currentValue = unitsMode ? row.currentUnits : row.currentRevenue;
-          const gapValue = unitsMode ? row.unitGap : row.gap;
-          const active = state.v6165ProductFocus && state.v6165ProductFocus.has(row.key) && state.v6165ProductFocusMode === state.v6165ProductMode;
-          const title = [row.productsDepartment, row.productsGroup, row.productsCategory].filter(Boolean).join(' | ');
-          return '<tr class="clickable ' + (active ? 'active v6165PinnedRow' : '') + '" onclick="setProduct(\'' + escapeJs(row.key) + '\', event)" title="' + escapeHtml(title) + '">'
-            + '<td>' + escapeHtml(row.name) + '</td>'
-            + '<td>' + formatMoverValue(priorValue, unitsMode) + '</td>'
-            + '<td>' + formatMoverValue(currentValue, unitsMode) + '</td>'
-            + '<td class="' + (gapValue < 0 ? 'negative' : 'positive') + '">' + formatMoverValue(gapValue, unitsMode) + '</td>'
-            + '</tr>';
-        }).join('');
-      };
-
-      function addYearsFromRowsV6165(rows) {
-        if (!state.years) state.years = new Set();
-        (rows || []).forEach(row => {
-          const y = Number(row && row.year);
-          if (y) state.years.add(y);
-        });
-      }
-
-      addRelatedContextForCustomerSelection = function addRelatedContextForCustomerSelectionV6165(id) {
-        if (originalAddCustomerContext) originalAddCustomerContext(id);
-        addYearsFromRowsV6165(facts.filter(row => row.customerId === id));
-      };
-
-      addRelatedContextForProductSelection = function addRelatedContextForProductSelectionV6165(key) {
-        if (originalAddProductContext) originalAddProductContext(key);
-        addYearsFromRowsV6165(facts.filter(row => productKey(row) === key));
-      };
-
-      function monthFromCanvasPointerV6165(canvas, event) {
-        const chart = charts && charts[canvas.id];
-        if (!chart || !chart.data || !Array.isArray(chart.data.labels) || !chart.scales || !chart.scales.x) return null;
-        const labels = chart.data.labels.map(label => String(label));
-        if (!labels.some(label => monthLabels.indexOf(label) >= 0)) return null;
-        const rect = canvas.getBoundingClientRect();
-        const x = event.clientX - rect.left;
-        const scale = chart.scales.x;
-        let index = Number(scale.getValueForPixel ? scale.getValueForPixel(x) : NaN);
-        if (!Number.isFinite(index)) {
-          let best = 0;
-          let bestDist = Infinity;
-          labels.forEach((label, i) => {
-            const px = scale.getPixelForValue ? scale.getPixelForValue(i) : 0;
-            const dist = Math.abs(px - x);
-            if (dist < bestDist) { bestDist = dist; best = i; }
-          });
-          index = best;
-        }
-        index = Math.max(0, Math.min(labels.length - 1, Math.round(index)));
-        const month = monthLabels.indexOf(labels[index]) + 1;
-        return month > 0 ? month : null;
-      }
-
-      function getBrushOverlayV6165(canvas) {
-        const box = canvas.closest('.chartBox') || canvas.parentElement;
-        if (!box) return null;
-        let overlay = box.querySelector('.monthBrushOverlayV6165');
-        if (!overlay) {
-          overlay = document.createElement('div');
-          overlay.className = 'monthBrushOverlayV6165';
-          box.appendChild(overlay);
-        }
-        return overlay;
-      }
-
-      function updateBrushOverlayV6165(canvas, startX, endX) {
-        const overlay = getBrushOverlayV6165(canvas);
-        if (!overlay) return;
-        const left = Math.max(0, Math.min(startX, endX));
-        const width = Math.abs(endX - startX);
-        overlay.style.display = width > 4 ? 'block' : 'none';
-        overlay.style.left = left + 'px';
-        overlay.style.width = width + 'px';
-      }
-
-      function hideBrushOverlayV6165(canvas) {
-        const box = canvas ? (canvas.closest('.chartBox') || canvas.parentElement) : null;
-        const overlay = box ? box.querySelector('.monthBrushOverlayV6165') : null;
-        if (overlay) overlay.style.display = 'none';
-      }
-
-      function installMonthBrushOnCanvasV6165(canvas) {
-        if (!canvas || canvas.__monthBrushV6165) return;
-        canvas.__monthBrushV6165 = true;
-
-        canvas.addEventListener('pointerdown', event => {
-          try {
-            if (event.button !== 0) return;
-            const month = monthFromCanvasPointerV6165(canvas, event);
-            if (!month) return;
-            const rect = canvas.getBoundingClientRect();
-            ensureV6165State();
-            monthBrush.active = true;
-            monthBrush.canvas = canvas;
-            monthBrush.pointerId = event.pointerId;
-            monthBrush.startX = event.clientX - rect.left;
-            monthBrush.lastX = monthBrush.startX;
-            monthBrush.startMonth = month;
-            monthBrush.moved = false;
-            monthBrush.additive = additiveV6165(event);
-            // Do not use setPointerCapture here. In Apps Script iframes it can
-            // create a generic cross-origin "Script error" during Chart.js drag.
-          } catch (err) {
-            handleMonthBrushErrorV6168(err);
-          }
-        });
-
-        canvas.addEventListener('pointermove', event => {
-          try {
-            if (!monthBrush.active || monthBrush.canvas !== canvas) return;
-            const rect = canvas.getBoundingClientRect();
-            monthBrush.lastX = event.clientX - rect.left;
-            if (Math.abs(monthBrush.lastX - monthBrush.startX) > 7) {
-              monthBrush.moved = true;
-              if (event.cancelable) event.preventDefault();
-            }
-            updateBrushOverlayV6165(canvas, monthBrush.startX, monthBrush.lastX);
-          } catch (err) {
-            handleMonthBrushErrorV6168(err);
-          }
-        });
-
-        canvas.addEventListener('pointerup', event => {
-          try {
-            if (!monthBrush.active || monthBrush.canvas !== canvas) return;
-            hideBrushOverlayV6165(canvas);
-            const endMonth = monthFromCanvasPointerV6165(canvas, event);
-            if (monthBrush.moved) {
-              suppressMonthClickUntil = Date.now() + 700;
-              if (event.cancelable) event.preventDefault();
-              if (typeof event.stopPropagation === 'function') event.stopPropagation();
-            }
-            if (monthBrush.moved && monthBrush.startMonth && endMonth) {
-              ensureV6165State();
-              const start = Math.min(monthBrush.startMonth, endMonth);
-              const end = Math.max(monthBrush.startMonth, endMonth);
-              const months = [];
-              for (let m = start; m <= end; m++) months.push(m);
-              const base = (monthBrush.additive || additiveV6165(event)) ? (state.selectedMonths || new Set()) : [];
-              const selected = new Set(base);
-              months.forEach(m => selected.add(m));
-              setMonthSelectionV6165(selected, 'multi');
-              safeRenderAllV6168();
-            }
-            resetMonthBrushV6168(canvas);
-          } catch (err) {
-            handleMonthBrushErrorV6168(err);
-          }
-        });
-
-        canvas.addEventListener('pointercancel', () => {
-          resetMonthBrushV6168(canvas);
-        });
-      }
-
-      function installMonthBrushesV6165() {
-        ['chartRevenue', 'chartCustomers', 'chartUnits', 'chartRpac', 'chartAvg', 'o2RevenueTrend', 'o2Customers', 'o2Units', 'o2Rpac', 'o2Avg'].forEach(id => installMonthBrushOnCanvasV6165(document.getElementById(id)));
-      }
-
-      if (originalDrawChart) {
-        drawChart = function drawChartV6165(canvasId, config) {
-          originalDrawChart(canvasId, config);
-          installMonthBrushOnCanvasV6165(document.getElementById(canvasId));
-        };
-      }
-
-      function productFocusLabelV6165() {
-        ensureV6165State();
-        const values = [...state.v6165ProductFocus];
-        if (!values.length) return '';
-        const label = productModeConfigV6165().label;
-        const shown = values.slice(0, 2).map(value => state.v6165ProductMode === 'product' ? productLabelFromKey(value) : value);
-        return label + ' highlighted: ' + shown.join(', ') + (values.length > 2 ? ' +' + (values.length - 2) : '');
-      }
-
-      function customerFocusLabelV6165() {
-        const values = [...(state.v6165CustomerFocus || [])];
-        if (!values.length) return '';
-        const shown = values.slice(0, 2).map(getCustomerNameById);
-        return 'Customer highlighted: ' + shown.join(', ') + (values.length > 2 ? ' +' + (values.length - 2) : '');
-      }
-
-      function renderVisibleInteractionPillsV6165() {
-        ensureV6165State();
-        document.querySelectorAll('.v6165InteractionChip').forEach(el => el.remove());
-        const rows = [document.getElementById('legacyChipRow'), document.getElementById('chipRow')].filter(Boolean);
-        if (!rows.length) return;
-        const pieces = [];
-        pieces.push('<span class="chip v6165InteractionChip v6165ReadyChip" title="Visible interaction controls are installed">' + VERSION + '</span>');
-        const months = sortedMonthsV6165();
-        if (months.length) pieces.push('<span class="chip v6165InteractionChip v6165MonthChip">Month brush: ' + escapeHtml(compressMonthsV6165(months)) + ' <button onclick="event.stopPropagation(); clearFilter(\'month\')">x</button></span>');
-        const customerLabel = customerFocusLabelV6165();
-        if (customerLabel) pieces.push('<span class="chip v6165InteractionChip">' + escapeHtml(customerLabel) + ' <button onclick="event.stopPropagation(); clearFilter(\'interactionCustomers\')">x</button></span>');
-        const productLabel = productFocusLabelV6165();
-        if (productLabel) pieces.push('<span class="chip v6165InteractionChip">' + escapeHtml(productLabel) + ' <button onclick="event.stopPropagation(); clearFilter(\'interactionProducts\')">x</button></span>');
-        rows.forEach(row => row.insertAdjacentHTML('beforeend', pieces.join('')));
-      }
-
-      if (originalClearFilter) {
-        clearFilter = function clearFilterV6165(kind) {
-          ensureV6165State();
-          if (kind === 'interactionCustomers' || kind === 'customerFocus') {
-            clearCustomerFocusV6165();
-            renderAll();
-            return;
-          }
-          if (kind === 'interactionProducts' || kind === 'productFocus') {
-            clearProductFocusV6165();
-            renderAll();
-            return;
-          }
-          originalClearFilter(kind);
-        };
-      }
-
-      function installStylesV6165() {
-        if (document.getElementById('visibleInteractionStylesV6165')) return;
-        const style = document.createElement('style');
-        style.id = 'visibleInteractionStylesV6165';
-        style.textContent = `
-          .v6165ReadyChip { background: #f4f3ff !important; border-color: #c7bfff !important; color: #3730a3 !important; font-weight: 900 !important; }
-          .v6165InteractionChip { background: #eef4ff !important; border-color: #b2ccff !important; color: #194185 !important; font-weight: 850 !important; }
-          .v6165MonthChip { background: #ecfdf3 !important; border-color: #abefc6 !important; color: #067647 !important; }
-          #overviewOne tr.v6165PinnedRow td { background: #eef4ff !important; font-weight: 850 !important; }
-          .monthBrushOverlayV6165 { display: none; position: absolute; top: 0; bottom: 0; background: rgba(37, 99, 235, .14); border: 1px solid rgba(37, 99, 235, .36); border-radius: 6px; pointer-events: none; z-index: 5; }
-          #overviewOne .chartBox { position: relative !important; }
-          #overviewOne .productModeButtonsV6165 { margin-right: 6px !important; }
-          #overviewOne .productModeButtonsV6165 .tinyBtn.active { background: #312e81 !important; color: #ffffff !important; border-color: #312e81 !important; }
-          #overviewOne .areaProductTable td:first-child { white-space: nowrap !important; overflow: hidden !important; text-overflow: ellipsis !important; }
-        `;
-        document.head.appendChild(style);
-      }
-
-      if (originalRenderAll) {
-        renderAll = function renderAllV6165() {
-          const result = originalRenderAll();
-          try {
-            ensureV6165State();
-            syncLegacyTableSelectionV6165();
-            installStylesV6165();
-            setDebugVersionV6165();
-            installProductModeButtonsV6165();
-            updateProductModeButtonsV6165();
-            installMonthBrushesV6165();
-            renderVisibleInteractionPillsV6165();
-          } catch (error) {
-            console.warn('v6.165 interaction render warning', error);
-          }
-          return result;
-        };
-      }
-
-      if (originalHandleData) {
-        handleData = function handleDataV6165(data, options = {}) {
-          const result = originalHandleData(data, options);
-          try {
-            ensureV6165State();
-            installStylesV6165();
-            setDebugVersionV6165();
-            renderVisibleInteractionPillsV6165();
-          } catch (error) {
-            console.warn('v6.165 interaction handleData warning', error);
-          }
-          return result;
-        };
-      }
-
-      installStylesV6165();
-      ensureV6165State();
-      setDebugVersionV6165();
-    })();
-
-
-
-    /* v6.170 Digital Cases-style pills + reliable click filter wiring
-       This patch is intentionally appended after the prior v6.169 patch so it wins.
-       Goals:
-       - Replace debug/random chips with a clean Digital Cases-style active filter pill bar.
-       - Make customer/product row clicks update KPIs and sales charts while tables stay full/pinned.
-       - Keep dropdowns as the only destructive table filters.
-       - Keep normal month click drilldown and ctrl/cmd/drag month highlighting. */
-    (function installDigitalCasesPillsAndClickFiltersV6170() {
-      const VERSION = 'v6.170 digitalCasesPillsAndClickFilters';
-      const previousRenderAll = typeof renderAll === 'function' ? renderAll : null;
-      const previousHandleData = typeof handleData === 'function' ? handleData : null;
-      const previousGetFilteredFacts = typeof getFilteredFacts === 'function' ? getFilteredFacts : null;
-      const previousClearFilter = typeof clearFilter === 'function' ? clearFilter : null;
-
-      function ensureInteractionStateV6170() {
-        if (!state.selectedMonths) state.selectedMonths = new Set();
-        if (!state.v6165CustomerFocus) state.v6165CustomerFocus = new Set();
-        if (!state.v6165ProductFocus) state.v6165ProductFocus = new Set();
-        if (!state.v6165CustomerClickOrder) state.v6165CustomerClickOrder = [];
-        if (!state.v6165ProductClickOrder) state.v6165ProductClickOrder = [];
-        if (!state.v6165ProductMode) state.v6165ProductMode = 'product';
-        if (!state.v6165ProductFocusMode) state.v6165ProductFocusMode = state.v6165ProductMode;
-        state.tableSelectedCustomerIds = new Set(state.v6165CustomerFocus || []);
-        state.tableSelectedProductKeys = new Set(state.v6165ProductFocus || []);
-      }
-
-      function isAdditiveV6170(event) {
-        const e = event && event.native ? event.native : event;
-        return !!(e && (e.ctrlKey || e.metaKey));
-      }
-
-      function rememberFirstV6170(listName, key) {
-        const current = Array.isArray(state[listName]) ? state[listName] : [];
-        state[listName] = [key].concat(current.filter(item => item !== key));
-      }
-
-      function productFocusModeV6170() {
-        return state.v6165ProductFocusMode || state.v6165ProductMode || 'product';
-      }
-
-      function productFocusLabelNameV6170() {
-        const mode = productFocusModeV6170();
-        if (mode === 'department') return 'Department';
-        if (mode === 'group') return 'Group';
-        if (mode === 'category') return 'Category';
-        return 'Product';
-      }
-
-      function factMatchesProductFocusV6170(row) {
-        ensureInteractionStateV6170();
-        if (!state.v6165ProductFocus || !state.v6165ProductFocus.size) return true;
-        const mode = productFocusModeV6170();
-        if (mode === 'department') return state.v6165ProductFocus.has(row.productsDepartment || '(Blank department)');
-        if (mode === 'group') return state.v6165ProductFocus.has(row.productsGroup || '(Blank group)');
-        if (mode === 'category') return state.v6165ProductFocus.has(row.productsCategory || '(Blank category)');
-        return state.v6165ProductFocus.has(productKey(row));
-      }
-
-      function baseFilteredFactsV6170(ignore) {
-        const opts = Object.assign({}, ignore || {}, {
-          v6165CustomerFocus: true,
-          v6165ProductFocus: true
-        });
-        if (previousGetFilteredFacts) return previousGetFilteredFacts(opts);
-        return (facts || []).filter(row => {
-          if (!opts.years && state.years && !state.years.has(row.year)) return false;
-          if (!opts.departments && state.selectedDepartments && !state.selectedDepartments.has(row.productsDepartment)) return false;
-          if (!opts.month && state.selectedMonths && state.selectedMonths.size && !state.selectedMonths.has(row.monthNum)) return false;
-          return true;
-        });
-      }
-
-      getFilteredFacts = function getFilteredFactsV6170(ignore = {}) {
-        ensureInteractionStateV6170();
-        const opts = ignore || {};
-        let rows = baseFilteredFactsV6170(opts);
-        // Table renderers pass v6165CustomerFocus/v6165ProductFocus so they stay full.
-        // KPI and chart renderers do not pass those flags, so highlighted rows update totals/charts.
-        if (!opts.v6165CustomerFocus && !opts.noInteractionFocus && state.v6165CustomerFocus && state.v6165CustomerFocus.size) {
-          rows = rows.filter(row => state.v6165CustomerFocus.has(row.customerId));
-        }
-        if (!opts.v6165ProductFocus && !opts.noInteractionFocus && state.v6165ProductFocus && state.v6165ProductFocus.size) {
-          rows = rows.filter(row => factMatchesProductFocusV6170(row));
-        }
-        return rows;
-      };
-
-      function clearCustomerHighlightV6170() {
-        ensureInteractionStateV6170();
-        state.v6165CustomerFocus.clear();
-        state.v6165CustomerClickOrder = [];
-        state.tableSelectedCustomerIds = new Set();
-      }
-
-      function clearProductHighlightV6170() {
-        ensureInteractionStateV6170();
-        state.v6165ProductFocus.clear();
-        state.v6165ProductClickOrder = [];
-        state.tableSelectedProductKeys = new Set();
-      }
-
-      setCustomer = function setCustomerV6170(value, event) {
-        ensureInteractionStateV6170();
-        const id = String(value || '');
-        if (!id) {
-          clearCustomerHighlightV6170();
-          renderAll();
-          return;
-        }
-        const selected = state.v6165CustomerFocus;
-        const additive = isAdditiveV6170(event);
-        if (selected.has(id)) {
-          selected.delete(id);
-          state.v6165CustomerClickOrder = (state.v6165CustomerClickOrder || []).filter(item => item !== id);
-        } else if (additive) {
-          selected.add(id);
-          rememberFirstV6170('v6165CustomerClickOrder', id);
-        } else {
-          selected.clear();
-          selected.add(id);
-          state.v6165CustomerClickOrder = [id];
-        }
-        state.tableSelectedCustomerIds = new Set(selected);
-        renderAll();
-      };
-
-      setProduct = function setProductV6170(value, event) {
-        ensureInteractionStateV6170();
-        const key = String(value || '');
-        if (!key) {
-          clearProductHighlightV6170();
-          renderAll();
-          return;
-        }
-        if (state.v6165ProductFocusMode !== state.v6165ProductMode) {
-          clearProductHighlightV6170();
-          state.v6165ProductFocusMode = state.v6165ProductMode;
-        }
-        const selected = state.v6165ProductFocus;
-        const additive = isAdditiveV6170(event);
-        if (selected.has(key)) {
-          selected.delete(key);
-          state.v6165ProductClickOrder = (state.v6165ProductClickOrder || []).filter(item => item !== key);
-        } else if (additive) {
-          selected.add(key);
-          rememberFirstV6170('v6165ProductClickOrder', key);
-        } else {
-          selected.clear();
-          selected.add(key);
-          state.v6165ProductClickOrder = [key];
-        }
-        state.tableSelectedProductKeys = new Set(selected);
-        renderAll();
-      };
-
-      function escapeV6170(value) {
-        if (typeof escapeHtml === 'function') return escapeHtml(value == null ? '' : String(value));
-        return String(value == null ? '' : value)
-          .replace(/&/g, '&amp;')
-          .replace(/</g, '&lt;')
-          .replace(/>/g, '&gt;')
-          .replace(/"/g, '&quot;')
-          .replace(/'/g, '&#39;');
-      }
-
-      function listLabelV6170(values, singular, plural) {
-        const arr = (values || []).filter(Boolean);
-        if (!arr.length) return plural + ': none';
-        if (arr.length === 1) return singular + ': ' + arr[0];
-        if (arr.length <= 2) return plural + ': ' + arr.join(', ');
-        return plural + ': ' + arr.slice(0, 2).join(', ') + ' +' + (arr.length - 2);
-      }
-
-      function selectedMonthsV6170() {
-        return [...(state.selectedMonths || new Set())].map(Number).filter(Boolean).sort((a, b) => a - b);
-      }
-
-      function monthNameV6170(month) {
-        return (typeof monthLabels !== 'undefined' && monthLabels[Number(month) - 1]) ? monthLabels[Number(month) - 1] : String(month);
-      }
-
-      function monthRangeLabelV6170(months) {
-        const values = [...months].map(Number).filter(Boolean).sort((a, b) => a - b);
-        if (!values.length) return '';
-        const chunks = [];
-        let start = values[0];
-        let prev = values[0];
-        for (let i = 1; i <= values.length; i++) {
-          const value = values[i];
-          if (value === prev + 1) {
-            prev = value;
-            continue;
-          }
-          chunks.push(start === prev ? monthNameV6170(start) : monthNameV6170(start) + '-' + monthNameV6170(prev));
-          start = value;
-          prev = value;
-        }
-        return chunks.join(', ');
-      }
-
-      function getCustomerNameV6170(id) {
-        try { return getCustomerNameById(id); } catch (err) { return String(id); }
-      }
-
-      function getProductNameV6170(key) {
-        try {
-          if (productFocusModeV6170() === 'product') return productLabelFromKey(key);
-        } catch (err) {}
-        return String(key);
-      }
-
-      function hardDepartmentLabelV6170() {
-        const depts = [...(state.selectedDepartments || new Set())].filter(Boolean).sort();
-        if (!depts.length) return 'Departments: none';
-        try {
-          const main = new Set(getMainDepartments());
-          const all = new Set(getAllDepartments());
-          if (setsEqual && setsEqual(state.selectedDepartments, main)) return 'Main Depts';
-          if (setsEqual && setsEqual(state.selectedDepartments, all)) return 'All Depts';
-        } catch (err) {}
-        return listLabelV6170(depts, 'Department', 'Departments');
-      }
-
-      function hardProductLabelV6170() {
-        try {
-          if (state.productFilterMode === 'CUSTOM') {
-            const keys = getSelectedProductKeys ? getSelectedProductKeys() : [...(state.selectedProductKeys || new Set())];
-            const names = keys.map(key => productLabelFromKey(key)).sort();
-            if (!keys.length) return 'Products: none';
-            return listLabelV6170(names, 'Product', 'Products');
-          }
-          const excluded = getExcludedProductKeys ? getExcludedProductKeys() : [];
-          if (excluded.length) return 'Products: all except ' + excluded.length;
-        } catch (err) {}
-        return 'Products: All';
-      }
-
-      function hardCustomerLabelV6170() {
-        try {
-          if (state.customerFilterMode === 'CUSTOM') {
-            const ids = getSelectedCustomerIds ? getSelectedCustomerIds() : [...(state.selectedCustomerIds || new Set())];
-            const names = ids.map(id => getCustomerNameV6170(id)).sort();
-            if (!ids.length) return 'Customers: none';
-            return listLabelV6170(names, 'Customer', 'Customers');
-          }
-          const excluded = getExcludedCustomerIds ? getExcludedCustomerIds() : [];
-          if (excluded.length) return 'Customers: all except ' + excluded.length;
-          return state.customerActiveOnly ? 'Customers: Active only' : 'Customers: All';
-        } catch (err) {}
-        return 'Customers: All';
-      }
-
-      function hardYearLabelV6170() {
-        const years = [...(state.years || new Set())].map(Number).filter(Boolean).sort((a, b) => b - a);
-        return years.length ? 'Years: ' + years.join(', ') : 'Years: none';
-      }
-
-      function makePillV6170(label, clearKind, hot, title) {
-        return '<span class="v6170Pill' + (hot ? ' hot' : '') + '" title="' + escapeV6170(title || label) + '">'
-          + (hot ? '<i></i>' : '')
-          + '<span>' + escapeV6170(label) + '</span>'
-          + (clearKind ? '<button type="button" onclick="event.stopPropagation(); clearFilter(\'' + clearKind + '\')" title="Clear">x</button>' : '')
-          + '</span>';
-      }
-
-      function ensurePillBarV6170() {
-        let bar = document.getElementById('activeFilterPillBarV6170');
-        if (bar) return bar;
-        const topBar = document.querySelector('#overviewOne .topBar') || document.querySelector('#overviewOne .dashboardShell') || document.body;
-        bar = document.createElement('div');
-        bar.id = 'activeFilterPillBarV6170';
-        bar.className = 'v6170FilterPillPanel';
-        const controlRow = document.querySelector('#overviewOne .controlFilterRow');
-        if (controlRow && controlRow.parentNode) controlRow.parentNode.insertBefore(bar, controlRow.nextSibling);
-        else topBar.insertBefore(bar, topBar.firstChild);
-        return bar;
-      }
-
-      function renderDigitalCasesPillsV6170() {
-        ensureInteractionStateV6170();
-        document.querySelectorAll('.v6165InteractionChip').forEach(el => { el.style.display = 'none'; });
-        const bar = ensurePillBarV6170();
-        const hard = [];
-        hard.push(makePillV6170(hardYearLabelV6170(), 'years', false));
-        hard.push(makePillV6170(hardDepartmentLabelV6170(), null, false));
-        hard.push(makePillV6170(state.periodMode === 'MTD' ? 'MTD' : 'YTD', state.periodMode === 'MTD' ? 'month' : null, false));
-        hard.push(makePillV6170(hardCustomerLabelV6170(), state.customerFilterMode === 'CUSTOM' || (getExcludedCustomerIds && getExcludedCustomerIds().length) ? 'customer' : null, false));
-        hard.push(makePillV6170(hardProductLabelV6170(), state.productFilterMode === 'CUSTOM' || (getExcludedProductKeys && getExcludedProductKeys().length) ? 'product' : null, false));
-
-        const highlighted = [];
-        const months = selectedMonthsV6170();
-        if (months.length && state.monthSelectionMode === 'multi') highlighted.push(makePillV6170('Months: ' + monthRangeLabelV6170(months), 'month', true, 'Highlighted months'));
-        if (months.length === 1 && state.monthSelectionMode !== 'multi') highlighted.push(makePillV6170('Month breakdown: ' + monthNameV6170(months[0]), 'month', true, 'Month drilldown is open'));
-        const customerIds = [...(state.v6165CustomerFocus || new Set())];
-        if (customerIds.length) {
-          const names = customerIds.map(id => getCustomerNameV6170(id));
-          highlighted.push(makePillV6170(listLabelV6170(names, 'Customer', 'Customers').replace('Customers:', 'Customers highlighted:').replace('Customer:', 'Customer highlighted:'), 'v6170CustomerHighlight', true));
-        }
-        const productKeys = [...(state.v6165ProductFocus || new Set())];
-        if (productKeys.length) {
-          const names = productKeys.map(key => getProductNameV6170(key));
-          const labelName = productFocusLabelNameV6170();

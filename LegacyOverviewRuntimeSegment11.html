@@ -1,3 +1,226 @@
+    ensureInteractionStateV6213();
+    if (!state.v6165ProductFocus || !state.v6165ProductFocus.size) return true;
+    return state.v6165ProductFocus.has(activeProductKeyForRowV6213(row));
+  }
+
+  const previousGetFilteredFactsV6213 = typeof getFilteredFacts === 'function' ? getFilteredFacts : null;
+  if (previousGetFilteredFactsV6213 && !getFilteredFacts.__v6213InteractionRepair) {
+    const getFilteredFactsV6213 = function getFilteredFactsV6213(ignore = {}) {
+      ensureInteractionStateV6213();
+      const opts = ignore || {};
+      const baseOpts = Object.assign({}, opts, {
+        v6165CustomerFocus: true,
+        v6165ProductFocus: true
+      });
+      let rows = previousGetFilteredFactsV6213(baseOpts);
+      if (!opts.v6165CustomerFocus && !opts.noInteractionFocus && state.v6165CustomerFocus && state.v6165CustomerFocus.size) {
+        rows = rows.filter(row => state.v6165CustomerFocus.has(row.customerId));
+      }
+      if (!opts.v6165ProductFocus && !opts.noInteractionFocus && state.v6165ProductFocus && state.v6165ProductFocus.size) {
+        rows = rows.filter(row => factMatchesProductFocusV6213(row));
+      }
+      return rows;
+    };
+    getFilteredFactsV6213.__v6213InteractionRepair = true;
+    getFilteredFacts = getFilteredFactsV6213;
+  }
+
+  function clearCustomerFocusV6213() {
+    ensureInteractionStateV6213();
+    state.v6165CustomerFocus.clear();
+    state.v6165CustomerClickOrder = [];
+    state.tableSelectedCustomerIds = new Set();
+  }
+
+  function clearProductFocusV6213() {
+    ensureInteractionStateV6213();
+    state.v6165ProductFocus.clear();
+    state.v6165ProductClickOrder = [];
+    state.tableSelectedProductKeys = new Set();
+  }
+
+  setCustomer = function setCustomerV6213(value, event) {
+    ensureInteractionStateV6213();
+    const id = String(value || '');
+    if (!id) {
+      clearCustomerFocusV6213();
+      renderAll();
+      return;
+    }
+    const selected = state.v6165CustomerFocus;
+    const additive = eventIsAdditiveV6213(event);
+
+    if (additive) {
+      if (selected.has(id)) {
+        selected.delete(id);
+        state.v6165CustomerClickOrder = (state.v6165CustomerClickOrder || []).filter(item => item !== id);
+      } else {
+        selected.add(id);
+        rememberFirstV6213('v6165CustomerClickOrder', id);
+      }
+    } else {
+      selected.clear();
+      selected.add(id);
+      state.v6165CustomerClickOrder = [id];
+    }
+
+    state.tableSelectedCustomerIds = new Set(selected);
+    renderAll();
+  };
+  window.setCustomer = setCustomer;
+
+  setProduct = function setProductV6213(value, event) {
+    ensureInteractionStateV6213();
+    const key = String(value || '');
+    if (!key) {
+      clearProductFocusV6213();
+      renderAll();
+      return;
+    }
+    if (state.v6165ProductFocusMode !== state.v6165ProductMode) {
+      clearProductFocusV6213();
+      state.v6165ProductFocusMode = state.v6165ProductMode;
+    }
+    const selected = state.v6165ProductFocus;
+    const additive = eventIsAdditiveV6213(event);
+
+    if (additive) {
+      if (selected.has(key)) {
+        selected.delete(key);
+        state.v6165ProductClickOrder = (state.v6165ProductClickOrder || []).filter(item => item !== key);
+      } else {
+        selected.add(key);
+        rememberFirstV6213('v6165ProductClickOrder', key);
+      }
+    } else {
+      selected.clear();
+      selected.add(key);
+      state.v6165ProductClickOrder = [key];
+    }
+
+    state.tableSelectedProductKeys = new Set(selected);
+    renderAll();
+  };
+  window.setProduct = setProduct;
+
+  function installProductModeButtonsV6213() {
+    const area = document.querySelector('#overviewOne .areaProductTable .cardActions');
+    if (!area) return;
+    const old = area.querySelector('.productModeButtonsV6165');
+    if (old) old.classList.add('productModeButtonsV6213');
+    if (area.querySelector('.productModeButtonsV6213')) return;
+    const wrap = document.createElement('div');
+    wrap.className = 'tableToggles productModeButtonsV6213';
+    wrap.innerHTML = [
+      ['product', 'Product'], ['department', 'Dept'], ['group', 'Group'], ['category', 'Category']
+    ].map(pair => '<button type="button" class="tinyBtn" data-product-mode-v6213="' + pair[0] + '" onclick="setProductModeV6213(\'' + pair[0] + '\')">' + pair[1] + '</button>').join('');
+    area.insertBefore(wrap, area.firstChild);
+  }
+
+  window.setProductModeV6213 = function setProductModeV6213(mode) {
+    ensureInteractionStateV6213();
+    const allowed = new Set(['product', 'department', 'group', 'category']);
+    const next = allowed.has(mode) ? mode : 'product';
+    if (state.v6165ProductMode !== next) {
+      state.v6165ProductMode = next;
+      state.v6165ProductFocusMode = next;
+      clearProductFocusV6213();
+    }
+    renderAll();
+  };
+  window.setProductModeV6212 = window.setProductModeV6213;
+  window.setProductModeV6165 = window.setProductModeV6213;
+
+  function updateProductModeChromeV6213() {
+    const config = productModeConfigV6213();
+    document.querySelectorAll('[data-product-mode-v6165], [data-product-mode-v6212], [data-product-mode-v6213]').forEach(button => {
+      const mode = button.getAttribute('data-product-mode-v6165') || button.getAttribute('data-product-mode-v6212') || button.getAttribute('data-product-mode-v6213');
+      button.classList.toggle('active', mode === config.mode);
+    });
+    const title = document.querySelector('#overviewOne .areaProductTable .chartTitle');
+    if (title) title.textContent = config.label + ' Movers';
+    const firstHeader = document.querySelector('#overviewOne .areaProductTable thead th:first-child');
+    if (firstHeader) {
+      const glyph = firstHeader.querySelector('.sortGlyph');
+      firstHeader.childNodes[0].nodeValue = config.label + ' ';
+      if (glyph) glyph.id = 'productSort_productsDescription';
+    }
+  }
+
+  renderCustomerTable = function renderCustomerTableV6213() {
+    ensureInteractionStateV6213();
+    const baseRows = getFilteredFacts({ v6165CustomerFocus: true });
+    const rows = groupBy(baseRows, row => row.customerId, row => ({
+      customerId: row.customerId,
+      customerName: row.customerName,
+      customerActive: true,
+      currentRevenue: 0,
+      priorRevenue: 0,
+      currentUnits: 0,
+      priorUnits: 0
+    }), (acc, row) => {
+      if (row.customerActive === false) acc.customerActive = false;
+      if (row.year === (payload.config.currentYear || 2026)) { acc.currentRevenue += row.netRevenue; acc.currentUnits += row.units; }
+      if (row.year === (payload.config.priorYear || 2025)) { acc.priorRevenue += row.netRevenue; acc.priorUnits += row.units; }
+    }).map(row => ({ ...row, gap: row.currentRevenue - row.priorRevenue, unitGap: row.currentUnits - row.priorUnits }));
+
+    updateMoverMetricHeaders('customer');
+    sortCustomerRows(rows);
+    selectedFirstV6213(rows, row => row.customerId, state.v6165CustomerFocus, state.v6165CustomerClickOrder);
+
+    const visibleRows = rows.slice(0, 500);
+    state.lastCustomerTableIds = visibleRows.map(row => row.customerId);
+    const unitsMode = state.customerMetric === 'units';
+    const tbody = document.getElementById('customerTable');
+    if (!tbody) return;
+    tbody.innerHTML = visibleRows.map(row => {
+      const priorValue = unitsMode ? row.priorUnits : row.priorRevenue;
+      const currentValue = unitsMode ? row.currentUnits : row.currentRevenue;
+      const gapValue = unitsMode ? row.unitGap : row.gap;
+      const active = state.v6165CustomerFocus && state.v6165CustomerFocus.has(row.customerId);
+      return '<tr class="clickable ' + (active ? 'active v6213PinnedRow' : '') + '" title="Click to hold this customer. Ctrl/Cmd-click to add or remove." onclick="setCustomer(\'' + escapeJs(row.customerId) + '\', event)">'
+        + '<td>' + escapeHtml(row.customerId) + '</td>'
+        + '<td class="customerNameCell"><span class="customerNameText">' + escapeHtml(row.customerName) + '</span>' + (row.customerActive === false ? ' <span class="inactiveBadge">Inactive</span>' : '') + '</td>'
+        + '<td>' + formatMoverValue(priorValue, unitsMode) + '</td>'
+        + '<td>' + formatMoverValue(currentValue, unitsMode) + '</td>'
+        + '<td class="' + (gapValue < 0 ? 'negative' : 'positive') + '">' + formatMoverValue(gapValue, unitsMode) + '</td>'
+        + '</tr>';
+    }).join('');
+  };
+
+  renderProductTable = function renderProductTableV6213() {
+    ensureInteractionStateV6213();
+    installProductModeButtonsV6213();
+    updateProductModeChromeV6213();
+    const config = productModeConfigV6213();
+    const baseRows = getFilteredFacts({ v6165ProductFocus: true });
+    const rows = groupBy(baseRows, row => config.key(row), row => ({
+      key: config.key(row),
+      productsDescription: config.name(row),
+      name: config.name(row),
+      currentRevenue: 0,
+      priorRevenue: 0,
+      currentUnits: 0,
+      priorUnits: 0
+    }), (acc, row) => {
+      if (row.year === (payload.config.currentYear || 2026)) { acc.currentRevenue += row.netRevenue; acc.currentUnits += row.units; }
+      if (row.year === (payload.config.priorYear || 2025)) { acc.priorRevenue += row.netRevenue; acc.priorUnits += row.units; }
+    }).map(row => ({ ...row, gap: row.currentRevenue - row.priorRevenue, unitGap: row.currentUnits - row.priorUnits }));
+
+    updateMoverMetricHeaders('product');
+    sortProductRows(rows);
+    selectedFirstV6213(rows, row => row.key, state.v6165ProductFocus, state.v6165ProductClickOrder);
+
+    const visibleRows = rows.slice(0, 1000);
+    state.lastProductTableKeys = visibleRows.map(row => row.key);
+    const unitsMode = state.productMetric === 'units';
+    const tbody = document.getElementById('productTable');
+    if (!tbody) return;
+    tbody.innerHTML = visibleRows.map(row => {
+      const priorValue = unitsMode ? row.priorUnits : row.priorRevenue;
+      const currentValue = unitsMode ? row.currentUnits : row.currentRevenue;
+      const gapValue = unitsMode ? row.unitGap : row.gap;
+      const active = state.v6165ProductFocus && state.v6165ProductFocus.has(row.key);
       return '<tr class="clickable ' + (active ? 'active v6213PinnedRow' : '') + '" title="Click to hold this ' + escapeHtml(config.label.toLowerCase()) + '. Ctrl/Cmd-click to add or remove." onclick="setProduct(\'' + escapeJs(row.key) + '\', event)">'
         + '<td>' + escapeHtml(row.productsDescription) + '</td>'
         + '<td>' + formatMoverValue(priorValue, unitsMode) + '</td>'
@@ -1036,378 +1259,3 @@
       state.v6165ProductFocusMode = state.v6165ProductMode;
     }
     const selected = state.v6165ProductFocus;
-    const additive = additiveEventV6215(event);
-    if (!key) {
-      selected.clear();
-      state.v6165ProductClickOrder = [];
-    } else if (additive) {
-      if (selected.has(key)) {
-        selected.delete(key);
-        state.v6165ProductClickOrder = state.v6165ProductClickOrder.filter(item => item !== key);
-      } else {
-        selected.add(key);
-        state.v6165ProductClickOrder = [key].concat(state.v6165ProductClickOrder.filter(item => item !== key));
-      }
-    } else if (selected.has(key) && selected.size === 1) {
-      selected.clear();
-      state.v6165ProductClickOrder = [];
-    } else {
-      selected.clear();
-      selected.add(key);
-      state.v6165ProductClickOrder = [key];
-    }
-    state.tableSelectedProductKeys = new Set(selected);
-    if (typeof renderAll === 'function') renderAll();
-  };
-
-  function popoutWindowNameV6215(componentId) {
-    return 'cdaOverviewPopout_' + String(componentId || '').replace(/[^a-zA-Z0-9_]/g, '_');
-  }
-
-  function unmarkExternalSourceV6215(componentId) {
-    document.querySelectorAll('.v6215ExternalPoppedSource').forEach(card => {
-      if (!componentId || card.getAttribute('data-v6215-component') === String(componentId)) {
-        card.classList.remove('v6215ExternalPoppedSource');
-        card.removeAttribute('data-v6215-component');
-        const overlay = card.querySelector('.v6215PopoutOverlay');
-        if (overlay) overlay.remove();
-      }
-    });
-  }
-
-  window.__closeExternalPopoutV6215 = function closeExternalPopoutV6215(componentId) {
-    try {
-      const win = window.open('', popoutWindowNameV6215(componentId));
-      if (win && !win.closed) win.close();
-    } catch (error) {}
-    if (typeof window.clearExternalPopoutReferenceV6214 === 'function') {
-      try { window.clearExternalPopoutReferenceV6214(componentId); } catch (error) {}
-    }
-    unmarkExternalSourceV6215(componentId);
-  };
-
-  function markExternalSourceV6215(componentId) {
-    const card = typeof getComponentCard === 'function' ? getComponentCard(componentId) : null;
-    if (!card) return;
-    unmarkExternalSourceV6215();
-    card.classList.add('v6215ExternalPoppedSource');
-    card.setAttribute('data-v6215-component', String(componentId));
-    if (!card.querySelector('.v6215PopoutOverlay')) {
-      const overlay = document.createElement('div');
-      overlay.className = 'v6215PopoutOverlay';
-      overlay.innerHTML = '<button type="button" class="v6215PopBackBtn" onclick="window.__closeExternalPopoutV6215(\'' + safeJsV6215(componentId) + '\')">Pop back in x</button>';
-      card.appendChild(overlay);
-    }
-  }
-
-  function injectPopupStyleV6215(componentId) {
-    try {
-      const win = window.open('', popoutWindowNameV6215(componentId));
-      if (!win || win.closed || !win.document || win.document.getElementById('popupStyleV6215')) return;
-      const style = win.document.createElement('style');
-      style.id = 'popupStyleV6215';
-      style.textContent = `
-        html, body { background: #ebe9ed !important; font-family: Roboto, Arial, sans-serif !important; }
-        .popHeader { background: #ffffff !important; border-bottom: 1px solid #d7dce2 !important; }
-        .chartShell, .card, .moverArea, .tableScroll { border-radius: 5px !important; border-color: #d7dce2 !important; box-shadow: 0 1px 3px rgba(20,32,42,.14) !important; }
-        .chartShell { background: #ffffff !important; padding: 10px 12px 9px !important; }
-        .hint { color: #667085 !important; }
-        tr.active td, .v6213PinnedRow td, .v6212CrossFilterRow td, .v6165PinnedRow td { background: #fff2bf !important; border-top-color: #f59e0b !important; border-bottom-color: #f59e0b !important; }
-      `;
-      win.document.head.appendChild(style);
-    } catch (error) {}
-  }
-
-  if (typeof window.popOutComponentV6214 === 'function' && !window.popOutComponentV6214.__v6215Wrapped) {
-    const previousPopOutComponentV6215 = window.popOutComponentV6214;
-    window.popOutComponentV6215 = function popOutComponentV6215(componentId) {
-      previousPopOutComponentV6215(componentId);
-      window.setTimeout(() => {
-        markExternalSourceV6215(componentId);
-        injectPopupStyleV6215(componentId);
-      }, 180);
-      window.setTimeout(() => injectPopupStyleV6215(componentId), 800);
-    };
-    window.popOutComponentV6215.__v6215Wrapped = true;
-    window.popOutComponentV6214 = window.popOutComponentV6215;
-    window.popOutComponentV6213 = window.popOutComponentV6215;
-    window.popOutComponentV6212 = window.popOutComponentV6215;
-  }
-
-  if (typeof window.clearExternalPopoutReferenceV6214 === 'function' && !window.clearExternalPopoutReferenceV6214.__v6215Wrapped) {
-    const previousClearExternalV6215 = window.clearExternalPopoutReferenceV6214;
-    window.clearExternalPopoutReferenceV6214 = function clearExternalPopoutReferenceV6215(componentId) {
-      const result = previousClearExternalV6215.apply(this, arguments);
-      unmarkExternalSourceV6215(componentId);
-      return result;
-    };
-    window.clearExternalPopoutReferenceV6214.__v6215Wrapped = true;
-  }
-
-  function isLabLikeDepartmentV6215(value) {
-    const text = String(value || '').trim().toLowerCase();
-    return !text || text === 'pacifica' || text === 'san ramon' || text === 'deanza' || text === 'de anza' || text === 'cada' || text === 'cad' || text === 'case level';
-  }
-
-  function productLookupV6215() {
-    const byId = new Map();
-    const byName = new Map();
-    (facts || []).forEach(row => {
-      const productId = String(row.productId || '').trim();
-      const name = String(row.productsDescription || '').trim();
-      const meta = {
-        productId,
-        productName: name || productId || 'Unknown product',
-        department: row.productsDepartment || 'Unassigned',
-        group: row.productsGroup || '',
-        category: row.productsCategory || '',
-        type: row.productsType || ''
-      };
-      if (productId && !byId.has(productId)) byId.set(productId, meta);
-      if (name && !byName.has(name.toLowerCase())) byName.set(name.toLowerCase(), meta);
-    });
-    return { byId, byName };
-  }
-
-  function normalizeRemakeRowsV6215(data) {
-    const rows = data && Array.isArray(data.detailRows) ? data.detailRows : data && Array.isArray(data.rows) ? data.rows : [];
-    const lookup = productLookupV6215();
-    const customerNames = new Map();
-    (facts || []).forEach(row => {
-      const id = String(row.customerId || '').trim();
-      if (id && row.customerName && !customerNames.has(id)) customerNames.set(id, row.customerName);
-    });
-
-    return rows.map(row => {
-      const productId = String(row.productId || row.productID || '').trim();
-      const currentName = String(row.productName || row.invoiceDescription || row.description || productId || 'Unknown product').trim();
-      const meta = lookup.byId.get(productId) || lookup.byName.get(currentName.toLowerCase()) || null;
-      const currentDepartment = row.department || row.productsDepartment || row.taxDepartment || '';
-      const department = meta && !isLabLikeDepartmentV6215(meta.department)
-        ? meta.department
-        : (!isLabLikeDepartmentV6215(currentDepartment) ? currentDepartment : 'Unassigned');
-      const customerId = String(row.customerId || row.customerID || '').trim() || 'Unknown customer';
-      return Object.assign({}, row, {
-        productId: productId || 'UNKNOWN',
-        productName: meta && meta.productName ? meta.productName : currentName,
-        department,
-        group: meta && meta.group ? meta.group : row.group || '',
-        category: meta && meta.category ? meta.category : row.category || '',
-        type: meta && meta.type ? meta.type : row.type || '',
-        customerId,
-        customerName: customerNames.get(customerId) || row.customerName || customerId,
-        year: Number(row.year || String(row.month || '').slice(0, 4) || 0) || '',
-        month: row.month || 'Unknown'
-      });
-    });
-  }
-
-  function remakeNumberV6215(value, digits) {
-    const n = Number(value || 0);
-    return n.toLocaleString(undefined, { minimumFractionDigits: digits || 0, maximumFractionDigits: digits || 0 });
-  }
-
-  function remakePercentV6215(value) {
-    const n = Number(value || 0);
-    return (n * 100).toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + '%';
-  }
-
-  function remakeCurrencyV6215(value) {
-    const n = Number(value || 0);
-    return n.toLocaleString(undefined, { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
-  }
-
-  function setRemakeTextV6215(id, value) {
-    const el = document.getElementById(id);
-    if (el) el.textContent = value;
-  }
-
-  function setRemakeNoticeV6215(message, type) {
-    const el = document.getElementById('remakeNotice');
-    if (!el) return;
-    el.className = 'remakeNotice' + (message ? ' active' : '') + (type ? ' ' + type : '');
-    el.textContent = message || '';
-  }
-
-  function setRemakeLoadingV6215(loading) {
-    const st = window.remakeFactorState || {};
-    st.loading = !!loading;
-    const loadBtn = document.getElementById('remakeLoadBtn');
-    const refreshBtn = document.getElementById('remakeRefreshBtn');
-    if (loadBtn) loadBtn.disabled = !!loading;
-    if (refreshBtn) refreshBtn.disabled = !!loading;
-  }
-
-  function remakeValueV6215(row, keys) {
-    for (const key of keys) {
-      const value = row && row[key];
-      if (value !== null && value !== undefined && String(value).trim() !== '') return value;
-    }
-    return '';
-  }
-
-  function remakeIsRemakeV6215(row) {
-    return !!row.isRemake || /^(y|yes|true|1|r|remake)$/i.test(String(row.remakeFlag || row.remake || ''));
-  }
-
-  function remakeFilteredRowsV6215() {
-    const f = {
-      year: document.getElementById('remakeYearFilter') ? document.getElementById('remakeYearFilter').value : '',
-      department: document.getElementById('remakeDepartmentFilter') ? document.getElementById('remakeDepartmentFilter').value : '',
-      product: document.getElementById('remakeProductFilter') ? document.getElementById('remakeProductFilter').value : '',
-      customer: document.getElementById('remakeCustomerFilter') ? document.getElementById('remakeCustomerFilter').value : '',
-      reason: document.getElementById('remakeReasonFilter') ? document.getElementById('remakeReasonFilter').value : ''
-    };
-    return ((window.remakeFactorState && window.remakeFactorState.rows) || []).filter(row => {
-      const year = String(row.year || '');
-      const dept = String(row.department || 'Unassigned');
-      const product = String(row.productName || row.productId || 'Unknown product');
-      const customer = String(row.customerName || row.customerId || 'Unknown customer');
-      const reason = String(row.remakeReason || row.reason || 'Not specified');
-      return (!f.year || year === f.year)
-        && (!f.department || dept === f.department)
-        && (!f.product || product === f.product)
-        && (!f.customer || customer === f.customer)
-        && (!f.reason || reason === f.reason);
-    });
-  }
-
-  function remakeSummaryV6215(rows) {
-    const totalCases = new Set();
-    const remakeCases = new Set();
-    let totalUnits = 0;
-    let remakeUnits = 0;
-    let remakeDiscount = 0;
-    rows.forEach(row => {
-      const caseId = String(row.caseId || row.caseID || row.caseNumber || '').trim();
-      if (caseId) totalCases.add(caseId);
-      const units = Number(row.quantity || row.units || 0) || 0;
-      totalUnits += units;
-      if (remakeIsRemakeV6215(row)) {
-        if (caseId) remakeCases.add(caseId);
-        remakeUnits += Number(row.remakeUnits || units || 0) || 0;
-        remakeDiscount += Math.abs(Number(row.remakeDiscount || 0) || 0);
-      }
-    });
-    return {
-      totalCases: totalCases.size,
-      remakeCases: remakeCases.size,
-      totalUnits,
-      remakeUnits,
-      remakeDiscount,
-      remakeCaseRate: totalCases.size ? remakeCases.size / totalCases.size : 0,
-      remakeUnitRate: totalUnits ? remakeUnits / totalUnits : 0
-    };
-  }
-
-  function groupRemakeRowsV6215(rows, getter) {
-    const groups = new Map();
-    rows.forEach(row => {
-      const key = String(getter(row) || 'Not specified');
-      if (!groups.has(key)) groups.set(key, []);
-      groups.get(key).push(row);
-    });
-    return [...groups.entries()].map(([key, group]) => Object.assign({ key }, remakeSummaryV6215(group)));
-  }
-
-  function fillRemakeSelectV6215(id, label, values) {
-    const select = document.getElementById(id);
-    if (!select) return;
-    const previous = select.value;
-    const cleanValues = [...new Set(values.map(v => String(v || '').trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
-    select.innerHTML = '<option value="">' + safeTextV6215(label) + '</option>' + cleanValues.map(value => '<option value="' + safeTextV6215(value) + '">' + safeTextV6215(value) + '</option>').join('');
-    if (previous && cleanValues.includes(previous)) select.value = previous;
-  }
-
-  function populateRemakeFiltersV6215() {
-    const rows = (window.remakeFactorState && window.remakeFactorState.rows) || [];
-    fillRemakeSelectV6215('remakeYearFilter', 'All years', rows.map(row => row.year).filter(Boolean).sort((a, b) => Number(b) - Number(a)));
-    fillRemakeSelectV6215('remakeDepartmentFilter', 'All departments', rows.map(row => row.department || 'Unassigned'));
-    fillRemakeSelectV6215('remakeProductFilter', 'All products', rows.map(row => row.productName || row.productId || 'Unknown product'));
-    fillRemakeSelectV6215('remakeCustomerFilter', 'All customers', rows.map(row => row.customerName || row.customerId || 'Unknown customer'));
-    fillRemakeSelectV6215('remakeReasonFilter', 'All reasons', rows.map(row => row.remakeReason || row.reason || 'Not specified'));
-  }
-
-  function renderRemakeKpisV6215(summary) {
-    setRemakeTextV6215('remakeTotalCases', remakeNumberV6215(summary.totalCases));
-    setRemakeTextV6215('remakeCases', remakeNumberV6215(summary.remakeCases));
-    setRemakeTextV6215('remakeCaseRate', remakePercentV6215(summary.remakeCaseRate));
-    setRemakeTextV6215('remakeTotalUnits', remakeNumberV6215(summary.totalUnits, 1));
-    setRemakeTextV6215('remakeUnits', remakeNumberV6215(summary.remakeUnits, 1));
-    setRemakeTextV6215('remakeUnitRate', remakePercentV6215(summary.remakeUnitRate));
-    setRemakeTextV6215('remakeDiscount', remakeCurrencyV6215(summary.remakeDiscount));
-    const label = document.querySelector('#remakeDiscount') && document.querySelector('#remakeDiscount').previousElementSibling;
-    if (label) label.textContent = 'Remake Discount';
-  }
-
-  function renderRemakeTrendV6215(rows) {
-    const container = document.getElementById('remakeTrendList');
-    if (!container) return;
-    const grouped = groupRemakeRowsV6215(rows, row => row.month || 'Unknown')
-      .filter(row => row.key !== 'Unknown')
-      .sort((a, b) => String(a.key).localeCompare(String(b.key)))
-      .slice(-24);
-    container.innerHTML = '<div class="remakeOverviewChartBox"><canvas id="' + REMAKE_CHART_ID_V6215 + '"></canvas></div>';
-    if (remakeChartsV6215[REMAKE_CHART_ID_V6215]) {
-      try { remakeChartsV6215[REMAKE_CHART_ID_V6215].destroy(); } catch (error) {}
-    }
-    const canvas = document.getElementById(REMAKE_CHART_ID_V6215);
-    if (!canvas || !window.Chart) return;
-    remakeChartsV6215[REMAKE_CHART_ID_V6215] = new Chart(canvas.getContext('2d'), {
-      type: 'line',
-      data: {
-        labels: grouped.map(row => row.key),
-        datasets: [{
-          label: 'Remake rate',
-          data: grouped.map(row => Number(row.remakeCaseRate || 0) * 100),
-          borderColor: '#2563eb',
-          backgroundColor: 'rgba(37, 99, 235, 0.13)',
-          fill: 'origin',
-          tension: 0.35,
-          pointRadius: 3,
-          pointHoverRadius: 5,
-          borderWidth: 3
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        interaction: { mode: 'index', intersect: false },
-        plugins: {
-          legend: { display: false },
-          tooltip: { callbacks: { label: ctx => (measure === 'units' ? 'Unit remake rate: ' : 'Case remake rate: ') + Number(ctx.raw || 0).toFixed(1) + '%' } }
-        },
-        scales: {
-          x: { grid: { display: false }, ticks: { color: '#475467', font: { size: 11, weight: '700' } } },
-          y: { beginAtZero: true, grid: { color: '#edf0f5' }, ticks: { callback: value => Number(value || 0).toFixed(0) + '%', color: '#667085' }, title: { display: true, text: 'Case Rate', color: '#202124', font: { size: 11, weight: '700' } } }
-        }
-      }
-    });
-  }
-
-  function setRemakeFilterV6215(id, value) {
-    const el = document.getElementById(id);
-    if (el) el.value = value;
-    renderRemakeFactorDashboardV6215();
-  }
-
-  function renderRemakeTableV6215(id, rows, firstHeader, filterId) {
-    const table = document.getElementById(id);
-    if (!table) return;
-    const visible = rows.sort((a, b) => (b.remakeCases - a.remakeCases) || (b.remakeUnits - a.remakeUnits) || String(a.key).localeCompare(String(b.key))).slice(0, 200);
-    table.innerHTML = '<thead><tr>'
-      + '<th>' + safeTextV6215(firstHeader) + '</th>'
-      + '<th class="num">Total Cases</th>'
-      + '<th class="num">Remake Cases</th>'
-      + '<th class="num">Case Rate</th>'
-      + '<th class="num">Remake Units</th>'
-      + '<th class="num">Remake Discount</th>'
-      + '</tr></thead><tbody>'
-      + visible.map(row => '<tr class="clickable" onclick="setRemakeFilterV6215(\'' + safeJsV6215(filterId) + '\', \'' + safeJsV6215(row.key) + '\')">'
-        + '<td>' + safeTextV6215(row.key) + '</td>'
-        + '<td class="num">' + remakeNumberV6215(row.totalCases) + '</td>'
-        + '<td class="num">' + remakeNumberV6215(row.remakeCases) + '</td>'
-        + '<td class="num">' + remakePercentV6215(row.remakeCaseRate) + '</td>'
-        + '<td class="num">' + remakeNumberV6215(row.remakeUnits, 1) + '</td>'
-        + '<td class="num">' + remakeCurrencyV6215(row.remakeDiscount) + '</td>'
-        + '</tr>').join('')

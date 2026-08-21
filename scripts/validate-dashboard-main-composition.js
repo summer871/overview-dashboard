@@ -48,12 +48,12 @@ function expandReport(baseText, report, label) {
       try { new vm.Script(content, { filename: module.path }); }
       catch (error) { fail(module.name + ': raw JavaScript fragment no longer parses: ' + error.message); }
     }
-    parentContent = parentContent.replace(directive, content);
+    parentContent = parentContent.replace(directive, function() { return content; });
   });
 
   const parentDirective = "<?!= includeDashboardFile('" + parent.name + "') ?>";
   if (count(baseText, parentDirective) !== 1) fail(parent.name + ': expected exactly one parent include directive in current composition.');
-  const reconstructed = baseText.replace(parentDirective, parentContent);
+  const reconstructed = baseText.replace(parentDirective, function() { return parentContent; });
   if (reconstructed !== archive) fail(label + ': reconstruction is not byte-for-byte identical to archived outgoing runtime.');
   if (sha256(reconstructed) !== report.sourceSha256Before) fail(label + ': composed SHA-256 does not match pre-extraction source.');
   if (Buffer.byteLength(reconstructed, 'utf8') !== report.sourceBytesBefore) fail(label + ': composed byte count does not match pre-extraction source.');

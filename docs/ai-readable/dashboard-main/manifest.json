@@ -1,85 +1,19 @@
 {
-  "generatedAtUtc": "2026-08-21T23:16:49.365Z",
+  "generatedAtUtc": "2026-08-21T23:23:03.644Z",
   "authoritativeSource": "DashboardMainScript.html",
-  "authoritativeSourceBytes": 776674,
-  "authoritativeSourceSha256": "c699841f394d25ae29c4113f3364a2eb2f7cda06df8c30b2a27add8f6e6ff0ef",
+  "authoritativeSourceBytes": 125,
+  "authoritativeSourceSha256": "33b3d96364964d308b9e8b6cf29b151a842d2e5f3363ba5f6b93fc95d42b41b4",
   "targetChunkBytes": 70000,
-  "chunkCount": 12,
+  "chunkCount": 1,
   "chunks": [
     {
       "part": 1,
       "file": "docs/ai-readable/dashboard-main/DashboardMainScript-Part01.txt",
-      "bytes": 69971,
-      "sha256": "23ee0c0688fb69d9bd08dffbeaf1a34ece34a2a2287b0c1bd8d9ff50cc4031d5"
-    },
-    {
-      "part": 2,
-      "file": "docs/ai-readable/dashboard-main/DashboardMainScript-Part02.txt",
-      "bytes": 69945,
-      "sha256": "10c14211919ba539001b4e8d7f53226e21529efda485f0269089f62742220115"
-    },
-    {
-      "part": 3,
-      "file": "docs/ai-readable/dashboard-main/DashboardMainScript-Part03.txt",
-      "bytes": 69953,
-      "sha256": "0b69ab8fa8b79488e17fd0fafcf3e1f8dbd31f798e68b5de84a2850894166551"
-    },
-    {
-      "part": 4,
-      "file": "docs/ai-readable/dashboard-main/DashboardMainScript-Part04.txt",
-      "bytes": 69945,
-      "sha256": "22fd395fd3f599ef32084b4daad4f3cd404e5485ec4e23d10afeb7a4f784eb22"
-    },
-    {
-      "part": 5,
-      "file": "docs/ai-readable/dashboard-main/DashboardMainScript-Part05.txt",
-      "bytes": 69967,
-      "sha256": "940100c14e83b8029cef48295f427c724c5abd41932de20b91d843f79167a810"
-    },
-    {
-      "part": 6,
-      "file": "docs/ai-readable/dashboard-main/DashboardMainScript-Part06.txt",
-      "bytes": 69967,
-      "sha256": "7cd5924dc13683a3de088d4afa80f935610a157b50e442dc58d021af2e3bc787"
-    },
-    {
-      "part": 7,
-      "file": "docs/ai-readable/dashboard-main/DashboardMainScript-Part07.txt",
-      "bytes": 69964,
-      "sha256": "59557a93b54c985d396b1a10ff90850702136be70432ce12c1208a101caeafef"
-    },
-    {
-      "part": 8,
-      "file": "docs/ai-readable/dashboard-main/DashboardMainScript-Part08.txt",
-      "bytes": 69983,
-      "sha256": "59509fa3bfb9701b0ffa4859fb58c1a1cc4d819639eb682e05cf82b284b791d5"
-    },
-    {
-      "part": 9,
-      "file": "docs/ai-readable/dashboard-main/DashboardMainScript-Part09.txt",
-      "bytes": 69815,
-      "sha256": "0a3182066627a87accb18a4466b0e11fc935e1dec1cf29ab29ca92578c90120f"
-    },
-    {
-      "part": 10,
-      "file": "docs/ai-readable/dashboard-main/DashboardMainScript-Part10.txt",
-      "bytes": 69986,
-      "sha256": "57c7ae3f1b3b1e94589a8bee5a12d9d090e94e34471dd3708bf7c75c198495dd"
-    },
-    {
-      "part": 11,
-      "file": "docs/ai-readable/dashboard-main/DashboardMainScript-Part11.txt",
-      "bytes": 69854,
-      "sha256": "55bddef390b402568c5657566b45814c3d33f515b348f62979b85b4fd52537eb"
-    },
-    {
-      "part": 12,
-      "file": "docs/ai-readable/dashboard-main/DashboardMainScript-Part12.txt",
-      "bytes": 7324,
-      "sha256": "7be18ea14f9f5a51c8d249f463f76b39386029f2914144f596a930f0be791a16"
+      "bytes": 125,
+      "sha256": "33b3d96364964d308b9e8b6cf29b151a842d2e5f3363ba5f6b93fc95d42b41b4"
     }
   ],
   "byteForByteReconstructionVerified": true,
   "runtimeFilesChanged": false,
-  "purpose": "Read-only AI inspection mirror for legacy cleanup. These chunks are generated evidence, not runtime owners and must never be edited directly."
+  "purpose": "Read-only inspection mirror. DashboardMainScript.html is itself below the AI readability target after semantic extraction."
 }
