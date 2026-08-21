@@ -1,0 +1,1198 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- v6.628 stable grid lifecycle platform: register saved geometry, stable table widths, and Chart.js first-draw rules before any dashboard body or startup script is parsed. -->
+  <?!= includeDashboardFile('SharedDashboardLayoutEditorV6593') ?>
+  <?!= includeDashboardFile('SharedDashboardTablePlatformV6586') ?>
+  <?!= includeDashboardFile('SharedVisualFitControllerV6617') ?>
+<?!= includeDashboardFile('SharedFilterBarStyles') ?>
+<?!= includeDashboardFile('SharedFilterBar') ?>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script id="dashboardFuzzySearchV6412">
+    (function installDashboardFuzzySearchV6412() {
+      const normalizedCacheV6412 = new Map();
+
+      function normalizeV6412(value) {
+        const raw = String(value == null ? '' : value);
+        if (normalizedCacheV6412.has(raw)) return normalizedCacheV6412.get(raw);
+        const normalized = raw
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .toLowerCase()
+          .replace(/&/g, ' and ')
+          .replace(/[^a-z0-9]+/g, ' ')
+          .replace(/\s+/g, ' ')
+          .trim();
+        if (normalizedCacheV6412.size > 20000) normalizedCacheV6412.clear();
+        normalizedCacheV6412.set(raw, normalized);
+        return normalized;
+      }
+
+      function compactV6412(value) {
+        return normalizeV6412(value).replace(/\s+/g, '');
+      }
+
+      function tokensV6412(value) {
+        return normalizeV6412(value).split(' ').filter(Boolean);
+      }
+
+      function initialsV6412(value) {
+        return tokensV6412(value).map(function(part) { return part.charAt(0); }).join('');
+      }
+
+      function withinOneEditV6412(a, b) {
+        a = String(a || '');
+        b = String(b || '');
+        if (a === b) return true;
+        if (Math.abs(a.length - b.length) > 1) return false;
+        let i = 0;
+        let j = 0;
+        let edits = 0;
+        while (i < a.length && j < b.length) {
+          if (a.charAt(i) === b.charAt(j)) {
+            i += 1;
+            j += 1;
+            continue;
+          }
+          edits += 1;
+          if (edits > 1) return false;
+          if (a.length > b.length) i += 1;
+          else if (b.length > a.length) j += 1;
+          else {
+            i += 1;
+            j += 1;
+          }
+        }
+        if (i < a.length || j < b.length) edits += 1;
+        return edits <= 1;
+      }
+
+      function orderedSubsequenceV6412(needle, haystack) {
+        if (!needle) return true;
+        let position = 0;
+        for (let i = 0; i < haystack.length && position < needle.length; i += 1) {
+          if (haystack.charAt(i) === needle.charAt(position)) position += 1;
+        }
+        return position === needle.length;
+      }
+
+      function bestTokenScoreV6412(queryToken, targetTokens) {
+        let best = 0;
+        for (let i = 0; i < targetTokens.length; i += 1) {
+          const target = targetTokens[i];
+          if (target === queryToken) best = Math.max(best, 180);
+          else if (target.indexOf(queryToken) === 0) best = Math.max(best, 150);
+          else if (target.indexOf(queryToken) >= 0) best = Math.max(best, 120);
+          else if (queryToken.length >= 4 && target.length >= 4 && withinOneEditV6412(queryToken, target)) best = Math.max(best, 85);
+        }
+        return best;
+      }
+
+      function scoreV6412(value, query) {
+        const preparedQuery = normalizeV6412(query);
+        if (!preparedQuery) return 1;
+        const preparedValue = normalizeV6412(value);
+        if (!preparedValue) return 0;
+
+        let score = 0;
+        if (preparedValue === preparedQuery) score = Math.max(score, 1200);
+        if (preparedValue.indexOf(preparedQuery) === 0) score = Math.max(score, 900);
+
+        const directIndex = preparedValue.indexOf(preparedQuery);
+        if (directIndex >= 0) score = Math.max(score, 700 - Math.min(directIndex, 150));
+
+        const compactQuery = compactV6412(preparedQuery);
+        const compactValue = compactV6412(preparedValue);
+        const compactIndex = compactValue.indexOf(compactQuery);
+        if (compactQuery && compactIndex >= 0) score = Math.max(score, 600 - Math.min(compactIndex, 150));
+
+        const queryTokens = tokensV6412(preparedQuery);
+        const valueTokens = tokensV6412(preparedValue);
+        if (compactQuery.length >= 2 && compactQuery.length <= 5 && queryTokens.length === 1) {
+          const valueInitials = initialsV6412(preparedValue);
+          if (valueInitials.indexOf(compactQuery) >= 0) score = Math.max(score, 950);
+        }
+
+        let tokenTotal = 0;
+        let allTokensMatched = queryTokens.length > 0;
+        queryTokens.forEach(function(token) {
+          const tokenScore = bestTokenScoreV6412(token, valueTokens);
+          if (!tokenScore) allTokensMatched = false;
+          tokenTotal += tokenScore;
+        });
+        if (allTokensMatched) score = Math.max(score, 400 + tokenTotal);
+
+        if (compactQuery.length >= 3 && orderedSubsequenceV6412(compactQuery, compactValue)) {
+          score = Math.max(score, 220);
+        }
+        return score;
+      }
+
+      window.dashboardFuzzySearchV6412 = {
+        normalize: normalizeV6412,
+        compact: compactV6412,
+        initials: initialsV6412,
+        score: scoreV6412,
+        match: function(value, query) { return scoreV6412(value, query) > 0; }
+      };
+    })();
+  </script>
+  <?!= includeDashboardFile('DashboardBaseStyles') ?>
+  <?!= includeDashboardFile('RemakeTailStyles') ?>
+
+  <style id="remakeV6285TargetedFixes">
+    /* v6.286 targeted-only fixes: preserve the working remake presentation and existing functions. */
+    #remakeFactorPage.cleanRemakeV6230 .remakeChartModeBarV6230 button.active,
+    #remakeFactorPage.cleanRemakeV6230 .remakeChartModeBarV6230 button[aria-pressed="true"] {
+      background:#fff7d6 !important;
+      color:#7a4a00 !important;
+      border-color:#f2c94c !important;
+      box-shadow:0 0 0 1px rgba(242,201,76,.20),0 1px 3px rgba(245,158,11,.20) !important;
+    }
+  </style>
+
+  <style id="remakeV6286FinalChartState">
+    #remakeFactorPage.cleanRemakeV6230 .remakeChartModeBarV6230 button.active,
+    #remakeFactorPage.cleanRemakeV6230 .remakeChartModeBarV6230 button[aria-pressed="true"] {
+      background: #fff4c2 !important;
+      color: #704300 !important;
+      border-color: #f4b400 !important;
+      box-shadow: inset 0 0 0 1px rgba(244,180,0,.18), 0 1px 3px rgba(180,110,0,.18) !important;
+    }
+    #remakeFactorPage.cleanRemakeV6230 .remakeChartBoxV6230 canvas {
+      transition: opacity 80ms ease-out, filter 80ms ease-out;
+    }
+  </style>
+<style id="remakeV6324CompactFilterBarStyles">
+  /* v6.324 compact desktop filter bar. Existing searchable multi-select panels are unchanged. */
+  @media (min-width: 981px) {
+    #remakeFactorPage.cleanRemakeV6230 .remakeStickyTopV6245 {
+      padding-top: 4px !important;
+    }
+    #remakeFactorPage.cleanRemakeV6230 .remakeFilterBarV6230 {
+      display: grid !important;
+      grid-template-columns: minmax(96px,.56fr) minmax(138px,.82fr) minmax(164px,1fr) minmax(142px,.88fr) minmax(164px,1fr) minmax(138px,.82fr) !important;
+      gap: 6px !important;
+      align-items: center !important;
+      padding-right: 42px !important;
+      margin-bottom: 0 !important;
+    }
+    #remakeFactorPage.cleanRemakeV6230 .remakeFilter {
+      padding: 0 !important;
+      min-height: 38px !important;
+      border-radius: 9px !important;
+      box-shadow: 0 1px 2px rgba(20,32,42,.08) !important;
+      overflow: visible !important;
+    }
+    #remakeFactorPage.cleanRemakeV6230 .remakeFilter label {
+      position: absolute !important;
+      width: 1px !important;
+      height: 1px !important;
+      padding: 0 !important;
+      margin: -1px !important;
+      overflow: hidden !important;
+      clip: rect(0,0,0,0) !important;
+      white-space: nowrap !important;
+      border: 0 !important;
+    }
+    #remakeFactorPage.cleanRemakeV6230 .remakeDropdownButtonV6245 {
+      min-height: 38px !important;
+      height: 38px !important;
+      border: 0 !important;
+      border-radius: 9px !important;
+      padding: 0 30px 0 12px !important;
+      font-size: 11.5px !important;
+      font-weight: 800 !important;
+      background: #ffffff !important;
+    }
+    #remakeFactorPage.cleanRemakeV6230 .remakeDropdownButtonV6245.active {
+      border: 1px solid #94a3b8 !important;
+    }
+    #remakeFactorPage.cleanRemakeV6230 .remakeGlobalSearchBarV6304 {
+      top: 2px !important;
+      right: 2px !important;
+    }
+    #remakeFactorPage.cleanRemakeV6230 .remakeGlobalSearchButtonV6304 {
+      width: 36px !important;
+      height: 36px !important;
+    }
+    #remakeFactorPage.cleanRemakeV6230 .remakePillsV6230:not(:empty) {
+      margin-bottom: 1px !important;
+    }
+  }
+  @media (min-width: 981px) and (max-width: 1250px) {
+    #remakeFactorPage.cleanRemakeV6230 .remakeFilterBarV6230 {
+      grid-template-columns: repeat(3,minmax(0,1fr)) !important;
+    }
+  }
+</style>
+<script>window.CDA_REMAKE_FILTER_BAR_VERSION = 'v6.324-compact-desktop-html-fix';</script>
+
+<!-- v6.327 safe rollback: removed unstable top-tab docking; retained compact filter bar below tabs. -->
+
+
+<script>window.CDA_REMAKE_WORKER_DETAIL_CROSSFILTER_VERSION = 'v6.371-grey-out-own-dimension';</script>
+
+<style id="workerDetailCrossfilterStylesV6370">
+  #ceramistCaseDialogOverlayV6369 { display:none !important; }
+  #remakeFactorPage.cleanRemakeV6230 .ceramistDetailChevronV6368 { display:none !important; }
+  #remakeFactorPage.cleanRemakeV6230 #remakeCeramistDetailTableV6343 tbody tr.ceramistDetailClickableV6368 { cursor:pointer; }
+</style>
+
+<script id="cdaRemakeTatBootClassV6501">
+document.documentElement.classList.add('cdaRemakeTatBootV6501');
+</script>
+<style id="cdaRemakeTatBootStylesV6501">
+  /* v6.628: keep the usable shell visible during data and saved-state hydration.
+     Individual inactive tabs are prepared while hidden by the tab controller. */
+  #tabOneBtn,
+  .managerTabs > .tabGroup,
+  #underConstructionBtn,
+  #underConstructionMenu,
+  #categoricalTabBtn,
+  #overviewNavActions,
+  #overviewOne,
+  #overviewTwo,
+  #categoricalPage,
+  #dropdownDebugOverlayV6199,
+  #dropdownDebugOverlayV6196,
+  #layoutEditButtonV6183,
+  #layoutEditPanelV6183,
+  #layoutCardEditorV6184 { display:none !important; visibility:hidden !important; pointer-events:none !important; }
+  #singleShellClientError,
+  #singleShellDebugBanner { display:none !important; visibility:hidden !important; pointer-events:none !important; }
+</style>
+
+<style id="cdaRemakeUsabilityV6503Styles">
+  #remakeFactorPage.cleanRemakeV6230 .remakeFilter .remakeDropdownHeaderV6245 label.remakeVisibleToggleV6502,
+  #remakeTabFilterHostV6337 .remakeFilter .remakeDropdownHeaderV6245 label.remakeVisibleToggleV6502 {
+    display:inline-flex !important;
+    align-items:center !important;
+    gap:6px !important;
+    width:auto !important;
+    height:auto !important;
+    min-width:0 !important;
+    max-width:none !important;
+    min-height:29px !important;
+    padding:4px 9px !important;
+    border:1px solid #cbd5df !important;
+    border-radius:999px !important;
+    background:#fff !important;
+    color:#1f2937 !important;
+    font:800 11px/1 Roboto,Arial,sans-serif !important;
+    cursor:pointer !important;
+    white-space:nowrap !important;
+    position:relative !important;
+    inset:auto !important;
+    margin:0 !important;
+    overflow:visible !important;
+    clip:auto !important;
+    z-index:2 !important;
+    pointer-events:auto !important;
+  }
+  #remakeFactorPage.cleanRemakeV6230 .remakeFilter .remakeDropdownHeaderV6245 label.remakeVisibleToggleV6502 input,
+  #remakeTabFilterHostV6337 .remakeFilter .remakeDropdownHeaderV6245 label.remakeVisibleToggleV6502 input {
+    width:16px !important;
+    height:16px !important;
+    margin:0 !important;
+    accent-color:#d89b00 !important;
+    cursor:pointer !important;
+    position:relative !important;
+    z-index:3 !important;
+    pointer-events:auto !important;
+    flex:0 0 auto !important;
+  }
+  #remakeFactorPage.cleanRemakeV6230 .remakeVisibleToggleV6502:has(input:checked),
+  #remakeFactorPage.cleanRemakeV6230 .remakeVisibleToggleV6502:has(input:indeterminate),
+  #remakeTabFilterHostV6337 .remakeVisibleToggleV6502:has(input:checked),
+  #remakeTabFilterHostV6337 .remakeVisibleToggleV6502:has(input:indeterminate) {
+    border-color:#f2c94c !important;
+    background:#fff7d6 !important;
+    color:#7a4a00 !important;
+  }
+  body > .remakeColumnChooserPopoverV6357 {
+    max-width:calc(100vw - 20px) !important;
+    overscroll-behavior:contain !important;
+    pointer-events:auto !important;
+  }
+
+  #remakeFactorPage.cleanRemakeV6230 .remakeCustomerDetailPanelV6503 {
+    min-width:0 !important;
+    min-height:0 !important;
+    display:flex !important;
+    flex-direction:column !important;
+    background:#ffffff !important;
+    border:1px solid #dfe4ea !important;
+    border-radius:7px !important;
+    overflow:hidden !important;
+  }
+  #remakeFactorPage.cleanRemakeV6230 .remakeCustomerResponsibilitySummaryV6502 {
+    flex:0 0 auto !important;
+    padding:11px 12px 9px !important;
+    border-bottom:1px solid #e5e7eb !important;
+    background:#fbfcfe !important;
+  }
+  #remakeFactorPage.cleanRemakeV6230 .remakeCustomerBreakdownEmptyV6503 {
+    min-height:72px !important;
+    display:flex !important;
+    align-items:center !important;
+    justify-content:center !important;
+    padding:12px 16px !important;
+    color:#667085 !important;
+    font:700 11px/1.45 Roboto,Arial,sans-serif !important;
+    text-align:center !important;
+  }
+  #remakeFactorPage.cleanRemakeV6230 .remakeCustomerBreakdownHeadingV6503 {
+    display:flex !important;
+    align-items:flex-start !important;
+    justify-content:space-between !important;
+    gap:10px !important;
+    margin-bottom:9px !important;
+  }
+  #remakeFactorPage.cleanRemakeV6230 .remakeCustomerBreakdownHeadingV6503 strong {
+    display:block !important;
+    color:#172033 !important;
+    font:900 12px/1.25 Roboto,Arial,sans-serif !important;
+  }
+  #remakeFactorPage.cleanRemakeV6230 .remakeCustomerBreakdownHeadingV6503 span {
+    display:block !important;
+    margin-top:2px !important;
+    color:#667085 !important;
+    font:700 9.5px/1.25 Roboto,Arial,sans-serif !important;
+  }
+  #remakeFactorPage.cleanRemakeV6230 .remakeCustomerBreakdownGridV6503 {
+    display:grid !important;
+    grid-template-columns:repeat(3,minmax(0,1fr)) !important;
+    border-top:1px solid #e5e7eb !important;
+    border-left:1px solid #e5e7eb !important;
+    background:#fff !important;
+  }
+  #remakeFactorPage.cleanRemakeV6230 .remakeCustomerBreakdownMetricV6503 {
+    min-width:0 !important;
+    padding:8px 9px !important;
+    border-right:1px solid #e5e7eb !important;
+    border-bottom:1px solid #e5e7eb !important;
+    background:#fff !important;
+  }
+  #remakeFactorPage.cleanRemakeV6230 .remakeCustomerBreakdownMetricV6503 span {
+    display:block !important;
+    margin-bottom:4px !important;
+    color:#667085 !important;
+    font:800 8.5px/1.1 Roboto,Arial,sans-serif !important;
+    letter-spacing:.035em !important;
+    text-transform:uppercase !important;
+    white-space:nowrap !important;
+    overflow:hidden !important;
+    text-overflow:ellipsis !important;
+  }
+  #remakeFactorPage.cleanRemakeV6230 .remakeCustomerBreakdownMetricV6503 strong {
+    display:block !important;
+    color:#172033 !important;
+    font:900 15px/1.05 Roboto,Arial,sans-serif !important;
+    white-space:nowrap !important;
+  }
+  #remakeFactorPage.cleanRemakeV6230 .remakeCustomerBreakdownMetricV6503.responsibilityV6503 strong {
+    color:#7a4a00 !important;
+  }
+  #remakeFactorPage.cleanRemakeV6230 .remakeCustomerDetailPanelV6503 .remakeCustomerChartBoxV6230 {
+    flex:1 1 auto !important;
+    min-height:235px !important;
+    height:auto !important;
+    padding:10px 12px 12px !important;
+    position:relative !important;
+  }
+  #remakeFactorPage.cleanRemakeV6230 .remakeCustomerDetailEmptyChartV6503 {
+    position:absolute !important;
+    inset:10px 12px 12px !important;
+    display:flex !important;
+    align-items:center !important;
+    justify-content:center !important;
+    color:#98a2b3 !important;
+    font:700 11px/1.4 Roboto,Arial,sans-serif !important;
+    text-align:center !important;
+    pointer-events:none !important;
+  }
+  #remakeFactorPage.cleanRemakeV6230 #remakeCustomerTable:not(.compareColumnsV6301) {
+    min-width:1540px !important;
+  }
+  #remakeFactorPage.cleanRemakeV6230 #remakeCustomerTable.compareColumnsV6301 {
+    min-width:2960px !important;
+  }
+  @media(max-width:1380px) {
+    #remakeFactorPage.cleanRemakeV6230 .remakeCustomerBreakdownGridV6503 {
+      grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+    }
+  }
+  @media(max-width:760px) {
+    #remakeFactorPage.cleanRemakeV6230 .remakeCustomerBreakdownGridV6503 {
+      grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+    }
+  }
+</style>
+<script>window.CDA_REMAKE_USABILITY_VERSION = 'v6.504';</script>
+<style id="cdaRemakeUniversalResponsibilityV6504Styles">
+  #remakeFactorPage.cleanRemakeV6230 .remakeResponsibilityHeaderV6504{display:flex!important;align-items:flex-start!important;justify-content:space-between!important;gap:12px!important;margin-bottom:9px!important}
+  #remakeFactorPage.cleanRemakeV6230 .remakeResponsibilityKickerV6504{color:#7a4a00!important;font:900 9px/1 Roboto,Arial,sans-serif!important;letter-spacing:.075em!important;text-transform:uppercase!important;margin-bottom:4px!important}
+  #remakeFactorPage.cleanRemakeV6230 .remakeResponsibilityNameV6504{display:block!important;color:#172033!important;font:900 13px/1.25 Roboto,Arial,sans-serif!important;overflow:hidden!important;text-overflow:ellipsis!important}
+  #remakeFactorPage.cleanRemakeV6230 .remakeResponsibilityTypeV6504{display:block!important;color:#667085!important;font:700 9.5px/1.25 Roboto,Arial,sans-serif!important;margin-top:2px!important}
+  #remakeFactorPage.cleanRemakeV6230 .remakeResponsibilityMetricsV6504{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;border-top:1px solid #e5e7eb!important;border-left:1px solid #e5e7eb!important;background:#fff!important}
+  #remakeFactorPage.cleanRemakeV6230 .remakeResponsibilityMetricV6504{min-width:0!important;padding:8px 9px!important;border-right:1px solid #e5e7eb!important;border-bottom:1px solid #e5e7eb!important;background:#fff!important}
+  #remakeFactorPage.cleanRemakeV6230 .remakeResponsibilityMetricV6504 span{display:block!important;margin-bottom:4px!important;color:#667085!important;font:800 8.5px/1.1 Roboto,Arial,sans-serif!important;letter-spacing:.035em!important;text-transform:uppercase!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+  #remakeFactorPage.cleanRemakeV6230 .remakeResponsibilityMetricV6504 strong{display:block!important;color:#172033!important;font:900 15px/1.05 Roboto,Arial,sans-serif!important;white-space:nowrap!important}
+  #remakeFactorPage.cleanRemakeV6230 .remakeResponsibilityMetricV6504.shareV6504 strong{color:#7a4a00!important}
+  #remakeFactorPage.cleanRemakeV6230 .remakeResponsibilityRateNoteV6504{padding:7px 9px 0!important;color:#667085!important;font:700 9.5px/1.35 Roboto,Arial,sans-serif!important}
+  #remakeFactorPage.cleanRemakeV6230 .remakeResponsibilityMultipleV6504,#remakeFactorPage.cleanRemakeV6230 .remakeResponsibilityEmptyV6504{min-height:104px!important;display:flex!important;align-items:center!important;justify-content:center!important;padding:16px!important;color:#667085!important;font:700 11px/1.5 Roboto,Arial,sans-serif!important;text-align:center!important}
+  #remakeFactorPage.cleanRemakeV6230 .remakeCustomerDetailPanelV6503 .remakeCustomerChartBoxV6230{min-height:205px!important}
+</style>
+<script>window.CDA_REMAKE_RESPONSIBILITY_VERSION = 'v6.504-universal-selected-item';</script>
+
+</head>
+<body>
+  <div id="singleShellDebugBanner">DEBUG v6.209</div>
+  <div id="singleShellClientError"></div>
+
+  <div class="tabs managerTabs">
+    <button id="tabOneBtn" class="tabBtn active" onclick="switchTab('one')">Overview</button>
+    <button id="remakeFactorTabBtn" class="tabBtn" onclick="switchTab('remakeFactor')">Remake Factor</button>
+    <div id="remakeTabFilterHostV6337" class="remakeTabFilterHostV6337" aria-label="Remake dashboard filters and cache controls" hidden>
+      <button id="remakeTabSearchProxyV6337" class="remakeTabToolButtonV6337 remakeTabSearchProxyV6337" type="button" title="Search all filters" aria-label="Search all filters" aria-expanded="false" onclick="toggleRemakeTabSearchV6337(event)">
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="6"></circle><path d="m16 16 4 4"></path></svg>
+      </button>
+      <button id="remakeTabResetV6337" class="remakeTabToolButtonV6337 remakeTabResetV6337" type="button" title="Reset all filters" aria-label="Reset all filters" onclick="resetRemakeTabFiltersV6337(event)">Reset</button>
+    </div>
+    <div class="tabGroup">
+      <button id="underConstructionBtn" class="tabBtn underConstructionBtn" onclick="toggleUnderConstructionMenu(event)">Under Construction ▾</button>
+      <div id="underConstructionMenu" class="tabDropdown" onclick="event.stopPropagation()">
+        <button id="categoricalTabBtn" class="tabDropdownBtn" onclick="switchTab('categorical')">Categorical</button>
+      </div>
+    </div>
+    <div id="overviewNavActions" class="controlButtonStrip navActionStrip">
+      <div id="navFilterDock" class="navFilterDock">
+        <span class="navFilterLabel">Filters</span>
+        <div id="overviewFilterDeck" class="o2RealFilterDeck topOverviewFilterDeck filterDeck dropdownDeck">
+                <div class="filterCard dropdownCard">
+                  <div class="miniLabel">Departments</div>
+                  <button id="departmentDropdownButton" class="dropdownButton" onclick="toggleDropdown('departmentDropdownPanel')">Selected departments</button>
+                  <div id="departmentDropdownPanel" class="dropdownPanel" onclick="event.stopPropagation()">
+                    <input id="departmentSearch" class="dropdownSearch" type="text" placeholder="Search departments..." oninput="state.departmentSearch = this.value; renderDepartmentList();" onclick="event.stopPropagation()">
+                    <div class="dropdownPanelHeader">
+                      <button id="departmentSelectAllBtn" type="button" onmousedown="event.stopPropagation()" onclick="selectAllDepartments(event)">Select all</button>
+                      <button id="departmentMainOnlyBtn" type="button" onmousedown="event.stopPropagation()" onclick="selectMainDepartments(event)">Main only</button>
+                      <button id="departmentClearBtn" type="button" onmousedown="event.stopPropagation()" onclick="clearDepartmentSelection(event)">Clear</button>
+                      <span id="departmentVisibleCount" class="dropdownCount"></span>
+                    </div>
+                    <div class="sectionHeader compactHeader"><span>Department</span><span>2026</span></div>
+                    <div id="departmentList" class="deptList dropdownList"></div>
+                  </div>
+                </div>
+        
+                <div class="filterCard dropdownCard">
+                  <div class="miniLabel">Products</div>
+                  <button id="productDropdownButton" class="dropdownButton" onclick="toggleDropdown('productDropdownPanel')">All products</button>
+                  <div id="productDropdownPanel" class="dropdownPanel productDropdownPanel" onclick="event.stopPropagation()">
+                    <input id="productSearch" class="dropdownSearch" type="text" placeholder="Search products..." oninput="state.productSearch = this.value; renderProductList();" onclick="event.stopPropagation()">
+                    <div class="dropdownPanelHeader">
+                      <button id="productSelectAllBtn" type="button" onmousedown="event.stopPropagation()" onclick="selectAllProducts(event)">Select all</button>
+                      <button id="productClearBtn" type="button" onmousedown="event.stopPropagation()" onclick="clearProductSelection(event)">Clear</button>
+                      <span id="productVisibleCount" class="dropdownCount"></span>
+                    </div>
+                    <div id="productList" class="dropdownList multiList"></div>
+                  </div>
+                </div>
+        
+                <div class="filterCard dropdownCard">
+                  <div class="miniLabel">Customers</div>
+                  <button id="customerDropdownButton" class="dropdownButton" onclick="toggleDropdown('customerDropdownPanel')">All customers</button>
+                  <div id="customerDropdownPanel" class="dropdownPanel customerDropdownPanel" onclick="event.stopPropagation()">
+                    <input id="customerSearch" class="dropdownSearch" type="text" placeholder="Search customers..." oninput="state.customerSearch = this.value; renderCustomerList();" onclick="event.stopPropagation()">
+                    <div class="dropdownPanelHeader">
+                      <button id="customerSelectAllBtn" type="button" onmousedown="event.stopPropagation()" onclick="selectAllCustomers(event)">Select all</button>
+                      <button id="customerClearBtn" type="button" onmousedown="event.stopPropagation()" onclick="clearCustomerSelection(event)">Clear</button>
+                      <button id="customerActiveOnlyBtn" class="customerActiveOnlyToggle" type="button" onmousedown="event.stopPropagation()" onclick="toggleActiveCustomersOnly(event)">Active only</button>
+                      <span id="customerVisibleCount" class="dropdownCount"></span>
+                    </div>
+                    <div id="customerList" class="dropdownList multiList"></div>
+                  </div>
+                </div>
+        
+                <div class="filterCard dropdownCard">
+                  <div class="miniLabel">Years</div>
+                  <button id="yearDropdownButton" class="dropdownButton" onclick="toggleDropdown('yearDropdownPanel')">Selected years</button>
+                  <div id="yearDropdownPanel" class="dropdownPanel yearDropdownPanel" onclick="event.stopPropagation()">
+                    <div class="dropdownPanelHeader">
+                      <button type="button" onclick="selectDefaultYears(event)">2026 + 2025</button>
+                      <button type="button" onclick="selectAllYears(event)">All years</button>
+                      <span id="yearVisibleCount" class="dropdownCount"></span>
+                    </div>
+                    <div class="sectionHeader compactHeader"><span>Year</span><span>Revenue</span></div>
+                    <div id="yearList" class="yearList dropdownList"></div>
+                  </div>
+                </div>
+              </div>
+      </div>
+
+      <div class="segGroup">
+        <button id="btnMain" class="segBtn active" onclick="setDeptMode('MAIN')">Main Depts</button>
+        <button id="btnAll" class="segBtn" onclick="setDeptMode('ALL')">All Depts</button>
+      </div>
+
+      <div class="segGroup">
+        <button id="btnYtd" class="segBtn active" onclick="setPeriodMode('YTD')">YTD</button>
+        <button id="btnMtd" class="segBtn" onclick="setPeriodMode('MTD')">MTD</button>
+      </div>
+
+      <button id="undoBtn" class="resetBtn undoBtn navIconBtn" onclick="undoLastFilterChange()" title="Undo last filter change (Ctrl/Cmd+Z)" disabled aria-label="Undo">↶</button>
+      <button id="redoBtn" class="resetBtn redoBtn navIconBtn" onclick="redoLastFilterChange()" title="Redo filter change (Ctrl/Cmd+Shift+Z or Ctrl/Cmd+Y)" disabled aria-label="Redo">↷</button>
+      <button class="resetBtn navResetBtn" onclick="resetAllFilters()">Reset</button>
+    </div>
+  </div>
+
+  <div id="errorBox"></div>
+
+  <section id="overviewOne" class="tabPage active">
+    <div class="dashboardShell">
+      <div class="topBar executiveTop">
+        <div class="kpiStrip comparisonKpis">
+          <div class="kpiMini comparisonKpi">
+            <div class="label">Revenue</div>
+            <div id="miniRevenue" class="value">-</div>
+            <div class="kpiSub"><span id="miniRevenuePrior">-</span><span id="miniRevenueDelta" class="kpiDelta">-</span></div>
+          </div>
+          <div class="kpiMini comparisonKpi">
+            <div class="label">Customers</div>
+            <div id="miniCustomers" class="value">-</div>
+            <div class="kpiSub"><span id="miniCustomersPrior">-</span><span id="miniCustomersDelta" class="kpiDelta">-</span></div>
+          </div>
+          <div class="kpiMini comparisonKpi">
+            <div class="label">Units</div>
+            <div id="miniUnits" class="value">-</div>
+            <div class="kpiSub"><span id="miniUnitsPrior">-</span><span id="miniUnitsDelta" class="kpiDelta">-</span></div>
+          </div>
+          <div class="kpiMini comparisonKpi">
+            <div class="label">Avg $/Unit</div>
+            <div id="miniAvg" class="value">-</div>
+            <div class="kpiSub"><span id="miniAvgPrior">-</span><span id="miniAvgDelta" class="kpiDelta">-</span></div>
+          </div>
+          <div class="kpiMini comparisonKpi">
+            <div class="label">Rev / Customer</div>
+            <div id="miniRpac" class="value">-</div>
+            <div class="kpiSub"><span id="miniRpacPrior">-</span><span id="miniRpacDelta" class="kpiDelta">-</span></div>
+          </div>
+        </div>
+
+        <div class="controlFilterRow compactChipOnlyRow">
+          <div id="legacyChipRow" class="chipRow"></div>
+        </div>
+      </div>
+
+
+
+      <div class="grid">
+        <div class="card areaRevenue">
+          <div class="cardHeader"><div class="chartTitle">Revenue Trend</div><button class="componentMenuBtn" title="Chart options" onclick="openComponentMenu(event, 'revenue')">⋮</button></div>
+          <div class="chartBox"><canvas id="chartRevenue"></canvas></div>
+        </div>
+
+        <div class="card areaCustomers">
+          <div class="cardHeader"><div class="chartTitle">Customer Count</div><button class="componentMenuBtn" title="Chart options" onclick="openComponentMenu(event, 'customerCount')">⋮</button></div>
+          <div class="chartBox"><canvas id="chartCustomers"></canvas></div>
+        </div>
+
+        <div class="areaCustomerTable moverArea">
+          <div class="cardHeader">
+            <div class="chartTitle">Customer Movers</div>
+            <div class="cardActions">
+              <div class="tableToggles">
+                <button id="customerLossesBtn" class="tinyBtn active" onclick="setCustomerSort('losses')">Losses</button>
+                <button id="customerGainsBtn" class="tinyBtn" onclick="setCustomerSort('gains')">Gains</button>
+                <button id="customerTopBtn" class="tinyBtn" onclick="setCustomerSort('top')">Top</button>
+                <button id="customerUnitsBtn" class="tinyBtn metricBtn" onclick="setCustomerMetric('units')">Units</button>
+              </div>
+              <button class="componentMenuBtn" title="Table options" onclick="openComponentMenu(event, 'customerTable')">⋮</button>
+            </div>
+          </div>
+          <div class="tableScroll">
+            <table>
+              <thead><tr>
+                <th class="sortableHeader" onclick="setCustomerColumnSort('customerId')">CID<span id="customerSort_customerId" class="sortGlyph"></span></th>
+                <th class="sortableHeader" onclick="setCustomerColumnSort('customerName')">CustomerName<span id="customerSort_customerName" class="sortGlyph"></span></th>
+                <th class="sortableHeader" onclick="setCustomerMetricColumnSort('prior')"><span id="customerPriorHeader">2025</span><span id="customerSort_priorMetric" class="sortGlyph"></span></th>
+                <th class="sortableHeader" onclick="setCustomerMetricColumnSort('current')"><span id="customerCurrentHeader">2026</span><span id="customerSort_currentMetric" class="sortGlyph"></span></th>
+                <th class="sortableHeader" onclick="setCustomerMetricColumnSort('gap')"><span id="customerGapHeader">26v25</span><span id="customerSort_gapMetric" class="sortGlyph"></span></th>
+              </tr></thead>
+              <tbody id="customerTable"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card areaUnits">
+          <div class="cardHeader"><div class="chartTitle">Units Produced</div><button class="componentMenuBtn" title="Chart options" onclick="openComponentMenu(event, 'units')">⋮</button></div>
+          <div class="chartBox"><canvas id="chartUnits"></canvas></div>
+        </div>
+
+        <div class="card areaRpac">
+          <div class="cardHeader"><div class="chartTitle">Revenue Per Active Customer</div><button class="componentMenuBtn" title="Chart options" onclick="openComponentMenu(event, 'rpac')">⋮</button></div>
+          <div class="chartBox"><canvas id="chartRpac"></canvas></div>
+        </div>
+
+        <div class="areaProductTable moverArea">
+          <div class="cardHeader">
+            <div class="chartTitle">Product Movers</div>
+            <div class="cardActions">
+              <div class="tableToggles">
+                <button id="productLossesBtn" class="tinyBtn active" onclick="setProductSort('losses')">Losses</button>
+                <button id="productGainsBtn" class="tinyBtn" onclick="setProductSort('gains')">Gains</button>
+                <button id="productTopBtn" class="tinyBtn" onclick="setProductSort('top')">Top</button>
+                <button id="productUnitsBtn" class="tinyBtn metricBtn" onclick="setProductMetric('units')">Units</button>
+              </div>
+              <button class="componentMenuBtn" title="Table options" onclick="openComponentMenu(event, 'productTable')">⋮</button>
+            </div>
+          </div>
+          <div class="tableScroll">
+            <table>
+              <thead><tr>
+                <th class="sortableHeader" onclick="setProductColumnSort('productsDescription')">Products_Description<span id="productSort_productsDescription" class="sortGlyph"></span></th>
+                <th class="sortableHeader" onclick="setProductMetricColumnSort('prior')"><span id="productPriorHeader">2025</span><span id="productSort_priorMetric" class="sortGlyph"></span></th>
+                <th class="sortableHeader" onclick="setProductMetricColumnSort('current')"><span id="productCurrentHeader">2026</span><span id="productSort_currentMetric" class="sortGlyph"></span></th>
+                <th class="sortableHeader" onclick="setProductMetricColumnSort('gap')"><span id="productGapHeader">26v25</span><span id="productSort_gapMetric" class="sortGlyph"></span></th>
+              </tr></thead>
+              <tbody id="productTable"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card areaAvg">
+          <div class="cardHeader"><div class="chartTitle">Avg Price Per Unit</div><button class="componentMenuBtn" title="Chart options" onclick="openComponentMenu(event, 'avg')">⋮</button></div>
+          <div class="chartBox"><canvas id="chartAvg"></canvas></div>
+        </div>
+      </div>
+
+      <div id="footer" class="footer">Data Last Updated:</div>
+    </div>
+  </section>
+
+
+  <section id="remakeFactorPage" class="tabPage">
+    <div class="remakeShell">
+      <div class="remakeHeader">
+        <div>
+          <h1 class="remakeTitle">Remake Factor</h1>
+        </div>
+        <div class="remakeActions">
+          <button id="remakeLoadBtn" class="remakeButton secondary" type="button" onclick="loadRemakeFactorData(false)" style="display:none">Load Cache</button>
+          <button id="remakeRefreshBtn" class="remakeButton" type="button" onclick="refreshRemakeFactorData()">Refresh Cache</button>
+              <button id="remakeHistoricalRebuildBtn" class="remakeButton secondary" type="button" onclick="rebuildRemakeFactorHistoricalData()">Rebuild Historical</button>
+          <div id="remakeLastRefresh" class="remakeRefreshStamp">Not loaded</div>
+        </div>
+      </div>
+
+      <div id="remakeNotice" class="remakeNotice"></div>
+
+      <div class="remakeFilterBar">
+        <div class="remakeFilter">
+          <label for="remakeYearFilter">Year</label>
+          <select id="remakeYearFilter" onchange="applyRemakeFactorFilters()"><option value="">All years</option></select>
+        </div>
+        <div class="remakeFilter">
+          <label for="remakeDepartmentFilter">Department</label>
+          <select id="remakeDepartmentFilter" onchange="applyRemakeFactorFilters()"><option value="">All departments</option></select>
+        </div>
+        <div class="remakeFilter">
+          <label for="remakeProductFilter">Product</label>
+          <select id="remakeProductFilter" onchange="applyRemakeFactorFilters()"><option value="">All products</option></select>
+        </div>
+        <div class="remakeFilter">
+          <label for="remakeCustomerFilter">Customer</label>
+          <select id="remakeCustomerFilter" onchange="applyRemakeFactorFilters()"><option value="">All customers</option></select>
+        </div>
+        <div class="remakeFilter">
+          <label for="remakeReasonFilter">Reason</label>
+          <select id="remakeReasonFilter" onchange="applyRemakeFactorFilters()"><option value="">All reasons</option></select>
+        </div>
+      </div>
+
+      <div class="remakeKpis">
+        <div class="remakeKpi"><div class="label">Total Cases</div><div id="remakeTotalCases" class="value">-</div><div class="sub"></div></div>
+        <div class="remakeKpi"><div class="label">Remake Cases</div><div id="remakeCases" class="value">-</div><div class="sub"></div></div>
+        <div class="remakeKpi"><div class="label">Case Rate</div><div id="remakeCaseRate" class="value">-</div><div class="sub"></div></div>
+        <div class="remakeKpi"><div class="label">Total Units</div><div id="remakeTotalUnits" class="value">-</div><div class="sub"></div></div>
+        <div class="remakeKpi"><div class="label">Remake Units</div><div id="remakeUnits" class="value">-</div><div class="sub"></div></div>
+        <div class="remakeKpi"><div class="label">Unit Rate</div><div id="remakeUnitRate" class="value">-</div><div class="sub"></div></div>
+        <div class="remakeKpi"><div class="label">Discount</div><div id="remakeDiscount" class="value">-</div><div class="sub"></div></div>
+      </div>
+
+      <div class="remakeGrid">
+        <div class="remakeCard">
+          <div class="remakeCardHeader"><div class="remakeCardTitle">Monthly Remake Rate</div><div class="remakeCardSubtle"></div></div>
+          <div id="remakeTrendList" class="remakeTrendList"></div>
+          
+        </div>
+
+        <div class="remakeCard">
+          <div class="remakeCardHeader"><div class="remakeCardTitle">Remake Reasons</div><div class="remakeCardSubtle"></div></div>
+          <div class="remakeTableWrap"><table id="remakeReasonTable" class="remakeTable"></table></div>
+        </div>
+      </div>
+
+      <div class="remakeGrid">
+        <div class="remakeCard">
+          <div class="remakeCardHeader"><div class="remakeCardTitle">Departments</div><div class="remakeCardSubtle"></div></div>
+          <div class="remakeTableWrap"><table id="remakeDepartmentTable" class="remakeTable"></table></div>
+        </div>
+        <div class="remakeCard">
+          <div class="remakeCardHeader"><div class="remakeCardTitle">Products</div><div class="remakeCardSubtle"></div></div>
+          <div class="remakeTableWrap"><table id="remakeProductTable" class="remakeTable"></table></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="categoricalPage" class="tabPage">
+    <div class="dashboardShell categoricalPlaceholderShell">
+      <div class="categoricalPlaceholder">
+        <div class="placeholderEyebrow">Under Construction</div>
+        <h1>Categorical</h1>
+        <p>This page is reserved for the future categorical report.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="overviewTwo" class="tabPage overviewTwoBackup">
+    <div class="overviewTwoShellV127 overviewTwoShellV150">
+      <section class="o2CommandGridV150">
+        <div class="o2CommandMainV150">
+          <div class="o2Card o2RevenueHeroV150">
+            <div class="o2CardHeader">
+              <div>
+                <div class="o2ChartTitle">Revenue Trend</div>
+                <div class="o2ChartSubtle">Current vs prior year. Click a month to drill into that period.</div>
+              </div>
+            </div>
+            <div class="o2TrendBox"><canvas id="o2RevenueTrend"></canvas></div>
+          </div>
+
+          <section class="o2AnalyticsRowV150">
+            <div class="o2Card o2AnalyticsCardV150 o2PaceCardV156">
+              <div class="o2CardHeader compactV150 o2PaceHeaderV156">
+                <div>
+                  <div class="o2ChartTitle">Year Pace</div>
+                  <div class="o2ChartSubtle">Monthly YoY and cumulative YTD gap in one scalable timeline.</div>
+                </div>
+              </div>
+              <div class="o2PaceSummaryV156">
+                <div class="o2PaceStatV156">
+                  <span class="label">YTD Gap</span>
+                  <strong id="o2PaceYtdGap">-</strong>
+                  <span id="o2PaceYtdGapSub" class="sub">Through current month</span>
+                </div>
+                <div class="o2PaceStatV156">
+                  <span class="label">Worst Month</span>
+                  <strong id="o2PaceWorstMonth">-</strong>
+                  <span id="o2PaceWorstMonthSub" class="sub">Monthly drag</span>
+                </div>
+                <div class="o2PaceStatV156">
+                  <span class="label">Positive Months</span>
+                  <strong id="o2PacePositiveMonths">-</strong>
+                  <span class="sub">Monthly YoY wins</span>
+                </div>
+              </div>
+              <div class="o2PaceLegendV156">
+                <span>Month</span>
+                <span>Monthly YoY</span>
+                <span>Cumulative gap</span>
+              </div>
+              <div id="o2MonthlyYoyTiles" class="o2MonthlyYoyTilesV150 o2PaceMatrixV156"></div>
+            </div>
+          </section>
+        </div>
+
+        <aside class="o2Card o2ExecutivePanelV150">
+          <div class="o2ExecutiveHeaderV150">
+            <div>
+              <div class="o2ExecutiveEyebrowV150">Executive Snapshot</div>
+              <div id="o2SnapshotPeriod" class="o2ExecutiveSubV150">YTD performance</div>
+            </div>
+            <div id="o2SnapshotTone" class="o2SnapshotToneV150">-</div>
+          </div>
+
+          <section class="o2KpiBand o2KpiBandSideV150">
+            <div class="o2KpiCard"><div class="label">Revenue</div><div id="o2KRevenue" class="value">-</div><div class="o2KpiSub"><span id="o2KRevenuePrior">-</span><span id="o2KRevenueDelta">-</span></div></div>
+            <div class="o2KpiCard"><div class="label">Customers</div><div id="o2KCustomers" class="value">-</div><div class="o2KpiSub"><span id="o2KCustomersPrior">-</span><span id="o2KCustomersDelta">-</span></div></div>
+            <div class="o2KpiCard"><div class="label">Units</div><div id="o2KUnits" class="value">-</div><div class="o2KpiSub"><span id="o2KUnitsPrior">-</span><span id="o2KUnitsDelta">-</span></div></div>
+            <div class="o2KpiCard"><div class="label">Avg $ / Unit</div><div id="o2KAvg" class="value">-</div><div class="o2KpiSub"><span id="o2KAvgPrior">-</span><span id="o2KAvgDelta">-</span></div></div>
+            <div class="o2KpiCard"><div class="label">Rev / Customer</div><div id="o2KRpac" class="value">-</div><div class="o2KpiSub"><span id="o2KRpacPrior">-</span><span id="o2KRpacDelta">-</span></div></div>
+          </section>
+
+          <section class="o2YearStackV150">
+            <div class="o2YearStackHeaderV150">
+              <div>YTD Revenue by Year</div>
+              <span id="o2YearStackAsOf">Same YTD window</span>
+            </div>
+            <div id="o2YearStackRows" class="o2YearStackRowsV150"></div>
+          </section>
+        </aside>
+      </section>
+
+
+      <section class="o2FeatureDockV153 o2FeatureDockV158">
+        <div class="o2Card o2ExecutiveInsightsPanelV153 o2ExecutiveInsightsPanelV158">
+          <div class="o2InsightsHeaderV153 o2InsightsHeaderV158">
+            <div class="o2ReadoutTitleBlockV158">
+              <div id="o2ExecutiveInsightsTitle" class="o2ChartTitle">Management Readout</div>
+              <div id="o2ExecutiveInsightsSubtitle" class="o2ChartSubtle">A quick read of what is driving the selected dashboard state.</div>
+            </div>
+            <div class="o2StoryTabsV158" role="tablist" aria-label="Executive story controls">
+              <button id="o2InsightBtnExplain" class="o2InsightButtonV153 o2StoryTabV158 active" type="button" onclick="setOverviewTwoInsightMode('explain')">Explain Gap</button>
+              <button id="o2InsightBtnLoss" class="o2InsightButtonV153 o2StoryTabV158" type="button" onclick="setOverviewTwoInsightMode('loss')">Loss Watch</button>
+              <button id="o2InsightBtnGrowth" class="o2InsightButtonV153 o2StoryTabV158" type="button" onclick="setOverviewTwoInsightMode('growth')">Growth Wins</button>
+            </div>
+            <div id="o2ExecutiveInsightsBadge" class="o2InsightsBadgeV153 o2InsightsBadgeV158">Explain Gap</div>
+          </div>
+          <div id="o2ExecutiveInsights" class="o2ExecutiveInsightsBodyV153 o2ExecutiveInsightsBodyV158"></div>
+        </div>
+      </section>
+
+      <section class="o2Card o2DeepDivePanelV155">
+        <div class="o2DeepDiveHeaderV155">
+          <div>
+            <div id="o2DeepDiveTitle" class="o2ChartTitle">Deep Dive</div>
+            <div id="o2DeepDiveSubtitle" class="o2ChartSubtle">All analytics are still here. Use the tabs to switch the story without cluttering the page.</div>
+          </div>
+          <div class="o2DeepDiveTabsV155" role="tablist" aria-label="Deep dive analytics">
+            <button id="o2DeepTabGap" type="button" class="active" onclick="setOverviewTwoDeepDive('gap')">Gap Drivers</button>
+            <button id="o2DeepTabHealth" type="button" onclick="setOverviewTwoDeepDive('health')">Customer Health</button>
+            <button id="o2DeepTabMix" type="button" onclick="setOverviewTwoDeepDive('mix')">Dept Mix</button>
+            <button id="o2DeepTabMoves" type="button" onclick="setOverviewTwoDeepDive('moves')">Biggest Moves</button>
+          </div>
+        </div>
+        <div class="o2DeepDiveBodyV155">
+          <div id="o2DeepPanelGap" class="o2DeepDiveContentV155 active">
+            <div class="o2DeepPanelIntroV155">
+              <div class="title">Revenue Gap Drivers</div>
+              <div class="sub">Unit/price and customer-value lenses for the current YTD gap.</div>
+            </div>
+            <div id="o2RevenueGapDrivers" class="o2InsightBodyV152 o2InsightRowsV152"></div>
+          </div>
+          <div id="o2DeepPanelHealth" class="o2DeepDiveContentV155">
+            <div class="o2DeepPanelIntroV155">
+              <div class="title">Customer Health</div>
+              <div class="sub">How many customers are growing, declining, new, or lost.</div>
+            </div>
+            <div id="o2CustomerHealth" class="o2InsightBodyV152 o2HealthGridV152"></div>
+          </div>
+          <div id="o2DeepPanelMix" class="o2DeepDiveContentV155">
+            <div class="o2DeepPanelIntroV155">
+              <div class="title">Department Mix Shift</div>
+              <div class="sub">Largest department movements in the selected YTD window.</div>
+            </div>
+            <div id="o2MixShift" class="o2InsightBodyV152 o2InsightRowsV152"></div>
+          </div>
+          <div id="o2DeepPanelMoves" class="o2DeepDiveContentV155">
+            <div class="o2DeepPanelIntroV155">
+              <div class="title">Biggest Moves</div>
+              <div class="sub">Fastest way to see what is helping or hurting the year.</div>
+            </div>
+            <div id="o2BiggestMoves" class="o2InsightBodyV152 o2InsightRowsV152"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="o2TopBarCharts o2TopBarChartsV150">
+        <div class="o2Card"><div class="o2CardHeader"><div><div class="o2ChartTitle">Customer Count</div><div class="o2ChartSubtle">MoM / YTD, current vs prior</div></div></div><div class="o2SmallChartBox"><canvas id="o2Customers"></canvas></div></div>
+        <div class="o2Card"><div class="o2CardHeader"><div><div class="o2ChartTitle">Units Produced</div><div class="o2ChartSubtle">MoM / YTD, current vs prior</div></div></div><div class="o2SmallChartBox"><canvas id="o2Units"></canvas></div></div>
+        <div class="o2Card"><div class="o2CardHeader"><div><div class="o2ChartTitle">Revenue / Customer</div><div class="o2ChartSubtle">MoM / YTD, current vs prior</div></div></div><div class="o2SmallChartBox"><canvas id="o2Rpac"></canvas></div></div>
+        <div class="o2Card"><div class="o2CardHeader"><div><div class="o2ChartTitle">Avg $ / Unit</div><div class="o2ChartSubtle">MoM / YTD, current vs prior</div></div></div><div class="o2SmallChartBox"><canvas id="o2Avg"></canvas></div></div>
+      </section>
+
+      <section class="o2DriverSectionV150">
+        <div class="o2Card o2DriverCard">
+          <div class="o2CardHeader">
+            <div><div class="o2ChartTitle">Revenue Drivers</div><div class="o2ChartSubtle">Same filter state as the KPIs/charts. Click a row to pin it, or use Focus to drill the dashboard into that driver.</div></div>
+            <button class="o2ClearFocusBtn" type="button" onclick="clearOverviewTwoFocus()">Clear Focus</button>
+          </div>
+          <div id="o2DriverFocus" class="o2DriverFocus"></div>
+          <div class="o2DriverToolbar">
+            <div class="o2ButtonGroup">
+              <button id="o2TabCustomers" type="button" class="active" onclick="setOverviewTwoTab('customers')">Customers</button>
+              <button id="o2TabProducts" type="button" onclick="setOverviewTwoTab('products')">Products</button>
+              <button id="o2TabBuckets" type="button" onclick="setOverviewTwoTab('buckets')">Categories</button>
+              <button id="o2TabDepartments" type="button" onclick="setOverviewTwoTab('departments')">Departments</button>
+            </div>
+            <div class="o2ButtonGroup">
+              <button id="o2SortLosses" type="button" class="active" onclick="setOverviewTwoSort('losses')">Losses</button>
+              <button id="o2SortGains" type="button" onclick="setOverviewTwoSort('gains')">Gains</button>
+              <button id="o2SortTop" type="button" onclick="setOverviewTwoSort('top')">Revenue</button>
+              <button id="o2SortUnits" type="button" onclick="setOverviewTwoSort('units')">Units</button>
+            </div>
+          </div>
+          <div class="o2TableScroll"><table id="o2DriverTable"></table></div>
+        </div>
+      </section>
+
+      <div id="o2Footer" class="o2Footer">Data Last Updated:</div>
+    </div>
+  </section>
+
+  <div id="componentMenu" class="componentMenu" onclick="event.stopPropagation()"></div>
+
+
+  <script>
+    (function installV6160Layout() {
+      function movePanel() {
+        var rightStack = document.querySelector('#overviewTwo .o2AnalyticsRowV150');
+        var featureDock = document.querySelector('#overviewTwo .o2FeatureDockV153');
+        var insightPanel = document.querySelector('#overviewTwo .o2ExecutiveInsightsPanelV153');
+        if (rightStack && insightPanel && insightPanel.parentElement !== rightStack) {
+          rightStack.appendChild(insightPanel);
+        }
+        if (featureDock) featureDock.classList.add('o2FeatureDockV160Hidden');
+        var insightTitle = document.getElementById('o2ExecutiveInsightsTitle');
+        if (insightTitle) insightTitle.textContent = 'Management Readout';
+      }
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', movePanel);
+      } else {
+        movePanel();
+      }
+      setTimeout(movePanel, 0);
+      setTimeout(movePanel, 250);
+    })();
+  </script>
+
+  <?!= includeDashboardFile('RemakeRootAttributionBrowserIntegrationV1351') ?>
+  <?!= includeDashboardFile('DashboardMainScript', {dashboardBaseUrl: dashboardBaseUrl, dashboardPresentationVersion: dashboardPresentationVersion, dashboardPresentationMode: dashboardPresentationMode, dashboardPresentationSource: dashboardPresentationSource}) ?>
+<?!= includeDashboardFile('DashboardSupportScript01') ?>
+<script>
+/* v6.244 remake polish marker
+   - Backend-driven Remake Factor-only presentation remains in place.
+   - Customer Highest Remake Rate chart remains fixed to rate ranking; table sorts are presentation-only.
+   - Customer table Status column was removed; inactive pill remains next to the customer name.
+   - Floating layout-edit controls are hidden in Remake Factor-only presentation. */
+window.CDA_REMAKE_POLISH_VERSION = 'v6.281';
+</script>
+<script>
+/* v6.249 remake chart + pill polish marker
+   - Monthly chart defaults to Total and can toggle Cases/Units plus Total/Percent.
+   - Hover/twitch guard removes redraw loops; tooltip uses standard stable chart hover.
+   - Active filter pills are grouped by filter type, e.g. Product: A, B +372. */
+window.CDA_REMAKE_CHART_PILL_POLISH_VERSION = 'v6.281';
+</script>
+
+<script>
+/* v6.249 anti-twitch hover stabilizer
+   - Stops old presentation guard from re-rendering on hover/style mutations.
+   - Removes hover transitions in Remake Factor so table rows and cards do not twitch.
+   - Keeps fast cache and backend-driven Remake-only mode unchanged. */
+(function antiTwitchHoverStabilizerV6249(){
+  'use strict';
+  const style = document.createElement('style');
+  style.id = 'antiTwitchHoverStabilizerV6249';
+  style.textContent = `
+    #remakeFactorPage,
+    #remakeFactorPage * {
+      transition-property: none !important;
+      animation-duration: 0s !important;
+      scroll-behavior: auto !important;
+    }
+    #remakeFactorPage .remakeTable tr:hover td,
+    #remakeFactorPage .remakeTable tr.clickable:hover td {
+      background: #eef4ff !important;
+    }
+    #remakeFactorPage canvas {
+      cursor: default !important;
+    }
+  `;
+  document.head.appendChild(style);
+
+  // If an older broad observer exists, disconnect it and replace with a safer one
+  // that does not listen to class/style mutations caused by hover/chart updates.
+  try {
+    if (window.__finalRemakeOnlyObserverV6243 && typeof window.__finalRemakeOnlyObserverV6243.disconnect === 'function') {
+      window.__finalRemakeOnlyObserverV6243.disconnect();
+    }
+  } catch (error) {}
+})();
+</script>
+
+<script>
+/* v6.298 gentle component morphs.
+   The affected content eases into its new geometry without blur, a page-wide
+   freeze, or a persistent animation fill that can interfere with Chart.js. */
+(function installGentleTableMorphV6298(){
+  'use strict';
+  const cardMap = { reason:'remakeReasonCardV6230', department:'remakeDepartmentCardV6230', product:'remakeProductCardV6230', customer:'remakeCustomerCardV6230' };
+  const active = new Map();
+  window.runGentleTableMorphV6297 = function runGentleTableMorphV6297(kind, action) {
+    if (typeof action === 'function') action();
+  };
+})();
+window.CDA_REMAKE_TRANSITION_POLISH_VERSION = 'v6.298';
+window.CDA_REMAKE_CUSTOMER_HEADER_REPAIR_VERSION = 'v6.299';
+</script>
+
+<?!= includeDashboardFile('DashboardSupportScript02') ?>
+
+<script>
+window.CDA_REMAKE_LAYOUT_BALANCE_VERSION = 'v6.319';
+(function installRemakeV6317LayoutBalance(){
+  if(document.getElementById('remakeV6317LayoutBalanceStyles')) return;
+  const style=document.createElement('style');
+  style.id='remakeV6317LayoutBalanceStyles';
+  style.textContent=`
+    /* v6.319: keep Departments on the wider right, but give Trend/Reasons slightly more room and preserve full Product discount header. */
+    /* v6.317: give Reasons and Products more horizontal room instead of wrapping table headers. */
+    @media(min-width:981px){
+      #remakeFactorPage.cleanRemakeV6230 .remakeGridV6230 {
+        grid-template-columns:minmax(0,.94fr) minmax(0,1.06fr) !important;
+      }
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) {
+        min-width:0 !important;
+        width:100% !important;
+        table-layout:fixed !important;
+      }
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) th,
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) td {
+        min-width:0 !important;
+        padding-left:4px !important;
+        padding-right:4px !important;
+        font-size:10px !important;
+      }
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) th:first-child,
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) td:first-child {
+        width:22% !important;
+        min-width:132px !important;
+        max-width:none !important;
+      }
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) th:nth-child(2),
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) td:nth-child(2) { width:10% !important; }
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) th:nth-child(3),
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) td:nth-child(3) { width:10% !important; }
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) th:nth-child(4),
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) td:nth-child(4) { width:13% !important; }
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) th:nth-child(5),
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) td:nth-child(5) { width:10% !important; }
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) th:nth-child(6),
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) td:nth-child(6) { width:10% !important; }
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) th:nth-child(7),
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) td:nth-child(7) { width:12% !important; }
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) th:nth-child(8),
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) td:nth-child(8) { width:13% !important; }
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) thead th {
+        white-space:nowrap !important;
+        line-height:1.12 !important;
+        overflow:hidden !important;
+        text-overflow:ellipsis !important;
+      }
+      #remakeFactorPage.cleanRemakeV6230 .remakeProductTableWrapV6230 {
+        overflow-x:hidden !important;
+      }
+    }
+    @media(max-width:980px){
+      #remakeFactorPage.cleanRemakeV6230 .remakeProductTableWrapV6230 { overflow-x:auto !important; }
+    }
+  `;
+  document.head.appendChild(style);
+})();
+</script>
+
+<script>
+window.CDA_REMAKE_ALIGNED_TABLE_COLUMNS_VERSION = 'v6.320';
+(function installRemakeV6320AlignedTableColumns(){
+  if(document.getElementById('remakeV6320AlignedTableColumnsStyles')) return;
+  const style=document.createElement('style');
+  style.id='remakeV6320AlignedTableColumnsStyles';
+  style.textContent=`
+    /* v6.320: identical current-year table geometry for Departments, Products/Groups, and Customers. */
+    @media(min-width:981px){
+      #remakeFactorPage.cleanRemakeV6230 #remakeDepartmentTable:not(.compareColumnsV6301),
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301),
+      #remakeFactorPage.cleanRemakeV6230 #remakeCustomerTable:not(.compareColumnsV6301) {
+        width:100% !important;
+        min-width:0 !important;
+        table-layout:fixed !important;
+      }
+      #remakeFactorPage.cleanRemakeV6230 #remakeDepartmentTable:not(.compareColumnsV6301) th,
+      #remakeFactorPage.cleanRemakeV6230 #remakeDepartmentTable:not(.compareColumnsV6301) td,
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) th,
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) td,
+      #remakeFactorPage.cleanRemakeV6230 #remakeCustomerTable:not(.compareColumnsV6301) th,
+      #remakeFactorPage.cleanRemakeV6230 #remakeCustomerTable:not(.compareColumnsV6301) td {
+        min-width:0 !important;
+        padding-left:4px !important;
+        padding-right:4px !important;
+        font-size:9.5px !important;
+        overflow:hidden !important;
+        text-overflow:ellipsis !important;
+        white-space:nowrap !important;
+      }
+      #remakeFactorPage.cleanRemakeV6230 #remakeDepartmentTable:not(.compareColumnsV6301) th:first-child,
+      #remakeFactorPage.cleanRemakeV6230 #remakeDepartmentTable:not(.compareColumnsV6301) td:first-child,
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) th:first-child,
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) td:first-child,
+      #remakeFactorPage.cleanRemakeV6230 #remakeCustomerTable:not(.compareColumnsV6301) th:first-child,
+      #remakeFactorPage.cleanRemakeV6230 #remakeCustomerTable:not(.compareColumnsV6301) td:first-child {
+        width:26% !important;
+        min-width:0 !important;
+        max-width:none !important;
+      }
+      #remakeFactorPage.cleanRemakeV6230 #remakeDepartmentTable:not(.compareColumnsV6301) th:nth-child(2),
+      #remakeFactorPage.cleanRemakeV6230 #remakeDepartmentTable:not(.compareColumnsV6301) td:nth-child(2),
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) th:nth-child(2),
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) td:nth-child(2),
+      #remakeFactorPage.cleanRemakeV6230 #remakeCustomerTable:not(.compareColumnsV6301) th:nth-child(2),
+      #remakeFactorPage.cleanRemakeV6230 #remakeCustomerTable:not(.compareColumnsV6301) td:nth-child(2) { width:10% !important; }
+      #remakeFactorPage.cleanRemakeV6230 #remakeDepartmentTable:not(.compareColumnsV6301) th:nth-child(3),
+      #remakeFactorPage.cleanRemakeV6230 #remakeDepartmentTable:not(.compareColumnsV6301) td:nth-child(3),
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) th:nth-child(3),
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) td:nth-child(3),
+      #remakeFactorPage.cleanRemakeV6230 #remakeCustomerTable:not(.compareColumnsV6301) th:nth-child(3),
+      #remakeFactorPage.cleanRemakeV6230 #remakeCustomerTable:not(.compareColumnsV6301) td:nth-child(3) { width:10% !important; }
+      #remakeFactorPage.cleanRemakeV6230 #remakeDepartmentTable:not(.compareColumnsV6301) th:nth-child(4),
+      #remakeFactorPage.cleanRemakeV6230 #remakeDepartmentTable:not(.compareColumnsV6301) td:nth-child(4),
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) th:nth-child(4),
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) td:nth-child(4),
+      #remakeFactorPage.cleanRemakeV6230 #remakeCustomerTable:not(.compareColumnsV6301) th:nth-child(4),
+      #remakeFactorPage.cleanRemakeV6230 #remakeCustomerTable:not(.compareColumnsV6301) td:nth-child(4) { width:12% !important; }
+      #remakeFactorPage.cleanRemakeV6230 #remakeDepartmentTable:not(.compareColumnsV6301) th:nth-child(5),
+      #remakeFactorPage.cleanRemakeV6230 #remakeDepartmentTable:not(.compareColumnsV6301) td:nth-child(5),
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) th:nth-child(5),
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) td:nth-child(5),
+      #remakeFactorPage.cleanRemakeV6230 #remakeCustomerTable:not(.compareColumnsV6301) th:nth-child(5),
+      #remakeFactorPage.cleanRemakeV6230 #remakeCustomerTable:not(.compareColumnsV6301) td:nth-child(5) { width:10% !important; }
+      #remakeFactorPage.cleanRemakeV6230 #remakeDepartmentTable:not(.compareColumnsV6301) th:nth-child(6),
+      #remakeFactorPage.cleanRemakeV6230 #remakeDepartmentTable:not(.compareColumnsV6301) td:nth-child(6),
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) th:nth-child(6),
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) td:nth-child(6),
+      #remakeFactorPage.cleanRemakeV6230 #remakeCustomerTable:not(.compareColumnsV6301) th:nth-child(6),
+      #remakeFactorPage.cleanRemakeV6230 #remakeCustomerTable:not(.compareColumnsV6301) td:nth-child(6) { width:10% !important; }
+      #remakeFactorPage.cleanRemakeV6230 #remakeDepartmentTable:not(.compareColumnsV6301) th:nth-child(7),
+      #remakeFactorPage.cleanRemakeV6230 #remakeDepartmentTable:not(.compareColumnsV6301) td:nth-child(7),
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) th:nth-child(7),
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) td:nth-child(7),
+      #remakeFactorPage.cleanRemakeV6230 #remakeCustomerTable:not(.compareColumnsV6301) th:nth-child(7),
+      #remakeFactorPage.cleanRemakeV6230 #remakeCustomerTable:not(.compareColumnsV6301) td:nth-child(7) { width:12% !important; }
+      #remakeFactorPage.cleanRemakeV6230 #remakeDepartmentTable:not(.compareColumnsV6301) th:nth-child(8),
+      #remakeFactorPage.cleanRemakeV6230 #remakeDepartmentTable:not(.compareColumnsV6301) td:nth-child(8),
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) th:nth-child(8),
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) td:nth-child(8),
+      #remakeFactorPage.cleanRemakeV6230 #remakeCustomerTable:not(.compareColumnsV6301) th:nth-child(8),
+      #remakeFactorPage.cleanRemakeV6230 #remakeCustomerTable:not(.compareColumnsV6301) td:nth-child(8) { width:10% !important; }
+      #remakeFactorPage.cleanRemakeV6230 .remakeDepartmentTableWrapV6230,
+      #remakeFactorPage.cleanRemakeV6230 .remakeProductTableWrapV6230,
+      #remakeFactorPage.cleanRemakeV6230 .remakeCustomerTableWrapV6230 {
+        overflow-x:hidden !important;
+      }
+      #remakeFactorPage.cleanRemakeV6230 .remakeTable.compareColumnsV6301 {
+        table-layout:auto !important;
+      }
+      #remakeFactorPage.cleanRemakeV6230 .remakeTableWrap:has(.compareColumnsV6301) {
+        overflow-x:auto !important;
+      }
+    }
+  `;
+  document.head.appendChild(style);
+})();
+</script>

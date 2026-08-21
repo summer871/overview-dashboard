@@ -1,0 +1,39 @@
+{
+  "generatedAt": "2026-08-21T19:56:55.617Z",
+  "authoritativeSource": "Index.html",
+  "authoritativeSourceBytes": 218412,
+  "authoritativeSourceSha256": "5a47d0ff8f2d9b4de0c57d8aaa78c02ead3c6c16ae8072e2a08aaabf7602974b",
+  "maxAiReadableBytes": 75000,
+  "targetBytes": 62000,
+  "chunkCount": 4,
+  "chunks": [
+    {
+      "file": "docs/ai-readable/index/IndexPart01.html.txt",
+      "bytes": 67009,
+      "sha256": "e40406f0935e168a8233763c08ddbb6a31899e3ec9a38b40e18f1763522a3da3",
+      "aiReadable": true
+    },
+    {
+      "file": "docs/ai-readable/index/IndexPart02.html.txt",
+      "bytes": 66495,
+      "sha256": "b04c0c88a05fc9d1ae674f977cf447c43db0707b7acf4948164746e2956bf696",
+      "aiReadable": true
+    },
+    {
+      "file": "docs/ai-readable/index/IndexPart03.html.txt",
+      "bytes": 68954,
+      "sha256": "387deed61ced586edb062a3280d7aa34bc8ff3690788c005dbc4dea1a017a055",
+      "aiReadable": true
+    },
+    {
+      "file": "docs/ai-readable/index/IndexPart04.html.txt",
+      "bytes": 15954,
+      "sha256": "05b9c1ca38e66caa658062b86b61208616c2fd175b56d6fd63becc527cdada52",
+      "aiReadable": true
+    }
+  ],
+  "byteForByteReconstructionVerified": true,
+  "runtimeSourceChanged": false,
+  "behaviorChangeIntended": false,
+  "note": "Inspection mirror only. These .txt chunks are not Apps Script runtime files and must never be included by Index.html."
+}
