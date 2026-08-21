@@ -1,0 +1,47 @@
+{
+  "datePt": "2026-08-21",
+  "checkpoint": "Overview active composition removal",
+  "source": "Index.html",
+  "sourceSha256Before": "19056496fa2e1f90f6ad1b4df280d58e660470a4d639742f022723c7e4980b21",
+  "sourceSha256After": "01754ee72aeebc215cb7b91cec34b1b364a6c49ee2367feb9d8287dcded324f6",
+  "bytesBefore": 210557,
+  "bytesAfter": 185603,
+  "bytesRemoved": 24954,
+  "archivePath": "archive/overview-paused-2026-08-21/Index.pre-overview-removal.html",
+  "archiveByteForByteVerified": true,
+  "claspignoreArchiveExclusionVerified": true,
+  "removedRuntimeNodes": [
+    {
+      "id": "tabOneBtn",
+      "tag": "button",
+      "bytes": 94
+    },
+    {
+      "id": "overviewNavActions",
+      "tag": "div",
+      "bytes": 6395
+    },
+    {
+      "id": "overviewOne",
+      "tag": "section",
+      "bytes": 7417
+    },
+    {
+      "id": "overviewTwo",
+      "tag": "section",
+      "bytes": 11048
+    }
+  ],
+  "protectedRuntimeChecks": {
+    "remakePagePresent": true,
+    "tatControllerIncludePresent": true,
+    "categoricalPlaceholderPresent": true
+  },
+  "deferred": [
+    "DashboardMainScript Overview-only JavaScript",
+    "DashboardBaseStyles Overview-only CSS",
+    "Overview references in support scripts",
+    "Overview-only inline script/style layers outside the removed DOM nodes"
+  ],
+  "productionDeployment": false
+}
