@@ -19,6 +19,12 @@ jobs:
           ref: agent/ai-readable-cleanup-2026-08-21
           fetch-depth: 0
 
+      - name: Apply full graph audit syntax fix
+        run: node .github/scripts/fix-full-graph-audit-handler-regex.cjs
+
+      - name: Syntax-check full runtime graph audit
+        run: node --check .github/scripts/audit-legacy-runtime-full-graph.cjs
+
       - name: Audit full active runtime graph
         run: node .github/scripts/audit-legacy-runtime-full-graph.cjs
 
@@ -54,7 +60,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -- docs/LEGACY-DASHBOARD-FULL-RUNTIME-GRAPH-AUDIT-2026-08-21.json
+          git add -- .github/scripts/audit-legacy-runtime-full-graph.cjs docs/LEGACY-DASHBOARD-FULL-RUNTIME-GRAPH-AUDIT-2026-08-21.json
           git diff --cached --quiet && { echo "No graph audit changes produced"; exit 1; }
           git commit -m "Audit full runtime graph before legacy removal"
           git pull --rebase origin agent/ai-readable-cleanup-2026-08-21
