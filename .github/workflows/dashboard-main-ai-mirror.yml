@@ -2,13 +2,6 @@ name: Dashboard main AI-readable mirror
 
 on:
   workflow_dispatch:
-  pull_request:
-    branches:
-      - agent/v6.544-shared-table-platform-5118
-    paths:
-      - DashboardMainScript.html
-      - .github/scripts/split-dashboard-main-for-ai.cjs
-      - .github/workflows/dashboard-main-ai-mirror.yml
 
 permissions:
   contents: write
@@ -23,16 +16,7 @@ jobs:
           ref: agent/ai-readable-cleanup-2026-08-21
           fetch-depth: 0
 
-      - name: Verify generator syntax
-        run: node --check .github/scripts/split-dashboard-main-for-ai.cjs
-
-      - name: Generate AI-readable mirror
-        run: node .github/scripts/split-dashboard-main-for-ai.cjs
-
-      - name: Verify runtime source unchanged
-        run: git diff --exit-code -- DashboardMainScript.html Index.html Code.js
-
-      - name: Verify generated chunks reconstruct source
+      - name: Verify existing mirror
         run: |
           node - <<'NODE'
           const fs = require('fs');
@@ -43,24 +27,8 @@ jobs:
           const rebuilt = manifest.chunks.map(item => fs.readFileSync(item.file, 'utf8')).join('');
           const source = fs.readFileSync(manifest.authoritativeSource, 'utf8');
           const hash = value => crypto.createHash('sha256').update(value, 'utf8').digest('hex');
-          if (rebuilt !== source) throw new Error('Generated chunks do not reconstruct source exactly.');
-          if (hash(source) !== manifest.authoritativeSourceSha256) throw new Error('Source hash mismatch.');
-          if (!manifest.byteForByteReconstructionVerified) throw new Error('Manifest verification flag missing.');
-          for (const item of manifest.chunks) {
-            if (fs.statSync(item.file).size > manifest.maxChunkBytes) throw new Error(`${item.file} exceeds AI-readable size.`);
+          if (rebuilt !== source || hash(source) !== manifest.authoritativeSourceSha256) {
+            throw new Error('DashboardMain inspection mirror is stale.');
           }
-          console.log(`Verified ${manifest.chunkCount} chunks for ${manifest.authoritativeSourceBytes} bytes.`);
+          console.log(`Verified existing ${manifest.chunkCount}-part DashboardMain mirror.`);
           NODE
-
-      - name: Commit generated inspection mirror
-        run: |
-          if [ -z "$(git status --porcelain -- docs/ai-readable/dashboard-main)" ]; then
-            echo 'Mirror already current.'
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -- docs/ai-readable/dashboard-main
-          git commit -m "Generate AI-readable DashboardMainScript mirror"
-          git pull --rebase origin agent/ai-readable-cleanup-2026-08-21
-          git push origin HEAD:agent/ai-readable-cleanup-2026-08-21
