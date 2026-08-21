@@ -62,6 +62,39 @@ function parseHtmlScripts(file) {
   });
 }
 
+function composedDashboardMainVerification() {
+  const main = read('DashboardMainScript.html');
+  const semanticReportText = readOptional('docs/DASHBOARD-MAIN-REMAKE-SEMANTIC-EXTRACTION-2026-08-21.json');
+  if (!semanticReportText) return { text: main, currentText: main, composed: false, report: null };
+  try {
+    const report = JSON.parse(semanticReportText);
+    const archive = read(report.archivePath);
+    let reconstructed = main;
+    const modules = Array.isArray(report.modules) ? report.modules : [];
+    assert(modules.length > 0, 'DashboardMain semantic extraction report has no modules.');
+    modules.forEach(module => {
+      const content = read(module.path);
+      const directive = `<?!= includeDashboardFile('${module.name}') ?>`;
+      const occurrences = reconstructed.split(directive).length - 1;
+      assert(occurrences === 1, `${module.name}: expected exactly one DashboardMain include directive, found ${occurrences}.`);
+      assert(Buffer.byteLength(content, 'utf8') <= Number(report.maxModuleBytes || 75000), `${module.name}: exceeds semantic-module byte limit.`);
+      assert(sha256(content) === module.sha256, `${module.name}: SHA-256 no longer matches semantic extraction report.`);
+      try { new vm.Script(content, { filename: module.path }); }
+      catch (error) { failures.push(`${module.name}: raw JavaScript fragment no longer parses: ${error.message}`); }
+      reconstructed = reconstructed.replace(directive, content);
+    });
+    assert(reconstructed === archive, 'Composed DashboardMain is not byte-for-byte identical to archived pre-extraction runtime.');
+    assert(sha256(reconstructed) === report.sourceSha256Before, 'Composed DashboardMain SHA-256 does not match pre-extraction runtime.');
+    assert(Buffer.byteLength(reconstructed, 'utf8') === report.sourceBytesBefore, 'Composed DashboardMain byte count does not match pre-extraction runtime.');
+    assert(sha256(main) === report.sourceSha256After, 'DashboardMain composition file changed since semantic extraction report.');
+    notes.push(`DashboardMain composition verified: ${modules.length} semantic runtime fragments, ${Buffer.byteLength(main, 'utf8').toLocaleString()} composition bytes.`);
+    return { text: reconstructed, currentText: main, composed: true, report };
+  } catch (error) {
+    failures.push(`DashboardMain semantic extraction report could not be validated: ${error.message}`);
+    return { text: main, currentText: main, composed: false, report: null };
+  }
+}
+
 const requiredRuntimeFiles = [
   'Index.html',
   'DashboardMainScript.html',
@@ -109,12 +142,12 @@ assert(tatAdapter.includes('cdaSharedFilterActiveV6646'), 'TAT shared-filter mou
 assert(tatAdapter.includes('getPopulationKeys'), 'TAT linked-inventory adapter contract is missing.');
 assert(tatController.includes('window.cdaTatFilterBridgeV6646'), 'TAT shared-filter bridge is missing.');
 
+const mainVerification = composedDashboardMainVerification();
 const duplicateReport = read('docs/DASHBOARD-MAIN-DUPLICATE-CLEANUP-2026-08-21.json');
 if (duplicateReport) {
   try {
     const report = JSON.parse(duplicateReport);
-    const main = read('DashboardMainScript.html');
-    const mainSha = sha256(main);
+    const mainSha = sha256(mainVerification.text);
     assert(report.remainingTopLevelDuplicateFunctionNames === 0, 'Duplicate-cleanup report does not show zero remaining duplicate top-level functions.');
 
     const overviewJsReportText = readOptional('docs/OVERVIEW-JS-ARCHIVE-REMOVAL-2026-08-21.json');
@@ -122,7 +155,7 @@ if (duplicateReport) {
       try {
         const overviewReport = JSON.parse(overviewJsReportText);
         assert(overviewReport.sourceSha256Before === report.sourceSha256After, 'Overview JS cleanup did not start from the verified duplicate-cleanup DashboardMain baseline.');
-        assert(overviewReport.sourceSha256After === mainSha, 'DashboardMain has changed since the Overview JS cleanup report; rerun ownership audit before deleting more legacy functions.');
+        assert(overviewReport.sourceSha256After === mainSha, 'Composed DashboardMain has changed since the Overview JS cleanup report; rerun ownership audit before deleting more legacy functions.');
         assert(overviewReport.remainingTopLevelDuplicateFunctionNames === 0, 'Overview JS cleanup report does not show zero remaining duplicate top-level functions.');
         assert(overviewReport.archiveByteForByteVerified === true, 'Overview JS cleanup archive was not byte-for-byte verified.');
         notes.push(`DashboardMain Overview JS checkpoint verified: ${overviewReport.removedFunctionCount} functions removed.`);
@@ -130,10 +163,10 @@ if (duplicateReport) {
         failures.push(`Overview JS cleanup report could not be validated: ${error.message}`);
       }
     } else {
-      assert(report.sourceSha256After === mainSha, 'DashboardMain has changed since the duplicate-cleanup report; rerun duplicate ownership audit before deleting more legacy functions.');
+      assert(report.sourceSha256After === mainSha, 'Composed DashboardMain has changed since the duplicate-cleanup report; rerun duplicate ownership audit before deleting more legacy functions.');
     }
 
-    notes.push(`DashboardMain bytes: ${Buffer.byteLength(main, 'utf8').toLocaleString()}`);
+    notes.push(`DashboardMain verified runtime bytes: ${Buffer.byteLength(mainVerification.text, 'utf8').toLocaleString()}`);
   } catch (error) {
     failures.push(`Duplicate cleanup report could not be validated: ${error.message}`);
   }
