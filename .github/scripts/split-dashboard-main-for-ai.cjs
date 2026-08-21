@@ -27,6 +27,7 @@ function byteLength(value) {
 }
 
 function splitByWholeLines(source) {
+  if (byteLength(source) <= targetChunkBytes) return [source];
   const lines = source.split(/(?<=\n)/);
   const chunks = [];
   let current = '';
@@ -46,15 +47,13 @@ function splitByWholeLines(source) {
 const source = read(sourcePath);
 const sourceBytes = byteLength(source);
 const sourceSha = sha256(source);
-
-if (sourceBytes <= targetChunkBytes) {
-  fail(`${sourcePath} is already below the configured AI readability target.`);
-}
-
 const chunks = splitByWholeLines(source);
-if (chunks.length < 2) fail('Expected multiple readable chunks.');
+if (!chunks.length) fail('Expected at least one readable DashboardMain inspection chunk.');
 if (chunks.join('') !== source) fail('Generated chunks do not reconstruct the source byte-for-byte.');
 if (sha256(chunks.join('')) !== sourceSha) fail('Generated chunks do not match the source SHA-256.');
+chunks.forEach((chunk, index) => {
+  if (byteLength(chunk) > targetChunkBytes) fail(`Chunk ${index + 1} exceeds the configured readability target.`);
+});
 
 fs.rmSync(outputDir, { recursive: true, force: true });
 fs.mkdirSync(outputDir, { recursive: true });
@@ -81,7 +80,9 @@ const manifest = {
   chunks: entries,
   byteForByteReconstructionVerified: true,
   runtimeFilesChanged: false,
-  purpose: 'Read-only AI inspection mirror for legacy cleanup. These chunks are generated evidence, not runtime owners and must never be edited directly.'
+  purpose: sourceBytes <= targetChunkBytes
+    ? 'Read-only inspection mirror. DashboardMainScript.html is itself below the AI readability target after semantic extraction.'
+    : 'Read-only AI inspection mirror for legacy cleanup. These chunks are generated evidence, not runtime owners and must never be edited directly.'
 };
 
 fs.writeFileSync(
@@ -90,7 +91,7 @@ fs.writeFileSync(
   'utf8'
 );
 
-const readme = `# DashboardMainScript AI-readable mirror\n\nThis directory is generated from \`${sourcePath}\` for inspection only.\n\n- Authoritative runtime source: \`${sourcePath}\`\n- Source SHA-256: \`${sourceSha}\`\n- Source bytes: ${sourceBytes}\n- Generated parts: ${entries.length}\n- Reconstruction: byte-for-byte verified\n\nDo not edit these part files. Regenerate them with \`.github/scripts/split-dashboard-main-for-ai.cjs\`. The purpose is to let AI reviewers trace active and legacy code before a real semantic refactor removes the monolith.\n`;
+const readme = `# DashboardMainScript AI-readable mirror\n\nThis directory is generated from \`${sourcePath}\` for inspection only.\n\n- Authoritative runtime source: \`${sourcePath}\`\n- Source SHA-256: \`${sourceSha}\`\n- Source bytes: ${sourceBytes}\n- Generated parts: ${entries.length}\n- Reconstruction: byte-for-byte verified\n\nDo not edit these part files. Regenerate them with \`.github/scripts/split-dashboard-main-for-ai.cjs\`.\n`;
 fs.writeFileSync(path.posix.join(outputDir, 'README.md'), readme, 'utf8');
 
 console.log(JSON.stringify(manifest, null, 2));
