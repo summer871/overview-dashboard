@@ -1,5 +1,6 @@
 'use strict';
 
+// Guarded Overview JavaScript checkpoint; comment-only touch to trigger PR validation.
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
