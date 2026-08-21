@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   validate:
@@ -18,12 +18,6 @@ jobs:
         with:
           ref: agent/ai-readable-cleanup-2026-08-21
           fetch-depth: 0
-
-      - name: Syntax-check final Overview CSS cleanup
-        run: node --check .github/scripts/remove-final-overview-css.cjs
-
-      - name: Archive current styles and remove final Overview CSS
-        run: node .github/scripts/remove-final-overview-css.cjs
 
       - name: Run cleanup structural checkpoint
         run: node scripts/validate-cleanup-checkpoint.js
@@ -48,14 +42,3 @@ jobs:
             exit 1
           fi
           echo 'Only known stale v6.628 footer assertions failed; current footer is newer and these two assertions are informational for cleanup validation.'
-
-      - name: Commit final Overview CSS cleanup
-        shell: bash
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -- DashboardBaseStyles.html archive/overview-paused-2026-08-21/DashboardBaseStyles.pre-final-overview-css-removal.html docs/OVERVIEW-CSS-FINAL-REMOVAL-2026-08-21.json
-          git diff --cached --quiet && { echo "No changes produced"; exit 1; }
-          git commit -m "Remove final paused Overview CSS"
-          git pull --rebase origin agent/ai-readable-cleanup-2026-08-21
-          git push origin HEAD:agent/ai-readable-cleanup-2026-08-21
