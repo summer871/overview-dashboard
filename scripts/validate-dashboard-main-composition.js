@@ -66,7 +66,7 @@ if (sha256(reconstructed) !== report.sourceSha256Before) fail('Composed Dashboar
 if (Buffer.byteLength(reconstructed, 'utf8') !== report.sourceBytesBefore) fail('Composed DashboardMain byte count does not match the verified pre-extraction source.');
 if (sha256(main) !== report.sourceSha256After) fail('DashboardMain composition file changed since the semantic extraction report.');
 
-const prepared = reconstructed.replace(/<\?[!=]?[\s\S]*?\?>/g, 'null;');
+const prepared = reconstructed.replace(/<\?[!=]?[\s\S]*?\?>/g, 'null');
 const scriptMatch = prepared.match(/^<script>([\s\S]*)<\/script>\s*$/i);
 if (!scriptMatch) fail('Composed DashboardMain lost its outer script boundary.');
 try { new vm.Script(scriptMatch[1], { filename: 'DashboardMainScript.composed.html' }); }
