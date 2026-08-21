@@ -11,135 +11,7 @@
 <?!= includeDashboardFile('SharedFilterBarStyles') ?>
 <?!= includeDashboardFile('SharedFilterBar') ?>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-  <script id="dashboardFuzzySearchV6412">
-    (function installDashboardFuzzySearchV6412() {
-      const normalizedCacheV6412 = new Map();
-
-      function normalizeV6412(value) {
-        const raw = String(value == null ? '' : value);
-        if (normalizedCacheV6412.has(raw)) return normalizedCacheV6412.get(raw);
-        const normalized = raw
-          .normalize('NFD')
-          .replace(/[\u0300-\u036f]/g, '')
-          .toLowerCase()
-          .replace(/&/g, ' and ')
-          .replace(/[^a-z0-9]+/g, ' ')
-          .replace(/\s+/g, ' ')
-          .trim();
-        if (normalizedCacheV6412.size > 20000) normalizedCacheV6412.clear();
-        normalizedCacheV6412.set(raw, normalized);
-        return normalized;
-      }
-
-      function compactV6412(value) {
-        return normalizeV6412(value).replace(/\s+/g, '');
-      }
-
-      function tokensV6412(value) {
-        return normalizeV6412(value).split(' ').filter(Boolean);
-      }
-
-      function initialsV6412(value) {
-        return tokensV6412(value).map(function(part) { return part.charAt(0); }).join('');
-      }
-
-      function withinOneEditV6412(a, b) {
-        a = String(a || '');
-        b = String(b || '');
-        if (a === b) return true;
-        if (Math.abs(a.length - b.length) > 1) return false;
-        let i = 0;
-        let j = 0;
-        let edits = 0;
-        while (i < a.length && j < b.length) {
-          if (a.charAt(i) === b.charAt(j)) {
-            i += 1;
-            j += 1;
-            continue;
-          }
-          edits += 1;
-          if (edits > 1) return false;
-          if (a.length > b.length) i += 1;
-          else if (b.length > a.length) j += 1;
-          else {
-            i += 1;
-            j += 1;
-          }
-        }
-        if (i < a.length || j < b.length) edits += 1;
-        return edits <= 1;
-      }
-
-      function orderedSubsequenceV6412(needle, haystack) {
-        if (!needle) return true;
-        let position = 0;
-        for (let i = 0; i < haystack.length && position < needle.length; i += 1) {
-          if (haystack.charAt(i) === needle.charAt(position)) position += 1;
-        }
-        return position === needle.length;
-      }
-
-      function bestTokenScoreV6412(queryToken, targetTokens) {
-        let best = 0;
-        for (let i = 0; i < targetTokens.length; i += 1) {
-          const target = targetTokens[i];
-          if (target === queryToken) best = Math.max(best, 180);
-          else if (target.indexOf(queryToken) === 0) best = Math.max(best, 150);
-          else if (target.indexOf(queryToken) >= 0) best = Math.max(best, 120);
-          else if (queryToken.length >= 4 && target.length >= 4 && withinOneEditV6412(queryToken, target)) best = Math.max(best, 85);
-        }
-        return best;
-      }
-
-      function scoreV6412(value, query) {
-        const preparedQuery = normalizeV6412(query);
-        if (!preparedQuery) return 1;
-        const preparedValue = normalizeV6412(value);
-        if (!preparedValue) return 0;
-
-        let score = 0;
-        if (preparedValue === preparedQuery) score = Math.max(score, 1200);
-        if (preparedValue.indexOf(preparedQuery) === 0) score = Math.max(score, 900);
-
-        const directIndex = preparedValue.indexOf(preparedQuery);
-        if (directIndex >= 0) score = Math.max(score, 700 - Math.min(directIndex, 150));
-
-        const compactQuery = compactV6412(preparedQuery);
-        const compactValue = compactV6412(preparedValue);
-        const compactIndex = compactValue.indexOf(compactQuery);
-        if (compactQuery && compactIndex >= 0) score = Math.max(score, 600 - Math.min(compactIndex, 150));
-
-        const queryTokens = tokensV6412(preparedQuery);
-        const valueTokens = tokensV6412(preparedValue);
-        if (compactQuery.length >= 2 && compactQuery.length <= 5 && queryTokens.length === 1) {
-          const valueInitials = initialsV6412(preparedValue);
-          if (valueInitials.indexOf(compactQuery) >= 0) score = Math.max(score, 950);
-        }
-
-        let tokenTotal = 0;
-        let allTokensMatched = queryTokens.length > 0;
-        queryTokens.forEach(function(token) {
-          const tokenScore = bestTokenScoreV6412(token, valueTokens);
-          if (!tokenScore) allTokensMatched = false;
-          tokenTotal += tokenScore;
-        });
-        if (allTokensMatched) score = Math.max(score, 400 + tokenTotal);
-
-        if (compactQuery.length >= 3 && orderedSubsequenceV6412(compactQuery, compactValue)) {
-          score = Math.max(score, 220);
-        }
-        return score;
-      }
-
-      window.dashboardFuzzySearchV6412 = {
-        normalize: normalizeV6412,
-        compact: compactV6412,
-        initials: initialsV6412,
-        score: scoreV6412,
-        match: function(value, query) { return scoreV6412(value, query) > 0; }
-      };
-    })();
-  </script>
+  <?!= includeDashboardFile('DashboardFuzzySearch') ?>
   <?!= includeDashboardFile('DashboardBaseStyles') ?>
   <?!= includeDashboardFile('RemakeTailStyles') ?>
 
@@ -239,7 +111,6 @@
 <style id="workerDetailCrossfilterStylesV6370">
   #ceramistCaseDialogOverlayV6369 { display:none !important; }
   #remakeFactorPage.cleanRemakeV6230 .ceramistDetailChevronV6368 { display:none !important; }
-  #remakeFactorPage.cleanRemakeV6230 #remakeCeramistDetailTableV6343 tbody tr.ceramistDetailClickableV6368 { cursor:pointer; }
 </style>
 
 <script id="cdaRemakeTatBootClassV6501">

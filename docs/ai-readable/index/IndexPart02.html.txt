@@ -1523,9 +1523,6 @@ window.CDA_CERAMIST_RIGHT_FILTERS_DEDUPE_VERSION = 'v6.351';
     background:#fff7d6 !important;
     border-color:#f2c94c !important;
   }
-  #remakeFactorPage.cleanRemakeV6230 .ceramistPanelV6343.detailOpenV6368 .ceramistPreviewTableWrapV6342 {
-    height:205px !important;
-  }
   @media(max-width:1180px) {
     #remakeFactorPage.cleanRemakeV6230 .ceramistPanelV6343.detailOpenV6368 .ceramistPreviewTableWrapV6342 {
       height:185px !important;
