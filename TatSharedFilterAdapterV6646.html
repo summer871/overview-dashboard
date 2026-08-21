@@ -1,0 +1,150 @@
+<!-- TatSharedFilterAdapterV6646.html
+Version: v6.646
+Purpose: Mount SharedFilterBar for the TAT desktop header using the TAT
+controller's own filter-state bridge. Legacy compact/mobile controls remain as
+fallback during migration.
+-->
+<style id="cdaTatSharedFilterAdapterV6646Styles">
+  @media (min-width:1280px) {
+    #tatTabFilterHostV6509.cdaSharedFilterActiveV6646 > .remakeFilterBarV6230 {
+      display:none !important;
+    }
+    #tatTabFilterHostV6509.cdaSharedFilterActiveV6646 > .cdaFilterBar {
+      display:grid !important;
+      grid-template-columns:minmax(82px,.54fr) minmax(108px,.76fr) minmax(132px,.96fr) minmax(116px,.82fr) minmax(132px,.96fr) minmax(108px,.76fr) !important;
+      flex:1 1 auto !important;
+      width:auto !important;
+      max-width:1240px !important;
+      min-width:0 !important;
+      gap:5px !important;
+      align-items:center !important;
+      margin:0 0 0 auto !important;
+    }
+    #tatTabFilterHostV6509.cdaSharedFilterActiveV6646 .cdaFilterButton {
+      height:32px !important;
+      min-height:32px !important;
+    }
+  }
+  @media (max-width:1279px) {
+    #tatTabFilterHostV6509 > .cdaFilterBar {
+      display:none !important;
+    }
+  }
+</style>
+<script id="cdaTatSharedFilterAdapterV6646">
+(function installTatSharedFilterAdapterV6646(){
+  'use strict';
+
+  if (window.CDA_TAT_SHARED_FILTER_ADAPTER_VERSION === 'v6.646') return;
+  window.CDA_TAT_SHARED_FILTER_ADAPTER_VERSION = 'v6.646';
+
+  const FILTER_KEY_V6646 = 'tat';
+  const HOST_SELECTOR_V6646 = '#tatTabFilterHostV6509';
+  let instanceV6646 = null;
+  let hostObserverV6646 = null;
+  let legacyObserverV6646 = null;
+  let refreshFrameV6646 = 0;
+
+  function bridgeV6646(){ return window.cdaTatFilterBridgeV6646 || null; }
+
+  function scheduleRefreshV6646(){
+    if (refreshFrameV6646) return;
+    refreshFrameV6646 = requestAnimationFrame(function(){
+      refreshFrameV6646 = 0;
+      if (instanceV6646) {
+        try { instanceV6646.render(); } catch (error) { console.warn('v6.646 TAT shared filter refresh warning', error); }
+      }
+    });
+  }
+
+  function observeLegacyV6646(host){
+    if (legacyObserverV6646 || !window.MutationObserver) return;
+    const legacy = host && host.querySelector('.remakeFilterBarV6230');
+    if (!legacy) return;
+    legacyObserverV6646 = new MutationObserver(scheduleRefreshV6646);
+    legacyObserverV6646.observe(legacy, {childList:true,subtree:true,attributes:true,attributeFilter:['class','checked','value']});
+  }
+
+  function configV6646(bridge){
+    return bridge.types.map(function(type){
+      return {
+        key:type,
+        label:bridge.labels[type] || type,
+        allLabel:bridge.allLabels[type] || ('All ' + type),
+        panelWidth:type === 'year' ? 300 : 380,
+        position:(type === 'customer' || type === 'reason') ? 'right' : 'left'
+      };
+    });
+  }
+
+  function adapterV6646(bridge){
+    return {
+      getOptions:function(type){ return bridge.getOptions(type); },
+      getMode:function(type){ return bridge.getMode(type); },
+      getSelected:function(type){ return bridge.getSelected(type); },
+      getSearch:function(type){ return bridge.getSearch(type); },
+      onSearch:function(type,value){ bridge.setSearch(type,value); },
+      onSelectionChange:function(type,nextSet,nextMode){ bridge.applySelection(type,nextSet,nextMode); },
+      onReset:function(type){ bridge.applySelection(type,new Set(),'ALL'); },
+      getPopulationKeys:function(type){ return bridge.getPopulationKeys(type); }
+    };
+  }
+
+  function mountV6646(){
+    if (instanceV6646) { scheduleRefreshV6646(); return true; }
+    const bridge = bridgeV6646();
+    const host = document.querySelector(HOST_SELECTOR_V6646);
+    if (!bridge || !host || !window.cdaSharedFilterBar || typeof window.cdaSharedFilterBar.create !== 'function') return false;
+    try {
+      instanceV6646 = window.cdaSharedFilterBar.create({
+        key:FILTER_KEY_V6646,
+        mountTarget:HOST_SELECTOR_V6646,
+        filters:configV6646(bridge),
+        adapter:adapterV6646(bridge),
+        features:{visibleToggle:true}
+      });
+      if (!instanceV6646 || !instanceV6646.mounted || !instanceV6646.el || !instanceV6646.el.bar) {
+        instanceV6646 = null;
+        return false;
+      }
+      host.classList.add('cdaSharedFilterActiveV6646');
+      observeLegacyV6646(host);
+      scheduleRefreshV6646();
+      window.CDA_TAT_SHARED_FILTER_ACTIVE = true;
+      return true;
+    } catch (error) {
+      console.warn('v6.646 SharedFilterBar mount failed for TAT; legacy filters retained.', error);
+      instanceV6646 = null;
+      host.classList.remove('cdaSharedFilterActiveV6646');
+      window.CDA_TAT_SHARED_FILTER_ACTIVE = false;
+      return false;
+    }
+  }
+
+  function observeHostV6646(){
+    if (hostObserverV6646 || !window.MutationObserver) return;
+    const tabs = document.querySelector('.managerTabs') || document.body;
+    if (!tabs) return;
+    hostObserverV6646 = new MutationObserver(function(){
+      if (mountV6646() && hostObserverV6646) {
+        hostObserverV6646.disconnect();
+        hostObserverV6646 = null;
+      }
+    });
+    hostObserverV6646.observe(tabs,{childList:true,subtree:true});
+  }
+
+  function bootV6646(){ if (!mountV6646()) observeHostV6646(); }
+
+  window.mountTatSharedFilterV6646 = mountV6646;
+  window.refreshTatSharedFilterV6646 = scheduleRefreshV6646;
+
+  document.addEventListener('click',function(event){
+    const target = event && event.target;
+    if (target && target.closest && target.closest('#tatTabBtnV6509')) requestAnimationFrame(bootV6646);
+  },true);
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded',bootV6646,{once:true});
+  else bootV6646();
+})();
+</script>
