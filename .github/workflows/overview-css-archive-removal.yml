@@ -1,13 +1,6 @@
 name: Overview CSS archive checkpoint
 
-# Existing workflow touched intentionally to trigger the guarded checkpoint.
 on:
-  pull_request:
-    branches:
-      - agent/v6.544-shared-table-platform-5118
-    paths:
-      - .github/scripts/archive-remove-overview-css.cjs
-      - .github/workflows/overview-css-archive-removal.yml
   workflow_dispatch:
 
 permissions:
@@ -15,7 +8,6 @@ permissions:
 
 jobs:
   archive-remove-css:
-    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.ref == 'agent/ai-readable-cleanup-2026-08-21'
     runs-on: ubuntu-latest
     steps:
       - name: Check out cleanup branch
