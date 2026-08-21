@@ -1,0 +1,61 @@
+name: Index AI-readable structural split
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - agent/ai-readable-cleanup-2026-08-21
+    paths:
+      - .github/scripts/split-index-for-ai.cjs
+      - .github/workflows/index-ai-structural-split.yml
+
+permissions:
+  contents: write
+
+jobs:
+  split-index:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out cleanup branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/ai-readable-cleanup-2026-08-21
+          fetch-depth: 0
+
+      - name: Verify transformer syntax
+        run: node --check .github/scripts/split-index-for-ai.cjs
+
+      - name: Build AI-readable Index composition
+        run: node .github/scripts/split-index-for-ai.cjs
+
+      - name: Verify original Index remains untouched
+        run: git diff --exit-code -- Index.html
+
+      - name: Verify generated source sizes
+        run: |
+          node - <<'NODE'
+          const fs = require('fs');
+          const manifest = JSON.parse(fs.readFileSync('docs/INDEX-AI-STRUCTURAL-SPLIT-2026-08-21.json', 'utf8'));
+          for (const item of manifest.generatedFiles) {
+            const bytes = fs.statSync(item.file).size;
+            if (bytes !== item.bytes) throw new Error(`Size mismatch for ${item.file}`);
+            if (item.aiReadable && bytes > manifest.maxAiReadableBytes) {
+              throw new Error(`${item.file} exceeds AI-readable limit: ${bytes}`);
+            }
+          }
+          if (!manifest.byteForByteReconstructionVerified) throw new Error('Reconstruction verification missing.');
+          if (!manifest.originalIndexUntouched) throw new Error('Original Index preservation flag missing.');
+          console.log(`Verified ${manifest.generatedFiles.length} generated files.`);
+          NODE
+
+      - name: Commit prepared structural split
+        run: |
+          if git diff --quiet -- Code.js IndexShell.html IndexHeadComposition.html IndexBodyShell.html IndexRemakeRuntime*.html IndexTatRuntime.html docs/INDEX-AI-STRUCTURAL-SPLIT-2026-08-21.json; then
+            echo 'Structural split already current.'
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- Code.js IndexShell.html IndexHeadComposition.html IndexBodyShell.html IndexRemakeRuntime*.html IndexTatRuntime.html docs/INDEX-AI-STRUCTURAL-SPLIT-2026-08-21.json
+          git commit -m "Split Index into AI-readable composition files"
+          git push origin HEAD:agent/ai-readable-cleanup-2026-08-21
