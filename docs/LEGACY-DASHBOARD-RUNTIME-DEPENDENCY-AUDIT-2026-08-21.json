@@ -702,46 +702,19 @@
       "legacyDeclarationCount": 9
     }
   ],
-  "callableCrossDomainCandidateCount": 13,
-  "callableCrossDomainCandidates": [
-    {
-      "name": "abs",
-      "remakeReferences": 28,
-      "tatReferences": 3,
-      "totalReferences": 31,
-      "legacyDeclarationCount": 64,
-      "remakeCalls": 28,
-      "tatCalls": 3,
-      "remakeTypeof": 0,
-      "tatTypeof": 0,
-      "remakeWindow": 0,
-      "tatWindow": 0
-    },
-    {
-      "name": "open",
-      "remakeReferences": 22,
-      "tatReferences": 12,
-      "totalReferences": 34,
-      "legacyDeclarationCount": 60,
-      "remakeCalls": 5,
-      "tatCalls": 2,
-      "remakeTypeof": 0,
-      "tatTypeof": 0,
-      "remakeWindow": 2,
-      "tatWindow": 1
-    },
+  "bareGlobalCandidateCount": 9,
+  "bareGlobalCandidates": [
     {
       "name": "scale",
       "remakeReferences": 12,
       "tatReferences": 4,
       "totalReferences": 16,
       "legacyDeclarationCount": 14,
-      "remakeCalls": 8,
-      "tatCalls": 0,
+      "remakeBareCalls": 8,
+      "tatBareCalls": 0,
       "remakeTypeof": 0,
       "tatTypeof": 0,
-      "remakeWindow": 0,
-      "tatWindow": 0
+      "guardedOnly": false
     },
     {
       "name": "formatter",
@@ -749,25 +722,11 @@
       "tatReferences": 2,
       "totalReferences": 18,
       "legacyDeclarationCount": 31,
-      "remakeCalls": 5,
-      "tatCalls": 1,
+      "remakeBareCalls": 5,
+      "tatBareCalls": 1,
       "remakeTypeof": 0,
       "tatTypeof": 0,
-      "remakeWindow": 0,
-      "tatWindow": 0
-    },
-    {
-      "name": "escapeHtml",
-      "remakeReferences": 0,
-      "tatReferences": 4,
-      "totalReferences": 4,
-      "legacyDeclarationCount": 80,
-      "remakeCalls": 0,
-      "tatCalls": 4,
-      "remakeTypeof": 0,
-      "tatTypeof": 0,
-      "remakeWindow": 0,
-      "tatWindow": 0
+      "guardedOnly": false
     },
     {
       "name": "facts",
@@ -775,12 +734,11 @@
       "tatReferences": 0,
       "totalReferences": 10,
       "legacyDeclarationCount": 52,
-      "remakeCalls": 0,
-      "tatCalls": 0,
+      "remakeBareCalls": 0,
+      "tatBareCalls": 0,
       "remakeTypeof": 3,
       "tatTypeof": 0,
-      "remakeWindow": 0,
-      "tatWindow": 0
+      "guardedOnly": true
     },
     {
       "name": "closeUnderConstructionMenu",
@@ -788,25 +746,11 @@
       "tatReferences": 0,
       "totalReferences": 2,
       "legacyDeclarationCount": 9,
-      "remakeCalls": 1,
-      "tatCalls": 0,
+      "remakeBareCalls": 1,
+      "tatBareCalls": 0,
       "remakeTypeof": 1,
       "tatTypeof": 0,
-      "remakeWindow": 0,
-      "tatWindow": 0
-    },
-    {
-      "name": "select",
-      "remakeReferences": 12,
-      "tatReferences": 0,
-      "totalReferences": 12,
-      "legacyDeclarationCount": 42,
-      "remakeCalls": 1,
-      "tatCalls": 0,
-      "remakeTypeof": 0,
-      "tatTypeof": 0,
-      "remakeWindow": 0,
-      "tatWindow": 0
+      "guardedOnly": true
     },
     {
       "name": "fn",
@@ -814,12 +758,11 @@
       "tatReferences": 0,
       "totalReferences": 9,
       "legacyDeclarationCount": 10,
-      "remakeCalls": 0,
-      "tatCalls": 0,
+      "remakeBareCalls": 0,
+      "tatBareCalls": 0,
       "remakeTypeof": 1,
       "tatTypeof": 0,
-      "remakeWindow": 0,
-      "tatWindow": 0
+      "guardedOnly": true
     },
     {
       "name": "drawChart",
@@ -827,12 +770,11 @@
       "tatReferences": 0,
       "totalReferences": 5,
       "legacyDeclarationCount": 18,
-      "remakeCalls": 0,
-      "tatCalls": 0,
+      "remakeBareCalls": 0,
+      "tatBareCalls": 0,
       "remakeTypeof": 1,
       "tatTypeof": 0,
-      "remakeWindow": 0,
-      "tatWindow": 0
+      "guardedOnly": true
     },
     {
       "name": "keyFn",
@@ -840,12 +782,11 @@
       "tatReferences": 2,
       "totalReferences": 2,
       "legacyDeclarationCount": 26,
-      "remakeCalls": 0,
-      "tatCalls": 1,
+      "remakeBareCalls": 0,
+      "tatBareCalls": 1,
       "remakeTypeof": 0,
       "tatTypeof": 0,
-      "remakeWindow": 0,
-      "tatWindow": 0
+      "guardedOnly": false
     },
     {
       "name": "shouldUseDailyRevenueTrend",
@@ -853,12 +794,11 @@
       "tatReferences": 0,
       "totalReferences": 2,
       "legacyDeclarationCount": 2,
-      "remakeCalls": 0,
-      "tatCalls": 0,
+      "remakeBareCalls": 0,
+      "tatBareCalls": 0,
       "remakeTypeof": 1,
       "tatTypeof": 0,
-      "remakeWindow": 0,
-      "tatWindow": 0
+      "guardedOnly": true
     },
     {
       "name": "clamp",
@@ -866,12 +806,62 @@
       "tatReferences": 0,
       "totalReferences": 1,
       "legacyDeclarationCount": 7,
-      "remakeCalls": 1,
-      "tatCalls": 0,
+      "remakeBareCalls": 1,
+      "tatBareCalls": 0,
       "remakeTypeof": 0,
       "tatTypeof": 0,
-      "remakeWindow": 0,
-      "tatWindow": 0
+      "guardedOnly": false
+    }
+  ],
+  "unguardedBareGlobalCandidateCount": 4,
+  "unguardedBareGlobalCandidates": [
+    {
+      "name": "scale",
+      "remakeReferences": 12,
+      "tatReferences": 4,
+      "totalReferences": 16,
+      "legacyDeclarationCount": 14,
+      "remakeBareCalls": 8,
+      "tatBareCalls": 0,
+      "remakeTypeof": 0,
+      "tatTypeof": 0,
+      "guardedOnly": false
+    },
+    {
+      "name": "formatter",
+      "remakeReferences": 16,
+      "tatReferences": 2,
+      "totalReferences": 18,
+      "legacyDeclarationCount": 31,
+      "remakeBareCalls": 5,
+      "tatBareCalls": 1,
+      "remakeTypeof": 0,
+      "tatTypeof": 0,
+      "guardedOnly": false
+    },
+    {
+      "name": "keyFn",
+      "remakeReferences": 0,
+      "tatReferences": 2,
+      "totalReferences": 2,
+      "legacyDeclarationCount": 26,
+      "remakeBareCalls": 0,
+      "tatBareCalls": 1,
+      "remakeTypeof": 0,
+      "tatTypeof": 0,
+      "guardedOnly": false
+    },
+    {
+      "name": "clamp",
+      "remakeReferences": 1,
+      "tatReferences": 0,
+      "totalReferences": 1,
+      "legacyDeclarationCount": 7,
+      "remakeBareCalls": 1,
+      "tatBareCalls": 0,
+      "remakeTypeof": 0,
+      "tatTypeof": 0,
+      "guardedOnly": false
     }
   ],
   "referencedLegacyWindowExportCount": 6,
@@ -919,7 +909,9 @@
       "activeWindowReferences": 1
     }
   ],
+  "unshadowedLegacyWindowExportCount": 0,
+  "unshadowedLegacyWindowExports": [],
   "allReferencedLegacyWindowExportsShadowedByActiveDeclarations": true,
-  "interpretation": "Token candidates are intentionally conservative. Callable/window-reference candidates are higher signal. Legacy window exports already shadowed by active declarations are not ownership blockers by themselves; unshadowed callable candidates require tracing or migration before legacy runtime removal.",
+  "interpretation": "Property calls such as Math.abs, window.open, and platform.util.escapeHtml are excluded from bare-call signals. A legacy removal blocker must be either an unshadowed window export or an unguarded bare global that is truly resolved from the legacy runtime after contextual trace.",
   "runtimeFilesChanged": false
 }
