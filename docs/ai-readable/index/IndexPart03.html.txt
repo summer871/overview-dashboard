@@ -847,119 +847,26 @@ window.CDA_ATOMIC_STABLE_RENDER_VERSION = 'v6.418';
 <style id="cdaSmoothAtomicPolishV6424">
   /* KPI cards stay in the first row. Active yellow filter pills occupy their own
      clean row below the cards, outside every KPI card. */
-  #overviewOne .topBar.executiveTop {
-    display: grid !important;
-    grid-template-columns: minmax(0, 1fr) !important;
-    grid-template-areas:
-      "kpis"
-      "pills" !important;
-    align-items: stretch !important;
-    row-gap: 7px !important;
-    column-gap: 0 !important;
-    min-height: 0 !important;
-    margin-bottom: 9px !important;
-  }
+  
 
-  #overviewOne .topBar.executiveTop .kpiStrip.comparisonKpis {
-    grid-area: kpis !important;
-    grid-column: 1 !important;
-    grid-row: 1 !important;
-    width: 100% !important;
-    max-width: none !important;
-    min-width: 0 !important;
-    justify-self: stretch !important;
-    align-self: stretch !important;
-    transform: none !important;
-  }
+  
 
-  #overviewOne .topBar.executiveTop .compactChipOnlyRow.v6205PillSlot,
-  #overviewOne .topBar.executiveTop .controlFilterRow.compactChipOnlyRow,
-  #overviewOne .topBar.executiveTop .v6205PillSlot {
-    grid-area: pills !important;
-    grid-column: 1 !important;
-    grid-row: 2 !important;
-    position: static !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: flex-start !important;
-    width: 100% !important;
-    min-width: 0 !important;
-    min-height: 0 !important;
-    height: auto !important;
-    margin: 0 !important;
-    padding: 0 2px !important;
-    overflow: visible !important;
-    background: transparent !important;
-    border: 0 !important;
-    border-radius: 0 !important;
-    box-shadow: none !important;
-    transform: none !important;
-  }
+  
 
-  #overviewOne .topBar.executiveTop > #activeFilterPillBarV6170,
-  #overviewOne .topBar.executiveTop #activeFilterPillBarV6170 {
-    display: none !important;
-    visibility: hidden !important;
-    width: 0 !important;
-    height: 0 !important;
-    min-height: 0 !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    overflow: hidden !important;
-    pointer-events: none !important;
-  }
+  
 
-  #overviewOne #activeFilterPillRailV6205 {
-    display: flex !important;
-    align-items: center !important;
-    justify-content: flex-start !important;
-    flex-wrap: wrap !important;
-    gap: 6px !important;
-    width: 100% !important;
-    max-width: 100% !important;
-    min-height: 0 !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    background: transparent !important;
-    border: 0 !important;
-    box-shadow: none !important;
-  }
+  
 
-  #overviewOne #activeFilterPillRailV6205[data-empty="true"] {
-    display: none !important;
-  }
+  
 
-  #overviewOne #activeFilterPillRailV6205 .v6205FilterPill {
-    min-height: 24px !important;
-    padding: 3px 9px !important;
-    border: 1px solid #efc84a !important;
-    border-radius: 999px !important;
-    background: #fff4b8 !important;
-    color: #664300 !important;
-    box-shadow: 0 1px 2px rgba(116, 83, 0, .12) !important;
-    transition:
-      background-color 150ms cubic-bezier(.22, 1, .36, 1),
-      border-color 150ms cubic-bezier(.22, 1, .36, 1),
-      color 150ms cubic-bezier(.22, 1, .36, 1),
-      box-shadow 150ms cubic-bezier(.22, 1, .36, 1),
-      opacity 150ms cubic-bezier(.22, 1, .36, 1) !important;
-  }
+  
 
-  #overviewOne #activeFilterPillRailV6205 .v6205FilterPill.hot {
-    border-color: #f59e0b !important;
-    background: #ffe0a3 !important;
-    color: #7c2d12 !important;
-  }
+  
 
-  #overviewOne #activeFilterPillRailV6205 .v6205FilterPill:hover {
-    border-color: #dda915 !important;
-    background: #ffef9d !important;
-    box-shadow: 0 2px 5px rgba(116, 83, 0, .16) !important;
-  }
+  
 
   /* Smooth only paint-safe properties. No card, table, canvas, or layout geometry
      is transitioned, so atomic rendering remains stable. */
-  #overviewOne :is(.segBtn,.resetBtn,.tinyBtn,.componentMenuBtn,.dropdownButton),
   #remakeFactorPage :is(button,.remakeButton,.remakeDropdownButtonV6245,.remakeTabToolButtonV6337) {
     transition:
       background-color 140ms cubic-bezier(.22, 1, .36, 1),
@@ -969,45 +876,27 @@ window.CDA_ATOMIC_STABLE_RENDER_VERSION = 'v6.418';
       opacity 140ms cubic-bezier(.22, 1, .36, 1) !important;
   }
 
-  #overviewOne :is(.segBtn,.resetBtn,.tinyBtn,.componentMenuBtn,.dropdownButton):active,
   #remakeFactorPage :is(button,.remakeButton,.remakeDropdownButtonV6245,.remakeTabToolButtonV6337):active {
     opacity: .78 !important;
   }
 
-  #overviewOne :is(.deptRow,.multiRow,.yearRow) {
-    transition:
-      background-color 135ms cubic-bezier(.22, 1, .36, 1),
-      border-color 135ms cubic-bezier(.22, 1, .36, 1),
-      color 135ms cubic-bezier(.22, 1, .36, 1) !important;
-  }
+  
 
-  #overviewOne .moverArea tbody td,
-  #overviewOne .moverArea tbody tr td {
-    transition:
-      background-color 145ms cubic-bezier(.22, 1, .36, 1),
-      color 145ms cubic-bezier(.22, 1, .36, 1),
-      border-color 145ms cubic-bezier(.22, 1, .36, 1) !important;
-  }
+  
 
-  #overviewOne .dropdownPanel,
   #remakeFactorPage .remakeDropdownPanelV6245 {
     transform-origin: top center !important;
   }
 
   @media (max-width: 1320px) {
-    #overviewOne .topBar.executiveTop .kpiStrip.comparisonKpis {
-      grid-template-columns: repeat(3, minmax(180px, 1fr)) !important;
-    }
+    
   }
 
   @media (max-width: 860px) {
-    #overviewOne .topBar.executiveTop .kpiStrip.comparisonKpis {
-      grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-    }
+    
   }
 
   @media (prefers-reduced-motion: reduce) {
-    #overviewOne *,
     #remakeFactorPage * {
       transition-duration: 0.01ms !important;
     }
@@ -1024,17 +913,6 @@ window.CDA_ATOMIC_STABLE_RENDER_VERSION = 'v6.418';
 
   const reducedMotionV6424 = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const runningAnimationsV6424 = new WeakMap();
-  let lastUserActionAtV6424 = 0;
-  let updateFrameV6424 = 0;
-
-  function isDashboardTargetV6424(target){
-    return !!(target && target.closest && target.closest('#overviewOne,#remakeFactorPage,#categoricalPage'));
-  }
-
-  function markUserActionV6424(event){
-    if (!isDashboardTargetV6424(event && event.target)) return;
-    lastUserActionAtV6424 = Date.now();
-  }
 
   function cancelNodeAnimationV6424(node){
     const current = runningAnimationsV6424.get(node);
@@ -1055,53 +933,6 @@ window.CDA_ATOMIC_STABLE_RENDER_VERSION = 'v6.418';
       animation.addEventListener('finish', clear, { once: true });
       animation.addEventListener('cancel', clear, { once: true });
     } catch (error) {}
-  }
-
-  function shouldAnimateUpdateV6424(){
-    return Date.now() - lastUserActionAtV6424 < 800;
-  }
-
-  function animateOverviewUpdateV6424(){
-    updateFrameV6424 = 0;
-    if (!shouldAnimateUpdateV6424()) return;
-
-    document.querySelectorAll('#overviewOne .comparisonKpi .value, #overviewOne .comparisonKpi .kpiDelta').forEach(function(node){
-      animateNodeV6424(node, [
-        { opacity: .52, transform: 'translateY(3px)' },
-        { opacity: 1, transform: 'translateY(0)' }
-      ], {
-        duration: 210,
-        easing: 'cubic-bezier(.22, 1, .36, 1)',
-        fill: 'none'
-      });
-    });
-
-    document.querySelectorAll('#overviewOne canvas').forEach(function(node){
-      animateNodeV6424(node, [
-        { opacity: .84 },
-        { opacity: 1 }
-      ], {
-        duration: 230,
-        easing: 'cubic-bezier(.22, 1, .36, 1)',
-        fill: 'none'
-      });
-    });
-
-    document.querySelectorAll('#overviewOne .moverArea tbody').forEach(function(node){
-      animateNodeV6424(node, [
-        { opacity: .91 },
-        { opacity: 1 }
-      ], {
-        duration: 180,
-        easing: 'cubic-bezier(.22, 1, .36, 1)',
-        fill: 'none'
-      });
-    });
-  }
-
-  function scheduleOverviewUpdateV6424(){
-    if (!shouldAnimateUpdateV6424() || updateFrameV6424) return;
-    updateFrameV6424 = window.requestAnimationFrame(animateOverviewUpdateV6424);
   }
 
   function animateOpenPanelV6424(panel){
@@ -1129,65 +960,6 @@ window.CDA_ATOMIC_STABLE_RENDER_VERSION = 'v6.418';
     });
   }
 
-  function installPillObserverV6424(){
-    const rail = document.getElementById('activeFilterPillRailV6205');
-    if (!rail || rail.__cdaSmoothPillObserverV6424 || typeof MutationObserver !== 'function') return;
-    rail.__cdaSmoothPillObserverV6424 = true;
-    const observer = new MutationObserver(function(mutations){
-      if (!shouldAnimateUpdateV6424()) return;
-      mutations.forEach(function(mutation){
-        Array.from(mutation.addedNodes || []).forEach(function(node){
-          if (!node || node.nodeType !== 1) return;
-          const pills = [];
-          if (node.matches && node.matches('.v6205FilterPill')) pills.push(node);
-          if (node.querySelectorAll) pills.push.apply(pills, Array.from(node.querySelectorAll('.v6205FilterPill')));
-          pills.forEach(function(pill){
-            animateNodeV6424(pill, [
-              { opacity: 0, transform: 'translateY(-3px) scale(.97)' },
-              { opacity: 1, transform: 'translateY(0) scale(1)' }
-            ], {
-              duration: 185,
-              easing: 'cubic-bezier(.22, 1, .36, 1)',
-              fill: 'none'
-            });
-          });
-        });
-      });
-    });
-    observer.observe(rail, { childList: true, subtree: true });
-  }
-
-  function afterRenderV6424(){
-    installPillObserverV6424();
-    scheduleOverviewUpdateV6424();
-  }
-
-  const previousRenderAllV6424 = typeof renderAll === 'function' ? renderAll : null;
-  if (previousRenderAllV6424 && !previousRenderAllV6424.__cdaSmoothAtomicV6424) {
-    const wrappedRenderAllV6424 = function renderAllV6424(){
-      const result = previousRenderAllV6424.apply(this, arguments);
-      afterRenderV6424();
-      return result;
-    };
-    wrappedRenderAllV6424.__cdaSmoothAtomicV6424 = true;
-    renderAll = wrappedRenderAllV6424;
-  }
-
-  const previousHandleDataV6424 = typeof handleData === 'function' ? handleData : null;
-  if (previousHandleDataV6424 && !previousHandleDataV6424.__cdaSmoothAtomicV6424) {
-    const wrappedHandleDataV6424 = function handleDataV6424(){
-      const result = previousHandleDataV6424.apply(this, arguments);
-      afterRenderV6424();
-      return result;
-    };
-    wrappedHandleDataV6424.__cdaSmoothAtomicV6424 = true;
-    handleData = wrappedHandleDataV6424;
-  }
-
-  document.addEventListener('pointerdown', markUserActionV6424, true);
-  document.addEventListener('change', markUserActionV6424, true);
-  document.addEventListener('input', markUserActionV6424, true);
-
   document.addEventListener('click', function(event){
     const target = event.target && event.target.closest ? event.target.closest('.dropdownButton,.remakeDropdownButtonV6245,.tabBtn') : null;
     if (!target) return;
@@ -1205,12 +977,6 @@ window.CDA_ATOMIC_STABLE_RENDER_VERSION = 'v6.418';
       }
     });
   }, false);
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', function(){ installPillObserverV6424(); }, { once: true });
-  } else {
-    installPillObserverV6424();
-  }
 })();
 </script>
 
