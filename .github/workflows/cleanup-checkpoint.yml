@@ -1,0 +1,29 @@
+name: Cleanup checkpoint
+
+on:
+  pull_request:
+    branches:
+      - agent/v6.544-shared-table-platform-5118
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out cleanup branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/ai-readable-cleanup-2026-08-21
+          fetch-depth: 0
+
+      - name: Run cleanup structural checkpoint
+        run: node scripts/validate-cleanup-checkpoint.js
+
+      - name: Run existing dashboard platform validator
+        run: node scripts/validate-dashboard-platform.js
+
+      - name: Run existing runtime contract tests
+        run: node scripts/test-dashboard-runtime-contracts.js
