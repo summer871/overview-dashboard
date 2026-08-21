@@ -1,0 +1,12 @@
+{
+  "generatedAt": "2026-08-21T20:20:35.635Z",
+  "source": "Index.html",
+  "target": "SharedTopParityControllerV6527.html",
+  "sourceSha256Before": "6ed6c6a210d9c419ea50bab71ac6729d5904b303a9a650dabc452ce57eab91ee",
+  "sourceSha256After": "19056496fa2e1f90f6ad1b4df280d58e660470a4d639742f022723c7e4980b21",
+  "extractedBlockSha256": "5494292dafa9f108a71960c2eab3467aa21bd156b29948d9ad61c863322e923b",
+  "moduleSha256": "5494292dafa9f108a71960c2eab3467aa21bd156b29948d9ad61c863322e923b",
+  "extractedBytes": 3025,
+  "reconstructionVerified": true,
+  "behaviorChangeIntended": false
+}
