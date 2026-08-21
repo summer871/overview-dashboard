@@ -1,0 +1,44 @@
+name: Extract shared top parity controller
+
+on:
+  pull_request:
+    branches:
+      - agent/v6.544-shared-table-platform-5118
+    paths:
+      - SharedTopParityControllerV6527.html
+      - .github/scripts/extract-shared-top-parity.cjs
+      - .github/workflows/extract-shared-top-parity.yml
+
+permissions:
+  contents: write
+
+jobs:
+  extract:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out cleanup branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/ai-readable-cleanup-2026-08-21
+          fetch-depth: 0
+
+      - name: Extract exact controller block from Index
+        run: node .github/scripts/extract-shared-top-parity.cjs
+
+      - name: Regenerate Index inspection mirror
+        run: node .github/scripts/split-index-for-ai.cjs
+
+      - name: Run cleanup structural checkpoint
+        run: node scripts/validate-cleanup-checkpoint.js
+
+      - name: Run runtime contract tests
+        run: node scripts/test-dashboard-runtime-contracts.js
+
+      - name: Commit extraction
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- Index.html docs/INDEX-SHARED-TOP-PARITY-EXTRACTION-2026-08-21.json docs/ai-readable/index
+          git commit -m "Extract shared top parity controller from Index"
+          git pull --rebase origin agent/ai-readable-cleanup-2026-08-21
+          git push origin HEAD:agent/ai-readable-cleanup-2026-08-21
