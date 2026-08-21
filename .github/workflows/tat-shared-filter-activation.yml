@@ -1,0 +1,86 @@
+name: TAT shared filter activation
+
+on:
+  pull_request:
+    branches:
+      - agent/v6.544-shared-table-platform-5118
+    paths:
+      - TatSharedFilterAdapterV6646.html
+      - .github/scripts/activate-tat-shared-filter.cjs
+      - .github/workflows/tat-shared-filter-activation.yml
+
+permissions:
+  contents: write
+
+jobs:
+  activate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out cleanup branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/ai-readable-cleanup-2026-08-21
+          fetch-depth: 0
+
+      - name: Install JavaScript parser
+        run: npm install --no-save --package-lock=false acorn@8
+
+      - name: Verify adapter JavaScript parses
+        run: |
+          node - <<'NODE'
+          const fs = require('fs');
+          const acorn = require('acorn');
+          const html = fs.readFileSync('TatSharedFilterAdapterV6646.html','utf8');
+          const matches = [...html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)];
+          if (matches.length !== 1) throw new Error(`Expected one adapter script block, found ${matches.length}`);
+          acorn.parse(matches[0][1], {ecmaVersion:'latest',sourceType:'script'});
+          NODE
+
+      - name: Verify activation script syntax
+        run: node --check .github/scripts/activate-tat-shared-filter.cjs
+
+      - name: Activate shared TAT desktop filter bar
+        run: node .github/scripts/activate-tat-shared-filter.cjs
+
+      - name: Verify patched TAT controller parses
+        run: |
+          node - <<'NODE'
+          const fs = require('fs');
+          const acorn = require('acorn');
+          const html = fs.readFileSync('TatDashboardControllerScript.html','utf8');
+          const matches = [...html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)];
+          if (matches.length !== 1) throw new Error(`Expected one TAT controller script block, found ${matches.length}`);
+          acorn.parse(matches[0][1], {ecmaVersion:'latest',sourceType:'script'});
+          NODE
+
+      - name: Regenerate Index inspection mirror
+        run: node .github/scripts/split-index-for-ai.cjs
+
+      - name: Verify activation contracts
+        run: |
+          grep -q 'window.cdaTatFilterBridgeV6646' TatDashboardControllerScript.html
+          grep -q "includeDashboardFile('TatSharedFilterAdapterV6646')" Index.html
+          grep -q 'getPopulationKeys' TatSharedFilterAdapterV6646.html
+          grep -q 'cdaSharedFilterActiveV6646' TatSharedFilterAdapterV6646.html
+          node - <<'NODE'
+          const fs = require('fs');
+          const index = fs.readFileSync('Index.html','utf8');
+          const controller = index.indexOf("includeDashboardFile('TatDashboardControllerScript')");
+          const adapter = index.indexOf("includeDashboardFile('TatSharedFilterAdapterV6646')");
+          if (controller < 0 || adapter <= controller) throw new Error('TAT adapter load order is invalid.');
+          const report = JSON.parse(fs.readFileSync('docs/TAT-SHARED-FILTER-ACTIVATION-v6.646.json','utf8'));
+          const manifest = JSON.parse(fs.readFileSync('docs/ai-readable/index/manifest.json','utf8'));
+          if (!report.bridgeInstalled || report.legacyFilterDeleted) throw new Error('TAT bridge/fallback contract is invalid.');
+          if (!manifest.byteForByteReconstructionVerified) throw new Error('Updated Index mirror verification failed.');
+          if (manifest.authoritativeSourceSha256 !== report.indexSha256After) throw new Error('Index mirror is stale after TAT activation.');
+          NODE
+          test -z "$(git status --short --untracked-files=all | sed -E 's/^.. //' | grep -Ev '^(Index\.html|TatDashboardControllerScript\.html|docs/TAT-SHARED-FILTER-ACTIVATION-v6\.646\.json|docs/ai-readable/index/)')"
+
+      - name: Commit shared-filter activation
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- Index.html TatDashboardControllerScript.html docs/TAT-SHARED-FILTER-ACTIVATION-v6.646.json docs/ai-readable/index
+          git commit -m "Activate SharedFilterBar for TAT desktop filters"
+          git pull --rebase origin agent/ai-readable-cleanup-2026-08-21
+          git push origin HEAD:agent/ai-readable-cleanup-2026-08-21
