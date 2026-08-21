@@ -702,39 +702,224 @@
       "legacyDeclarationCount": 9
     }
   ],
+  "callableCrossDomainCandidateCount": 13,
+  "callableCrossDomainCandidates": [
+    {
+      "name": "abs",
+      "remakeReferences": 28,
+      "tatReferences": 3,
+      "totalReferences": 31,
+      "legacyDeclarationCount": 64,
+      "remakeCalls": 28,
+      "tatCalls": 3,
+      "remakeTypeof": 0,
+      "tatTypeof": 0,
+      "remakeWindow": 0,
+      "tatWindow": 0
+    },
+    {
+      "name": "open",
+      "remakeReferences": 22,
+      "tatReferences": 12,
+      "totalReferences": 34,
+      "legacyDeclarationCount": 60,
+      "remakeCalls": 5,
+      "tatCalls": 2,
+      "remakeTypeof": 0,
+      "tatTypeof": 0,
+      "remakeWindow": 2,
+      "tatWindow": 1
+    },
+    {
+      "name": "scale",
+      "remakeReferences": 12,
+      "tatReferences": 4,
+      "totalReferences": 16,
+      "legacyDeclarationCount": 14,
+      "remakeCalls": 8,
+      "tatCalls": 0,
+      "remakeTypeof": 0,
+      "tatTypeof": 0,
+      "remakeWindow": 0,
+      "tatWindow": 0
+    },
+    {
+      "name": "formatter",
+      "remakeReferences": 16,
+      "tatReferences": 2,
+      "totalReferences": 18,
+      "legacyDeclarationCount": 31,
+      "remakeCalls": 5,
+      "tatCalls": 1,
+      "remakeTypeof": 0,
+      "tatTypeof": 0,
+      "remakeWindow": 0,
+      "tatWindow": 0
+    },
+    {
+      "name": "escapeHtml",
+      "remakeReferences": 0,
+      "tatReferences": 4,
+      "totalReferences": 4,
+      "legacyDeclarationCount": 80,
+      "remakeCalls": 0,
+      "tatCalls": 4,
+      "remakeTypeof": 0,
+      "tatTypeof": 0,
+      "remakeWindow": 0,
+      "tatWindow": 0
+    },
+    {
+      "name": "facts",
+      "remakeReferences": 10,
+      "tatReferences": 0,
+      "totalReferences": 10,
+      "legacyDeclarationCount": 52,
+      "remakeCalls": 0,
+      "tatCalls": 0,
+      "remakeTypeof": 3,
+      "tatTypeof": 0,
+      "remakeWindow": 0,
+      "tatWindow": 0
+    },
+    {
+      "name": "closeUnderConstructionMenu",
+      "remakeReferences": 2,
+      "tatReferences": 0,
+      "totalReferences": 2,
+      "legacyDeclarationCount": 9,
+      "remakeCalls": 1,
+      "tatCalls": 0,
+      "remakeTypeof": 1,
+      "tatTypeof": 0,
+      "remakeWindow": 0,
+      "tatWindow": 0
+    },
+    {
+      "name": "select",
+      "remakeReferences": 12,
+      "tatReferences": 0,
+      "totalReferences": 12,
+      "legacyDeclarationCount": 42,
+      "remakeCalls": 1,
+      "tatCalls": 0,
+      "remakeTypeof": 0,
+      "tatTypeof": 0,
+      "remakeWindow": 0,
+      "tatWindow": 0
+    },
+    {
+      "name": "fn",
+      "remakeReferences": 9,
+      "tatReferences": 0,
+      "totalReferences": 9,
+      "legacyDeclarationCount": 10,
+      "remakeCalls": 0,
+      "tatCalls": 0,
+      "remakeTypeof": 1,
+      "tatTypeof": 0,
+      "remakeWindow": 0,
+      "tatWindow": 0
+    },
+    {
+      "name": "drawChart",
+      "remakeReferences": 5,
+      "tatReferences": 0,
+      "totalReferences": 5,
+      "legacyDeclarationCount": 18,
+      "remakeCalls": 0,
+      "tatCalls": 0,
+      "remakeTypeof": 1,
+      "tatTypeof": 0,
+      "remakeWindow": 0,
+      "tatWindow": 0
+    },
+    {
+      "name": "keyFn",
+      "remakeReferences": 0,
+      "tatReferences": 2,
+      "totalReferences": 2,
+      "legacyDeclarationCount": 26,
+      "remakeCalls": 0,
+      "tatCalls": 1,
+      "remakeTypeof": 0,
+      "tatTypeof": 0,
+      "remakeWindow": 0,
+      "tatWindow": 0
+    },
+    {
+      "name": "shouldUseDailyRevenueTrend",
+      "remakeReferences": 2,
+      "tatReferences": 0,
+      "totalReferences": 2,
+      "legacyDeclarationCount": 2,
+      "remakeCalls": 0,
+      "tatCalls": 0,
+      "remakeTypeof": 1,
+      "tatTypeof": 0,
+      "remakeWindow": 0,
+      "tatWindow": 0
+    },
+    {
+      "name": "clamp",
+      "remakeReferences": 1,
+      "tatReferences": 0,
+      "totalReferences": 1,
+      "legacyDeclarationCount": 7,
+      "remakeCalls": 1,
+      "tatCalls": 0,
+      "remakeTypeof": 0,
+      "tatTypeof": 0,
+      "remakeWindow": 0,
+      "tatWindow": 0
+    }
+  ],
   "referencedLegacyWindowExportCount": 6,
   "referencedLegacyWindowExports": [
     {
       "name": "remakeFactorState",
       "remakeReferences": 70,
-      "tatReferences": 1
+      "tatReferences": 1,
+      "shadowedByActiveDeclaration": true,
+      "activeWindowReferences": 71
     },
     {
       "name": "switchTab",
       "remakeReferences": 6,
-      "tatReferences": 4
+      "tatReferences": 4,
+      "shadowedByActiveDeclaration": true,
+      "activeWindowReferences": 6
     },
     {
       "name": "loadRemakeFactorData",
       "remakeReferences": 4,
-      "tatReferences": 0
+      "tatReferences": 0,
+      "shadowedByActiveDeclaration": true,
+      "activeWindowReferences": 4
     },
     {
       "name": "refreshRemakeFactorData",
       "remakeReferences": 4,
-      "tatReferences": 0
+      "tatReferences": 0,
+      "shadowedByActiveDeclaration": true,
+      "activeWindowReferences": 3
     },
     {
       "name": "applyRemakeFactorFilters",
       "remakeReferences": 1,
-      "tatReferences": 0
+      "tatReferences": 0,
+      "shadowedByActiveDeclaration": true,
+      "activeWindowReferences": 1
     },
     {
       "name": "renderRemakeFactorDashboardV6216",
       "remakeReferences": 1,
-      "tatReferences": 0
+      "tatReferences": 0,
+      "shadowedByActiveDeclaration": true,
+      "activeWindowReferences": 1
     }
   ],
-  "interpretation": "Candidates are intentionally conservative token matches. Each candidate must be traced before legacy runtime removal; zero candidates would support direct archive/removal, while nonzero candidates identify compatibility seams to migrate first.",
+  "allReferencedLegacyWindowExportsShadowedByActiveDeclarations": true,
+  "interpretation": "Token candidates are intentionally conservative. Callable/window-reference candidates are higher signal. Legacy window exports already shadowed by active declarations are not ownership blockers by themselves; unshadowed callable candidates require tracing or migration before legacy runtime removal.",
   "runtimeFilesChanged": false
 }
