@@ -65,18 +65,26 @@ function replaceExactOnce(text, from, to, label) {
   return text.slice(0, first) + to + text.slice(first + from.length);
 }
 
+function getBootStyle(text) {
+  const match = text.match(/<style id="cdaRemakeTatBootStylesV6501">([\s\S]*?)<\/style>/);
+  if (!match) fail('Index boot stylesheet cdaRemakeTatBootStylesV6501 was not found.');
+  return match[1];
+}
+
 const actualBlobSha = execFileSync('git', ['hash-object', sourcePath], { encoding: 'utf8' }).trim();
 if (actualBlobSha !== expectedBlobSha) {
   fail('Index.html Git blob guard failed. Expected ' + expectedBlobSha + ' but found ' + actualBlobSha + '. Re-audit before cleanup.');
 }
 
 const original = fs.readFileSync(sourcePath, 'utf8');
-const staleBefore = counts(original, staleTokens);
+const originalBootStyle = getBootStyle(original);
+const staleBootBefore = counts(originalBootStyle, staleTokens);
+const staleGlobalBefore = counts(original, staleTokens);
 const protectedBefore = counts(original, protectedTokens);
 
 staleTokens.forEach(function(token) {
-  if (staleBefore[token] !== 1) {
-    fail('Expected exactly one active Index occurrence of ' + token + ' before cleanup, found ' + staleBefore[token] + '.');
+  if (staleBootBefore[token] !== 1) {
+    fail('Expected exactly one ' + token + ' occurrence inside the boot stylesheet before cleanup, found ' + staleBootBefore[token] + '.');
   }
 });
 
@@ -103,9 +111,16 @@ const to = [
 const next = replaceExactOnce(original, from, to, 'remove stale deleted-Overview boot selectors');
 if (next === original) fail('Index cleanup produced no source change.');
 
-const staleAfter = counts(next, staleTokens);
-Object.keys(staleAfter).forEach(function(token) {
-  if (staleAfter[token] !== 0) fail('Stale deleted-Overview token remains in active Index after cleanup: ' + token + ' (' + staleAfter[token] + ').');
+const nextBootStyle = getBootStyle(next);
+const staleBootAfter = counts(nextBootStyle, staleTokens);
+const staleGlobalAfter = counts(next, staleTokens);
+staleTokens.forEach(function(token) {
+  if (staleBootAfter[token] !== 0) {
+    fail('Stale deleted-Overview token remains inside boot stylesheet after cleanup: ' + token + '.');
+  }
+  if (staleGlobalAfter[token] !== staleGlobalBefore[token] - 1) {
+    fail('Unexpected global occurrence delta for ' + token + ': ' + staleGlobalBefore[token] + ' -> ' + staleGlobalAfter[token] + '.');
+  }
 });
 
 const protectedAfter = counts(next, protectedTokens);
@@ -147,8 +162,10 @@ const report = {
   bytesRemoved: Buffer.byteLength(original, 'utf8') - Buffer.byteLength(next, 'utf8'),
   archivePath,
   archiveByteForByteVerified: true,
-  staleTokenCountsBefore: staleBefore,
-  staleTokenCountsAfter: staleAfter,
+  staleBootTokenCountsBefore: staleBootBefore,
+  staleBootTokenCountsAfter: staleBootAfter,
+  staleGlobalTokenCountsBefore: staleGlobalBefore,
+  staleGlobalTokenCountsAfter: staleGlobalAfter,
   protectedTokenCountsBefore: protectedBefore,
   protectedTokenCountsAfter: protectedAfter,
   scriptTagBoundaryCountsPreserved: true,
