@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   validate:
@@ -18,6 +18,9 @@ jobs:
         with:
           ref: agent/ai-readable-cleanup-2026-08-21
           fetch-depth: 0
+
+      - name: Audit legacy runtime dependencies
+        run: node .github/scripts/audit-legacy-runtime-dependencies.cjs
 
       - name: Run cleanup structural checkpoint
         run: node scripts/validate-cleanup-checkpoint.js
@@ -45,3 +48,14 @@ jobs:
             exit 1
           fi
           echo 'Only known stale v6.628 footer assertions failed; current footer is newer and these two assertions are informational for cleanup validation.'
+
+      - name: Commit legacy dependency audit
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- docs/LEGACY-DASHBOARD-RUNTIME-DEPENDENCY-AUDIT-2026-08-21.json
+          git diff --cached --quiet && { echo "No audit changes produced"; exit 1; }
+          git commit -m "Audit legacy dashboard runtime dependencies"
+          git pull --rebase origin agent/ai-readable-cleanup-2026-08-21
+          git push origin HEAD:agent/ai-readable-cleanup-2026-08-21
