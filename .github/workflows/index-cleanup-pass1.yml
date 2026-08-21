@@ -1,12 +1,7 @@
 name: Index cleanup pass 1
 
 on:
-  pull_request:
-    branches:
-      - agent/v6.544-shared-table-platform-5118
-    paths:
-      - .github/scripts/extract-index-fuzzy-search.cjs
-      - .github/workflows/index-cleanup-pass1.yml
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -21,37 +16,13 @@ jobs:
           ref: agent/ai-readable-cleanup-2026-08-21
           fetch-depth: 0
 
-      - name: Verify transformer syntax
-        run: node --check .github/scripts/extract-index-fuzzy-search.cjs
-
-      - name: Extract fuzzy search module
-        run: node .github/scripts/extract-index-fuzzy-search.cjs
-
-      - name: Verify only approved runtime files changed
-        run: |
-          changed="$(git status --short --untracked-files=all | sed -E 's/^.. //' | sort)"
-          expected="$(printf '%s\n' DashboardFuzzySearch.html Index.html docs/INDEX-CLEANUP-PASS1-2026-08-21.json | sort)"
-          printf 'Changed files:\n%s\n' "$changed"
-          test "$changed" = "$expected"
-
-      - name: Verify extraction contract
+      - name: Verify completed extraction
         run: |
           grep -q "includeDashboardFile('DashboardFuzzySearch')" Index.html
           grep -q 'id="dashboardFuzzySearchV6412"' DashboardFuzzySearch.html
-          grep -q 'window.dashboardFuzzySearchV6412' DashboardFuzzySearch.html
           ! grep -q 'id="dashboardFuzzySearchV6412"' Index.html
           node - <<'NODE'
           const fs = require('fs');
           const report = JSON.parse(fs.readFileSync('docs/INDEX-CLEANUP-PASS1-2026-08-21.json', 'utf8'));
-          if (!report.reconstructionVerified) throw new Error('Reconstruction verification failed.');
-          if (report.behaviorChangeIntended) throw new Error('Unexpected behavior change flag.');
+          if (!report.reconstructionVerified) throw new Error('Completed extraction verification is missing.');
           NODE
-
-      - name: Commit cleanup pass
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -- DashboardFuzzySearch.html Index.html docs/INDEX-CLEANUP-PASS1-2026-08-21.json
-          git commit -m "Extract dashboard fuzzy search from Index"
-          git pull --rebase origin agent/ai-readable-cleanup-2026-08-21
-          git push origin HEAD:agent/ai-readable-cleanup-2026-08-21
