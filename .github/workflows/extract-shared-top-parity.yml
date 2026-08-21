@@ -1,13 +1,7 @@
 name: Extract shared top parity controller
 
 on:
-  pull_request:
-    branches:
-      - agent/v6.544-shared-table-platform-5118
-    paths:
-      - SharedTopParityControllerV6527.html
-      - .github/scripts/extract-shared-top-parity.cjs
-      - .github/workflows/extract-shared-top-parity.yml
+  workflow_dispatch:
 
 permissions:
   contents: write
