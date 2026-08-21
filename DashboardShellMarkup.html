@@ -1,0 +1,111 @@
+  <div id="singleShellDebugBanner">DEBUG v6.209</div>
+  <div id="singleShellClientError"></div>
+
+  <div class="tabs managerTabs">
+    <button id="remakeFactorTabBtn" class="tabBtn" onclick="switchTab('remakeFactor')">Remake Factor</button>
+    <div id="remakeTabFilterHostV6337" class="remakeTabFilterHostV6337" aria-label="Remake dashboard filters and cache controls" hidden>
+      <button id="remakeTabSearchProxyV6337" class="remakeTabToolButtonV6337 remakeTabSearchProxyV6337" type="button" title="Search all filters" aria-label="Search all filters" aria-expanded="false" onclick="toggleRemakeTabSearchV6337(event)">
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="6"></circle><path d="m16 16 4 4"></path></svg>
+      </button>
+      <button id="remakeTabResetV6337" class="remakeTabToolButtonV6337 remakeTabResetV6337" type="button" title="Reset all filters" aria-label="Reset all filters" onclick="resetRemakeTabFiltersV6337(event)">Reset</button>
+    </div>
+    <div class="tabGroup">
+      <button id="underConstructionBtn" class="tabBtn underConstructionBtn" onclick="toggleUnderConstructionMenu(event)">Under Construction ▾</button>
+      <div id="underConstructionMenu" class="tabDropdown" onclick="event.stopPropagation()">
+        <button id="categoricalTabBtn" class="tabDropdownBtn" onclick="switchTab('categorical')">Categorical</button>
+      </div>
+    </div>  </div>
+
+  <div id="errorBox"></div>
+
+
+  <section id="remakeFactorPage" class="tabPage">
+    <div class="remakeShell">
+      <div class="remakeHeader">
+        <div>
+          <h1 class="remakeTitle">Remake Factor</h1>
+        </div>
+        <div class="remakeActions">
+          <button id="remakeLoadBtn" class="remakeButton secondary" type="button" onclick="loadRemakeFactorData(false)" style="display:none">Load Cache</button>
+          <button id="remakeRefreshBtn" class="remakeButton" type="button" onclick="refreshRemakeFactorData()">Refresh Cache</button>
+              <button id="remakeHistoricalRebuildBtn" class="remakeButton secondary" type="button" onclick="rebuildRemakeFactorHistoricalData()">Rebuild Historical</button>
+          <div id="remakeLastRefresh" class="remakeRefreshStamp">Not loaded</div>
+        </div>
+      </div>
+
+      <div id="remakeNotice" class="remakeNotice"></div>
+
+      <div class="remakeFilterBar">
+        <div class="remakeFilter">
+          <label for="remakeYearFilter">Year</label>
+          <select id="remakeYearFilter" onchange="applyRemakeFactorFilters()"><option value="">All years</option></select>
+        </div>
+        <div class="remakeFilter">
+          <label for="remakeDepartmentFilter">Department</label>
+          <select id="remakeDepartmentFilter" onchange="applyRemakeFactorFilters()"><option value="">All departments</option></select>
+        </div>
+        <div class="remakeFilter">
+          <label for="remakeProductFilter">Product</label>
+          <select id="remakeProductFilter" onchange="applyRemakeFactorFilters()"><option value="">All products</option></select>
+        </div>
+        <div class="remakeFilter">
+          <label for="remakeCustomerFilter">Customer</label>
+          <select id="remakeCustomerFilter" onchange="applyRemakeFactorFilters()"><option value="">All customers</option></select>
+        </div>
+        <div class="remakeFilter">
+          <label for="remakeReasonFilter">Reason</label>
+          <select id="remakeReasonFilter" onchange="applyRemakeFactorFilters()"><option value="">All reasons</option></select>
+        </div>
+      </div>
+
+      <div class="remakeKpis">
+        <div class="remakeKpi"><div class="label">Total Cases</div><div id="remakeTotalCases" class="value">-</div><div class="sub"></div></div>
+        <div class="remakeKpi"><div class="label">Remake Cases</div><div id="remakeCases" class="value">-</div><div class="sub"></div></div>
+        <div class="remakeKpi"><div class="label">Case Rate</div><div id="remakeCaseRate" class="value">-</div><div class="sub"></div></div>
+        <div class="remakeKpi"><div class="label">Total Units</div><div id="remakeTotalUnits" class="value">-</div><div class="sub"></div></div>
+        <div class="remakeKpi"><div class="label">Remake Units</div><div id="remakeUnits" class="value">-</div><div class="sub"></div></div>
+        <div class="remakeKpi"><div class="label">Unit Rate</div><div id="remakeUnitRate" class="value">-</div><div class="sub"></div></div>
+        <div class="remakeKpi"><div class="label">Discount</div><div id="remakeDiscount" class="value">-</div><div class="sub"></div></div>
+      </div>
+
+      <div class="remakeGrid">
+        <div class="remakeCard">
+          <div class="remakeCardHeader"><div class="remakeCardTitle">Monthly Remake Rate</div><div class="remakeCardSubtle"></div></div>
+          <div id="remakeTrendList" class="remakeTrendList"></div>
+          
+        </div>
+
+        <div class="remakeCard">
+          <div class="remakeCardHeader"><div class="remakeCardTitle">Remake Reasons</div><div class="remakeCardSubtle"></div></div>
+          <div class="remakeTableWrap"><table id="remakeReasonTable" class="remakeTable"></table></div>
+        </div>
+      </div>
+
+      <div class="remakeGrid">
+        <div class="remakeCard">
+          <div class="remakeCardHeader"><div class="remakeCardTitle">Departments</div><div class="remakeCardSubtle"></div></div>
+          <div class="remakeTableWrap"><table id="remakeDepartmentTable" class="remakeTable"></table></div>
+        </div>
+        <div class="remakeCard">
+          <div class="remakeCardHeader"><div class="remakeCardTitle">Products</div><div class="remakeCardSubtle"></div></div>
+          <div class="remakeTableWrap"><table id="remakeProductTable" class="remakeTable"></table></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="categoricalPage" class="tabPage">
+    <div class="dashboardShell categoricalPlaceholderShell">
+      <div class="categoricalPlaceholder">
+        <div class="placeholderEyebrow">Under Construction</div>
+        <h1>Categorical</h1>
+        <p>This page is reserved for the future categorical report.</p>
+      </div>
+    </div>
+  </section>
+
+  <div id="componentMenu" class="componentMenu" onclick="event.stopPropagation()"></div>
+
+
+
+
