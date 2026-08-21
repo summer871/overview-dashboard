@@ -19,6 +19,9 @@ jobs:
           ref: agent/ai-readable-cleanup-2026-08-21
           fetch-depth: 0
 
+      - name: Apply corrected static placeholder handling
+        run: node .github/scripts/fix-dashboard-main-extractor-placeholders.cjs
+
       - name: Syntax-check single-parent DashboardMain extraction
         run: node --check .github/scripts/extract-dashboard-main-remake-runtime.cjs
 
@@ -60,7 +63,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -- DashboardMainScript.html RemakeMainRuntimeV6230.html RemakeRuntimeCoreV6230.html RemakeRuntimePresentationV6230.html RemakeFilterRuntimeV6245.html RemakeAnalyticsRuntimeV6281.html RemakeCustomerTableRuntimeV6230.html RemakeTechnicianCoreRuntimeV6342.html RemakeTechnicianPopulationRuntimeV6569.html RemakeCustomerChartRuntimeV6504.html RemakeTransitionRuntimeV6300.html RemakePopoutBridgeRuntimeV6339.html RemakePopoutWindowRuntimeV6339.html RemakePopoutControllerRuntimeV6339.html RemakeCacheRuntimeV6388.html archive/dashboard-main-semantic-extraction-2026-08-21/DashboardMainScript.pre-remake-runtime-extraction.html docs/DASHBOARD-MAIN-REMAKE-SEMANTIC-EXTRACTION-2026-08-21.json docs/ai-readable/dashboard-main
+          git add -- .github/scripts/extract-dashboard-main-remake-runtime.cjs DashboardMainScript.html RemakeMainRuntimeV6230.html RemakeRuntimeCoreV6230.html RemakeRuntimePresentationV6230.html RemakeFilterRuntimeV6245.html RemakeAnalyticsRuntimeV6281.html RemakeCustomerTableRuntimeV6230.html RemakeTechnicianCoreRuntimeV6342.html RemakeTechnicianPopulationRuntimeV6569.html RemakeCustomerChartRuntimeV6504.html RemakeTransitionRuntimeV6300.html RemakePopoutBridgeRuntimeV6339.html RemakePopoutWindowRuntimeV6339.html RemakePopoutControllerRuntimeV6339.html RemakeCacheRuntimeV6388.html archive/dashboard-main-semantic-extraction-2026-08-21/DashboardMainScript.pre-remake-runtime-extraction.html docs/DASHBOARD-MAIN-REMAKE-SEMANTIC-EXTRACTION-2026-08-21.json docs/ai-readable/dashboard-main
           git diff --cached --quiet && { echo "No changes produced"; exit 1; }
           git commit -m "Extract Remake runtime from DashboardMain"
           git pull --rebase origin agent/ai-readable-cleanup-2026-08-21
