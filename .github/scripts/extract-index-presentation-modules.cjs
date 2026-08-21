@@ -39,7 +39,7 @@ const defs = [
     path: 'RemakeCeramistTablePresentation.html',
     start: '<style id="remakeV6344CeramistReadableLayoutStyles">',
     endExclusive: "<?!= includeDashboardFile('DashboardSupportScript03') ?>",
-    required: ['remakeV6344CeramistReadableLayoutStyles', 'remakeV6354ConsistentTableTypographyStyles', 'remakeV6357TypographyAndColumnChooserStyles', 'ceramistSelectedRowFreezeV6361']
+    required: ['remakeV6344CeramistReadableLayoutStyles', 'remakeV6354ConsistentTableTypographyStyles', 'remakeV6357TypographyAndColumnChooserStyles']
   },
   {
     name: 'RemakeTableInteractionPresentation',
