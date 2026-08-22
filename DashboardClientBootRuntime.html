@@ -2,8 +2,8 @@
 (function installDashboardClientBootRuntimeV6647(){
   'use strict';
 
-  // While the staged legacy runtime is still active it already owns these
-  // boot globals and listeners. Stay inert until that owner is removed.
+  // Keep this boot owner idempotent if an earlier composition step has
+  // already initialized the shared dashboard base URL.
   if (typeof window.dashboardBaseUrl === 'string') return;
 
   window.dashboardBaseUrl = '<?!= dashboardBaseUrl ?>';
