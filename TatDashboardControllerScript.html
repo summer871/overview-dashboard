@@ -843,7 +843,15 @@
   function ensureLegacyRemakeInitializedV6627(){
     if(legacyRemakeInitializedV6627)return true;
     legacyRemakeInitializedV6627=true;
-    if(previousSwitch){try{previousSwitch.call(window,'remakeFactor');}catch(error){}}
+    if(previousSwitch){
+      try{previousSwitch.call(window,'remakeFactor');}catch(error){}
+    }else if(typeof window.loadRemakeFactorData==='function'){
+      if(!window.remakeFactorState||!window.remakeFactorState.loaded){
+        try{window.loadRemakeFactorData(false);}catch(error){}
+      }else if(typeof window.renderRemakeFactorDashboard==='function'){
+        try{window.renderRemakeFactorDashboard();}catch(error){}
+      }
+    }
     return true;
   }
   function releaseBootV6627(){

@@ -97,11 +97,66 @@ function expandSemanticReport(baseText, report, label) {
   return reconstructed;
 }
 
+function expandSemanticParentOnly(baseText, report, label) {
+  const parent = report.parentModule || null;
+  if (!parent || !parent.name || !parent.path) throw new Error(label + ' report is missing parentModule metadata.');
+  let parentContent = read(parent.path);
+  assert(Buffer.byteLength(parentContent, 'utf8') <= Number(report.maxModuleBytes || 75000), parent.name + ': exceeds semantic-module byte limit.');
+  assert(sha256(parentContent) === parent.sha256, parent.name + ': SHA-256 no longer matches ' + label + ' report.');
+  const modules = Array.isArray(report.modules) ? report.modules : [];
+  assert(modules.length > 0, label + ' report has no child modules.');
+  modules.forEach(module => {
+    const content = read(module.path);
+    const directive = `<?!= includeDashboardFile('${module.name}') ?>`;
+    const occurrences = parentContent.split(directive).length - 1;
+    assert(occurrences === 1, module.name + ': expected exactly one parent include directive, found ' + occurrences + '.');
+    assert(Buffer.byteLength(content, 'utf8') <= Number(report.maxModuleBytes || 75000), module.name + ': exceeds semantic-module byte limit.');
+    assert(sha256(content) === module.sha256, module.name + ': SHA-256 no longer matches ' + label + ' report.');
+    if (module.rawJavaScriptFragment === true) {
+      try { new vm.Script(content, { filename: module.path }); }
+      catch (error) { failures.push(module.name + ': raw JavaScript fragment no longer parses: ' + error.message); }
+    }
+    parentContent = parentContent.replace(directive, function() { return content; });
+  });
+  const parentDirective = `<?!= includeDashboardFile('${parent.name}') ?>`;
+  const parentOccurrences = baseText.split(parentDirective).length - 1;
+  assert(parentOccurrences === 1, parent.name + ': expected exactly one active parent include directive, found ' + parentOccurrences + '.');
+  notes.push(label + ' composition verified: parent ' + parent.name + ' + ' + modules.length + ' modules.');
+  return baseText.replace(parentDirective, function() { return parentContent; });
+}
+
 function composedDashboardMainVerification() {
   const main = read('DashboardMainScript.html');
   let reconstructed = main;
   let composed = false;
   let report = null;
+  const retirementText = readOptional('docs/DASHBOARD-MAIN-LEGACY-RUNTIME-RETIREMENT-2026-08-22.json');
+
+  if (retirementText) {
+    try {
+      const retirement = JSON.parse(retirementText);
+      const legacyReport = JSON.parse(read('docs/DASHBOARD-MAIN-LEGACY-SEMANTIC-EXTRACTION-2026-08-21.json'));
+      const remakeReport = JSON.parse(read('docs/DASHBOARD-MAIN-REMAKE-SEMANTIC-EXTRACTION-2026-08-21.json'));
+      assert(sha256(main) === retirement.sourceSha256After, 'DashboardMain active composition changed since legacy retirement.');
+      assert(Buffer.byteLength(main, 'utf8') === retirement.sourceBytesAfter, 'DashboardMain active byte count changed since legacy retirement.');
+      assert(!main.includes("includeDashboardFile('LegacyDashboardRuntime')"), 'LegacyDashboardRuntime is still active after retirement.');
+      const preservedArchive = read(retirement.preservedArchivePath);
+      assert(sha256(preservedArchive) === retirement.preservedArchiveSha256, 'Legacy retirement archive SHA-256 mismatch.');
+      assert(Buffer.byteLength(preservedArchive, 'utf8') === retirement.preservedArchiveBytes, 'Legacy retirement archive byte-count mismatch.');
+      assert(sha256(preservedArchive) === legacyReport.sourceSha256Before, 'Legacy retirement archive no longer matches staged legacy source.');
+      const activeRuntime = expandSemanticParentOnly(main, remakeReport, 'DashboardMain active Remake');
+      reconstructed = expandSemanticReport(preservedArchive, remakeReport, 'DashboardMain historical Remake');
+      (retirement.retiredRootFiles || []).forEach(function(file) { assert(!fs.existsSync(path.join(root, file)), 'Retired legacy root file is still deployable: ' + file); });
+      notes.push('DashboardMain active runtime bytes after legacy retirement: ' + Buffer.byteLength(activeRuntime, 'utf8').toLocaleString());
+      notes.push('Paused Overview/legacy runtime preserved only in archive.');
+      composed = true;
+      report = remakeReport;
+      return { text: reconstructed, currentText: main, activeText: activeRuntime, composed, report, retirement };
+    } catch (error) {
+      failures.push('DashboardMain legacy retirement report could not be validated: ' + error.message);
+      return { text: reconstructed, currentText: main, activeText: main, composed, report };
+    }
+  }
 
   const legacyText = readOptional('docs/DASHBOARD-MAIN-LEGACY-SEMANTIC-EXTRACTION-2026-08-21.json');
   if (legacyText) {
@@ -114,7 +169,6 @@ function composedDashboardMainVerification() {
       failures.push('DashboardMain legacy extraction report could not be validated: ' + error.message);
     }
   }
-
   const remakeText = readOptional('docs/DASHBOARD-MAIN-REMAKE-SEMANTIC-EXTRACTION-2026-08-21.json');
   if (remakeText) {
     try {
@@ -126,13 +180,14 @@ function composedDashboardMainVerification() {
       failures.push('DashboardMain Remake extraction report could not be validated: ' + error.message);
     }
   }
-
-  return { text: reconstructed, currentText: main, composed, report };
+  return { text: reconstructed, currentText: main, activeText: reconstructed, composed, report };
 }
 
 const requiredRuntimeFiles = [
   'Index.html',
   'DashboardMainScript.html',
+  'DashboardClientBootRuntime.html',
+  'DashboardShellNavigationRuntime.html',
   'DashboardFuzzySearch.html',
   'SharedFilterBar.html',
   'SharedFilterBarStyles.html',
@@ -154,14 +209,22 @@ const missingIncludes = [...new Set(includes)].filter(name => !fs.existsSync(pat
 assert(missingIncludes.length === 0, `Index include target(s) missing: ${missingIncludes.join(', ')}`);
 
 function indexOfInclude(name) {
-  return index.indexOf(`includeDashboardFile('${name}')`);
+  return index.indexOf(`includeDashboardFile('${name}'`);
 }
 
 const sharedFilterPos = indexOfInclude('SharedFilterBar');
+const dashboardMainPos = indexOfInclude('DashboardMainScript');
+const clientBootPos = indexOfInclude('DashboardClientBootRuntime');
+const shellNavigationPos = indexOfInclude('DashboardShellNavigationRuntime');
+const support01Pos = indexOfInclude('DashboardSupportScript01');
 const remakeAdapterPos = indexOfInclude('RemakeSharedFilterAdapterV6646');
 const tatControllerPos = indexOfInclude('TatDashboardControllerScript');
 const tatAdapterPos = indexOfInclude('TatSharedFilterAdapterV6646');
 assert(sharedFilterPos >= 0, 'Index is missing SharedFilterBar include.');
+assert(dashboardMainPos >= 0, 'Index is missing DashboardMainScript include.');
+assert(clientBootPos > dashboardMainPos, 'DashboardClientBootRuntime must load after DashboardMainScript.');
+assert(shellNavigationPos > clientBootPos, 'DashboardShellNavigationRuntime must load after DashboardClientBootRuntime.');
+assert(support01Pos > shellNavigationPos, 'DashboardSupportScript01 must load after the semantic shell runtime owners.');
 assert(remakeAdapterPos > sharedFilterPos, 'Remake shared-filter adapter must load after SharedFilterBar.');
 assert(tatControllerPos >= 0, 'Index is missing TAT controller include.');
 assert(tatAdapterPos > tatControllerPos, 'TAT shared-filter adapter must load after the TAT controller.');
@@ -176,6 +239,10 @@ assert(remakeAdapter.includes('persistUiV6230'), 'Remake adapter is not preservi
 assert(tatAdapter.includes('cdaSharedFilterActiveV6646'), 'TAT shared-filter mount guard is missing.');
 assert(tatAdapter.includes('getPopulationKeys'), 'TAT linked-inventory adapter contract is missing.');
 assert(tatController.includes('window.cdaTatFilterBridgeV6646'), 'TAT shared-filter bridge is missing.');
+assert(tatController.includes("window.loadRemakeFactorData(false)"), 'TAT controller is missing direct Remake initialization for the no-legacy-router path.');
+const claspIgnore = read('.claspignore');
+assert(claspIgnore.includes('LegacyDashboardRuntime.html'), '.claspignore is missing the retired legacy parent exclusion.');
+assert(claspIgnore.includes('LegacyOverviewRuntimeSegment*.html'), '.claspignore is missing the retired legacy segment exclusion.');
 
 const mainVerification = composedDashboardMainVerification();
 const duplicateReport = read('docs/DASHBOARD-MAIN-DUPLICATE-CLEANUP-2026-08-21.json');

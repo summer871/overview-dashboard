@@ -4,4 +4,7 @@
 !*.js
 !*.html
 # Archived and paused source must never be pushed to Apps Script.
+# Retired paused-Overview staging files are excluded even if restored at repo root.
+LegacyDashboardRuntime.html
+LegacyOverviewRuntimeSegment*.html
 archive/**
