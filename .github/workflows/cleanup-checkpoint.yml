@@ -22,6 +22,9 @@ jobs:
       - name: Retire paused legacy dashboard runtime
         run: node .github/scripts/retire-legacy-dashboard-runtime.cjs
 
+      - name: Fix context-bearing include validation
+        run: node .github/scripts/fix-retirement-validator-include-lookup.cjs
+
       - name: Run cleanup structural checkpoint
         run: node scripts/validate-cleanup-checkpoint.js
 
