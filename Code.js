@@ -1,5 +1,5 @@
 /**
- * Executive Overview Dashboard Router
+ * Executive Dashboard Router
  * Version: Code.gs v6.567 independent cache timestamps
  * Date: 2026-07-31
  * Purpose: Serve the dashboard shell and inject presentation metadata.
@@ -47,11 +47,7 @@ function includeDashboardFile(filename, context) {
 }
 
 function getDashboardPresentationMode(e) {
-  const params = e && e.parameter ? e.parameter : {};
-  const normalized = String(params.presentation || params.view || params.mode || '').trim().toLowerCase();
-  if (['all','dev','devall','alltabs','full'].indexOf(normalized) >= 0) return 'all';
-  if (['overview','overviewonly','overview-only'].indexOf(normalized) >= 0) return 'overview';
-  return 'remake';
+  return 'remaketat';
 }
 
 function getDashboardBaseUrl() {
@@ -74,24 +70,43 @@ function debugDashboardServerHealth() {
     scriptTimeZone: Session.getScriptTimeZone(),
     dashboardBaseUrl: getDashboardBaseUrl(),
     functions: {
-      getOverviewDashboardData: typeof getOverviewDashboardData,
-      refreshOverviewDashboardCache: typeof refreshOverviewDashboardCache,
-      testOverviewDashboardCacheShape: typeof testOverviewDashboardCacheShape,
-      debugOverviewDashboardCacheHealth: typeof debugOverviewDashboardCacheHealth
+      getRemakeFactorData: typeof getRemakeFactorData,
+      refreshRemakeFactorCache: typeof refreshRemakeFactorCache,
+      debugRemakeFactorCacheHealth: typeof debugRemakeFactorCacheHealth,
+      getTatDashboardData: typeof getTatDashboardData,
+      refreshTatDashboardCache: typeof refreshTatDashboardCache,
+      debugTatDashboardCacheHealth: typeof debugTatDashboardCacheHealth
     },
-    cache: {}
+    cache: {
+      remake: {},
+      tat: {}
+    }
   };
+
   try {
-    health.cache = typeof debugOverviewDashboardCacheHealth === 'function'
-      ? debugOverviewDashboardCacheHealth()
-      : { ok:false, message:'debugOverviewDashboardCacheHealth is missing from OverviewDashboardCache.gs' };
+    health.cache.remake = typeof debugRemakeFactorCacheHealth === 'function'
+      ? debugRemakeFactorCacheHealth()
+      : { ok:false, message:'debugRemakeFactorCacheHealth is missing from RemakeFactorCache.js' };
   } catch (error) {
-    health.cache = {
+    health.cache.remake = {
       ok:false,
       message:error && error.message ? error.message : String(error),
       stack:error && error.stack ? error.stack : ''
     };
   }
+
+  try {
+    health.cache.tat = typeof debugTatDashboardCacheHealth === 'function'
+      ? debugTatDashboardCacheHealth()
+      : { ok:false, message:'debugTatDashboardCacheHealth is missing from TatDashboardCache.js' };
+  } catch (error) {
+    health.cache.tat = {
+      ok:false,
+      message:error && error.message ? error.message : String(error),
+      stack:error && error.stack ? error.stack : ''
+    };
+  }
+
   return health;
 }
 
