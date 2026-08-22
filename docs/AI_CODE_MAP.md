@@ -50,7 +50,7 @@ Load order is behavior-sensitive. Do not reorder modules merely for aesthetics.
 4. `DashboardClientBootRuntime.html`
 5. `DashboardShellNavigationRuntime.html`
 6. `RemakeSharedFilterAdapterV6646.html`
-7. `DashboardSupportScript01.html`
+7. `RemakePresentationControllerV6243.html`
 8. `RemakeInteractionStabilityRuntimeV6249.html`
 9. `RemakeTableMorphPresentationV6300.html`
 10. `RemakeTableLayoutPresentationV6317.html`
@@ -195,4 +195,4 @@ Do not weaken validators merely to make a cleanup pass. Update an assertion only
 
 Prefer semantic filenames that describe ownership and responsibility. Avoid new generic names such as `DashboardSupportScript05` or `DashboardSupportScript06`.
 
-`DashboardSupportScript01.html` remains the last known active generic compatibility filename. Its contents are the same historical blob previously named `RemakePresentationControllerV6243.html`. A future semantic rename should change only the include/validator path while preserving the same runtime bytes and load order, then be validated before Apps Script is touched.
+`RemakePresentationControllerV6243.html` is now the active semantic owner for the historical v6.243 presentation-controller blob. The generic `DashboardSupportScript01.html` alias has been retired; preserve this semantic name and current load order unless ownership deliberately changes.
