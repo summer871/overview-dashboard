@@ -192,6 +192,7 @@ const requiredRuntimeFiles = [
   'SharedFilterBar.html',
   'SharedFilterBarStyles.html',
   'RemakeSharedFilterAdapterV6646.html',
+  'RemakePresentationControllerV6243.html',
   'TatDashboardControllerScript.html',
   'TatSharedFilterAdapterV6646.html',
   'SharedTableModule.html',
@@ -216,7 +217,7 @@ const sharedFilterPos = indexOfInclude('SharedFilterBar');
 const dashboardMainPos = indexOfInclude('DashboardMainScript');
 const clientBootPos = indexOfInclude('DashboardClientBootRuntime');
 const shellNavigationPos = indexOfInclude('DashboardShellNavigationRuntime');
-const support01Pos = indexOfInclude('DashboardSupportScript01');
+const remakePresentationControllerPos = indexOfInclude('RemakePresentationControllerV6243');
 const remakeAdapterPos = indexOfInclude('RemakeSharedFilterAdapterV6646');
 const tatControllerPos = indexOfInclude('TatDashboardControllerScript');
 const tatAdapterPos = indexOfInclude('TatSharedFilterAdapterV6646');
@@ -224,7 +225,7 @@ assert(sharedFilterPos >= 0, 'Index is missing SharedFilterBar include.');
 assert(dashboardMainPos >= 0, 'Index is missing DashboardMainScript include.');
 assert(clientBootPos > dashboardMainPos, 'DashboardClientBootRuntime must load after DashboardMainScript.');
 assert(shellNavigationPos > clientBootPos, 'DashboardShellNavigationRuntime must load after DashboardClientBootRuntime.');
-assert(support01Pos > shellNavigationPos, 'DashboardSupportScript01 must load after the semantic shell runtime owners.');
+assert(remakePresentationControllerPos > shellNavigationPos, 'RemakePresentationControllerV6243 must load after the semantic shell runtime owners.');
 assert(remakeAdapterPos > sharedFilterPos, 'Remake shared-filter adapter must load after SharedFilterBar.');
 assert(tatControllerPos >= 0, 'Index is missing TAT controller include.');
 assert(tatAdapterPos > tatControllerPos, 'TAT shared-filter adapter must load after the TAT controller.');
