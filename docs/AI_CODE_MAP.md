@@ -135,6 +135,28 @@ The following files are intentionally retained at repository root because curren
 
 Before moving any of these, update the relevant validator intentionally and preserve the contract strength.
 
+## Repository tooling surface
+
+The active GitHub automation/tooling surface is intentionally small after cleanup.
+
+Active workflow:
+
+- `.github/workflows/cleanup-checkpoint.yml`
+
+Active repository scripts:
+
+- `scripts/audit-dashboard-components.js`
+- `scripts/test-dashboard-runtime-contracts.js`
+- `scripts/validate-cleanup-checkpoint.js`
+- `scripts/validate-dashboard-main-composition.js`
+- `scripts/validate-dashboard-platform.js`
+
+The current platform validator is structural and version-neutral; it no longer masks or requires stale v6.628 footer/build-label assertions.
+
+There is no active `.github/scripts/` mutation-helper layer. Completed one-off workflow executors, migration helpers, version-stamped manual validators, July reconciliation queries, and Colab rebuild/backfill tools are preserved under `archive/` instead of remaining active tooling.
+
+Generated component-audit output belongs under `reports/`, which is ignored by Git.
+
 ## Archive boundary
 
 `archive/` is historical / paused source, not active deployable source. `.claspignore` excludes the entire archive.
@@ -143,10 +165,13 @@ Important archive groups include:
 
 - retired paused Overview / legacy DashboardMain runtime
 - inactive v6.544-v6.562 shared-platform scaffold
-- stale selector dependency reports
-- obsolete local preview harness
-- old cleanup reports
-- obsolete `refactor/flatten-index` push helper
+- stale selector dependency reports and stale AI-readable mirrors
+- obsolete local preview harness and `refactor/flatten-index` push helpers
+- completed one-off GitHub workflows and `.github/scripts` cleanup executors
+- completed data/Ceramist migration utilities and historical manual validators
+- historical cleanup reports, Overview analytics documents, and July 2026 reconciliation queries
+- superseded filter/design proposals
+- v6.544 and v6.628 recovery documentation
 - historical v6.544 component migration registry
 
 `scripts/audit-dashboard-components.js` intentionally excludes `archive/` so component inventories describe active source rather than history.
