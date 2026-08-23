@@ -122,18 +122,18 @@ Use one owner per responsibility. Do not create parallel lifecycle owners or fal
 
 ## CI-only compatibility fixtures
 
-The following files are intentionally retained at repository root because current validation scripts read them directly. Do not assume they are active browser composition solely because they are at root.
+The following files are validation fixtures, not active browser composition. They live under `tests/fixtures/platform-compat/`, which is outside the root-level `*.html` clasp allowlist, while the contract validators read them explicitly.
 
-- `SharedDashboardRegistryV6547.html`
-- `SharedDashboardRendererV6547.html`
-- `RemakeDashboardBootstrapV6548.html`
-- `TatDashboardBootstrapV6547.html`
-- `TatDashboardAdapterV6547.html`
-- `TatDashboardLayoutV6563.html`
-- `TatProductTableV6562.html`
-- `TatTableWidthsV6563.html`
+- `tests/fixtures/platform-compat/SharedDashboardRegistryV6547.html`
+- `tests/fixtures/platform-compat/SharedDashboardRendererV6547.html`
+- `tests/fixtures/platform-compat/RemakeDashboardBootstrapV6548.html`
+- `tests/fixtures/platform-compat/TatDashboardBootstrapV6547.html`
+- `tests/fixtures/platform-compat/TatDashboardAdapterV6547.html`
+- `tests/fixtures/platform-compat/TatDashboardLayoutV6563.html`
+- `tests/fixtures/platform-compat/TatProductTableV6562.html`
+- `tests/fixtures/platform-compat/TatTableWidthsV6563.html`
 
-Before moving any of these, update the relevant validator intentionally and preserve the contract strength.
+The move preserved each fixture's exact Git blob SHA. `scripts/test-dashboard-runtime-contracts.js` and `scripts/validate-dashboard-platform.js` retain the same assertions and now read these explicit fixture paths.
 
 ## Repository tooling surface
 
@@ -155,7 +155,7 @@ The current platform validator is structural and version-neutral; it no longer m
 
 There is no active `.github/scripts/` mutation-helper layer. Completed one-off workflow executors, migration helpers, version-stamped manual validators, July reconciliation queries, and Colab rebuild/backfill tools are preserved under `archive/` instead of remaining active tooling.
 
-Generated component-audit output belongs under `reports/`, which is ignored by Git.
+Generated component-audit output belongs under `reports/`, which is ignored by Git. The component audit excludes both `archive/` and `tests/` so its inventory describes deployable/active source rather than history or CI fixtures.
 
 ## Archive boundary
 
@@ -174,7 +174,7 @@ Important archive groups include:
 - v6.544 and v6.628 recovery documentation
 - historical v6.544 component migration registry
 
-`scripts/audit-dashboard-components.js` intentionally excludes `archive/` so component inventories describe active source rather than history.
+`scripts/audit-dashboard-components.js` intentionally excludes `archive/` and `tests/` so component inventories describe active source rather than history or fixtures.
 
 ## Protected runtime invariants
 
