@@ -4,7 +4,7 @@ const fs=require('fs'),path=require('path'),vm=require('vm');
 const root=path.resolve(__dirname,'..');
 const errors=[];
 const read=f=>fs.readFileSync(path.join(root,f),'utf8');
-const files=['SharedDashboardTablePlatformV6586.html','SharedDashboardLayoutEditorV6593.html','SharedVisualFitControllerV6617.html','SharedDashboardRegistryV6547.html','SharedDashboardRendererV6547.html','RemakeDashboardBootstrapV6548.html','TatDashboardBootstrapV6547.html','SharedFooter.html','Index.html','SharedTableModule.html','TatDashboardControllerScript.html'];
+const files=['SharedDashboardTablePlatformV6586.html','SharedDashboardLayoutEditorV6593.html','SharedVisualFitControllerV6617.html','tests/fixtures/platform-compat/SharedDashboardRegistryV6547.html','tests/fixtures/platform-compat/SharedDashboardRendererV6547.html','tests/fixtures/platform-compat/RemakeDashboardBootstrapV6548.html','tests/fixtures/platform-compat/TatDashboardBootstrapV6547.html','SharedFooter.html','Index.html','SharedTableModule.html','TatDashboardControllerScript.html'];
 for(const f of files){const text=read(f);for(const [i,m] of [...text.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)].entries()){try{new vm.Script(m[1].replace(/<\?[!=]?[\s\S]*?\?>/g,'null'),{filename:`${f}#${i+1}`});}catch(e){errors.push(`${f}: ${e.message}`);}}}
 const table=read(files[0]),editor=read(files[1]),visual=read(files[2]),remake=read(files[5]),tat=read(files[6]),index=read(files[8]),sharedTable=read(files[9]),controller=read(files[10]);
 const need=(text,token,label)=>{if(!text.includes(token))errors.push(`Missing ${label}`);};
