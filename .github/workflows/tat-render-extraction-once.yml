@@ -1,0 +1,130 @@
+name: One-time TAT render extraction
+
+on:
+  push:
+    branches:
+      - agent/ai-readable-cleanup-2026-08-21
+    paths:
+      - .github/workflows/tat-render-extraction-once.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  extract:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out cleanup branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/ai-readable-cleanup-2026-08-21
+          fetch-depth: 0
+
+      - name: Extract render subsystem from protected controller bytes
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs=require('fs');
+          const crypto=require('crypto');
+          const sourcePath='TatDashboardControllerScript.html';
+          const childPath='TatDashboardRenderRuntimeV6509.html';
+          const archivePath='archive/tat-controller-pre-split-2026-08-23/TatDashboardControllerScript.html';
+          const reportPath='docs/TAT-CONTROLLER-RENDER-EXTRACTION-2026-08-23.json';
+          const expectedGitBlobSha='40edf579adc9ad29c937b108df8b1caebeabaf06';
+          const directive="<?!= includeDashboardFile('TatDashboardRenderRuntimeV6509') ?>";
+          const source=fs.readFileSync(sourcePath,'utf8');
+          const sha256=text=>crypto.createHash('sha256').update(text,'utf8').digest('hex');
+          const gitBlobSha=text=>{const body=Buffer.from(text,'utf8');const header=Buffer.from('blob '+body.length+'\0','utf8');return crypto.createHash('sha1').update(Buffer.concat([header,body])).digest('hex');};
+          if(gitBlobSha(source)!==expectedGitBlobSha)throw new Error('Protected TAT controller blob changed; refusing extraction.');
+          const startMarker='  function destroyChart(name)';
+          const endMarker='\n\n  function closeDropdowns()';
+          const start=source.indexOf(startMarker);
+          const end=source.indexOf(endMarker,start);
+          if(start<0||end<0||end<=start)throw new Error('TAT render seam markers not found exactly.');
+          if(source.indexOf(startMarker,start+1)>=0)throw new Error('TAT render start marker is not unique.');
+          if(source.indexOf(endMarker,end+1)>=0)throw new Error('TAT render end marker is not unique.');
+          const child=source.slice(start,end);
+          const parent=source.slice(0,start)+directive+source.slice(end);
+          if(parent.replace(directive,child)!==source)throw new Error('Extraction reconstruction is not byte-for-byte identical.');
+          fs.mkdirSync('archive/tat-controller-pre-split-2026-08-23',{recursive:true});
+          fs.writeFileSync(archivePath,source,'utf8');
+          fs.writeFileSync(childPath,child,'utf8');
+          fs.writeFileSync(sourcePath,parent,'utf8');
+          const report={
+            date:'2026-08-23',
+            purpose:'Behavior-preserving semantic extraction of the contiguous TAT render subsystem.',
+            maxModuleBytes:75000,
+            includeDirective:directive,
+            source:{path:sourcePath,bytes:Buffer.byteLength(source,'utf8'),sha256:sha256(source),gitBlobSha:gitBlobSha(source)},
+            parent:{path:sourcePath,bytes:Buffer.byteLength(parent,'utf8'),sha256:sha256(parent)},
+            child:{name:'TatDashboardRenderRuntimeV6509',path:childPath,bytes:Buffer.byteLength(child,'utf8'),sha256:sha256(child),rawJavaScriptFragment:true,startMarker:'destroyChart(name)',endBefore:'closeDropdowns()'},
+            archive:{path:archivePath,bytes:Buffer.byteLength(source,'utf8'),sha256:sha256(source)},
+            reconstruction:{byteForByteIdentical:parent.replace(directive,child)===source,gitBlobSha:gitBlobSha(parent.replace(directive,child))}
+          };
+          if(report.parent.bytes>report.maxModuleBytes||report.child.bytes>report.maxModuleBytes)throw new Error('Semantic split does not bring both modules under the 75 KB target.');
+          fs.writeFileSync(reportPath,JSON.stringify(report,null,2)+'\n','utf8');
+
+          const mapPath='docs/AI_CODE_MAP.md';
+          let map=fs.readFileSync(mapPath,'utf8');
+          map=map.replace('| Tab switching / TAT activation | `TatDashboardControllerScript.html` |','| Tab switching / TAT activation | `TatDashboardControllerScript.html` |\n| TAT charts, table rendering, KPI rendering, quality rendering | `TatDashboardRenderRuntimeV6509.html` |');
+          map=map.replace('`TatDashboardControllerScript.html` | 100.7 KB | TAT state/render/navigation/tab owner. A render-only seam has been identified but not yet extracted. |','`TatDashboardControllerScript.html` | < 75 KB | TAT state/filter/navigation/tab owner after render extraction. |\n| `TatDashboardRenderRuntimeV6509.html` | < 75 KB | TAT chart/table/KPI/quality render subsystem, composed inside the controller IIFE. |');
+          map=map.replace('A candidate TAT split is the contiguous render block beginning at `destroyChart(name)` and ending after `renderAll()`. Any extraction must be deterministically reconstructed and proven byte-for-byte equivalent before it is accepted.','The TAT render seam beginning at `destroyChart(name)` and ending after `renderAll()` is now extracted to `TatDashboardRenderRuntimeV6509.html`. `scripts/validate-tat-controller-composition.js` proves the parent + child reconstruct the protected pre-split controller byte-for-byte.');
+          map=map.replace('- `scripts/validate-dashboard-platform.js`','- `scripts/validate-dashboard-platform.js`\n- `scripts/validate-tat-controller-composition.js`');
+          map=map.replace('- `scripts/validate-dashboard-platform.js`\n\nRepository component inventory:','- `scripts/validate-dashboard-platform.js`\n- `scripts/validate-tat-controller-composition.js`\n\nRepository component inventory:');
+          fs.writeFileSync(mapPath,map,'utf8');
+
+          const checkpointPath='.github/workflows/cleanup-checkpoint.yml';
+          let checkpoint=fs.readFileSync(checkpointPath,'utf8');
+          const anchor='      - name: Run dashboard platform validator\n        run: node scripts/validate-dashboard-platform.js\n';
+          if(!checkpoint.includes('validate-tat-controller-composition.js')){
+            if(!checkpoint.includes(anchor))throw new Error('Cleanup workflow insertion anchor changed.');
+            checkpoint=checkpoint.replace(anchor,anchor+'\n      - name: Validate TAT controller semantic composition\n        run: node scripts/validate-tat-controller-composition.js\n');
+          }
+          fs.writeFileSync(checkpointPath,checkpoint,'utf8');
+          NODE
+
+      - name: Validate exact TAT composition
+        run: node scripts/validate-tat-controller-composition.js
+
+      - name: Run cleanup structural checkpoint
+        run: node scripts/validate-cleanup-checkpoint.js
+
+      - name: Run DashboardMain composition validator
+        run: node scripts/validate-dashboard-main-composition.js
+
+      - name: Run runtime contract tests
+        run: node scripts/test-dashboard-runtime-contracts.js
+
+      - name: Run dashboard platform validator
+        run: node scripts/validate-dashboard-platform.js
+
+      - name: Verify only intended files changed
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected=$(cat <<'EOF'
+          .github/workflows/cleanup-checkpoint.yml
+          .github/workflows/tat-render-extraction-once.yml
+          TatDashboardControllerScript.html
+          TatDashboardRenderRuntimeV6509.html
+          archive/tat-controller-pre-split-2026-08-23/TatDashboardControllerScript.html
+          docs/AI_CODE_MAP.md
+          docs/TAT-CONTROLLER-RENDER-EXTRACTION-2026-08-23.json
+          EOF
+          )
+          actual=$(git status --short | sed 's/^...//' | sort)
+          allowed=$(printf '%s\n' "$expected" | sort)
+          test "$actual" = "$allowed"
+
+      - name: Remove one-time workflow and commit validated extraction
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm .github/workflows/tat-render-extraction-once.yml
+          git config user.name 'summer871'
+          git config user.email 'summer@caldentalarts.com'
+          git add -A
+          git commit -m 'refactor: extract TAT render runtime'
+          git push origin HEAD:agent/ai-readable-cleanup-2026-08-21
