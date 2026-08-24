@@ -1,7 +1,7 @@
 /**
  * Executive Dashboard Router
- * Version: Code.gs v6.567 independent cache timestamps
- * Date: 2026-07-31
+ * Version: Code.gs v6.568 raw include expansion
+ * Date: 2026-08-23
  * Purpose: Serve the dashboard shell and inject presentation metadata.
  */
 function doGet(e) {
@@ -13,13 +13,13 @@ function doGet(e) {
   const template = HtmlService.createTemplateFromFile('Index');
   template.dashboardBaseUrl = getDashboardBaseUrl();
   template.dashboardPresentationMode = presentationMode;
-  template.dashboardPresentationVersion = 'v6.567';
-  template.dashboardPresentationSource = 'Code.gs v6.567 independent cache timestamps';
+  template.dashboardPresentationVersion = 'v6.568';
+  template.dashboardPresentationSource = 'Code.gs v6.568 raw include expansion';
 
   const presentation = {
     mode: presentationMode,
-    version: 'v6.567',
-    source: 'Code.gs v6.567 independent cache timestamps',
+    version: 'v6.568',
+    source: 'Code.gs v6.568 raw include expansion',
     baseUrl: getDashboardBaseUrl()
   };
 
@@ -36,14 +36,41 @@ function doGet(e) {
 }
 
 function includeDashboardFile(filename, context) {
+  const safeFilename = normalizeDashboardIncludeFilename(filename);
+  const values = context && typeof context === 'object' ? context : {};
+  const expandedContent = expandDashboardIncludeFile(safeFilename, []);
+
+  if (!Object.keys(values).length && expandedContent.indexOf('<?') < 0) {
+    return expandedContent;
+  }
+
+  const template = HtmlService.createTemplate(expandedContent);
+  Object.keys(values).forEach(function(key) { template[key] = values[key]; });
+  return template.evaluate().getContent();
+}
+
+function expandDashboardIncludeFile(filename, stack) {
+  const safeFilename = normalizeDashboardIncludeFilename(filename);
+  const chain = Array.isArray(stack) ? stack : [];
+  if (chain.indexOf(safeFilename) >= 0) {
+    throw new Error('Circular dashboard include: ' + chain.concat([safeFilename]).join(' -> '));
+  }
+
+  const rawContent = HtmlService.createTemplateFromFile(safeFilename).getRawContent();
+  const nextChain = chain.concat([safeFilename]);
+  const includePattern = /<\?!=\s*includeDashboardFile\(\s*(['"])([A-Za-z0-9_-]+)\1\s*\)\s*;?\s*\?>/g;
+
+  return rawContent.replace(includePattern, function(match, quote, childFilename) {
+    return expandDashboardIncludeFile(childFilename, nextChain);
+  });
+}
+
+function normalizeDashboardIncludeFilename(filename) {
   const safeFilename = String(filename || '').trim();
   if (!safeFilename || !/^[A-Za-z0-9_-]+$/.test(safeFilename)) {
     throw new Error('Invalid dashboard include filename: ' + safeFilename);
   }
-  const template = HtmlService.createTemplateFromFile(safeFilename);
-  const values = context && typeof context === 'object' ? context : {};
-  Object.keys(values).forEach(function(key) { template[key] = values[key]; });
-  return template.evaluate().getContent();
+  return safeFilename;
 }
 
 function getDashboardPresentationMode(e) {
@@ -65,7 +92,7 @@ function renderDashboardDebugPage() {
 function debugDashboardServerHealth() {
   const health = {
     ok: true,
-    routerVersion: 'Code.gs v6.567 independent cache timestamps',
+    routerVersion: 'Code.gs v6.568 raw include expansion',
     timestamp: new Date().toISOString(),
     scriptTimeZone: Session.getScriptTimeZone(),
     dashboardBaseUrl: getDashboardBaseUrl(),
