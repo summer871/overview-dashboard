@@ -2,7 +2,7 @@
   "enabled": true,
   "scriptId": "19ep_9Khzq86AIdumIxVN9BfM6rMwG0cHlPaUr46CZy_xJ1ve6_CcHhmo",
   "targetBranch": "agent/ai-readable-cleanup-v6.650-2026-08-23",
-  "targetSha": "e28025c59d793c17157276cbe3269a8b05a5157a",
-  "expectedUi": "v6.666",
-  "expectedBuild": "AI-CLEANUP-STATIC-STYLE-BOOT-1"
+  "targetSha": "e1a4b1bf273f938406e8949af64a548be5fe5fca",
+  "expectedUi": "v6.668",
+  "expectedBuild": "AI-CLEANUP-TECH-TABLE-PATH-OWNERSHIP-1"
 }
