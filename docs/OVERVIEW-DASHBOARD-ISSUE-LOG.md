@@ -224,3 +224,38 @@ For a newly extracted runtime module, preserve the exact implementation and sour
 The original v6.671 run stopped before commit, Git push, clasp push, or production deployment. The recovery resumes from the already-extracted local source rather than repeating the extraction.
 
 Production remained untouched.
+
+---
+
+## OD-007 — PowerShell logging polluted captured native command output
+
+**Date:** 2026-08-24
+**Status:** PROCESS RULE CORRECTED; next handoff must use a silent logger for captured values
+**Area:** AI → Windows PowerShell deployment/diagnostic handoff
+**Version:** `v6.672`
+**Dashboard behavior impact:** None
+
+### Symptom
+
+The v6.672 transcript printed false diagnostic lines such as `Wrong branch` and `Local HEAD does not match origin` even though the displayed branch and commit values matched. The final `COMMIT=` value was also polluted with the logged `git rev-parse HEAD` command text.
+
+The actual v6.672 source handoff still completed: Git committed and pushed `03920d58f957e53d2a96f5319c4098f1e3315239`, `clasp.cmd --user work push` pushed the Apps Script HEAD source, and production remained unchanged.
+
+### Root cause
+
+The PowerShell `WriteLog` helper emitted log text into the success pipeline. `RunNative` used that helper while also returning native command output, so assignments such as branch and HEAD capture received both diagnostic log lines and the real native result.
+
+### Resolution / permanent handoff rule
+
+- Logging used inside a native-command capture helper must not emit into the success pipeline.
+- Write diagnostics directly to the transcript file and host/console, or explicitly suppress the logger's output.
+- `RunNative` must return only the native command data intended for callers.
+- Single-value Git checks such as branch and HEAD must be compared using only the actual native result.
+- Keep `$LASTEXITCODE` as the native success authority.
+
+### Verification
+
+- Git/GitHub v6.672 source verified at commit `03920d58f957e53d2a96f5319c4098f1e3315239`.
+- Apps Script HEAD push completed successfully.
+- `/dev` validation is still required before the cleanup can continue.
+- Production was not changed.
