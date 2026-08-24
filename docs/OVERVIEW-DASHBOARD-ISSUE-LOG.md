@@ -105,15 +105,18 @@ The wrapper syntax failure did **not** invalidate the v6.668 dashboard handoff i
 ### Remaining follow-up
 
 The next user-run PowerShell block must use a syntax-checked, paste-safe clipboard/error-capture pattern before it is sent.
+
 ---
 
 ## OD-003 — Shared Dashboard click/cross-filter does not recalculate Remake KPIs
 
 **Date:** 2026-08-24
-**Status:** IMPLEMENTED — `/dev` verification pending
+**Status:** VERIFIED ON `/dev`
 **Area:** Shared Dashboard interaction contract — cross-filter → KPI recalculation
 **Version:** `v6.670`
 **Build:** `AI-SHARED-CROSSFILTER-KPI-SYNC-1`
+**Code commit:** `b2bcccb614b3b3cade7957cfe8fe3458ae43440d`
+**Branch:** `agent/ai-readable-cleanup-v6.650-2026-08-23`
 
 ### Symptom
 
@@ -139,16 +142,47 @@ Added all supported Remake click/cross-filter dimensions to the KPI comparison-c
 
 No KPI formula or denominator rule was changed. Existing Reason behavior remains intact: reason filters narrow the remake numerator without shrinking the established Total Cases denominator.
 
+### Verification
+
+- Git/GitHub contains the v6.670 source at code commit `b2bcccb614b3b3cade7957cfe8fe3458ae43440d`.
+- Apps Script HEAD was pushed from the same local source set; the subsequent handoff reported `Script is already up to date.`
+- Summer verified the real-data `/dev` behavior and reported `v6.670 good` on 2026-08-24.
+- Production was not changed.
+
 ### Acceptance
 
-- A Remake row click immediately recalculates applicable KPIs.
-- Ctrl/Cmd additive selections recalculate from the full selected set.
-- Clearing the click filter restores the previous KPI scope.
-- Dropdown filters remain independent.
-- TAT cross-filter to KPI behavior remains intact.
-- Technician side-by-side layout from v6.668 remains intact.
-- Customer table extraction from v6.669 remains intact.
-- Production remains unchanged.
+- Remake click/cross-filter selections now recalculate the KPI strip as intended.
+- Clearing the selection restores the prior KPI scope.
+- Existing Reason denominator semantics remain unchanged.
+- Shared-dashboard cross-filter behavior remains the architectural default across tabs.
+
+### Remaining follow-up
+
+Resume the controlled cleanup from the verified v6.670 baseline. Do not reopen OD-003 unless a real `/dev` regression is observed.
+
+---
+
+## OD-004 — PowerShell native stderr warning was treated as a terminating failure
+
+**Date:** 2026-08-24
+**Status:** PROCESS FIXED
+**Area:** AI → Windows PowerShell deployment/diagnostic handoff
+**Dashboard code impact:** None
+
+### Symptom
+
+During the v6.670 OD-003 handoff, `git diff --check` emitted the normal Git warning `LF will be replaced by CRLF the next time Git touches it` for the issue-log Markdown file. PowerShell treated that stderr warning as a terminating `NativeCommandError`, stopped the wrapper, and reported `CHATGPT_RUN_FAILED=true` even though the native Git warning itself did not establish a failed Git exit code.
+
+### Root cause
+
+The wrapper used `$ErrorActionPreference = 'Stop'` around native Git commands. In that PowerShell environment, native stderr output was surfaced as PowerShell error records, so harmless warning text could terminate the script before `$LASTEXITCODE` was evaluated.
+
+### Resolution / permanent handoff rule
+
+For native executables such as `git` and `clasp`, capture stderr into the output stream and determine success from `$LASTEXITCODE`, not from the presence of warning text. Keep PowerShell/.NET failures terminating, but do not let informational native stderr warnings become false deployment failures.
+
+Production was untouched.
+
 ---
 
 ## OD-005 — PowerShell capture wrapper returned nested array as branch name
