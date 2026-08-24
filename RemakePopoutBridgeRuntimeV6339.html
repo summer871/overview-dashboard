@@ -1,0 +1,195 @@
+  window.CDA_REMAKE_INTERACTIVE_POPOUT_VERSION = 'v6.339';
+  const remakePopoutRefsV6339 = Object.create(null);
+  let remakePopoutSyncTimerV6339 = 0;
+
+  function remakePopoutMetaV6339(component) {
+    return {
+      trend: { type: 'trend', title: remakeTrendDisplayTitleV6302(), canvasId: 'remakeTrendChartV6230' },
+      reason: { type: 'table', title: 'Remake Reasons', tableId: 'remakeReasonTable' },
+      department: { type: 'table', title: 'Departments', tableId: 'remakeDepartmentTable' },
+      product: { type: 'table', title: uiV6230.productTableMode === 'group' ? 'Product Groups' : 'Products', tableId: 'remakeProductTable' },
+      customer: { type: 'customer', title: 'Customers', canvasId: 'remakeCustomerChartV6230', tableId: 'remakeCustomerTable' },
+      ceramist: { type: 'ceramist', title: 'Technicians', containerId: 'remakeCeramistCardV6342' }
+    }[component] || null;
+  }
+
+  function clonePopupValueV6339(value) {
+    if (Array.isArray(value)) return value.map(clonePopupValueV6339);
+    if (value === null || value === undefined) return value;
+    if (typeof value === 'number' || typeof value === 'string' || typeof value === 'boolean') return value;
+    if (typeof value === 'object' && Number.isFinite(Number(value.x)) && Number.isFinite(Number(value.y))) {
+      return { x: Number(value.x), y: Number(value.y) };
+    }
+    return undefined;
+  }
+
+  function clonePopupDatasetV6339(dataset, index) {
+    const copy = {};
+    [
+      'label','type','data','monthKeys','customerKeys','fill','tension','borderWidth',
+      'borderDash','borderColor','backgroundColor','pointRadius','pointHoverRadius',
+      'pointHitRadius','pointBackgroundColor','pointBorderColor','pointBorderWidth',
+      'maxBarThickness','categoryPercentage','barPercentage','borderRadius','borderSkipped'
+    ].forEach(function(field) {
+      const value = clonePopupValueV6339(dataset && dataset[field]);
+      if (value !== undefined) copy[field] = value;
+    });
+    copy.label = String(copy.label || (index === 0 ? 'Current' : 'Prior'));
+    copy.data = Array.isArray(copy.data) ? copy.data : [];
+    return copy;
+  }
+
+  function popupTableHtmlV6339(component) {
+    const meta = remakePopoutMetaV6339(component);
+    const source = meta && meta.containerId ? idV6230(meta.containerId) : (meta && meta.tableId ? idV6230(meta.tableId) : null);
+    if (!source) return '';
+    const clone = source.cloneNode(true);
+    clone.removeAttribute('id');
+    clone.querySelectorAll('[id]').forEach(function(node){ node.removeAttribute('id'); });
+    clone.querySelectorAll('[style]').forEach(function(node){ node.removeAttribute('style'); });
+    clone.querySelectorAll('script').forEach(function(node){ node.remove(); });
+    if (component === 'ceramist') {
+      clone.querySelectorAll('.remakeCardActionsV6230').forEach(function(node){ node.remove(); });
+    }
+    return clone.outerHTML;
+  }
+
+  function popupChartSnapshotV6339(component) {
+    const chart = component === 'trend' ? remakeChartV6230 : customerChartV6230;
+    if (!chart || !chart.data) return null;
+    const datasets = (chart.data.datasets || []).map(clonePopupDatasetV6339);
+    let axisTitle = '';
+    try { axisTitle = String(chart.options.scales.y.title.text || ''); } catch (error) {}
+    return {
+      chartType: (chart.config && chart.config.type) || (component === 'customer' ? 'bar' : 'line'),
+      labels: (chart.data.labels || []).map(String),
+      datasets: datasets,
+      axisTitle: axisTitle
+    };
+  }
+
+  window.getRemakePopoutSnapshotV6339 = function getRemakePopoutSnapshotV6339(component) {
+    const meta = remakePopoutMetaV6339(component);
+    if (!meta) return { ok:false, component:component, message:'Unknown Remake panel.' };
+    const scope = comparisonScopeV6295(normalizedRowsV6230());
+    const chart = meta.type === 'trend' || meta.type === 'customer' ? popupChartSnapshotV6339(component) : null;
+    const valueMode = uiV6230.trendValueMode === 'percent' ? 'percent' : 'total';
+    const measure = uiV6230.trendMeasure === 'units' ? 'units' : 'cases';
+    const mode = uiV6230.mode || 'line';
+    const valueFormat = valueMode === 'percent'
+      ? (mode === 'mom' ? 'points' : 'percent')
+      : (measure === 'units' ? 'count1' : 'count0');
+    return {
+      ok: (meta.type === 'table' || meta.type === 'ceramist') ? !!(meta.tableId || meta.containerId) : !!chart,
+      component: component,
+      type: meta.type,
+      title: meta.title,
+      chart: chart,
+      tableHtml: (meta.tableId || meta.containerId) ? popupTableHtmlV6339(component) : '',
+      updatedAt: new Date().toLocaleTimeString(),
+      compareYear: scope.priorYear || 'Prior',
+      controls: {
+        mode: mode,
+        measure: measure,
+        valueMode: valueMode,
+        cumulative: uiV6230.trendCumulative === true,
+        cumulativeAllowed: mode === 'line' && valueMode === 'total',
+        valueFormat: valueFormat,
+        compare: meta.tableId ? tableCompareOnV6297(component) : false,
+        productMode: uiV6230.productTableMode === 'group' ? 'group' : 'product',
+        customerMode: uiV6230.customerTableMode === 'all' ? 'all' : 'highest',
+        ceramistCaseStatus: ceramistStateV6342.caseStatus || 'all',
+        ceramistDiagnostic: ceramistStateV6342.diagnosticFlag || 'none',
+        ceramistBreakdown: ceramistStateV6342.breakdown || 'product',
+        selectedCeramist: ceramistStateV6342.selectedCeramist || ''
+      },
+      message: chart || meta.type === 'table' || meta.type === 'ceramist' ? '' : 'Chart is not ready yet.'
+    };
+  };
+
+  function scheduleRemakePopoutSyncV6339(delay) {
+    if (remakePopoutSyncTimerV6339) window.clearTimeout(remakePopoutSyncTimerV6339);
+    remakePopoutSyncTimerV6339 = window.setTimeout(function() {
+      remakePopoutSyncTimerV6339 = 0;
+      Object.keys(remakePopoutRefsV6339).forEach(function(component) {
+        const ref = remakePopoutRefsV6339[component];
+        if (!ref || !ref.win || ref.win.closed) {
+          delete remakePopoutRefsV6339[component];
+          return;
+        }
+        const snapshot = window.getRemakePopoutSnapshotV6339(component);
+        try {
+          if (typeof ref.win.__receiveRemakeSnapshotV6339 === 'function') ref.win.__receiveRemakeSnapshotV6339(snapshot);
+          else ref.win.postMessage({ type:'remakeSnapshotV6339', snapshot:snapshot }, '*');
+        } catch (error) {}
+      });
+    }, delay || 220);
+  }
+  window.scheduleRemakePopoutSyncV6339 = scheduleRemakePopoutSyncV6339;
+
+  function popupActionEventV6339(payload) {
+    return {
+      ctrlKey: !!(payload && (payload.ctrlKey || payload.metaKey)),
+      metaKey: !!(payload && payload.metaKey),
+      shiftKey: !!(payload && payload.shiftKey),
+      preventDefault: function(){},
+      stopPropagation: function(){}
+    };
+  }
+
+  window.applyRemakePopoutActionV6339 = function applyRemakePopoutActionV6339(payload) {
+    const action = payload || {};
+    const event = popupActionEventV6339(action);
+    try {
+      if (action.kind === 'month' && action.value) {
+        toggleMonthV6230(String(action.value), event);
+      } else if (action.kind === 'monthRange') {
+        const values = Array.isArray(action.values) ? action.values.map(String).filter(Boolean) : [];
+        pushRemakeUndoV6266();
+        const next = action.additive ? new Set(uiV6230.selectedMonths || []) : new Set();
+        values.forEach(function(value){ next.add(value); });
+        uiV6230.selectedMonths = next;
+        persistUiV6230();
+        renderDashboardV6230();
+      } else if (action.kind === 'tableFilter' && action.filterKind && action.value !== undefined) {
+        window.applyRemakeTableFilterV6230(String(action.filterKind), String(action.value), event);
+      } else if (action.kind === 'sort' && action.component && action.field) {
+        window.setRemakeSortV6230(String(action.component), String(action.field));
+      } else if (action.kind === 'trendMode') {
+        window.setRemakeChartModeV6230(action.value);
+      } else if (action.kind === 'trendMeasure') {
+        window.setRemakeTrendMeasureV6245(action.value);
+      } else if (action.kind === 'trendValue') {
+        window.setRemakeTrendValueModeV6247(action.value);
+      } else if (action.kind === 'trendCumulative') {
+        window.setRemakeTrendCumulativeV6304(action.value === true);
+      } else if (action.kind === 'compare' && action.component) {
+        window.toggleRemakeTableCompareV6297(String(action.component));
+      } else if (action.kind === 'productMode') {
+        window.setRemakeProductTableModeV6264(action.value);
+      } else if (action.kind === 'customerMode') {
+        window.setRemakeCustomerTableModeV6251(action.value);
+      } else if (action.kind === 'ceramistCaseStatus') {
+        window.setCeramistCaseStatusV6343(action.value);
+      } else if (action.kind === 'ceramistDiagnostic') {
+        window.setCeramistDiagnosticV6343(action.value);
+      } else if (action.kind === 'ceramistBreakdown') {
+        window.setCeramistBreakdownV6343(action.value);
+      } else if (action.kind === 'ceramistSelect') {
+        window.selectCeramistV6343(action.value);
+      } else if (action.kind === 'ceramistFlag') {
+        window.setCeramistFlagV6342(action.value);
+      } else if (action.kind === 'export' && action.component) {
+        window.exportRemakeComponentV6230(String(action.component));
+      } else if (action.kind === 'clear' && action.component) {
+        window.clearRemakeComponentV6230(String(action.component));
+      }
+    } catch (error) {
+      console.error('Remake pop-out action failed', error);
+    }
+    scheduleRemakePopoutSyncV6339(360);
+  };
+
+  window.__remakePopoutClosedV6339 = function remakePopoutClosedV6339(component) {
+    delete remakePopoutRefsV6339[component];
+  };
