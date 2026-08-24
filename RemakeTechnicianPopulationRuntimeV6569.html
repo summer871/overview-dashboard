@@ -1099,13 +1099,16 @@
     const parsed = new Date(raw);
     return isNaN(parsed.getTime()) ? raw : parsed.toLocaleString(undefined, { year:'numeric', month:'short', day:'numeric', hour:'numeric', minute:'2-digit' });
   }
-  let ceramistLayoutResizeBoundV6663 = false;
-  let ceramistLayoutResizeTimerV6663 = 0;
+  let ceramistLayoutResizeBoundV6664 = false;
+  let ceramistLayoutObserverV6664 = null;
+  let ceramistLayoutObservedWorkspaceV6664 = null;
 
-  function ensureCeramistMasterDetailLayoutV6663() {
+  function ceramistMasterDetailElementsV6664() {
+    const workspace = idV6230('remakeCeramistWorkspaceV6343');
     const masterTable = idV6230('remakeCeramistTableV6342');
     const detailTable = idV6230('remakeCeramistDetailTableV6343');
-    if (!masterTable || !detailTable) return false;
+
+    if (!workspace || !masterTable || !detailTable) return null;
 
     const masterPanel = masterTable.closest
       ? masterTable.closest('.ceramistPanelV6343')
@@ -1114,45 +1117,49 @@
       ? detailTable.closest('.ceramistPanelV6343')
       : null;
 
-    if (!masterPanel || !detailPanel) return false;
+    if (!masterPanel || !detailPanel || masterPanel === detailPanel) return null;
+    if (!workspace.contains(masterPanel) || !workspace.contains(detailPanel)) return null;
+    if (masterPanel.parentElement !== workspace || detailPanel.parentElement !== workspace) return null;
 
-    let workspace = null;
+    return {
+      workspace:workspace,
+      masterPanel:masterPanel,
+      detailPanel:detailPanel
+    };
+  }
 
-    if (
-      masterPanel.parentElement &&
-      masterPanel.parentElement === detailPanel.parentElement
-    ) {
-      workspace = masterPanel.parentElement;
-    }
+  function ensureCeramistMasterDetailLayoutV6664() {
+    const elements = ceramistMasterDetailElementsV6664();
+    if (!elements) return false;
 
-    if (!workspace && masterPanel.closest) {
-      workspace = masterPanel.closest('.ceramistWorkspaceV6343');
-    }
-
-    if (!workspace && detailPanel.closest) {
-      workspace = detailPanel.closest('.ceramistWorkspaceV6343');
-    }
-
-    if (!workspace) return false;
+    const workspace = elements.workspace;
+    const masterPanel = elements.masterPanel;
+    const detailPanel = elements.detailPanel;
 
     const rect = workspace.getBoundingClientRect
       ? workspace.getBoundingClientRect()
-      : { width:0 };
+      : null;
 
     const availableWidth = Number(rect && rect.width || 0);
 
-    // v6.663: the prior 820px CSS breakpoint still stacked the dashboard in
-    // Summer's split-screen/Windows-scaled browser. Keep side-by-side down to
-    // 620 CSS px; stack only when the actual rendered workspace is truly narrow.
+    // Critical v6.664 fix:
+    // During boot the Remake page can be hidden and measure as zero width.
+    // Do NOT write a stacked inline layout in that state. The existing CSS
+    // remains untouched until the workspace becomes measurable.
+    if (!(availableWidth > 0)) {
+      workspace.setAttribute('data-ceramist-layout-v6664', 'waiting-for-visible-width');
+      return false;
+    }
+
     const sideBySide = availableWidth >= 620;
 
-    workspace.classList.add('ceramistWorkspaceDomOwnedV6663');
+    workspace.classList.add('ceramistWorkspaceDomOwnedV6664');
     workspace.setAttribute(
-      'data-ceramist-layout-v6663',
+      'data-ceramist-layout-v6664',
       sideBySide ? 'side-by-side' : 'stacked-mobile'
     );
     workspace.setAttribute(
-      'data-ceramist-layout-width-v6663',
+      'data-ceramist-layout-width-v6664',
       String(Math.round(availableWidth))
     );
 
@@ -1204,29 +1211,47 @@
     return true;
   }
 
-  function scheduleCeramistMasterDetailLayoutV6663(delay) {
-    window.clearTimeout(ceramistLayoutResizeTimerV6663);
-    ceramistLayoutResizeTimerV6663 = window.setTimeout(function() {
-      ensureCeramistMasterDetailLayoutV6663();
-    }, Math.max(0, Number(delay || 0)));
-  }
+  function bindCeramistMasterDetailLayoutV6664() {
+    const elements = ceramistMasterDetailElementsV6664();
+    if (!elements) return false;
 
-  function bindCeramistMasterDetailResizeV6663() {
-    if (ceramistLayoutResizeBoundV6663) return;
-    ceramistLayoutResizeBoundV6663 = true;
+    const workspace = elements.workspace;
 
-    window.addEventListener('resize', function() {
-      scheduleCeramistMasterDetailLayoutV6663(40);
-    }, { passive:true });
+    if (
+      typeof ResizeObserver === 'function' &&
+      ceramistLayoutObservedWorkspaceV6664 !== workspace
+    ) {
+      if (ceramistLayoutObserverV6664) {
+        try { ceramistLayoutObserverV6664.disconnect(); } catch (error) {}
+      }
+
+      ceramistLayoutObserverV6664 = new ResizeObserver(function() {
+        ensureCeramistMasterDetailLayoutV6664();
+      });
+
+      ceramistLayoutObserverV6664.observe(workspace);
+      ceramistLayoutObservedWorkspaceV6664 = workspace;
+    }
+
+    if (!ceramistLayoutResizeBoundV6664) {
+      ceramistLayoutResizeBoundV6664 = true;
+      window.addEventListener('resize', ensureCeramistMasterDetailLayoutV6664, { passive:true });
+    }
+
+    return true;
   }
   function renderCeramistAnalysisV6342() {
     const table = idV6230('remakeCeramistTableV6342');
     const detailTable = idV6230('remakeCeramistDetailTableV6343');
     if (!table || !detailTable) return;
-    bindCeramistMasterDetailResizeV6663();
-    ensureCeramistMasterDetailLayoutV6663();
-    scheduleCeramistMasterDetailLayoutV6663(0);
-    scheduleCeramistMasterDetailLayoutV6663(120);
+    bindCeramistMasterDetailLayoutV6664();
+    ensureCeramistMasterDetailLayoutV6664();
+    if (typeof requestAnimationFrame === 'function') {
+      requestAnimationFrame(function() {
+        bindCeramistMasterDetailLayoutV6664();
+        ensureCeramistMasterDetailLayoutV6664();
+      });
+    }
     const status = idV6230('remakeCeramistStatusV6342');
     const masterHeader = '<colgroup>'
       + '<col style="width:28%">'
