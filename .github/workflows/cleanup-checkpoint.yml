@@ -56,9 +56,7 @@ jobs:
           }
 
           const source = fs.readFileSync(sourcePath, 'utf8');
-          if (gitBlobSha(source) !== expectedGitBlobSha) {
-            throw new Error('Protected TAT controller blob changed; refusing extraction.');
-          }
+          if (gitBlobSha(source) !== expectedGitBlobSha) throw new Error('Protected TAT controller blob changed; refusing extraction.');
 
           const start = source.indexOf(startMarker);
           const end = source.indexOf(endMarker, start);
@@ -70,9 +68,7 @@ jobs:
           const parent = source.slice(0, start) + includeDirective + source.slice(end);
           const reconstructed = parent.replace(includeDirective, child);
           if (reconstructed !== source) throw new Error('TAT extraction is not byte-for-byte reconstructable.');
-          if (Buffer.byteLength(parent, 'utf8') > 75000 || Buffer.byteLength(child, 'utf8') > 75000) {
-            throw new Error('TAT semantic split does not bring both files under 75 KB.');
-          }
+          if (Buffer.byteLength(parent, 'utf8') > 75000 || Buffer.byteLength(child, 'utf8') > 75000) throw new Error('TAT semantic split does not bring both files under 75 KB.');
 
           new vm.Script(child, { filename: childPath });
           const scriptMatch = reconstructed.match(/<script\b[^>]*>([\s\S]*?)<\/script>/i);
@@ -96,9 +92,7 @@ jobs:
             "notes.push('TAT controller semantic render extraction reconstructs the protected pre-split bytes.');"
           ].join('\n') + '\n';
           if (!validator.includes(anchor)) throw new Error('Cleanup-validator TAT anchor changed.');
-          if (!validator.includes("tatRenderRuntime = read('TatDashboardRenderRuntimeV6509.html')")) {
-            validator = validator.replace(anchor, anchor + guard);
-          }
+          if (!validator.includes("tatRenderRuntime = read('TatDashboardRenderRuntimeV6509.html')")) validator = validator.replace(anchor, anchor + guard);
           fs.writeFileSync(validatorPath, validator, 'utf8');
 
           console.log('TAT parent bytes:', Buffer.byteLength(parent, 'utf8'));
@@ -157,6 +151,14 @@ jobs:
                   run: node scripts/validate-dashboard-platform.js
           YAML
 
+          git config user.name 'summer871'
+          git config user.email 'summer@caldentalarts.com'
+          git add .github/workflows/cleanup-checkpoint.yml \
+            TatDashboardControllerScript.html \
+            TatDashboardRenderRuntimeV6509.html \
+            archive/tat-controller-pre-split-2026-08-23/TatDashboardControllerScript.html \
+            scripts/validate-cleanup-checkpoint.js
+
           expected=$(cat <<'EOF'
           .github/workflows/cleanup-checkpoint.yml
           TatDashboardControllerScript.html
@@ -165,12 +167,9 @@ jobs:
           scripts/validate-cleanup-checkpoint.js
           EOF
           )
-          actual=$(git status --short | sed 's/^...//' | sort)
+          staged=$(git diff --cached --name-only | sort)
           allowed=$(printf '%s\n' "$expected" | sort)
-          test "$actual" = "$allowed"
+          test "$staged" = "$allowed"
 
-          git config user.name 'summer871'
-          git config user.email 'summer@caldentalarts.com'
-          git add -A
           git commit -m 'refactor: extract TAT render runtime'
           git push origin HEAD:agent/ai-readable-cleanup-2026-08-21
