@@ -1188,7 +1188,15 @@
       const rowTooltip = titleParts.join(' | ');
       const badgeCount = row.noteCompletedCases || row.noteEvidenceCases;
       const badgeLabel = row.noteCompletedCases ? ' VIA NOTE' : ' NOTE REVIEW';
-      const badge = badgeCount ? '<span class="ceramistNoteBadgeV6343">' + escV6230(fmtCountV6230(badgeCount)) + badgeLabel + '</span>' : '';
+      const badgeReasonV6661 = row.noteTokens && row.noteTokens.length
+        ? row.noteTokens.join(' | ')
+        : rowTooltip;
+      const badgeTooltipV6661 = badgeCount
+        ? (row.noteCompletedCases ? 'Why VIA NOTE: ' : 'Why NOTE REVIEW: ') + badgeReasonV6661
+        : '';
+      const badge = badgeCount
+        ? '<span class="ceramistNoteBadgeV6343" title="' + escV6230(badgeTooltipV6661) + '" aria-label="' + escV6230(badgeTooltipV6661) + '">' + escV6230(fmtCountV6230(badgeCount)) + badgeLabel + '</span>'
+        : '';
       const detailLabelV6368 = textV6230(row.label || row.key, 'Detail');
       const detailFilterValueV6370 = String(row.key == null ? '' : row.key);
       const isDetailSelectedV6370 = activeDetailValuesV6370.has(detailFilterValueV6370);

@@ -3,8 +3,20 @@
      geometry. This override intentionally loads after the shared table styles
      so global 1% metric widths cannot crush these two tables. */
   #remakeFactorPage.cleanRemakeV6230 .ceramistWorkspaceV6343 {
-    grid-template-columns:minmax(0,38%) minmax(0,62%) !important;
+    display:grid !important;
+    grid-template-columns:minmax(360px,38%) minmax(0,62%) !important;
+    grid-auto-flow:row !important;
+    align-items:stretch !important;
+    gap:0 !important;
+    width:100% !important;
+    min-width:0 !important;
+    max-width:100% !important;
     min-height:350px !important;
+  }
+  #remakeFactorPage.cleanRemakeV6230 .ceramistWorkspaceV6343 > .ceramistPanelV6343 {
+    min-width:0 !important;
+    width:auto !important;
+    max-width:100% !important;
   }
   #remakeFactorPage.cleanRemakeV6230 .ceramistPreviewTableWrapV6342 {
     width:100% !important;
@@ -67,7 +79,10 @@
     border-bottom:1px solid #d8dee8 !important;
   }
   @media(max-width:820px) {
-    #remakeFactorPage.cleanRemakeV6230 .ceramistWorkspaceV6343 { grid-template-columns:1fr !important; }
+    #remakeFactorPage.cleanRemakeV6230 .ceramistWorkspaceV6343 {
+      display:block !important;
+      grid-template-columns:1fr !important;
+    }
     #remakeFactorPage.cleanRemakeV6230 .ceramistPanelV6343 + .ceramistPanelV6343 {
       border-left:0 !important;
       border-top:1px solid #dfe4eb !important;
@@ -75,7 +90,7 @@
     #remakeFactorPage.cleanRemakeV6230 .ceramistPreviewTableWrapV6342 { height:280px !important; }
   }
 </style>
-<script>window.CDA_REMAKE_CERAMIST_READABLE_LAYOUT_VERSION = 'v6.660-side-by-side';</script>
+<script>window.CDA_REMAKE_CERAMIST_READABLE_LAYOUT_VERSION = 'v6.661-explicit-grid';</script>
 
 
 <!-- v6.349: selected worker pinned first; worker labels cleaned; right table matches standard remake headers; current-remake worker removed; prior/root notes and case-number audit tooltips only. -->
