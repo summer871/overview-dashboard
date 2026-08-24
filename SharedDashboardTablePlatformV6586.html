@@ -1,6 +1,6 @@
 <!-- SharedDashboardTablePlatformV6586.html
 Version: v6.596
-Release: v6.629
+Release: v6.668
 Date: 2026-08-05
 Purpose: One dashboard-wide column-layout authority for Remake and TAT. Standard columns always partition the visible viewport, explicitly marked comparison columns extend through controlled horizontal overflow, every draggable divider transfers width only to its adjacent peer, saved widths remain authoritative across load and tab activation, and hidden tabs are never recalculated against fallback geometry. The header context menu exposes content/header sizing and reset actions only; standard-column viewport fitting remains automatic rather than user-selectable.
 -->
@@ -325,7 +325,7 @@ Purpose: One dashboard-wide column-layout authority for Remake and TAT. Standard
   'use strict';
 
   const VERSION_V6586 = 'v6.596';
-  const RELEASE_V6627 = 'v6.629';
+  const RELEASE_V6627 = 'v6.668';
   if (window.cdaDashboardTableSurfacesV6586 &&
       window.cdaDashboardTableSurfacesV6586.version === VERSION_V6586) return;
 
@@ -344,6 +344,7 @@ Purpose: One dashboard-wide column-layout authority for Remake and TAT. Standard
     '[class*="tableFrame"]','[class*="TableViewport"]','[class*="tableViewport"]',
     '[class*="TableScroll"]','[class*="tableScroll"]'
   ].join(',');
+  const structuralLayoutOwnerSelectorV6668 = '.technicianMasterDetailV6667,.technicianMasterPanelV6667,.technicianDetailPanelV6667';
 
   const registriesByDocumentV6586 = new WeakMap();
   const observersByDocumentV6586 = new WeakMap();
@@ -617,6 +618,10 @@ Purpose: One dashboard-wide column-layout authority for Remake and TAT. Standard
     if (surface) surface.layoutNodesV6588 = [];
   }
 
+  function tablePathOwnsNodeV6668(node){
+    return !!(node && node.matches && !node.matches(structuralLayoutOwnerSelectorV6668));
+  }
+
   function surfaceRenderedV6588(surface){
     const table = surface && surface.table;
     if (!table || !table.isConnected || table.closest('[hidden]')) return false;
@@ -713,6 +718,10 @@ Purpose: One dashboard-wide column-layout authority for Remake and TAT. Standard
     const nodes = [];
     let node = host.parentElement;
     while (node && node !== card) {
+      if (!collapsed && !tablePathOwnsNodeV6668(node)) {
+        node = node.parentElement;
+        continue;
+      }
       node.setAttribute('data-cda-table-surface-path-v6588','true');
       node.setAttribute('data-cda-table-surface-path-v6589','true');
       node.setAttribute('data-cda-table-surface-path-v6590','true');
