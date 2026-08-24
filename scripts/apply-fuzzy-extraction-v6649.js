@@ -19,38 +19,43 @@ function fail(message) {
   throw new Error(message);
 }
 
-function read(path) {
-  if (!fs.existsSync(path)) fail(`Missing required file: ${path}`);
-  return fs.readFileSync(path, 'utf8');
+function git(args, options) {
+  return childProcess.execFileSync('git', args, Object.assign({ encoding: 'utf8' }, options || {}));
+}
+
+function gitText(path) {
+  return childProcess.execFileSync('git', ['show', `HEAD:${path}`]).toString('utf8');
 }
 
 function sha256(value) {
   return crypto.createHash('sha256').update(value, 'utf8').digest('hex');
 }
 
-function gitBlobSha(value) {
-  const body = Buffer.from(value, 'utf8');
-  const header = Buffer.from(`blob ${body.length}\0`, 'utf8');
-  return crypto.createHash('sha1').update(Buffer.concat([header, body])).digest('hex');
-}
-
 function count(value, needle) {
   return value.split(needle).length - 1;
 }
 
-function currentBranch() {
-  return childProcess.execFileSync('git', ['branch', '--show-current'], { encoding: 'utf8' }).trim();
-}
-
-const branch = currentBranch();
+const branch = git(['branch', '--show-current']).trim();
 if (branch !== expectedBranch) {
   fail(`Wrong branch. Expected ${expectedBranch}; found ${branch || '(detached HEAD)'}.`);
 }
 
-const originalIndex = read(indexPath);
-if (gitBlobSha(originalIndex) !== expectedIndexBlob) {
-  fail(`Unexpected ${indexPath} baseline. Expected Git blob ${expectedIndexBlob}; found ${gitBlobSha(originalIndex)}.`);
+const dirty = git(['status', '--porcelain']).trim();
+if (dirty) {
+  fail('Working tree is not clean. Refusing to transform files.');
 }
+
+const committedIndexBlob = git(['rev-parse', `HEAD:${indexPath}`]).trim();
+if (committedIndexBlob !== expectedIndexBlob) {
+  fail(`Unexpected committed ${indexPath} baseline. Expected Git blob ${expectedIndexBlob}; found ${committedIndexBlob}.`);
+}
+
+// Read committed Git objects rather than Windows working-tree bytes. This keeps
+// the guard independent of core.autocrlf / CRLF checkout behavior.
+const originalIndex = gitText(indexPath);
+const existingModule = gitText(targetPath);
+let footer = gitText(footerPath);
+
 if (count(originalIndex, openMarker) !== 1) fail('Expected exactly one dashboardFuzzySearchV6412 script block.');
 if (originalIndex.includes(includeLine)) fail('DashboardFuzzySearch include already exists.');
 
@@ -62,10 +67,8 @@ const block = originalIndex.slice(start, end);
 
 if (!block.includes('window.dashboardFuzzySearchV6412')) fail('Fuzzy search export missing from extracted block.');
 if (!block.includes('function scoreV6412')) fail('Fuzzy search score function missing from extracted block.');
-
-const existingModule = read(targetPath);
 if (existingModule !== block + '\n') {
-  fail(`${targetPath} is not byte-for-byte identical to the v6.648 inline block.`);
+  fail(`${targetPath} is not byte-for-byte identical to the committed v6.648 inline block.`);
 }
 
 const nextIndex = originalIndex.slice(0, start) + includeLine + originalIndex.slice(end);
@@ -75,7 +78,6 @@ if (nextIndex.includes(openMarker)) fail('Inline fuzzy search block still presen
 const reconstructed = nextIndex.replace(includeLine, block);
 if (reconstructed !== originalIndex) fail('Reconstruction is not byte-for-byte identical to original Index.html.');
 
-let footer = read(footerPath);
 const expectedVersionComment = 'Version: v6.648';
 const expectedUiLine = "  const UI_VERSION = 'v6.648';";
 const expectedBuildLine = "  const BUILD_LABEL = 'V6.635-EXACT-RECOVERY-TEST-1';";
