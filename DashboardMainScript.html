@@ -19134,6 +19134,40 @@
     // v6.254 intentionally does not read old browser cache keys.
     // This forces a fresh read from the Drive/server cache after the customer-name fixes.
   ];
+  const REMAKE_RUNTIME_BRIDGE_VERSION_V6637 = 'v6.637';
+  function remakeRuntimeGetV6637(name) {
+    switch (String(name || "")) {
+      case 'expandRemakeBrowserReadyPayloadV6388': return expandRemakeBrowserReadyPayloadV6388;
+      case 'normalizeRowsV6230': return normalizeRowsV6230;
+      case 'rowsForRemakeFiltersV6252': return rowsForRemakeFiltersV6252;
+      case 'populateFiltersV6230': return populateFiltersV6230;
+      case 'slimDataV6230': return slimDataV6230;
+      case 'handleDataV6230': return handleDataV6230;
+      case 'isRemakeV6230': return isRemakeV6230;
+      default: return null;
+    }
+  }
+  function remakeRuntimeSetV6637(name, fn) {
+    if (typeof fn !== 'function') return false;
+    switch (String(name || "")) {
+      case 'expandRemakeBrowserReadyPayloadV6388': expandRemakeBrowserReadyPayloadV6388 = fn; break;
+      case 'normalizeRowsV6230': normalizeRowsV6230 = fn; break;
+      case 'rowsForRemakeFiltersV6252': rowsForRemakeFiltersV6252 = fn; break;
+      case 'populateFiltersV6230': populateFiltersV6230 = fn; break;
+      case 'slimDataV6230': slimDataV6230 = fn; break;
+      case 'handleDataV6230': handleDataV6230 = fn; break;
+      case 'isRemakeV6230': isRemakeV6230 = fn; break;
+      default: return false;
+    }
+    return true;
+  }
+  window.cdaRemakeRuntimeBridgeV6637 = Object.freeze({
+    version: REMAKE_RUNTIME_BRIDGE_VERSION_V6637,
+    get: remakeRuntimeGetV6637,
+    set: remakeRuntimeSetV6637,
+    has: function(name) { return typeof remakeRuntimeGetV6637(name) === 'function'; }
+  });
+  document.dispatchEvent(new CustomEvent('cdaRemakeRuntimeBridgeReadyV6637', { detail: { version: REMAKE_RUNTIME_BRIDGE_VERSION_V6637 } }));
   const MODE_KEY_V6230 = 'cdaRemakeFactorMode.v6230';
   const TREND_MEASURE_KEY_V6245 = 'cdaRemakeFactorTrendMeasure.v6245';
   const TREND_VALUE_KEY_V6247 = 'cdaRemakeFactorTrendValueMode.v6247';
