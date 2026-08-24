@@ -149,3 +149,17 @@ No KPI formula or denominator rule was changed. Existing Reason behavior remains
 - Technician side-by-side layout from v6.668 remains intact.
 - Customer table extraction from v6.669 remains intact.
 - Production remains unchanged.
+---
+
+## OD-005 — PowerShell capture wrapper returned nested array as branch name
+
+**Date:** 2026-08-24
+**Status:** PROCESS FIXED
+**Area:** PowerShell deployment handoff
+**Dashboard code impact:** None
+
+The v6.670 handoff stopped with `Wrong branch: System.Object[]` because native command output was returned as a nested PowerShell array.
+
+The wrapper was corrected to flatten native output before reading single-value results such as the Git branch name.
+
+Production was untouched.
