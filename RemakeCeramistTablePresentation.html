@@ -127,11 +127,8 @@
 
 <script>
 window.CDA_CERAMIST_COMPACT_TOGGLE_ALIGNMENT_VERSION = 'v6.350';
-(function installCeramistV6350Alignment(){
-  if (document.getElementById('ceramistV6350AlignmentStyles')) return;
-  const style = document.createElement('style');
-  style.id = 'ceramistV6350AlignmentStyles';
-  style.textContent = `
+</script>
+<style id="ceramistV6350AlignmentStyles">
     #remakeFactorPage.cleanRemakeV6230 #remakeCeramistTableV6342 thead th:nth-child(1),
     #remakeFactorPage.cleanRemakeV6230 #remakeCeramistTableV6342 thead th:nth-child(2),
     #remakeFactorPage.cleanRemakeV6230 #remakeCeramistDetailTableV6343 thead th:nth-child(1) {
@@ -154,19 +151,13 @@ window.CDA_CERAMIST_COMPACT_TOGGLE_ALIGNMENT_VERSION = 'v6.350';
         max-width:none !important;
       }
     }
-  `;
-  (document.body || document.documentElement).appendChild(style);
-})();
-</script>
+</style>
 <!-- v6.350: compact KPIs, standard header alignment, and click-again row deselection. -->
 
 <script>
 window.CDA_CERAMIST_RIGHT_FILTERS_DEDUPE_VERSION = 'v6.351';
-(function installCeramistV6351Layout(){
-  if (document.getElementById('ceramistV6351LayoutStyles')) return;
-  const style = document.createElement('style');
-  style.id = 'ceramistV6351LayoutStyles';
-  style.textContent = `
+</script>
+<style id="ceramistV6351LayoutStyles">
     #remakeFactorPage.cleanRemakeV6230 .ceramistTopControlsV6351 {
       display:flex !important;
       align-items:flex-start !important;
@@ -267,10 +258,7 @@ window.CDA_CERAMIST_RIGHT_FILTERS_DEDUPE_VERSION = 'v6.351';
         justify-content:flex-start !important;
       }
     }
-  `;
-  (document.body || document.documentElement).appendChild(style);
-})();
-</script>
+</style>
 <!-- v6.351: compact KPIs stay left; slim filters move right; duplicate mapped worker identities are consolidated. -->
 
 

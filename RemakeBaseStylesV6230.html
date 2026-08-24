@@ -1,8 +1,11 @@
-  function installStylesV6230() {
-    if (idV6230('cleanRemakeStylesV6230')) return;
-    const style = document.createElement('style');
-    style.id = 'cleanRemakeStylesV6230';
-    style.textContent = `
+<!--
+RemakeBaseStylesV6230.html
+Version: v6.666
+Purpose: Static parse-time Remake base presentation CSS.
+Source: Exact CSS formerly injected by installStylesV6230().
+Behavior intent: Preserve the final CSS while making it available before first Remake paint.
+-->
+<style id="cleanRemakeStylesV6230">
       #remakeFactorPage.cleanRemakeV6230 { background:#ebe9ed !important; color:#172033 !important; min-height:calc(100vh - 80px) !important; padding:10px 12px 22px !important; }
       #remakeFactorPage.cleanRemakeV6230 .remakeShellV6230 { max-width:1900px !important; margin:0 auto !important; display:flex !important; flex-direction:column !important; gap:9px !important; }
       #remakeFactorPage.cleanRemakeV6230 .remakeHeaderV6230 { display:flex !important; align-items:flex-start !important; justify-content:flex-end !important; gap:12px !important; min-height:42px !important; width:100% !important; }
@@ -207,6 +210,5 @@
       @media(max-width:980px){#remakeFactorPage.cleanRemakeV6230 .remakeStickyTopV6245{top:0!important;margin:-6px 0 1px!important;}#remakeFactorPage.cleanRemakeV6230 .remakeDropdownPanelV6245{position:fixed!important;left:10px!important;right:10px!important;top:112px!important;min-width:0!important;max-height:calc(100vh - 130px)!important;}}
       @media(max-width:1380px){#remakeFactorPage.cleanRemakeV6230 .remakeKpisV6230{grid-template-columns:repeat(4,minmax(0,1fr)) !important;}#remakeFactorPage.cleanRemakeV6230 .remakeKpiControlsV6279{grid-column:1 / -1 !important; align-items:flex-end !important;}#remakeFactorPage.cleanRemakeV6230 .remakeFilterBarV6230{grid-template-columns:repeat(3,minmax(0,1fr)) !important;}#remakeFactorPage.cleanRemakeV6230 .remakeCustomerSplitV6230{grid-template-columns:1fr !important;}}
       @media(max-width:980px){#remakeFactorPage.cleanRemakeV6230 .remakeGridV6230{grid-template-columns:1fr !important;}#remakeFactorPage.cleanRemakeV6230 .remakeKpisV6230,#remakeFactorPage.cleanRemakeV6230 .remakeFilterBarV6230,#remakeFactorPage.cleanRemakeV6230 .ceramistPreviewKpisV6342{grid-template-columns:repeat(2,minmax(0,1fr)) !important;}#remakeFactorPage.cleanRemakeV6230 .ceramistPreviewMetaV6342{align-items:flex-start!important;flex-direction:column!important;}#remakeFactorPage.cleanRemakeV6230 .ceramistPreviewStatusV6342{text-align:left!important;max-width:none!important;}#remakeFactorPage.cleanRemakeV6230 .remakeKpiControlsV6279{grid-column:1 / -1 !important; align-items:flex-start !important; text-align:left !important;}#remakeFactorPage.cleanRemakeV6230 .remakeKpiControlsV6279 .remakePerfV6230,#remakeFactorPage.cleanRemakeV6230 .remakeKpiControlsV6279 .remakeRefreshStamp{text-align:left !important;}}
-    `;
-    document.head.appendChild(style);
-  }
+</style>
+<script>window.CDA_REMAKE_BASE_STYLES_VERSION = 'v6.666-static-head';</script>

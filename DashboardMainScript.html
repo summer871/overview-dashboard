@@ -19842,7 +19842,7 @@
     document.querySelectorAll('.debugBadge').forEach(el => { if (el.textContent !== 'v6.281') el.textContent = 'v6.281'; });
   }
 
-<?!= includeDashboardFile('RemakeRuntimePresentationV6230') ?>
+
 
   function cardActionsV6230(component) {
     const componentLabel = component === 'trend' ? 'chart' : 'table';
@@ -22283,7 +22283,6 @@
 
     function phaseTopV6413() {
       if (supersededV6413()) { completeV6413(true); return; }
-      installStylesV6230();
       buildShellV6230(false);
       setBannerV6230();
       syncFiltersFromControlsV6230();
@@ -23907,7 +23906,6 @@
   }
 
   window.loadRemakeFactorData = function loadRemakeFactorDataV6230(forceRefresh) {
-    installStylesV6230();
     buildShellV6230(false);
     setBannerV6230();
     if (!window.remakeFactorState) window.remakeFactorState = {};
@@ -23982,7 +23980,6 @@
   });
 
   window.reloadRemakeFactorSavedCache = function reloadRemakeFactorSavedCacheV6410() {
-    installStylesV6230();
     buildShellV6230(false);
     if (!window.remakeFactorState) window.remakeFactorState = {};
     if (window.remakeFactorState.loading) return;
@@ -24010,7 +24007,6 @@
   window.rebuildRemakeFactorHistoricalData = function rebuildRemakeFactorHistoricalDataV6254() {
     const ok = window.confirm('This will rebuild the full historical Remake Factor cache from MagicTouch/API and may take several minutes. It will also rebuild customer labels from API customer fields. Continue?');
     if (!ok) return;
-    installStylesV6230();
     buildShellV6230(false);
     if (!window.remakeFactorState) window.remakeFactorState = {};
     if (window.remakeFactorState.loading) return;
@@ -24073,7 +24069,6 @@
     [['tabOneBtn', false], ['remakeFactorTabBtn', true], ['underConstructionBtn', false], ['categoricalTabBtn', false]].forEach(([id, active]) => { const el = idV6230(id); if (el) el.classList.toggle('active', !!active); });
     const nav = idV6230('overviewNavActions');
     if (nav) nav.style.display = 'none';
-    installStylesV6230();
     buildShellV6230(false);
     if (!window.remakeFactorState || !window.remakeFactorState.loaded) window.loadRemakeFactorData(false);
     else renderDashboardV6230();
@@ -24148,7 +24143,6 @@
   }
 
   function startupV6230() {
-    installStylesV6230();
     buildShellV6230(false);
     installSwitchAndRenderV6230();
     installUniversalResponsibilityInteractionsV6504();
