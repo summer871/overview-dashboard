@@ -871,6 +871,140 @@
     return tokens;
   }
 
+  function ceramistNormalizeTechNumberV6662(value) {
+    return textV6230(value, '')
+      .replace(/^TECH#/i, '')
+      .replace(/\s+/g, '')
+      .trim();
+  }
+
+  function ceramistNoteAuditV6662(row) {
+    const numbers = Array.from(new Set(
+      ceramistPriorNoteTechNumbersV6349(row)
+        .map(ceramistNormalizeTechNumberV6662)
+        .filter(Boolean)
+    ));
+
+    if (!numbers.length) {
+      return { state:'', reason:'' };
+    }
+
+    if (ceramistCompletedFromPriorNoteV6349(row)) {
+      return {
+        state:'via',
+        reason:'Invoice-note TECH# evidence was used to establish responsibility.'
+      };
+    }
+
+    const responsibleName = textV6230(
+      row && (row.responsibleCeramistDisplay || row.responsibleCeramist),
+      '[Unattributed]'
+    );
+
+    const responsibleNumber = ceramistNormalizeTechNumberV6662(
+      row && (
+        row.responsibleCeramistTechnicianNumber ||
+        row.responsibleWorkerTechnicianNumber ||
+        row.responsibleTechnicianNumber
+      )
+    );
+
+    const isAttributed = ceramistIsAttributedV6343(row);
+
+    if (numbers.length === 1 && isAttributed && responsibleNumber && numbers[0] === responsibleNumber) {
+      return {
+        state:'match',
+        reason:'Invoice note TECH#' + numbers[0] +
+          ' matches the already-attributed worker ' + responsibleName +
+          '; the normal CERAMICS task already established responsibility.'
+      };
+    }
+
+    if (numbers.length > 1) {
+      return {
+        state:'review',
+        reason:'Invoice note contains multiple TECH# values (' +
+          numbers.map(function(value) { return 'TECH#' + value; }).join(', ') +
+          ') and was not accepted as a single unambiguous Ceramist attribution.'
+      };
+    }
+
+    if (isAttributed && responsibleNumber) {
+      return {
+        state:'review',
+        reason:'Invoice note TECH#' + numbers[0] +
+          ' does not match the already-attributed worker ' + responsibleName +
+          ' (TECH#' + responsibleNumber + ').'
+      };
+    }
+
+    if (isAttributed && !responsibleNumber) {
+      return {
+        state:'review',
+        reason:'Invoice note contains TECH#' + numbers[0] +
+          ', but the assigned worker has no TECH# metadata available in the cache to verify the match.'
+      };
+    }
+
+    return {
+      state:'review',
+      reason:'Invoice note contains TECH#' + numbers[0] +
+        ', but that note evidence did not resolve to an accepted worker attribution.'
+    };
+  }
+
+  function ceramistTrackNoteStateV6662(group, caseKey, row) {
+    if (!group || !caseKey) return;
+
+    const audit = ceramistNoteAuditV6662(row);
+    if (!audit.state) return;
+
+    if (!group.noteStateByCaseV6662) {
+      group.noteStateByCaseV6662 = new Map();
+    }
+
+    const rank = {
+      review:1,
+      match:2,
+      via:3
+    };
+
+    const current = group.noteStateByCaseV6662.get(caseKey);
+    const currentRank = current ? (rank[current.state] || 0) : 0;
+    const nextRank = rank[audit.state] || 0;
+
+    if (!current || nextRank > currentRank) {
+      group.noteStateByCaseV6662.set(caseKey, {
+        state:audit.state,
+        reason:audit.reason
+      });
+    }
+  }
+
+  function ceramistNoteStateCountV6662(group, state) {
+    if (!group || !group.noteStateByCaseV6662) return 0;
+
+    let count = 0;
+    group.noteStateByCaseV6662.forEach(function(item) {
+      if (item && item.state === state) count += 1;
+    });
+
+    return count;
+  }
+
+  function ceramistNoteStateReasonsV6662(group, state) {
+    if (!group || !group.noteStateByCaseV6662) return [];
+
+    const values = new Set();
+
+    group.noteStateByCaseV6662.forEach(function(item) {
+      if (item && item.state === state && item.reason) {
+        values.add(item.reason);
+      }
+    });
+
+    return Array.from(values);
+  }
   function ceramistDetailRowsV6343(rows, selectedCeramist, mode) {
     const groups = new Map();
     (rows || []).filter(function(row) {
@@ -904,6 +1038,7 @@
       if (caseKey && ceramistHasPriorNoteEvidenceV6349(row)) group.noteCaseKeys.add(caseKey);
       if (caseKey && ceramistCompletedFromPriorNoteV6349(row)) group.noteCompletedCaseKeys.add(caseKey);
       ceramistNoteTokensV6343(row).forEach(value => group.noteTokens.add(value));
+      ceramistTrackNoteStateV6662(group, caseKey, row);
       if (selectedCeramist === '[Unattributed]') {
         const conciseReason = ceramistUnassignedReasonV6349(row);
         group.reviewReasons.add(conciseReason);
@@ -941,6 +1076,10 @@
         remakeDiscount:group.remakeDiscount,
         noteEvidenceCases:group.noteCaseKeys.size,
         noteCompletedCases:group.noteCompletedCaseKeys.size,
+        noteMatchCasesV6662:ceramistNoteStateCountV6662(group, 'match'),
+        noteReviewCasesV6662:ceramistNoteStateCountV6662(group, 'review'),
+        noteMatchReasonsV6662:ceramistNoteStateReasonsV6662(group, 'match'),
+        noteReviewReasonsV6662:ceramistNoteStateReasonsV6662(group, 'review'),
         noteTokens:Array.from(group.noteTokens),
         attributionBases:Array.from(group.attributionBases),
         productRows:group.productRows
@@ -1186,17 +1325,58 @@
         if (row.noteTokens && row.noteTokens.length) titleParts.push('Prior/root invoice-note details: ' + row.noteTokens.join(' | '));
       }
       const rowTooltip = titleParts.join(' | ');
-      const badgeCount = row.noteCompletedCases || row.noteEvidenceCases;
-      const badgeLabel = row.noteCompletedCases ? ' VIA NOTE' : ' NOTE REVIEW';
-      const badgeReasonV6661 = row.noteTokens && row.noteTokens.length
-        ? row.noteTokens.join(' | ')
-        : rowTooltip;
-      const badgeTooltipV6661 = badgeCount
-        ? (row.noteCompletedCases ? 'Why VIA NOTE: ' : 'Why NOTE REVIEW: ') + badgeReasonV6661
-        : '';
-      const badge = badgeCount
-        ? '<span class="ceramistNoteBadgeV6343" title="' + escV6230(badgeTooltipV6661) + '" aria-label="' + escV6230(badgeTooltipV6661) + '">' + escV6230(fmtCountV6230(badgeCount)) + badgeLabel + '</span>'
-        : '';
+      const noteViaCountV6662 = numV6230(row.noteCompletedCases);
+      const noteMatchCountV6662 = numV6230(row.noteMatchCasesV6662);
+      const noteReviewCountV6662 = numV6230(row.noteReviewCasesV6662);
+      const noteBadgesV6662 = [];
+
+      if (noteViaCountV6662 > 0) {
+        const viaReasonV6662 = row.noteTokens && row.noteTokens.length
+          ? row.noteTokens.filter(function(value) {
+              return /completed via invoice note/i.test(String(value || ''));
+            }).join(' | ')
+          : '';
+        const viaTooltipV6662 = 'Why VIA NOTE: ' +
+          (viaReasonV6662 || 'Invoice-note TECH# evidence was used to establish responsibility.');
+        noteBadgesV6662.push(
+          '<span class="ceramistNoteBadgeV6343 noteViaV6662" title="' +
+          escV6230(viaTooltipV6662) + '" aria-label="' +
+          escV6230(viaTooltipV6662) + '">' +
+          escV6230(fmtCountV6230(noteViaCountV6662)) + ' VIA NOTE</span>'
+        );
+      }
+
+      if (noteMatchCountV6662 > 0) {
+        const matchReasonsV6662 = Array.isArray(row.noteMatchReasonsV6662)
+          ? row.noteMatchReasonsV6662
+          : [];
+        const matchTooltipV6662 = 'Why NOTE MATCH: ' +
+          (matchReasonsV6662.join(' | ') ||
+            'Invoice-note TECH# evidence agrees with the worker already established by the normal CERAMICS task.');
+        noteBadgesV6662.push(
+          '<span class="ceramistNoteBadgeV6343 noteMatchV6662" title="' +
+          escV6230(matchTooltipV6662) + '" aria-label="' +
+          escV6230(matchTooltipV6662) + '">' +
+          escV6230(fmtCountV6230(noteMatchCountV6662)) + ' NOTE MATCH</span>'
+        );
+      }
+
+      if (noteReviewCountV6662 > 0) {
+        const reviewReasonsV6662 = Array.isArray(row.noteReviewReasonsV6662)
+          ? row.noteReviewReasonsV6662
+          : [];
+        const reviewTooltipV6662 = 'Why NOTE REVIEW: ' +
+          (reviewReasonsV6662.join(' | ') ||
+            'Invoice-note TECH# evidence could not be reconciled cleanly to the assigned worker.');
+        noteBadgesV6662.push(
+          '<span class="ceramistNoteBadgeV6343 noteReviewV6662" title="' +
+          escV6230(reviewTooltipV6662) + '" aria-label="' +
+          escV6230(reviewTooltipV6662) + '">' +
+          escV6230(fmtCountV6230(noteReviewCountV6662)) + ' NOTE REVIEW</span>'
+        );
+      }
+
+      const badge = noteBadgesV6662.join(' ');
       const detailLabelV6368 = textV6230(row.label || row.key, 'Detail');
       const detailFilterValueV6370 = String(row.key == null ? '' : row.key);
       const isDetailSelectedV6370 = activeDetailValuesV6370.has(detailFilterValueV6370);
