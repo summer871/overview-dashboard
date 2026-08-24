@@ -1,36 +1,5 @@
 <style id="remakeV6344CeramistReadableLayoutStyles">
-  /* v6.665: single static owner for the Technician master/detail layout.
-     Responsible worker is the first panel; selected breakdown is the second.
-     The layout exists before first paint: no JS measurement or post-render rewrite. */
-  #remakeFactorPage.cleanRemakeV6230 #remakeCeramistWorkspaceV6343 {
-    display:grid !important;
-    grid-template-columns:minmax(300px,38%) minmax(0,62%) !important;
-    grid-template-rows:minmax(0,auto) !important;
-    grid-auto-flow:row !important;
-    align-items:stretch !important;
-    gap:0 !important;
-    width:100% !important;
-    min-width:0 !important;
-    max-width:100% !important;
-    min-height:350px !important;
-  }
-  #remakeFactorPage.cleanRemakeV6230 #remakeCeramistWorkspaceV6343 > .ceramistPanelV6343 {
-    min-width:0 !important;
-    width:auto !important;
-    max-width:100% !important;
-    overflow:hidden !important;
-  }
-  #remakeFactorPage.cleanRemakeV6230 #remakeCeramistWorkspaceV6343 > .ceramistPanelV6343:first-child {
-    grid-column:1 !important;
-    grid-row:1 !important;
-    border-left:0 !important;
-  }
-  #remakeFactorPage.cleanRemakeV6230 #remakeCeramistWorkspaceV6343 > .ceramistPanelV6343:last-child {
-    grid-column:2 !important;
-    grid-row:1 !important;
-    border-left:1px solid #dfe4eb !important;
-    border-top:0 !important;
-  }
+
   #remakeFactorPage.cleanRemakeV6230 .ceramistPreviewTableWrapV6342 {
     width:100% !important;
     max-width:100% !important;
@@ -92,20 +61,6 @@
     border-bottom:1px solid #d8dee8 !important;
   }
   @media(max-width:480px) {
-    #remakeFactorPage.cleanRemakeV6230 #remakeCeramistWorkspaceV6343 {
-      display:block !important;
-      grid-template-columns:1fr !important;
-    }
-    #remakeFactorPage.cleanRemakeV6230 #remakeCeramistWorkspaceV6343 > .ceramistPanelV6343:first-child,
-    #remakeFactorPage.cleanRemakeV6230 #remakeCeramistWorkspaceV6343 > .ceramistPanelV6343:last-child {
-      grid-column:auto !important;
-      grid-row:auto !important;
-      width:100% !important;
-    }
-    #remakeFactorPage.cleanRemakeV6230 #remakeCeramistWorkspaceV6343 > .ceramistPanelV6343:last-child {
-      border-left:0 !important;
-      border-top:1px solid #dfe4eb !important;
-    }
     #remakeFactorPage.cleanRemakeV6230 .ceramistPreviewTableWrapV6342 { height:280px !important; }
   }
 
@@ -120,7 +75,7 @@
     cursor:help !important;
   }
 </style>
-<script>window.CDA_REMAKE_CERAMIST_READABLE_LAYOUT_VERSION = 'v6.665-static-layout-owner';</script>
+<script>window.CDA_REMAKE_CERAMIST_READABLE_LAYOUT_VERSION = 'v6.667-presentation-no-geometry';</script>
 
 
 <!-- v6.349: selected worker pinned first; worker labels cleaned; right table matches standard remake headers; current-remake worker removed; prior/root notes and case-number audit tooltips only. -->

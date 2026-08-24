@@ -1,6 +1,6 @@
 <!--
 RemakeBaseStylesV6230.html
-Version: v6.666
+Version: v6.667
 Purpose: Static parse-time Remake base presentation CSS.
 Source: Exact CSS formerly injected by installStylesV6230().
 Behavior intent: Preserve the final CSS while making it available before first Remake paint.
@@ -210,5 +210,65 @@ Behavior intent: Preserve the final CSS while making it available before first R
       @media(max-width:980px){#remakeFactorPage.cleanRemakeV6230 .remakeStickyTopV6245{top:0!important;margin:-6px 0 1px!important;}#remakeFactorPage.cleanRemakeV6230 .remakeDropdownPanelV6245{position:fixed!important;left:10px!important;right:10px!important;top:112px!important;min-width:0!important;max-height:calc(100vh - 130px)!important;}}
       @media(max-width:1380px){#remakeFactorPage.cleanRemakeV6230 .remakeKpisV6230{grid-template-columns:repeat(4,minmax(0,1fr)) !important;}#remakeFactorPage.cleanRemakeV6230 .remakeKpiControlsV6279{grid-column:1 / -1 !important; align-items:flex-end !important;}#remakeFactorPage.cleanRemakeV6230 .remakeFilterBarV6230{grid-template-columns:repeat(3,minmax(0,1fr)) !important;}#remakeFactorPage.cleanRemakeV6230 .remakeCustomerSplitV6230{grid-template-columns:1fr !important;}}
       @media(max-width:980px){#remakeFactorPage.cleanRemakeV6230 .remakeGridV6230{grid-template-columns:1fr !important;}#remakeFactorPage.cleanRemakeV6230 .remakeKpisV6230,#remakeFactorPage.cleanRemakeV6230 .remakeFilterBarV6230,#remakeFactorPage.cleanRemakeV6230 .ceramistPreviewKpisV6342{grid-template-columns:repeat(2,minmax(0,1fr)) !important;}#remakeFactorPage.cleanRemakeV6230 .ceramistPreviewMetaV6342{align-items:flex-start!important;flex-direction:column!important;}#remakeFactorPage.cleanRemakeV6230 .ceramistPreviewStatusV6342{text-align:left!important;max-width:none!important;}#remakeFactorPage.cleanRemakeV6230 .remakeKpiControlsV6279{grid-column:1 / -1 !important; align-items:flex-start !important; text-align:left !important;}#remakeFactorPage.cleanRemakeV6230 .remakeKpiControlsV6279 .remakePerfV6230,#remakeFactorPage.cleanRemakeV6230 .remakeKpiControlsV6279 .remakeRefreshStamp{text-align:left !important;}}
+      /* v6.667 canonical Technician master/detail ownership.
+         Selector ownership changes; v6.666 geometry and breakpoints are preserved. */
+      #remakeFactorPage.cleanRemakeV6230 .technicianMasterDetailV6667 {
+        display:grid !important;
+        grid-template-columns:minmax(300px,38%) minmax(0,62%) !important;
+        grid-template-rows:minmax(0,auto) !important;
+        grid-auto-flow:row !important;
+        align-items:stretch !important;
+        gap:0 !important;
+        width:100% !important;
+        min-width:0 !important;
+        max-width:100% !important;
+        min-height:350px !important;
+      }
+      #remakeFactorPage.cleanRemakeV6230 .technicianMasterPanelV6667,
+      #remakeFactorPage.cleanRemakeV6230 .technicianDetailPanelV6667 {
+        min-width:0 !important;
+        width:auto !important;
+        max-width:100% !important;
+        overflow:hidden !important;
+      }
+      #remakeFactorPage.cleanRemakeV6230 .technicianMasterPanelV6667 {
+        grid-column:1 !important;
+        grid-row:1 !important;
+        border-left:0 !important;
+      }
+      #remakeFactorPage.cleanRemakeV6230 .technicianDetailPanelV6667 {
+        grid-column:2 !important;
+        grid-row:1 !important;
+        border-left:1px solid #dfe4eb !important;
+        border-top:0 !important;
+      }
+      @media(max-width:1279px) {
+        #remakeFactorPage.cleanRemakeV6230 .technicianMasterPanelV6667,
+        #remakeFactorPage.cleanRemakeV6230 .technicianDetailPanelV6667 {
+          width:100% !important;
+          max-width:100% !important;
+          min-width:0 !important;
+          margin:0 !important;
+          border-radius:10px !important;
+          overflow:hidden !important;
+          box-sizing:border-box !important;
+        }
+      }
+      @media(max-width:480px) {
+        #remakeFactorPage.cleanRemakeV6230 .technicianMasterDetailV6667 {
+          display:block !important;
+          grid-template-columns:1fr !important;
+        }
+        #remakeFactorPage.cleanRemakeV6230 .technicianMasterPanelV6667,
+        #remakeFactorPage.cleanRemakeV6230 .technicianDetailPanelV6667 {
+          grid-column:auto !important;
+          grid-row:auto !important;
+          width:100% !important;
+        }
+        #remakeFactorPage.cleanRemakeV6230 .technicianDetailPanelV6667 {
+          border-left:0 !important;
+          border-top:1px solid #dfe4eb !important;
+        }
+      }
 </style>
-<script>window.CDA_REMAKE_BASE_STYLES_VERSION = 'v6.666-static-head';</script>
+<script>window.CDA_REMAKE_BASE_STYLES_VERSION = 'v6.667-canonical-tech-layout';</script>
