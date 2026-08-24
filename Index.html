@@ -1607,67 +1607,7 @@ window.CDA_TAT_PRODUCT_GROUP_SOURCE='Remake product-group mapping by product ID/
 window.CDA_TAT_KPI_HEADER_PARITY_VERSION='v6.528';
 </script>
 
-<script id="cdaSharedTopParityV6527Controller">
-(function installCdaSharedTopParityV6527(){
-  'use strict';
-  window.CDA_CURRENT_FRONTEND_VERSION='v6.528';
-  window.CDA_SHARED_TOP_PARITY_VERSION='v6.528';
-  window.CDA_UNIFIED_TOOLBAR_VERSION='v6.528-full-label-or-icons';
-
-  const hostIds=['remakeTabFilterHostV6337','tatTabFilterHostV6509'];
-  const icons={year:'Y',department:'D',product:'P',productGroup:'G',customer:'C',reason:'R'};
-  const observed=new WeakSet();
-  let applying=false;
-  let frame=0;
-
-  function visible(element){return !!(element&&!element.hidden&&getComputedStyle(element).display!=='none');}
-  function activeHost(){return hostIds.map(function(id){return document.getElementById(id);}).find(visible)||null;}
-  function fixedSiblingWidth(tabs,host){
-    return Array.from(tabs.children).filter(function(child){return child!==host&&visible(child);}).reduce(function(total,child){return total+child.getBoundingClientRect().width+4;},20);
-  }
-  function applyMode(){
-    if(applying)return;
-    applying=true;
-    try{
-      const tabs=document.querySelector('.managerTabs');
-      const host=activeHost();
-      hostIds.forEach(function(id){const item=document.getElementById(id);if(item)item.classList.remove('cdaIconToolbarV6527');});
-      if(!tabs||!host)return;
-      const available=Math.max(0,tabs.clientWidth-fixedSiblingWidth(tabs,host));
-      const natural=host.scrollWidth;
-      if(natural>available+1)host.classList.add('cdaIconToolbarV6527');
-    }finally{applying=false;}
-  }
-  function schedule(){if(frame)return;frame=requestAnimationFrame(function(){frame=0;applyMode();});}
-  function prepareHost(host){
-    if(!host)return;
-    host.querySelectorAll('.remakeFilter[data-filter-kind]').forEach(function(filter){
-      const kind=filter.getAttribute('data-filter-kind');
-      const button=filter.querySelector('.remakeDropdownButtonV6245');
-      if(button){button.dataset.cdaIconV6527=icons[kind]||'?';button.title=(button.textContent||'').trim();}
-    });
-    if(!observed.has(host)&&window.ResizeObserver){
-      observed.add(host);
-      const ro=new ResizeObserver(schedule);
-      ro.observe(host);
-      host.querySelectorAll('.remakeDropdownButtonV6245').forEach(function(button){ro.observe(button);});
-    }
-  }
-  function prepare(){hostIds.forEach(function(id){prepareHost(document.getElementById(id));});schedule();}
-
-  window.addEventListener('resize',schedule,{passive:true});
-  document.addEventListener('click',function(event){
-    if(event.target&&event.target.closest&&event.target.closest('#remakeFactorTabBtn,#tatTabBtnV6509'))schedule();
-  },true);
-
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',prepare,{once:true});else prepare();
-  const tabs=document.querySelector('.managerTabs');
-  if(tabs&&window.MutationObserver){
-    const observer=new MutationObserver(function(){prepare();if(document.getElementById('tatTabFilterHostV6509'))observer.disconnect();});
-    observer.observe(tabs,{childList:true});
-  }
-})();
-</script>
+<?!= includeDashboardFile('SharedTopParityController') ?>
 
 <!-- v6.531: shared application footer ownership for Remake and TAT. -->
 <?!= includeDashboardFile('SharedFooter') ?>
