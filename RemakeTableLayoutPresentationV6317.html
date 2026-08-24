@@ -1,0 +1,779 @@
+<script>
+window.CDA_REMAKE_LAYOUT_BALANCE_VERSION = 'v6.319';
+(function installRemakeV6317LayoutBalance(){
+  if(document.getElementById('remakeV6317LayoutBalanceStyles')) return;
+  const style=document.createElement('style');
+  style.id='remakeV6317LayoutBalanceStyles';
+  style.textContent=`
+    /* v6.319: keep Departments on the wider right, but give Trend/Reasons slightly more room and preserve full Product discount header. */
+    /* v6.317: give Reasons and Products more horizontal room instead of wrapping table headers. */
+    @media(min-width:981px){
+      #remakeFactorPage.cleanRemakeV6230 .remakeGridV6230 {
+        grid-template-columns:minmax(0,.94fr) minmax(0,1.06fr) !important;
+      }
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) {
+        min-width:0 !important;
+        width:100% !important;
+        table-layout:fixed !important;
+      }
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) th,
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) td {
+        min-width:0 !important;
+        padding-left:4px !important;
+        padding-right:4px !important;
+        font-size:10px !important;
+      }
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) th:first-child,
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) td:first-child {
+        width:22% !important;
+        min-width:132px !important;
+        max-width:none !important;
+      }
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) th:nth-child(2),
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) td:nth-child(2) { width:10% !important; }
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) th:nth-child(3),
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) td:nth-child(3) { width:10% !important; }
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) th:nth-child(4),
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) td:nth-child(4) { width:13% !important; }
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) th:nth-child(5),
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) td:nth-child(5) { width:10% !important; }
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) th:nth-child(6),
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) td:nth-child(6) { width:10% !important; }
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) th:nth-child(7),
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) td:nth-child(7) { width:12% !important; }
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) th:nth-child(8),
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) td:nth-child(8) { width:13% !important; }
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) thead th {
+        white-space:nowrap !important;
+        line-height:1.12 !important;
+        overflow:hidden !important;
+        text-overflow:ellipsis !important;
+      }
+      #remakeFactorPage.cleanRemakeV6230 .remakeProductTableWrapV6230 {
+        overflow-x:hidden !important;
+      }
+    }
+    @media(max-width:980px){
+      #remakeFactorPage.cleanRemakeV6230 .remakeProductTableWrapV6230 { overflow-x:auto !important; }
+    }
+  `;
+  document.head.appendChild(style);
+})();
+</script>
+
+<script>
+window.CDA_REMAKE_ALIGNED_TABLE_COLUMNS_VERSION = 'v6.320';
+(function installRemakeV6320AlignedTableColumns(){
+  if(document.getElementById('remakeV6320AlignedTableColumnsStyles')) return;
+  const style=document.createElement('style');
+  style.id='remakeV6320AlignedTableColumnsStyles';
+  style.textContent=`
+    /* v6.320: identical current-year table geometry for Departments, Products/Groups, and Customers. */
+    @media(min-width:981px){
+      #remakeFactorPage.cleanRemakeV6230 #remakeDepartmentTable:not(.compareColumnsV6301),
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301),
+      #remakeFactorPage.cleanRemakeV6230 #remakeCustomerTable:not(.compareColumnsV6301) {
+        width:100% !important;
+        min-width:0 !important;
+        table-layout:fixed !important;
+      }
+      #remakeFactorPage.cleanRemakeV6230 #remakeDepartmentTable:not(.compareColumnsV6301) th,
+      #remakeFactorPage.cleanRemakeV6230 #remakeDepartmentTable:not(.compareColumnsV6301) td,
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) th,
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) td,
+      #remakeFactorPage.cleanRemakeV6230 #remakeCustomerTable:not(.compareColumnsV6301) th,
+      #remakeFactorPage.cleanRemakeV6230 #remakeCustomerTable:not(.compareColumnsV6301) td {
+        min-width:0 !important;
+        padding-left:4px !important;
+        padding-right:4px !important;
+        font-size:9.5px !important;
+        overflow:hidden !important;
+        text-overflow:ellipsis !important;
+        white-space:nowrap !important;
+      }
+      #remakeFactorPage.cleanRemakeV6230 #remakeDepartmentTable:not(.compareColumnsV6301) th:first-child,
+      #remakeFactorPage.cleanRemakeV6230 #remakeDepartmentTable:not(.compareColumnsV6301) td:first-child,
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) th:first-child,
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) td:first-child,
+      #remakeFactorPage.cleanRemakeV6230 #remakeCustomerTable:not(.compareColumnsV6301) th:first-child,
+      #remakeFactorPage.cleanRemakeV6230 #remakeCustomerTable:not(.compareColumnsV6301) td:first-child {
+        width:26% !important;
+        min-width:0 !important;
+        max-width:none !important;
+      }
+      #remakeFactorPage.cleanRemakeV6230 #remakeDepartmentTable:not(.compareColumnsV6301) th:nth-child(2),
+      #remakeFactorPage.cleanRemakeV6230 #remakeDepartmentTable:not(.compareColumnsV6301) td:nth-child(2),
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) th:nth-child(2),
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) td:nth-child(2),
+      #remakeFactorPage.cleanRemakeV6230 #remakeCustomerTable:not(.compareColumnsV6301) th:nth-child(2),
+      #remakeFactorPage.cleanRemakeV6230 #remakeCustomerTable:not(.compareColumnsV6301) td:nth-child(2) { width:10% !important; }
+      #remakeFactorPage.cleanRemakeV6230 #remakeDepartmentTable:not(.compareColumnsV6301) th:nth-child(3),
+      #remakeFactorPage.cleanRemakeV6230 #remakeDepartmentTable:not(.compareColumnsV6301) td:nth-child(3),
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) th:nth-child(3),
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) td:nth-child(3),
+      #remakeFactorPage.cleanRemakeV6230 #remakeCustomerTable:not(.compareColumnsV6301) th:nth-child(3),
+      #remakeFactorPage.cleanRemakeV6230 #remakeCustomerTable:not(.compareColumnsV6301) td:nth-child(3) { width:10% !important; }
+      #remakeFactorPage.cleanRemakeV6230 #remakeDepartmentTable:not(.compareColumnsV6301) th:nth-child(4),
+      #remakeFactorPage.cleanRemakeV6230 #remakeDepartmentTable:not(.compareColumnsV6301) td:nth-child(4),
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) th:nth-child(4),
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) td:nth-child(4),
+      #remakeFactorPage.cleanRemakeV6230 #remakeCustomerTable:not(.compareColumnsV6301) th:nth-child(4),
+      #remakeFactorPage.cleanRemakeV6230 #remakeCustomerTable:not(.compareColumnsV6301) td:nth-child(4) { width:12% !important; }
+      #remakeFactorPage.cleanRemakeV6230 #remakeDepartmentTable:not(.compareColumnsV6301) th:nth-child(5),
+      #remakeFactorPage.cleanRemakeV6230 #remakeDepartmentTable:not(.compareColumnsV6301) td:nth-child(5),
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) th:nth-child(5),
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) td:nth-child(5),
+      #remakeFactorPage.cleanRemakeV6230 #remakeCustomerTable:not(.compareColumnsV6301) th:nth-child(5),
+      #remakeFactorPage.cleanRemakeV6230 #remakeCustomerTable:not(.compareColumnsV6301) td:nth-child(5) { width:10% !important; }
+      #remakeFactorPage.cleanRemakeV6230 #remakeDepartmentTable:not(.compareColumnsV6301) th:nth-child(6),
+      #remakeFactorPage.cleanRemakeV6230 #remakeDepartmentTable:not(.compareColumnsV6301) td:nth-child(6),
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) th:nth-child(6),
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) td:nth-child(6),
+      #remakeFactorPage.cleanRemakeV6230 #remakeCustomerTable:not(.compareColumnsV6301) th:nth-child(6),
+      #remakeFactorPage.cleanRemakeV6230 #remakeCustomerTable:not(.compareColumnsV6301) td:nth-child(6) { width:10% !important; }
+      #remakeFactorPage.cleanRemakeV6230 #remakeDepartmentTable:not(.compareColumnsV6301) th:nth-child(7),
+      #remakeFactorPage.cleanRemakeV6230 #remakeDepartmentTable:not(.compareColumnsV6301) td:nth-child(7),
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) th:nth-child(7),
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) td:nth-child(7),
+      #remakeFactorPage.cleanRemakeV6230 #remakeCustomerTable:not(.compareColumnsV6301) th:nth-child(7),
+      #remakeFactorPage.cleanRemakeV6230 #remakeCustomerTable:not(.compareColumnsV6301) td:nth-child(7) { width:12% !important; }
+      #remakeFactorPage.cleanRemakeV6230 #remakeDepartmentTable:not(.compareColumnsV6301) th:nth-child(8),
+      #remakeFactorPage.cleanRemakeV6230 #remakeDepartmentTable:not(.compareColumnsV6301) td:nth-child(8),
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) th:nth-child(8),
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) td:nth-child(8),
+      #remakeFactorPage.cleanRemakeV6230 #remakeCustomerTable:not(.compareColumnsV6301) th:nth-child(8),
+      #remakeFactorPage.cleanRemakeV6230 #remakeCustomerTable:not(.compareColumnsV6301) td:nth-child(8) { width:10% !important; }
+      #remakeFactorPage.cleanRemakeV6230 .remakeDepartmentTableWrapV6230,
+      #remakeFactorPage.cleanRemakeV6230 .remakeProductTableWrapV6230,
+      #remakeFactorPage.cleanRemakeV6230 .remakeCustomerTableWrapV6230 {
+        overflow-x:hidden !important;
+      }
+      #remakeFactorPage.cleanRemakeV6230 .remakeTable.compareColumnsV6301 {
+        table-layout:auto !important;
+      }
+      #remakeFactorPage.cleanRemakeV6230 .remakeTableWrap:has(.compareColumnsV6301) {
+        overflow-x:auto !important;
+      }
+    }
+  `;
+  document.head.appendChild(style);
+})();
+</script>
+
+
+<script>
+window.CDA_REMAKE_WIDER_NAME_COLUMN_VERSION = 'v6.321';
+(function installRemakeV6321WiderNameColumn(){
+  if(document.getElementById('remakeV6321WiderNameColumnStyles')) return;
+  const style=document.createElement('style');
+  style.id='remakeV6321WiderNameColumnStyles';
+  style.textContent=`
+    /* v6.321: reclaim unused numeric-column space for Department, Group/Product, and Customer names. */
+    @media(min-width:981px){
+      #remakeFactorPage.cleanRemakeV6230 #remakeDepartmentTable:not(.compareColumnsV6301) th:first-child,
+      #remakeFactorPage.cleanRemakeV6230 #remakeDepartmentTable:not(.compareColumnsV6301) td:first-child,
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) th:first-child,
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) td:first-child,
+      #remakeFactorPage.cleanRemakeV6230 #remakeCustomerTable:not(.compareColumnsV6301) th:first-child,
+      #remakeFactorPage.cleanRemakeV6230 #remakeCustomerTable:not(.compareColumnsV6301) td:first-child {
+        width:33% !important;
+      }
+      #remakeFactorPage.cleanRemakeV6230 #remakeDepartmentTable:not(.compareColumnsV6301) th:nth-child(2),
+      #remakeFactorPage.cleanRemakeV6230 #remakeDepartmentTable:not(.compareColumnsV6301) td:nth-child(2),
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) th:nth-child(2),
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) td:nth-child(2),
+      #remakeFactorPage.cleanRemakeV6230 #remakeCustomerTable:not(.compareColumnsV6301) th:nth-child(2),
+      #remakeFactorPage.cleanRemakeV6230 #remakeCustomerTable:not(.compareColumnsV6301) td:nth-child(2),
+      #remakeFactorPage.cleanRemakeV6230 #remakeDepartmentTable:not(.compareColumnsV6301) th:nth-child(3),
+      #remakeFactorPage.cleanRemakeV6230 #remakeDepartmentTable:not(.compareColumnsV6301) td:nth-child(3),
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) th:nth-child(3),
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) td:nth-child(3),
+      #remakeFactorPage.cleanRemakeV6230 #remakeCustomerTable:not(.compareColumnsV6301) th:nth-child(3),
+      #remakeFactorPage.cleanRemakeV6230 #remakeCustomerTable:not(.compareColumnsV6301) td:nth-child(3),
+      #remakeFactorPage.cleanRemakeV6230 #remakeDepartmentTable:not(.compareColumnsV6301) th:nth-child(5),
+      #remakeFactorPage.cleanRemakeV6230 #remakeDepartmentTable:not(.compareColumnsV6301) td:nth-child(5),
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) th:nth-child(5),
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) td:nth-child(5),
+      #remakeFactorPage.cleanRemakeV6230 #remakeCustomerTable:not(.compareColumnsV6301) th:nth-child(5),
+      #remakeFactorPage.cleanRemakeV6230 #remakeCustomerTable:not(.compareColumnsV6301) td:nth-child(5),
+      #remakeFactorPage.cleanRemakeV6230 #remakeDepartmentTable:not(.compareColumnsV6301) th:nth-child(6),
+      #remakeFactorPage.cleanRemakeV6230 #remakeDepartmentTable:not(.compareColumnsV6301) td:nth-child(6),
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) th:nth-child(6),
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) td:nth-child(6),
+      #remakeFactorPage.cleanRemakeV6230 #remakeCustomerTable:not(.compareColumnsV6301) th:nth-child(6),
+      #remakeFactorPage.cleanRemakeV6230 #remakeCustomerTable:not(.compareColumnsV6301) td:nth-child(6) {
+        width:8.5% !important;
+      }
+      #remakeFactorPage.cleanRemakeV6230 #remakeDepartmentTable:not(.compareColumnsV6301) th:nth-child(4),
+      #remakeFactorPage.cleanRemakeV6230 #remakeDepartmentTable:not(.compareColumnsV6301) td:nth-child(4),
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) th:nth-child(4),
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) td:nth-child(4),
+      #remakeFactorPage.cleanRemakeV6230 #remakeCustomerTable:not(.compareColumnsV6301) th:nth-child(4),
+      #remakeFactorPage.cleanRemakeV6230 #remakeCustomerTable:not(.compareColumnsV6301) td:nth-child(4),
+      #remakeFactorPage.cleanRemakeV6230 #remakeDepartmentTable:not(.compareColumnsV6301) th:nth-child(7),
+      #remakeFactorPage.cleanRemakeV6230 #remakeDepartmentTable:not(.compareColumnsV6301) td:nth-child(7),
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) th:nth-child(7),
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) td:nth-child(7),
+      #remakeFactorPage.cleanRemakeV6230 #remakeCustomerTable:not(.compareColumnsV6301) th:nth-child(7),
+      #remakeFactorPage.cleanRemakeV6230 #remakeCustomerTable:not(.compareColumnsV6301) td:nth-child(7) {
+        width:11% !important;
+      }
+      #remakeFactorPage.cleanRemakeV6230 #remakeDepartmentTable:not(.compareColumnsV6301) th:nth-child(8),
+      #remakeFactorPage.cleanRemakeV6230 #remakeDepartmentTable:not(.compareColumnsV6301) td:nth-child(8),
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) th:nth-child(8),
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) td:nth-child(8),
+      #remakeFactorPage.cleanRemakeV6230 #remakeCustomerTable:not(.compareColumnsV6301) th:nth-child(8),
+      #remakeFactorPage.cleanRemakeV6230 #remakeCustomerTable:not(.compareColumnsV6301) td:nth-child(8) {
+        width:11% !important;
+      }
+    }
+  `;
+  document.head.appendChild(style);
+})();
+</script>
+<script>
+window.CDA_REMAKE_CUSTOMER_COMPARE_ALIGNMENT_VERSION = 'v6.322';
+(function installRemakeV6322CustomerCompareAlignment(){
+  if(document.getElementById('remakeV6322CustomerCompareAlignmentStyles')) return;
+  const style=document.createElement('style');
+  style.id='remakeV6322CustomerCompareAlignmentStyles';
+  style.textContent=`
+    /* v6.322: keep the customer 2025 comparison geometry aligned with Department and Product/Group tables. */
+    @media(min-width:981px){
+      #remakeFactorPage.cleanRemakeV6230 #remakeCustomerTable.compareColumnsV6301 {
+        table-layout:fixed !important;
+        width:1780px !important;
+        min-width:1780px !important;
+      }
+      #remakeFactorPage.cleanRemakeV6230 #remakeCustomerTable.compareColumnsV6301 th:first-child,
+      #remakeFactorPage.cleanRemakeV6230 #remakeCustomerTable.compareColumnsV6301 td:first-child {
+        width:205px !important;
+        min-width:205px !important;
+        max-width:205px !important;
+      }
+      #remakeFactorPage.cleanRemakeV6230 #remakeCustomerTable.compareColumnsV6301 th:not(:first-child),
+      #remakeFactorPage.cleanRemakeV6230 #remakeCustomerTable.compareColumnsV6301 td:not(:first-child) {
+        width:75px !important;
+        min-width:75px !important;
+        max-width:75px !important;
+      }
+      #remakeFactorPage.cleanRemakeV6230 #remakeCustomerTable.compareColumnsV6301 th.deltaHeaderV6301,
+      #remakeFactorPage.cleanRemakeV6230 #remakeCustomerTable.compareColumnsV6301 td.deltaCellV6301 {
+        width:64px !important;
+        min-width:64px !important;
+        max-width:64px !important;
+      }
+      #remakeFactorPage.cleanRemakeV6230 #remakeCustomerTable.compareColumnsV6301 .customerNameText {
+        display:block !important;
+        max-width:100% !important;
+        overflow:hidden !important;
+        text-overflow:ellipsis !important;
+        white-space:nowrap !important;
+      }
+    }
+  `;
+  document.head.appendChild(style);
+})();
+</script>
+
+<script>
+window.CDA_REMAKE_COMPACT_ALIGNED_NAME_COLUMNS_VERSION = 'v6.334';
+window.CDA_REMAKE_LOW_LATENCY_TRANSITIONS_VERSION = 'v6.333';
+window.CDA_REMAKE_COMPACT_HEADERS_VERSION = 'v6.335';
+window.CDA_REMAKE_HEADER_ALIGNMENT_VERSION = 'v6.336';
+(function installRemakeV6332CompactAlignedNameColumns(){
+  if(document.getElementById('remakeV6332CompactAlignedNameColumnsStyles')) return;
+  const style=document.createElement('style');
+  style.id='remakeV6332CompactAlignedNameColumnsStyles';
+  style.textContent=`
+    /* v6.332: widen names without wrapping or adding current-year horizontal scrolling. */
+    /* v6.336: name headers left, metric headers centered, metric values right.
+       Absolutely position the sort glyph so it never shifts the header label. */
+    #remakeFactorPage.cleanRemakeV6230 .remakeTable thead th.sortableV6230 {
+      position:sticky !important;
+    }
+    #remakeFactorPage.cleanRemakeV6230 .remakeTable thead th:first-child {
+      text-align:left !important;
+      padding-left:5px !important;
+      padding-right:18px !important;
+    }
+    #remakeFactorPage.cleanRemakeV6230 .remakeTable thead th:not(:first-child) {
+      text-align:center !important;
+      padding-left:16px !important;
+      padding-right:16px !important;
+    }
+    #remakeFactorPage.cleanRemakeV6230 .remakeTable tbody td:not(:first-child) {
+      text-align:right !important;
+    }
+    #remakeFactorPage.cleanRemakeV6230 .remakeTable thead .sortGlyphV6230 {
+      position:absolute !important;
+      right:4px !important;
+      top:50% !important;
+      transform:translateY(-50%) !important;
+      display:block !important;
+      width:auto !important;
+      min-width:0 !important;
+      margin:0 !important;
+      line-height:1 !important;
+    }
+    @media(min-width:981px){
+      #remakeFactorPage.cleanRemakeV6230 #remakeDepartmentTable:not(.compareColumnsV6301),
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301),
+      #remakeFactorPage.cleanRemakeV6230 #remakeCustomerTable:not(.compareColumnsV6301) {
+        width:100% !important;
+        min-width:0 !important;
+        table-layout:fixed !important;
+      }
+      #remakeFactorPage.cleanRemakeV6230 #remakeDepartmentTable:not(.compareColumnsV6301) th,
+      #remakeFactorPage.cleanRemakeV6230 #remakeDepartmentTable:not(.compareColumnsV6301) td,
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) th,
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) td,
+      #remakeFactorPage.cleanRemakeV6230 #remakeCustomerTable:not(.compareColumnsV6301) th,
+      #remakeFactorPage.cleanRemakeV6230 #remakeCustomerTable:not(.compareColumnsV6301) td {
+        min-width:0 !important;
+        max-width:none !important;
+        white-space:nowrap !important;
+        overflow:hidden !important;
+        text-overflow:ellipsis !important;
+      }
+      #remakeFactorPage.cleanRemakeV6230 #remakeDepartmentTable:not(.compareColumnsV6301) th:first-child,
+      #remakeFactorPage.cleanRemakeV6230 #remakeDepartmentTable:not(.compareColumnsV6301) td:first-child,
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) th:first-child,
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) td:first-child,
+      #remakeFactorPage.cleanRemakeV6230 #remakeCustomerTable:not(.compareColumnsV6301) th:first-child,
+      #remakeFactorPage.cleanRemakeV6230 #remakeCustomerTable:not(.compareColumnsV6301) td:first-child {
+        width:42% !important;
+      }
+      #remakeFactorPage.cleanRemakeV6230 #remakeDepartmentTable:not(.compareColumnsV6301) th:nth-child(2),
+      #remakeFactorPage.cleanRemakeV6230 #remakeDepartmentTable:not(.compareColumnsV6301) td:nth-child(2),
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) th:nth-child(2),
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) td:nth-child(2),
+      #remakeFactorPage.cleanRemakeV6230 #remakeCustomerTable:not(.compareColumnsV6301) th:nth-child(2),
+      #remakeFactorPage.cleanRemakeV6230 #remakeCustomerTable:not(.compareColumnsV6301) td:nth-child(2),
+      #remakeFactorPage.cleanRemakeV6230 #remakeDepartmentTable:not(.compareColumnsV6301) th:nth-child(3),
+      #remakeFactorPage.cleanRemakeV6230 #remakeDepartmentTable:not(.compareColumnsV6301) td:nth-child(3),
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) th:nth-child(3),
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) td:nth-child(3),
+      #remakeFactorPage.cleanRemakeV6230 #remakeCustomerTable:not(.compareColumnsV6301) th:nth-child(3),
+      #remakeFactorPage.cleanRemakeV6230 #remakeCustomerTable:not(.compareColumnsV6301) td:nth-child(3) {
+        width:7.5% !important;
+      }
+      #remakeFactorPage.cleanRemakeV6230 #remakeDepartmentTable:not(.compareColumnsV6301) th:nth-child(4),
+      #remakeFactorPage.cleanRemakeV6230 #remakeDepartmentTable:not(.compareColumnsV6301) td:nth-child(4),
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) th:nth-child(4),
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) td:nth-child(4),
+      #remakeFactorPage.cleanRemakeV6230 #remakeCustomerTable:not(.compareColumnsV6301) th:nth-child(4),
+      #remakeFactorPage.cleanRemakeV6230 #remakeCustomerTable:not(.compareColumnsV6301) td:nth-child(4),
+      #remakeFactorPage.cleanRemakeV6230 #remakeDepartmentTable:not(.compareColumnsV6301) th:nth-child(7),
+      #remakeFactorPage.cleanRemakeV6230 #remakeDepartmentTable:not(.compareColumnsV6301) td:nth-child(7),
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) th:nth-child(7),
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) td:nth-child(7),
+      #remakeFactorPage.cleanRemakeV6230 #remakeCustomerTable:not(.compareColumnsV6301) th:nth-child(7),
+      #remakeFactorPage.cleanRemakeV6230 #remakeCustomerTable:not(.compareColumnsV6301) td:nth-child(7) {
+        width:8.5% !important;
+      }
+      #remakeFactorPage.cleanRemakeV6230 #remakeDepartmentTable:not(.compareColumnsV6301) th:nth-child(5),
+      #remakeFactorPage.cleanRemakeV6230 #remakeDepartmentTable:not(.compareColumnsV6301) td:nth-child(5),
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) th:nth-child(5),
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) td:nth-child(5),
+      #remakeFactorPage.cleanRemakeV6230 #remakeCustomerTable:not(.compareColumnsV6301) th:nth-child(5),
+      #remakeFactorPage.cleanRemakeV6230 #remakeCustomerTable:not(.compareColumnsV6301) td:nth-child(5),
+      #remakeFactorPage.cleanRemakeV6230 #remakeDepartmentTable:not(.compareColumnsV6301) th:nth-child(6),
+      #remakeFactorPage.cleanRemakeV6230 #remakeDepartmentTable:not(.compareColumnsV6301) td:nth-child(6),
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) th:nth-child(6),
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) td:nth-child(6),
+      #remakeFactorPage.cleanRemakeV6230 #remakeCustomerTable:not(.compareColumnsV6301) th:nth-child(6),
+      #remakeFactorPage.cleanRemakeV6230 #remakeCustomerTable:not(.compareColumnsV6301) td:nth-child(6) {
+        width:8% !important;
+      }
+      #remakeFactorPage.cleanRemakeV6230 #remakeDepartmentTable:not(.compareColumnsV6301) th:nth-child(8),
+      #remakeFactorPage.cleanRemakeV6230 #remakeDepartmentTable:not(.compareColumnsV6301) td:nth-child(8),
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) th:nth-child(8),
+      #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) td:nth-child(8),
+      #remakeFactorPage.cleanRemakeV6230 #remakeCustomerTable:not(.compareColumnsV6301) th:nth-child(8),
+      #remakeFactorPage.cleanRemakeV6230 #remakeCustomerTable:not(.compareColumnsV6301) td:nth-child(8) {
+        width:10% !important;
+      }
+      #remakeFactorPage.cleanRemakeV6230 .remakeDepartmentTableWrapV6230,
+      #remakeFactorPage.cleanRemakeV6230 .remakeProductTableWrapV6230,
+      #remakeFactorPage.cleanRemakeV6230 .remakeCustomerTableWrapV6230 {
+        overflow-x:hidden !important;
+      }
+    }
+  `;
+  document.head.appendChild(style);
+})();
+</script>
+
+<style id="remakeV6337StableTabFilterToolbarStyles">
+  #remakeFilterHomeV6337 { display:none !important; }
+  #remakeTabFilterHostV6337[hidden] { display:none !important; }
+  #remakeTabFilterHostV6337 {
+    display:flex;
+    flex:1 1 auto;
+    min-width:0;
+    height:100%;
+    margin-left:auto;
+    align-items:center;
+    justify-content:flex-end;
+    gap:6px;
+    overflow:visible;
+    position:relative;
+    z-index:10020;
+  }
+  .managerTabs.remakeTabFiltersActiveV6337 {
+    position:sticky !important;
+    top:0 !important;
+    z-index:10000 !important;
+    overflow:visible !important;
+  }
+  #remakeTabFilterHostV6337 .remakeFilterBarV6230 {
+    display:grid !important;
+    grid-template-columns:minmax(82px,.54fr) minmax(108px,.76fr) minmax(132px,.96fr) minmax(116px,.82fr) minmax(132px,.96fr) minmax(108px,.76fr) !important;
+    flex:1 1 auto !important;
+    width:auto !important;
+    max-width:1240px !important;
+    min-width:0 !important;
+    gap:5px !important;
+    align-items:center !important;
+    padding:0 !important;
+    margin:0 0 0 auto !important;
+    overflow:visible !important;
+  }
+  #remakeTabFilterHostV6337 .remakeFilter {
+    min-width:0 !important;
+    min-height:32px !important;
+    padding:0 !important;
+    margin:0 !important;
+    border:0 !important;
+    border-radius:0 !important;
+    background:transparent !important;
+    box-shadow:none !important;
+  }
+  #remakeTabFilterHostV6337 .remakeMultiFilterV6245 {
+    position:relative !important;
+    overflow:visible !important;
+  }
+  #remakeTabFilterHostV6337 .remakeFilter label {
+    position:absolute !important;
+    width:1px !important;
+    height:1px !important;
+    padding:0 !important;
+    margin:-1px !important;
+    overflow:hidden !important;
+    clip:rect(0,0,0,0) !important;
+    white-space:nowrap !important;
+    border:0 !important;
+  }
+  #remakeTabFilterHostV6337 .remakeHiddenSelectV6245 { display:none !important; }
+  #remakeTabFilterHostV6337 .remakeDropdownButtonV6245::after {
+    content:'▾';
+    position:absolute;
+    right:8px;
+    top:50%;
+    transform:translateY(-50%);
+    color:#475467;
+    font-size:11px;
+  }
+  #remakeTabFilterHostV6337 .remakeDropdownButtonV6245:hover,
+  #remakeTabFilterHostV6337 .remakeDropdownButtonV6245.active {
+    border-color:#94a3b8 !important;
+    background:#f8fafc !important;
+  }
+  #remakeTabFilterHostV6337 .remakeDropdownButtonV6245.active {
+    box-shadow:0 0 0 2px rgba(37,99,235,.10) !important;
+  }
+  #remakeTabFilterHostV6337 .remakeDropdownPanelV6245 {
+    display:none;
+    position:absolute;
+    left:0;
+    right:auto;
+    top:calc(100% + 5px);
+    width:360px;
+    min-width:320px;
+    max-height:430px;
+    background:#fff;
+    border:1px solid #cbd5df;
+    border-radius:10px;
+    box-shadow:0 18px 38px rgba(16,24,40,.24);
+    z-index:10040;
+    overflow:hidden;
+  }
+  #remakeTabFilterHostV6337 [data-filter-kind="year"] .remakeDropdownPanelV6245 { width:300px; min-width:280px; }
+  #remakeTabFilterHostV6337 [data-filter-kind="customer"] .remakeDropdownPanelV6245,
+  #remakeTabFilterHostV6337 [data-filter-kind="reason"] .remakeDropdownPanelV6245 { left:auto; right:0; }
+  #remakeTabFilterHostV6337 .remakeDropdownPanelV6245.open { display:block !important; }
+  #remakeTabFilterHostV6337 .remakeDropdownHeaderV6245 {
+    display:flex !important;
+    gap:6px !important;
+    align-items:center !important;
+    padding:7px !important;
+    border-bottom:1px solid #e5e7eb !important;
+    background:#f8fafc !important;
+  }
+  #remakeTabFilterHostV6337 .remakeDropdownHeaderV6245 button {
+    border:1px solid #cbd5df !important;
+    background:#fff !important;
+    color:#1f2937 !important;
+    border-radius:999px !important;
+    padding:6px 8px !important;
+    font:800 11px/1 Roboto,Arial,sans-serif !important;
+    cursor:pointer !important;
+    white-space:nowrap !important;
+  }
+  #remakeTabFilterHostV6337 .remakeDropdownCountV6245 {
+    margin-left:auto !important;
+    color:#667085 !important;
+    font:800 11px/1 Roboto,Arial,sans-serif !important;
+    white-space:nowrap !important;
+  }
+  #remakeTabFilterHostV6337 .remakeDropdownSearchV6245 {
+    width:calc(100% - 14px) !important;
+    margin:7px !important;
+    height:32px !important;
+    border:1px solid #d5dae2 !important;
+    border-radius:7px !important;
+    padding:0 9px !important;
+    color:#202124 !important;
+    font:700 12px/1 Roboto,Arial,sans-serif !important;
+    outline:none !important;
+  }
+  #remakeTabFilterHostV6337 .remakeDropdownSearchV6245:focus {
+    border-color:#94a3b8 !important;
+    box-shadow:0 0 0 3px rgba(37,99,235,.10) !important;
+  }
+  #remakeTabFilterHostV6337 .remakeDropdownListV6245 {
+    max-height:304px !important;
+    overflow-y:auto !important;
+    scrollbar-gutter:stable both-edges !important;
+  }
+  #remakeTabFilterHostV6337 .remakeDropdownRowV6245 {
+    display:grid !important;
+    grid-template-columns:24px minmax(0,1fr) auto !important;
+    gap:8px !important;
+    align-items:center !important;
+    padding:7px 9px !important;
+    border-bottom:1px solid #f1f3f5 !important;
+    cursor:pointer !important;
+    user-select:none !important;
+  }
+  #remakeTabFilterHostV6337 .remakeDropdownRowV6245:hover,
+  #remakeTabFilterHostV6337 .remakeDropdownRowV6245.active { background:#eef5ff !important; }
+  #remakeTabFilterHostV6337 .remakeDropdownRowV6245 input {
+    pointer-events:none !important;
+    width:16px !important;
+    height:16px !important;
+    accent-color:#2563eb !important;
+  }
+  #remakeTabFilterHostV6337 .remakeDropdownLabelV6245 {
+    overflow:hidden !important;
+    text-overflow:ellipsis !important;
+    white-space:nowrap !important;
+    font:800 12px/1.2 Roboto,Arial,sans-serif !important;
+    color:#344054 !important;
+  }
+  #remakeTabFilterHostV6337 .remakeDropdownMetaV6245 {
+    display:inline-flex !important;
+    align-items:center !important;
+    gap:6px !important;
+  }
+  #remakeTabFilterHostV6337 .remakeDropdownOnlyV6245 {
+    border:1px solid #d5dae2 !important;
+    background:#fff !important;
+    color:#475467 !important;
+    border-radius:999px !important;
+    padding:4px 7px !important;
+    font:900 10px/1 Roboto,Arial,sans-serif !important;
+    cursor:pointer !important;
+  }
+  #remakeTabFilterHostV6337 .remakeDropdownEmptyV6245 {
+    padding:14px 10px !important;
+    color:#667085 !important;
+    font:800 12px/1.3 Roboto,Arial,sans-serif !important;
+  }
+  #remakeTabFilterHostV6337 .remakeTabToolButtonV6337 {
+    flex:0 0 auto;
+    height:32px;
+    min-height:32px;
+    border:1px solid #cbd5e1;
+    border-radius:7px;
+    background:#fff;
+    color:#334155;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    font:800 11px/1 Roboto,Arial,sans-serif;
+    box-shadow:none;
+  }
+  #remakeTabFilterHostV6337 .remakeTabToolButtonV6337:hover,
+  #remakeTabFilterHostV6337 .remakeTabToolButtonV6337[aria-expanded="true"] {
+    background:#fff7d6;
+    border-color:#f2c94c;
+    color:#7a4a00;
+  }
+  #remakeTabFilterHostV6337 .remakeTabSearchProxyV6337 { width:32px; min-width:32px; padding:0; }
+  #remakeTabFilterHostV6337 .remakeTabSearchProxyV6337 svg { width:16px; height:16px; fill:currentColor; }
+  #remakeTabFilterHostV6337 .remakeTabResetV6337 { padding:0 10px; }
+  #remakeTabFilterHostV6337 .remakeCacheActionBarV6338 {
+    display:inline-flex;
+    flex:0 0 auto;
+    align-items:center;
+    justify-content:flex-end;
+    gap:5px;
+  }
+  #remakeTabFilterHostV6337 .remakeCacheActionBarV6338 .remakeButton {
+    height:32px;
+    min-height:32px;
+    border:1px solid #cbd5e1;
+    border-radius:7px;
+    padding:0 9px;
+    background:#172033;
+    color:#fff;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:5px;
+    cursor:pointer;
+    font:900 11px/1 Roboto,Arial,sans-serif;
+    white-space:nowrap;
+    box-shadow:none;
+  }
+  #remakeTabFilterHostV6337 .remakeCacheActionBarV6338 .remakeButton.secondary {
+    background:#fff7d6;
+    color:#7a4a00;
+    border-color:#f2c94c;
+  }
+  #remakeTabFilterHostV6337 .remakeCacheActionBarV6338 .remakeButton:hover { filter:brightness(.97); }
+  #remakeTabFilterHostV6337 .remakeCacheActionBarV6338 .remakeButton:disabled { opacity:.55; cursor:wait; }
+  #remakeTabFilterHostV6337 .remakeCacheActionIconV6338 { font:900 15px/1 Roboto,Arial,sans-serif; }
+  #remakeFactorPage.remakeTabFiltersDockedV6337 .remakeStickyTopV6245 {
+    top:44px !important;
+    padding-top:4px !important;
+  }
+  #remakeFactorPage.remakeTabFiltersDockedV6337 .remakeGlobalSearchBarV6304 {
+    position:fixed !important;
+    top:48px !important;
+    right:12px !important;
+    width:0 !important;
+    height:0 !important;
+    z-index:10050 !important;
+  }
+  #remakeFactorPage.remakeTabFiltersDockedV6337 .remakeGlobalSearchBarV6304 > .remakeGlobalSearchButtonV6304 {
+    display:none !important;
+  }
+  #remakeFactorPage.remakeTabFiltersDockedV6337 .remakeGlobalSearchPanelV6304 {
+    top:0 !important;
+    right:0 !important;
+  }
+  @media (max-width:1500px) and (min-width:1280px) {
+    #remakeTabFilterHostV6337 .remakeCacheActionBarV6338 .remakeButton { width:32px; min-width:32px; padding:0; }
+    #remakeTabFilterHostV6337 .remakeCacheActionLabelV6338 { display:none; }
+  }
+  @media (max-width:1279px) {
+    #remakeTabFilterHostV6337 { display:none !important; }
+  }
+</style>
+
+<script>
+window.CDA_REMAKE_TAB_FILTER_TOOLBAR_VERSION = 'v6.338';
+window.CDA_REMAKE_CACHE_ACTION_TOOLBAR_VERSION = 'v6.338';
+(function installRemakeV6337StableTabFilterToolbar(){
+  'use strict';
+  const BREAKPOINT_V6337 = 1280;
+  let syncFrameV6337 = 0;
+
+  function idV6337(id) { return document.getElementById(id); }
+  function activeRemakeV6337(page) {
+    if (!page) return false;
+    if (page.classList.contains('active')) return true;
+    try { return !!(window.state && window.state.activeTab === 'remakeFactor'); } catch (error) { return false; }
+  }
+  function syncSearchStateV6337() {
+    const source = idV6337('remakeGlobalSearchButtonV6304');
+    const proxy = idV6337('remakeTabSearchProxyV6337');
+    if (!proxy) return;
+    const expanded = !!(source && source.getAttribute('aria-expanded') === 'true');
+    proxy.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+  }
+  function syncRemakeTabFiltersV6337() {
+    syncFrameV6337 = 0;
+    const page = idV6337('remakeFactorPage');
+    const tabs = document.querySelector('.managerTabs');
+    const host = idV6337('remakeTabFilterHostV6337');
+    const home = idV6337('remakeFilterHomeV6337');
+    const actionHome = idV6337('remakeCacheActionHomeV6338');
+    const searchProxy = idV6337('remakeTabSearchProxyV6337');
+    if (!page || !tabs || !host) return;
+
+    let pageBar = page.querySelector('.remakeFilterBarV6230');
+    let hostBar = host.querySelector('.remakeFilterBarV6230');
+    if (pageBar && hostBar && pageBar !== hostBar) {
+      hostBar.remove();
+      hostBar = null;
+    }
+    const bar = pageBar || hostBar;
+    let pageActions = page.querySelector('.remakeCacheActionBarV6338');
+    let hostActions = host.querySelector('.remakeCacheActionBarV6338');
+    if (pageActions && hostActions && pageActions !== hostActions) {
+      hostActions.remove();
+      hostActions = null;
+    }
+    const actions = pageActions || hostActions;
+    const dock = !!(bar && activeRemakeV6337(page) && window.innerWidth >= BREAKPOINT_V6337);
+
+    if (dock) {
+      host.hidden = false;
+      tabs.classList.add('remakeTabFiltersActiveV6337');
+      page.classList.add('remakeTabFiltersDockedV6337');
+      if (bar.parentElement !== host) host.insertBefore(bar, searchProxy || host.firstChild);
+      bar.classList.add('remakeTabFilterBarDockedV6337');
+      if (actions && actions.parentElement !== host) host.appendChild(actions);
+    } else {
+      if (bar && home && (bar.parentElement !== home.parentElement || bar.previousElementSibling !== home)) {
+        home.insertAdjacentElement('afterend', bar);
+      }
+      if (actions && actionHome && (actions.parentElement !== actionHome.parentElement || actions.previousElementSibling !== actionHome)) {
+        actionHome.insertAdjacentElement('afterend', actions);
+      }
+      if (bar) bar.classList.remove('remakeTabFilterBarDockedV6337');
+      host.hidden = true;
+      tabs.classList.remove('remakeTabFiltersActiveV6337');
+      page.classList.remove('remakeTabFiltersDockedV6337');
+    }
+    syncSearchStateV6337();
+  }
+  function scheduleSyncV6337() {
+    if (syncFrameV6337) return;
+    syncFrameV6337 = window.requestAnimationFrame(syncRemakeTabFiltersV6337);
+  }
+
+  window.syncRemakeTabFiltersV6337 = scheduleSyncV6337;
+  window.toggleRemakeTabSearchV6337 = function toggleRemakeTabSearchV6337(event) {
+    if (event) { event.preventDefault(); event.stopPropagation(); }
+    if (typeof window.toggleRemakeGlobalSearchV6304 === 'function') window.toggleRemakeGlobalSearchV6304(event);
+    window.requestAnimationFrame(syncSearchStateV6337);
+  };
+  window.resetRemakeTabFiltersV6337 = function resetRemakeTabFiltersV6337(event) {
+    if (event) { event.preventDefault(); event.stopPropagation(); }
+    if (typeof window.clearRemakeFilterV6230 === 'function') window.clearRemakeFilterV6230('all');
+    scheduleSyncV6337();
+  };
+
+  const pageV6337 = idV6337('remakeFactorPage');
+  if (pageV6337 && typeof MutationObserver === 'function') {
+    const observerV6337 = new MutationObserver(scheduleSyncV6337);
+    // v6.422 no-twitch: only direct structural changes can redock the toolbar.
+    // Page class changes are intentionally ignored because the sync function
+    // itself changes those classes and could otherwise cause redundant frames.
+    observerV6337.observe(pageV6337, { childList:true });
+    window.__remakeTabFilterObserverV6337 = observerV6337;
+  }
+  window.addEventListener('resize', scheduleSyncV6337);
+  document.addEventListener('click', function(){ window.setTimeout(syncSearchStateV6337, 0); });
+  document.addEventListener('DOMContentLoaded', scheduleSyncV6337);
+  scheduleSyncV6337();
+  window.setTimeout(scheduleSyncV6337, 400);
+  window.setTimeout(scheduleSyncV6337, 1300);
+})();
+</script>

@@ -1,0 +1,257 @@
+<!-- v6.385: simplified Saved Views/settings menu while preserving separate
+     open and Reset defaults, editable names, and all existing actions. -->
+<style id="remakeCompactControlsAndTableGeometryV6384">
+  /* The desktop Settings button was created after the original toolbar icon
+     styles and therefore had no stroke rules above 1279px. Keep the SVG
+     self-contained and size the button exactly like Search. */
+  #remakeCompactToolbarV6382 .remakeCompactToolV6382 svg,
+  #remakeTabFilterHostV6337 #remakeTabViewsV6382 svg {
+    display:block !important;
+    flex:0 0 18px !important;
+    width:18px !important;
+    height:18px !important;
+    fill:none !important;
+    stroke:currentColor !important;
+    stroke-width:2 !important;
+    stroke-linecap:round !important;
+    stroke-linejoin:round !important;
+    overflow:visible !important;
+    pointer-events:none !important;
+  }
+
+  @media (min-width:1280px) {
+    #remakeTabFilterHostV6337:not([hidden]) #remakeTabViewsV6382 {
+      display:inline-flex !important;
+      flex:0 0 32px !important;
+      align-items:center !important;
+      justify-content:center !important;
+      width:32px !important;
+      min-width:32px !important;
+      max-width:32px !important;
+      height:32px !important;
+      min-height:32px !important;
+      padding:0 !important;
+      overflow:visible !important;
+    }
+  }
+
+  @media (max-width:1279px) {
+    body.remakeCompactActiveV6382 #remakeCompactToolbarV6382 {
+      display:flex !important;
+      visibility:visible !important;
+      opacity:1 !important;
+      pointer-events:auto !important;
+      align-items:center !important;
+      flex-wrap:nowrap !important;
+      gap:4px !important;
+      width:100% !important;
+      max-width:100% !important;
+      min-width:0 !important;
+      padding-left:max(6px,env(safe-area-inset-left)) !important;
+      padding-right:max(6px,env(safe-area-inset-right)) !important;
+      overflow:visible !important;
+      box-sizing:border-box !important;
+    }
+
+    body.remakeCompactActiveV6382 #remakeCompactToolbarV6382 .remakeCompactFiltersV6382 {
+      display:inline-flex !important;
+      flex:1 1 auto !important;
+      width:auto !important;
+      min-width:104px !important;
+      max-width:none !important;
+      height:40px !important;
+      padding:0 10px !important;
+      justify-content:flex-start !important;
+      gap:7px !important;
+      overflow:visible !important;
+      text-overflow:clip !important;
+      white-space:nowrap !important;
+      box-sizing:border-box !important;
+    }
+
+    body.remakeCompactActiveV6382 #remakeCompactToolbarV6382 .remakeCompactFiltersV6382 > span:first-child {
+      display:block !important;
+      flex:0 0 auto !important;
+      min-width:38px !important;
+      overflow:visible !important;
+    }
+
+    body.remakeCompactActiveV6382 #remakeCompactToolbarV6382 .remakeCompactFiltersV6382 .remakeCompactFilterCountV6382 {
+      flex:0 0 auto !important;
+      margin-left:auto !important;
+    }
+
+    body.remakeCompactActiveV6382 #remakeCompactToolbarV6382 .remakeCompactFiltersV6382 svg {
+      flex:0 0 17px !important;
+      width:17px !important;
+      height:17px !important;
+    }
+
+    body.remakeCompactActiveV6382 #remakeCompactToolbarV6382 .remakeCompactToolV6382:not(.remakeCompactFiltersV6382) {
+      flex:0 0 40px !important;
+      width:40px !important;
+      min-width:40px !important;
+      max-width:40px !important;
+      height:40px !important;
+      min-height:40px !important;
+      padding:0 !important;
+    }
+
+    #remakeFactorPage.cleanRemakeV6230 .remakeTableWrap,
+    #remakeFactorPage.cleanRemakeV6230 .remakeDepartmentTableWrapV6230,
+    #remakeFactorPage.cleanRemakeV6230 .remakeProductTableWrapV6230,
+    #remakeFactorPage.cleanRemakeV6230 .remakeCustomerTableWrapV6230,
+    #remakeFactorPage.cleanRemakeV6230 .ceramistPreviewTableWrapV6342 {
+      display:block !important;
+      width:100% !important;
+      max-width:100% !important;
+      min-width:0 !important;
+      overflow-x:auto !important;
+      overflow-y:auto !important;
+      overscroll-behavior-x:contain !important;
+      touch-action:pan-x pan-y !important;
+      -webkit-overflow-scrolling:touch !important;
+      box-sizing:border-box !important;
+    }
+
+    /* These selectors intentionally match the earlier two-ID + :not()
+       specificity. JavaScript below also writes the same widths inline after
+       every table render, column-chooser change, and viewport change. */
+    body.remakeCompactActiveV6382 #remakeFactorPage.cleanRemakeV6230 #remakeReasonTable:not(.compareColumnsV6301),
+    body.remakeCompactActiveV6382 #remakeFactorPage.cleanRemakeV6230 #remakeDepartmentTable:not(.compareColumnsV6301),
+    body.remakeCompactActiveV6382 #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301),
+    body.remakeCompactActiveV6382 #remakeFactorPage.cleanRemakeV6230 #remakeCustomerTable:not(.compareColumnsV6301) {
+      display:table !important;
+      max-width:none !important;
+      table-layout:fixed !important;
+      border-collapse:collapse !important;
+    }
+
+    body.remakeCompactActiveV6382 #remakeFactorPage.cleanRemakeV6230 #remakeReasonTable:not(.compareColumnsV6301) {
+      width:780px !important;
+      min-width:780px !important;
+    }
+
+    body.remakeCompactActiveV6382 #remakeFactorPage.cleanRemakeV6230 #remakeDepartmentTable:not(.compareColumnsV6301) {
+      width:946px !important;
+      min-width:946px !important;
+    }
+
+    body.remakeCompactActiveV6382 #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) {
+      width:1010px !important;
+      min-width:1010px !important;
+    }
+
+    body.remakeCompactActiveV6382 #remakeFactorPage.cleanRemakeV6230 #remakeCustomerTable:not(.compareColumnsV6301) {
+      width:1030px !important;
+      min-width:1030px !important;
+    }
+
+    body.remakeCompactActiveV6382 #remakeFactorPage.cleanRemakeV6230 #remakeReasonTable:not(.compareColumnsV6301) th:first-child,
+    body.remakeCompactActiveV6382 #remakeFactorPage.cleanRemakeV6230 #remakeReasonTable:not(.compareColumnsV6301) td:first-child {
+      width:220px !important;
+      min-width:220px !important;
+      max-width:220px !important;
+    }
+
+    body.remakeCompactActiveV6382 #remakeFactorPage.cleanRemakeV6230 #remakeReasonTable:not(.compareColumnsV6301) th:not(:first-child),
+    body.remakeCompactActiveV6382 #remakeFactorPage.cleanRemakeV6230 #remakeReasonTable:not(.compareColumnsV6301) td:not(:first-child) {
+      width:112px !important;
+      min-width:112px !important;
+      max-width:112px !important;
+    }
+
+    body.remakeCompactActiveV6382 #remakeFactorPage.cleanRemakeV6230 #remakeDepartmentTable:not(.compareColumnsV6301) th:first-child,
+    body.remakeCompactActiveV6382 #remakeFactorPage.cleanRemakeV6230 #remakeDepartmentTable:not(.compareColumnsV6301) td:first-child {
+      width:190px !important;
+      min-width:190px !important;
+      max-width:190px !important;
+    }
+
+    body.remakeCompactActiveV6382 #remakeFactorPage.cleanRemakeV6230 #remakeDepartmentTable:not(.compareColumnsV6301) th:not(:first-child),
+    body.remakeCompactActiveV6382 #remakeFactorPage.cleanRemakeV6230 #remakeDepartmentTable:not(.compareColumnsV6301) td:not(:first-child) {
+      width:108px !important;
+      min-width:108px !important;
+      max-width:108px !important;
+    }
+
+    body.remakeCompactActiveV6382 #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) th:first-child,
+    body.remakeCompactActiveV6382 #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) td:first-child {
+      width:240px !important;
+      min-width:240px !important;
+      max-width:240px !important;
+    }
+
+    body.remakeCompactActiveV6382 #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) th:not(:first-child),
+    body.remakeCompactActiveV6382 #remakeFactorPage.cleanRemakeV6230 #remakeProductTable:not(.compareColumnsV6301) td:not(:first-child) {
+      width:110px !important;
+      min-width:110px !important;
+      max-width:110px !important;
+    }
+
+    body.remakeCompactActiveV6382 #remakeFactorPage.cleanRemakeV6230 #remakeCustomerTable:not(.compareColumnsV6301) th:first-child,
+    body.remakeCompactActiveV6382 #remakeFactorPage.cleanRemakeV6230 #remakeCustomerTable:not(.compareColumnsV6301) td:first-child {
+      width:260px !important;
+      min-width:260px !important;
+      max-width:260px !important;
+    }
+
+    body.remakeCompactActiveV6382 #remakeFactorPage.cleanRemakeV6230 #remakeCustomerTable:not(.compareColumnsV6301) th:not(:first-child),
+    body.remakeCompactActiveV6382 #remakeFactorPage.cleanRemakeV6230 #remakeCustomerTable:not(.compareColumnsV6301) td:not(:first-child) {
+      width:110px !important;
+      min-width:110px !important;
+      max-width:110px !important;
+    }
+
+    body.remakeCompactActiveV6382 #remakeFactorPage.cleanRemakeV6230 table.remakeTable.compareColumnsV6301 {
+      display:table !important;
+      width:max-content !important;
+      min-width:2140px !important;
+      max-width:none !important;
+      table-layout:fixed !important;
+    }
+
+    body.remakeCompactActiveV6382 #remakeFactorPage.cleanRemakeV6230 table.remakeTable.compareColumnsV6301 th:not(:first-child),
+    body.remakeCompactActiveV6382 #remakeFactorPage.cleanRemakeV6230 table.remakeTable.compareColumnsV6301 td:not(:first-child) {
+      width:96px !important;
+      min-width:96px !important;
+      max-width:96px !important;
+    }
+
+    body.remakeCompactActiveV6382 #remakeFactorPage.cleanRemakeV6230 table.remakeTable.compareColumnsV6301 .deltaHeaderV6301,
+    body.remakeCompactActiveV6382 #remakeFactorPage.cleanRemakeV6230 table.remakeTable.compareColumnsV6301 .deltaCellV6301 {
+      width:82px !important;
+      min-width:82px !important;
+      max-width:82px !important;
+    }
+  }
+
+  @media (max-width:420px) {
+    body.remakeCompactActiveV6382 #remakeCompactToolbarV6382 {
+      gap:3px !important;
+      padding-left:max(4px,env(safe-area-inset-left)) !important;
+      padding-right:max(4px,env(safe-area-inset-right)) !important;
+    }
+
+    body.remakeCompactActiveV6382 #remakeCompactToolbarV6382 .remakeCompactFiltersV6382 {
+      flex:1 1 auto !important;
+      min-width:100px !important;
+      height:38px !important;
+      padding:0 9px !important;
+      justify-content:flex-start !important;
+    }
+
+    body.remakeCompactActiveV6382 #remakeCompactToolbarV6382 .remakeCompactFiltersV6382 svg {
+      display:none !important;
+    }
+
+    body.remakeCompactActiveV6382 #remakeCompactToolbarV6382 .remakeCompactToolV6382:not(.remakeCompactFiltersV6382) {
+      flex:0 0 36px !important;
+      width:36px !important;
+      min-width:36px !important;
+      max-width:36px !important;
+      height:38px !important;
+      min-height:38px !important;
+    }
+  }
+</style>

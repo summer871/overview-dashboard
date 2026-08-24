@@ -1,0 +1,67 @@
+<script>
+/* v6.244 remake polish marker
+   - Backend-driven Remake Factor-only presentation remains in place.
+   - Customer Highest Remake Rate chart remains fixed to rate ranking; table sorts are presentation-only.
+   - Customer table Status column was removed; inactive pill remains next to the customer name.
+   - Floating layout-edit controls are hidden in Remake Factor-only presentation. */
+window.CDA_REMAKE_POLISH_VERSION = 'v6.281';
+</script>
+<script>
+/* v6.249 remake chart + pill polish marker
+   - Monthly chart defaults to Total and can toggle Cases/Units plus Total/Percent.
+   - Hover/twitch guard removes redraw loops; tooltip uses standard stable chart hover.
+   - Active filter pills are grouped by filter type, e.g. Product: A, B +372. */
+window.CDA_REMAKE_CHART_PILL_POLISH_VERSION = 'v6.281';
+</script>
+
+<script>
+/* v6.249 anti-twitch hover stabilizer
+   - Stops old presentation guard from re-rendering on hover/style mutations.
+   - Removes hover transitions in Remake Factor so table rows and cards do not twitch.
+   - Keeps fast cache and backend-driven Remake-only mode unchanged. */
+(function antiTwitchHoverStabilizerV6249(){
+  'use strict';
+  const style = document.createElement('style');
+  style.id = 'antiTwitchHoverStabilizerV6249';
+  style.textContent = `
+    #remakeFactorPage,
+    #remakeFactorPage * {
+      transition-property: none !important;
+      animation-duration: 0s !important;
+      scroll-behavior: auto !important;
+    }
+    #remakeFactorPage .remakeTable tr:hover td,
+    #remakeFactorPage .remakeTable tr.clickable:hover td {
+      background: #eef4ff !important;
+    }
+    #remakeFactorPage canvas {
+      cursor: default !important;
+    }
+  `;
+  document.head.appendChild(style);
+
+  // If an older broad observer exists, disconnect it and replace with a safer one
+  // that does not listen to class/style mutations caused by hover/chart updates.
+  try {
+    if (window.__finalRemakeOnlyObserverV6243 && typeof window.__finalRemakeOnlyObserverV6243.disconnect === 'function') {
+      window.__finalRemakeOnlyObserverV6243.disconnect();
+    }
+  } catch (error) {}
+})();
+</script>
+
+<script>
+/* v6.298 gentle component morphs.
+   The affected content eases into its new geometry without blur, a page-wide
+   freeze, or a persistent animation fill that can interfere with Chart.js. */
+(function installGentleTableMorphV6298(){
+  'use strict';
+  const cardMap = { reason:'remakeReasonCardV6230', department:'remakeDepartmentCardV6230', product:'remakeProductCardV6230', customer:'remakeCustomerCardV6230' };
+  const active = new Map();
+  window.runGentleTableMorphV6297 = function runGentleTableMorphV6297(kind, action) {
+    if (typeof action === 'function') action();
+  };
+})();
+window.CDA_REMAKE_TRANSITION_POLISH_VERSION = 'v6.298';
+window.CDA_REMAKE_CUSTOMER_HEADER_REPAIR_VERSION = 'v6.299';
+</script>
