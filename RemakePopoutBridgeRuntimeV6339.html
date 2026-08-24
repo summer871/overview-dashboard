@@ -1,6 +1,197 @@
-  window.CDA_REMAKE_INTERACTIVE_POPOUT_VERSION = 'v6.339';
+  window.CDA_REMAKE_INTERACTIVE_POPOUT_VERSION = 'v6.658-popback-sync';
   const remakePopoutRefsV6339 = Object.create(null);
   let remakePopoutSyncTimerV6339 = 0;
+  const remakePopoutSyncBurstTimersV6658 = Object.create(null);
+  const REMAKE_POPOUT_RESTORE_STYLE_ID_V6658 = 'remakePopoutRestoreStylesV6658';
+
+  function ensureRemakePopoutRestoreStylesV6658() {
+    if (document.getElementById(REMAKE_POPOUT_RESTORE_STYLE_ID_V6658)) return;
+    const style = document.createElement('style');
+    style.id = REMAKE_POPOUT_RESTORE_STYLE_ID_V6658;
+    style.textContent = [
+      '#remakeFactorPage .remakeCard.remakePoppedSourceV6658{position:relative!important}',
+      '#remakeFactorPage .remakePopBackOverlayV6658{position:absolute!important;inset:0!important;z-index:850!important;background:rgba(229,231,235,.86)!important;backdrop-filter:grayscale(1) opacity(.9)!important;display:flex!important;align-items:flex-start!important;justify-content:flex-end!important;padding:8px!important;box-sizing:border-box!important;pointer-events:auto!important}',
+      '#remakeFactorPage .remakePopBackButtonV6658{height:30px!important;border:1px solid #cfd6df!important;border-radius:999px!important;background:#fff!important;color:#172033!important;font:900 12px/1 Roboto,Arial,sans-serif!important;padding:0 12px!important;cursor:pointer!important;box-shadow:0 1px 2px rgba(16,24,40,.14)!important}'
+    ].join('');
+    document.head.appendChild(style);
+  }
+
+  function remakePopoutCardV6658(component) {
+    const meta = remakePopoutMetaV6339(component);
+    if (!meta) return null;
+
+    const source = meta.containerId
+      ? idV6230(meta.containerId)
+      : meta.canvasId
+        ? idV6230(meta.canvasId)
+        : meta.tableId
+          ? idV6230(meta.tableId)
+          : null;
+
+    if (!source) return null;
+    if (source.classList && source.classList.contains('remakeCard')) return source;
+    return source.closest ? source.closest('.remakeCard') : null;
+  }
+
+  function restoreRemakePopoutSourceV6658(component) {
+    const card = remakePopoutCardV6658(component);
+    if (!card) return false;
+
+    card.classList.remove('remakePoppedSourceV6658');
+    card.removeAttribute('data-remake-popout-component-v6658');
+
+    const overlay = card.querySelector('.remakePopBackOverlayV6658');
+    if (overlay && overlay.parentNode === card) overlay.remove();
+
+    return true;
+  }
+
+  function markRemakePopoutSourceV6658(component) {
+    ensureRemakePopoutRestoreStylesV6658();
+
+    const card = remakePopoutCardV6658(component);
+    if (!card) return false;
+
+    const existingOverlay = card.querySelector('.remakePopBackOverlayV6658');
+    if (existingOverlay) existingOverlay.remove();
+
+    card.classList.add('remakePoppedSourceV6658');
+    card.setAttribute('data-remake-popout-component-v6658', String(component || ''));
+
+    const overlay = document.createElement('div');
+    overlay.className = 'remakePopBackOverlayV6658';
+
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'remakePopBackButtonV6658';
+    button.textContent = 'Pop back in ×';
+    button.addEventListener('click', function(event) {
+      event.preventDefault();
+      event.stopPropagation();
+      window.__closeRemakePopoutV6658(component);
+    });
+
+    overlay.appendChild(button);
+    card.appendChild(overlay);
+    return true;
+  }
+
+  function clearRemakePopoutSyncBurstV6658(component) {
+    const key = String(component || '');
+    const timers = remakePopoutSyncBurstTimersV6658[key] || [];
+
+    timers.forEach(function(timer) {
+      try { window.clearTimeout(timer); } catch (error) {}
+    });
+
+    delete remakePopoutSyncBurstTimersV6658[key];
+  }
+
+  function pushRemakePopoutSnapshotV6658(component) {
+    const key = String(component || '');
+    const ref = remakePopoutRefsV6339[key];
+
+    if (!ref || !ref.win || ref.win.closed) {
+      delete remakePopoutRefsV6339[key];
+      clearRemakePopoutSyncBurstV6658(key);
+      restoreRemakePopoutSourceV6658(key);
+      return false;
+    }
+
+    // A dashboard render can rebuild the source card while the popup remains open.
+    // Re-mark the current card on every bounded sync so Pop back in survives redraws.
+    markRemakePopoutSourceV6658(key);
+
+    const snapshot = window.getRemakePopoutSnapshotV6339(key);
+
+    try {
+      if (typeof ref.win.__receiveRemakeSnapshotV6339 === 'function') {
+        ref.win.__receiveRemakeSnapshotV6339(snapshot);
+      } else {
+        ref.win.postMessage({ type:'remakeSnapshotV6339', snapshot:snapshot }, '*');
+      }
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  function scheduleRemakePopoutSyncBurstV6658(component) {
+    const key = String(component || '');
+    const keys = key ? [key] : Object.keys(remakePopoutRefsV6339);
+
+    keys.forEach(function(target) {
+      clearRemakePopoutSyncBurstV6658(target);
+
+      const timers = [];
+      remakePopoutSyncBurstTimersV6658[target] = timers;
+
+      const push = function() {
+        pushRemakePopoutSnapshotV6658(target);
+      };
+
+      if (typeof window.requestAnimationFrame === 'function') {
+        window.requestAnimationFrame(function() {
+          window.requestAnimationFrame(push);
+        });
+      }
+
+      [120, 320, 700].forEach(function(delay) {
+        timers.push(window.setTimeout(push, delay));
+      });
+    });
+  }
+
+  window.scheduleRemakePopoutSyncBurstV6658 = scheduleRemakePopoutSyncBurstV6658;
+
+  window.__closeRemakePopoutV6658 = function closeRemakePopoutV6658(component) {
+    const key = String(component || '');
+    const ref = remakePopoutRefsV6339[key];
+
+    try {
+      if (ref && ref.win && !ref.win.closed) ref.win.close();
+    } catch (error) {}
+
+    delete remakePopoutRefsV6339[key];
+    clearRemakePopoutSyncBurstV6658(key);
+    restoreRemakePopoutSourceV6658(key);
+  };
+
+  function installRemakePopoutRestoreV6658() {
+    const original = window.popoutRemakeComponentV6230;
+
+    if (typeof original !== 'function') return false;
+    if (original.__remakePopbackV6658 === true) return true;
+
+    const wrapped = function popoutRemakeComponentV6658(component) {
+      const result = original.apply(this, arguments);
+
+      window.setTimeout(function() {
+        const key = String(component || '');
+        const ref = remakePopoutRefsV6339[key];
+
+        if (ref && ref.win && !ref.win.closed) {
+          markRemakePopoutSourceV6658(key);
+          scheduleRemakePopoutSyncBurstV6658(key);
+        } else {
+          restoreRemakePopoutSourceV6658(key);
+        }
+      }, 0);
+
+      return result;
+    };
+
+    wrapped.__remakePopbackV6658 = true;
+    wrapped.__remakeOriginalV6658 = original;
+    window.popoutRemakeComponentV6230 = wrapped;
+    return true;
+  }
+
+  window.setTimeout(installRemakePopoutRestoreV6658, 0);
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', installRemakePopoutRestoreV6658, { once:true });
+  }
 
   function remakePopoutMetaV6339(component) {
     return {
@@ -115,6 +306,8 @@
         const ref = remakePopoutRefsV6339[component];
         if (!ref || !ref.win || ref.win.closed) {
           delete remakePopoutRefsV6339[component];
+          clearRemakePopoutSyncBurstV6658(component);
+          restoreRemakePopoutSourceV6658(component);
           return;
         }
         const snapshot = window.getRemakePopoutSnapshotV6339(component);
@@ -187,9 +380,12 @@
     } catch (error) {
       console.error('Remake pop-out action failed', error);
     }
-    scheduleRemakePopoutSyncV6339(360);
+    scheduleRemakePopoutSyncBurstV6658(action.component || '');
   };
 
   window.__remakePopoutClosedV6339 = function remakePopoutClosedV6339(component) {
-    delete remakePopoutRefsV6339[component];
+    const key = String(component || '');
+    delete remakePopoutRefsV6339[key];
+    clearRemakePopoutSyncBurstV6658(key);
+    restoreRemakePopoutSourceV6658(key);
   };

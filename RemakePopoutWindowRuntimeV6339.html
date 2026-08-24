@@ -30,6 +30,10 @@
       try {
         if (window.opener && !window.opener.closed && typeof window.opener.applyRemakePopoutActionV6339 === 'function') {
           window.opener.applyRemakePopoutActionV6339(payload);
+          if (typeof window.opener.scheduleRemakePopoutSyncBurstV6658 === 'function') {
+            window.opener.scheduleRemakePopoutSyncBurstV6658(componentId);
+          }
+          window.setTimeout(requestSnapshot, 120);
           window.setTimeout(requestSnapshot, 360);
           window.setTimeout(requestSnapshot, 760);
         } else setStatus('Main dashboard disconnected');
