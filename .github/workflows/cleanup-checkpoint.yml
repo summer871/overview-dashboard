@@ -30,6 +30,3 @@ jobs:
 
       - name: Run dashboard platform validator
         run: node scripts/validate-dashboard-platform.js
-
-      - name: Print runtime include graph
-        run: node scripts/audit-runtime-include-graph.js
