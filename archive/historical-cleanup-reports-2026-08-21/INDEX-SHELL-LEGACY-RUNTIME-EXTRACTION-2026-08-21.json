@@ -1,0 +1,40 @@
+{
+  "datePt": "2026-08-21",
+  "checkpoint": "Index shell and legacy runtime extraction batch",
+  "behaviorChangeIntended": false,
+  "source": "Index.html",
+  "sourceSha256Before": "c8d9040749fdedd50b9291a02eeb3cca2f46a3dba003067e76dad4230d4a7504",
+  "sourceSha256After": "0f340a75d31fc45ed4d6e324411dbcd3af7b34343e42d1a9e1e6c5771867fad3",
+  "bytesBefore": 55263,
+  "bytesAfter": 4622,
+  "bytesRemovedFromIndex": 50641,
+  "archivePath": "archive/index-semantic-extraction-2026-08-21/Index.pre-shell-legacy-runtime-extraction.html",
+  "archiveByteForByteVerified": true,
+  "compositionByteForByteReconstructionVerified": true,
+  "modules": [
+    {
+      "name": "DashboardShellMarkup",
+      "path": "DashboardShellMarkup.html",
+      "bytes": 6389,
+      "sha256": "c8437a363aa02adc6ee205c0086584b545b61485034993a5477c9a5882b6cade",
+      "extractedByteForByte": true
+    },
+    {
+      "name": "RemakeLegacyPolishRuntime",
+      "path": "RemakeLegacyPolishRuntime.html",
+      "bytes": 2856,
+      "sha256": "5caf0731d3775b141aec75b11568a46e40930a4d32999eb241e960e796d77058",
+      "extractedByteForByte": true
+    },
+    {
+      "name": "RemakeLegacyLayoutRuntime",
+      "path": "RemakeLegacyLayoutRuntime.html",
+      "bytes": 41562,
+      "sha256": "c58febd527e0ef16cfd077cc5cd15961ac9bcd3bfa98a27c46abb2a877d89d43",
+      "extractedByteForByte": true
+    }
+  ],
+  "logicRewritten": false,
+  "loadOrderChanged": false,
+  "productionDeployment": false
+}

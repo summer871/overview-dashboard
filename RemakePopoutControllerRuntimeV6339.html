@@ -1,0 +1,431 @@
+  window.popoutRemakeComponentV6230 = function popoutRemakeComponentV6339(component) {
+    const meta = remakePopoutMetaV6339(component);
+    if (!meta) return;
+    const existing = remakePopoutRefsV6339[component];
+    if (existing && existing.win && !existing.win.closed) {
+      try { existing.win.focus(); } catch (error) {}
+      scheduleRemakePopoutSyncV6339(20);
+      return;
+    }
+    const width = Math.max(880, Math.min(Math.round(screen.width * .82), 1540));
+    const height = Math.max(600, Math.min(Math.round(screen.height * .82), 940));
+    const left = Math.max(18, Math.round((window.screenX || window.screenLeft || 0) + 56));
+    const top = Math.max(18, Math.round((window.screenY || window.screenTop || 0) + 46));
+    const win = window.open('', 'cdaRemakePopout_' + slugV6230(component), 'popup=yes,width=' + width + ',height=' + height + ',left=' + left + ',top=' + top + ',resizable=yes,scrollbars=yes');
+    if (!win) {
+      setNoticeV6230('Browser blocked the pop-out. Allow pop-ups for this dashboard.', 'warn');
+      return;
+    }
+    remakePopoutRefsV6339[component] = { win:win, component:component };
+    try {
+      win.document.open();
+      win.document.write(popupHtmlV6339(component, meta.title));
+      win.document.close();
+      win.focus();
+      scheduleRemakePopoutSyncV6339(140);
+    } catch (error) {
+      console.error('Interactive Remake pop-out failed', error);
+    }
+  };
+
+  const remakePopoutObservedPageV6339 = idV6230('remakeFactorPage');
+  if (remakePopoutObservedPageV6339 && typeof MutationObserver === 'function') {
+    const remakePopoutObserverV6339 = new MutationObserver(function(){ scheduleRemakePopoutSyncV6339(180); });
+    remakePopoutObserverV6339.observe(remakePopoutObservedPageV6339, { childList:true, subtree:true, attributes:true, attributeFilter:['class','aria-pressed'] });
+  }
+
+  function slimDataV6230(data) {
+    const sourceRows = (data && (data.rows || data.detailRows)) || rawRowsV6230();
+    const sample = sourceRows && sourceRows.length ? sourceRows[0] : null;
+    const alreadyNormalized = !!(
+      data && data.browserRowsNormalized === true ||
+      sample && sample.customerKey !== undefined && sample.productKey !== undefined && sample.units !== undefined
+    );
+    const rows = alreadyNormalized ? sourceRows : normalizeRowsV6230(sourceRows);
+    return {
+      ok: true,
+      generatedAt: data && (data.generatedAt || data.lastRefreshAt || ''),
+      source: data && data.source || '',
+      message: data && data.message || '',
+      dateRange: data && data.dateRange || {},
+      stats: data && data.stats || {},
+      cacheToken: data && data.cacheToken || '',
+      sourceGeneratedAt: data && (data.sourceGeneratedAt || data.generatedAt || data.lastRefreshAt || ''),
+      currentSourceGeneratedAt: data && data.currentSourceGeneratedAt || '',
+      browserReadyBuiltAt: data && (data.browserReadyBuiltAt || data.builtAt || ''),
+      browserReadyFileSizeBytes: Number(data && (data.browserReadyFileSizeBytes || data.fileSizeBytes) || 0),
+      browserReadyRowCount: Number(data && (data.browserReadyRowCount || data.rowCount) || rows.length || 0),
+      browserRowsNormalized: true,
+      browserRowSchema: 'remakeBrowserRowV1323',
+      rows: rows
+    };
+  }
+
+  function cancelScheduledBrowserCacheWriteV6346() {
+    if (browserCacheWriteHandleV6346) {
+      try {
+        if (browserCacheWriteHandleTypeV6346 === 'idle' && typeof window.cancelIdleCallback === 'function') {
+          window.cancelIdleCallback(browserCacheWriteHandleV6346);
+        } else {
+          window.clearTimeout(browserCacheWriteHandleV6346);
+        }
+      } catch (error) {}
+    }
+    browserCacheWriteHandleV6346 = 0;
+    browserCacheWriteHandleTypeV6346 = '';
+    if (!browserCacheWriteRunningV6346) {
+      browserCacheWriteScheduledV6346 = false;
+      if (finishBrowserCacheWriteCompletionV6568) {
+        const finish = finishBrowserCacheWriteCompletionV6568;
+        finishBrowserCacheWriteCompletionV6568 = null;
+        finish(false);
+      }
+    }
+  }
+
+  function writeCacheV6230(data) {
+    cancelScheduledBrowserCacheWriteV6346();
+    const slim = slimDataV6230(data);
+    browserCacheWriteScheduledV6346 = true;
+    let finishCurrentBrowserCacheWriteV6568 = null;
+    browserCacheWriteCompletionV6568 = new Promise(function(resolve) {
+      finishCurrentBrowserCacheWriteV6568 = resolve;
+      finishBrowserCacheWriteCompletionV6568 = resolve;
+    });
+    const save = function saveChunkedRemakeBrowserCacheV6346() {
+      browserCacheWriteHandleV6346 = 0;
+      browserCacheWriteHandleTypeV6346 = '';
+      browserCacheWriteRunningV6346 = true;
+      browserCacheWritePromiseV6346 = writeRemakeFastCacheV6261(slim)
+        .catch(error => { console.warn('Remake browser cache write skipped', error); return false; })
+        .finally(function finishChunkedRemakeCacheWriteV6346() {
+          browserCacheWriteRunningV6346 = false;
+          browserCacheWriteScheduledV6346 = false;
+          if (finishCurrentBrowserCacheWriteV6568) {
+            const finish = finishCurrentBrowserCacheWriteV6568;
+            finishCurrentBrowserCacheWriteV6568 = null;
+            if (finishBrowserCacheWriteCompletionV6568 === finish) finishBrowserCacheWriteCompletionV6568 = null;
+            finish(true);
+          }
+          if (!mainCacheSwapActiveV6346) armCeramistLazyLoadV6346();
+        });
+    };
+    if (typeof window.requestIdleCallback === 'function') {
+      browserCacheWriteHandleTypeV6346 = 'idle';
+      browserCacheWriteHandleV6346 = window.requestIdleCallback(save, { timeout: 8000 });
+    } else {
+      browserCacheWriteHandleTypeV6346 = 'timeout';
+      browserCacheWriteHandleV6346 = window.setTimeout(save, 1200);
+    }
+    return browserCacheWriteCompletionV6568;
+  }
+
+  function clearCeramistMemoryV6346() {
+    disconnectCeramistLazyLoadV6346();
+    cancelScheduledCeramistBrowserCacheWriteV6364();
+    ceramistLoadGenerationV6346 += 1;
+    ceramistLazyRequestedV6346 = false;
+    ceramistStateV6342.loading = false;
+    ceramistStateV6342.loaded = false;
+    ceramistStateV6342.ok = false;
+    ceramistStateV6342.rows = [];
+    ceramistStateV6342.stats = {};
+    ceramistStateV6342.version = '';
+    ceramistStateV6342.generatedAt = '';
+    ceramistStateV6342.caseLevelRefreshedAt = '';
+    ceramistStateV6342.cacheToken = '';
+    ceramistStateV6342.driveUpdatedAt = '';
+    ceramistStateV6342.badgeUpdatedAt = '';
+    ceramistStateV6342.browserCached = false;
+    ceramistStateV6342.syncing = false;
+    ceramistStateV6342.statusText = '';
+    ceramistStateV6342.message = '';
+    ceramistStateV6342.selectedCeramist = '';
+  }
+
+  function releaseRemakeBrowserMemoryV6346() {
+    cancelScheduledBrowserCacheWriteV6346();
+    disconnectCeramistLazyLoadV6346();
+    if (renderTimerV6230) { try { cancelAnimationFrame(renderTimerV6230); } catch (error) {} renderTimerV6230 = 0; }
+    if (trendRenderTimerV6301) { try { cancelAnimationFrame(trendRenderTimerV6301); } catch (error) {} trendRenderTimerV6301 = 0; }
+    removeOldMorphOverlaysV6300();
+    dashboardMorphStateV6300.active = null;
+    if (remakeChartV6230) { try { remakeChartV6230.destroy(); } catch (error) {} remakeChartV6230 = null; }
+    if (customerChartV6230) { try { customerChartV6230.destroy(); } catch (error) {} customerChartV6230 = null; }
+    uiV6230.lastTables = {};
+    uiV6230.lastTrendRows = [];
+    uiV6230.lastCeramistRowsV6342 = [];
+    uiV6230.lastReasonGroupsV6297 = [];
+    uiV6230.lastDepartmentGroupsV6297 = [];
+    uiV6230.lastProductGroupsV6297 = [];
+    uiV6230.lastCustomerGroupsV6291 = [];
+    if (!window.remakeFactorState) window.remakeFactorState = {};
+    const state = window.remakeFactorState;
+    state.loaded = false;
+    state.data = null;
+    state.rows = [];
+    state.normalizedRowsV6230 = null;
+    state.normalizedRowsSignatureV6230 = '';
+    state.normalizedRowsV6229 = null;
+    clearCeramistMemoryV6346();
+  }
+
+  function afterMemoryReleaseV6346() {
+    return new Promise(resolve => {
+      window.requestAnimationFrame(function firstReleaseFrameV6346() {
+        window.requestAnimationFrame(function secondReleaseFrameV6346() {
+          window.setTimeout(resolve, 0);
+        });
+      });
+    });
+  }
+
+  function prepareMainCacheSwapV6346(noticeText) {
+    mainCacheSwapActiveV6346 = true;
+    suppressNextMorphV6346 = true;
+    setLoadingV6230(true);
+    setNoticeV6230(noticeText || 'Loading...', 'warn');
+    cancelScheduledBrowserCacheWriteV6346();
+    cancelScheduledCeramistBrowserCacheWriteV6364();
+    return Promise.all([
+      Promise.resolve(browserCacheWritePromiseV6346).catch(() => false),
+      Promise.resolve(ceramistBrowserCacheWritePromiseV6364).catch(() => false)
+    ])
+      .then(function releasePriorRemakeRowsV6346() {
+        releaseRemakeBrowserMemoryV6346();
+        return afterMemoryReleaseV6346();
+      });
+  }
+
+  function readCacheV6230() {
+    // v6.261: Remake Factor browser cache now mirrors Overview and uses IndexedDB.
+    // This sync function is kept only so older internal references do not crash.
+    return null;
+  }
+
+  function handleDataV6230(data, fromBrowser) {
+    if (!window.remakeFactorState) window.remakeFactorState = {};
+    if (!data || !data.ok) {
+      mainCacheSwapActiveV6346 = false;
+      window.remakeFactorState.loaded = false;
+      setNoticeV6230((data && data.message) || 'Remake cache could not load.', 'error');
+      return false;
+    }
+    const sourceRows = data.rows || data.detailRows || [];
+    const sample = sourceRows.length ? sourceRows[0] : null;
+    const alreadyNormalized = !!(
+      data.browserRowsNormalized === true ||
+      sample && sample.customerKey !== undefined && sample.productKey !== undefined && sample.units !== undefined
+    );
+    if (!alreadyNormalized && sourceRows.length > 50000) {
+      mainCacheSwapActiveV6346 = false;
+      window.remakeFactorState.loaded = false;
+      window.remakeFactorState.loading = false;
+      setNoticeV6230('The server returned the old full-row cache format. Replace RemakeFactorCache.gs with v1.32.4 before loading this cache.', 'error');
+      return false;
+    }
+    const rows = alreadyNormalized ? sourceRows : normalizeRowsV6230(sourceRows);
+    const compactData = {
+      ok: true,
+      generatedAt: data.generatedAt || data.lastRefreshAt || '',
+      source: data.source || '',
+      message: data.message || '',
+      dateRange: data.dateRange || {},
+      stats: data.stats || {},
+      cacheToken: data.cacheToken || '',
+      sourceGeneratedAt: data.sourceGeneratedAt || data.generatedAt || data.lastRefreshAt || '',
+      currentSourceGeneratedAt: data.currentSourceGeneratedAt || '',
+      browserReadyBuiltAt: data.browserReadyBuiltAt || data.builtAt || '',
+      browserReadyFileSizeBytes: Number(data.browserReadyFileSizeBytes || data.fileSizeBytes || 0),
+      browserReadyRowCount: Number(data.browserReadyRowCount || data.rowCount || rows.length || 0),
+      browserReadyStale: data.browserReadyStale === true || data.stale === true,
+      browserRowsNormalized: true,
+      browserRowSchema: data.browserRowSchema || 'remakeBrowserRowV1323'
+    };
+    window.remakeFactorState.data = compactData;
+    window.remakeFactorState.rows = rows;
+    window.remakeFactorState.normalizedRowsV6230 = rows;
+    const overviewSignature = typeof facts !== 'undefined' && Array.isArray(facts) ? facts.length : 0;
+    window.remakeFactorState.normalizedRowsSignatureV6230 = String(rows.length) + '|' + String(overviewSignature);
+    window.remakeFactorState.normalizedRowsV6229 = null;
+    window.remakeFactorState.loaded = true;
+    window.remakeFactorState.loading = false;
+    mainCacheSwapActiveV6346 = false;
+    suppressNextMorphV6346 = true;
+    const stamp = data.generatedAt || data.lastRefreshAt || '';
+    setStampV6230((fromBrowser ? 'Browser cache: ' : 'Last refreshed: ') + (stamp || 'Loaded'));
+    if (!fromBrowser) writeCacheV6230(Object.assign({}, compactData, { rows: rows }));
+    window.remakeFactorState.cacheToken = compactData.cacheToken || '';
+    window.remakeFactorState.sourceGeneratedAt = compactData.sourceGeneratedAt || compactData.generatedAt || '';
+    window.remakeFactorState.browserReadyBuiltAt = compactData.browserReadyBuiltAt || '';
+    window.remakeFactorState.browserReadyStale = compactData.browserReadyStale === true;
+    setNoticeV6230('', '');
+    window.requestAnimationFrame(function renderCompactRemakeDataV6340() {
+      renderDashboardV6230();
+    });
+    return true;
+  }
+
+  /* v6.568 native combined cache refresh.
+     The existing Remake refresh owns the complete sequence: refresh the main
+     cache, rebuild Ceramist responsibility, fetch the rebuilt worker payload,
+     replace the worker browser cache, and only then release the Refresh button. */
+  function setCombinedCeramistStatusV6568(message) {
+    const status = idV6230('remakeCeramistStatusV6342');
+    const text = String(message || '');
+    ceramistStateV6342.statusText = text;
+    if (status) status.textContent = text;
+  }
+
+  function refreshCeramistResponsibilityServerV6568() {
+    return new Promise(function(resolve, reject) {
+      if (!window.google || !google.script || !google.script.run) {
+        reject(new Error('Apps Script bridge is unavailable for the technician cache refresh.'));
+        return;
+      }
+      google.script.run
+        .withSuccessHandler(function(result) {
+          if (!result || result.ok !== true) {
+            reject(new Error(result && result.message || 'Technician responsibility refresh returned an invalid result.'));
+            return;
+          }
+          resolve(result);
+        })
+        .withFailureHandler(function(error) {
+          reject(error instanceof Error ? error : new Error((error && error.message) || String(error || 'Technician responsibility refresh failed.')));
+        })
+        .refreshCeramistCaseLevelResponsibilityNightlyV75();
+    });
+  }
+
+  function fetchFreshCeramistPayloadV6568() {
+    return new Promise(function(resolve, reject) {
+      if (!window.google || !google.script || !google.script.run) {
+        reject(new Error('Apps Script bridge is unavailable for the technician cache download.'));
+        return;
+      }
+      google.script.run
+        .withSuccessHandler(function(data) {
+          const receivedRows = data && Array.isArray(data.rows) ? data.rows : null;
+          if (!data || data.ok !== true || !receivedRows) {
+            reject(new Error(data && data.message || 'The refreshed technician cache returned an invalid payload.'));
+            return;
+          }
+          resolve(data);
+        })
+        .withFailureHandler(function(error) {
+          reject(error instanceof Error ? error : new Error((error && error.message) || String(error || 'Technician cache download failed.')));
+        })
+        .getCeramistRemakeAnalysisData();
+    });
+  }
+
+  function refreshCeramistAfterRemakeV6568() {
+    mainCacheSwapActiveV6346 = true;
+    clearCeramistMemoryV6346();
+    ceramistStateV6342.loading = true;
+    ceramistStateV6342.loaded = false;
+    setCombinedCeramistStatusV6568('Worker cache: rebuilding responsibility from BigQuery...');
+    renderCeramistAnalysisV6342();
+
+    return refreshCeramistResponsibilityServerV6568()
+      .then(function waitForRemakeBrowserCacheV6568() {
+        setCombinedCeramistStatusV6568('Worker cache: waiting for the refreshed Remake browser cache...');
+        return Promise.resolve(browserCacheWriteCompletionV6568).catch(function() { return false; });
+      })
+      .then(function downloadRebuiltCeramistPayloadV6568() {
+        setCombinedCeramistStatusV6568('Worker cache: downloading rebuilt responsibility...');
+        return fetchFreshCeramistPayloadV6568();
+      })
+      .then(function applyRebuiltCeramistPayloadV6568(data) {
+        const applied = applyCeramistPayloadV6364(data, false);
+        if (!applied) {
+          throw new Error(ceramistStateV6342.message || 'The refreshed technician payload did not pass the dashboard eligibility contract.');
+        }
+
+        cancelScheduledCeramistBrowserCacheWriteV6364();
+        return Promise.resolve(ceramistBrowserCacheWritePromiseV6364)
+          .catch(function() { return false; })
+          .then(function replaceCeramistBrowserCacheV6568() {
+            ceramistBrowserCacheWriteScheduledV6364 = true;
+            ceramistBrowserCacheWriteRunningV6364 = true;
+            ceramistBrowserCacheWritePromiseV6364 = writeCeramistFastCacheV6364(data)
+              .finally(function finishNativeCeramistBrowserCacheWriteV6568() {
+                ceramistBrowserCacheWriteRunningV6364 = false;
+                ceramistBrowserCacheWriteScheduledV6364 = false;
+              });
+            return ceramistBrowserCacheWritePromiseV6364;
+          })
+          .then(function finishCeramistBrowserCacheV6568() {
+            ceramistStateV6342.browserCached = true;
+            const stamp = ceramistStateV6342.caseLevelRefreshedAt || ceramistStateV6342.generatedAt || ceramistStateV6342.driveUpdatedAt;
+            setCombinedCeramistStatusV6568('Worker cache updated: ' + (stamp ? ceramistCacheStampV6342(stamp) : 'date unavailable') + ' · refreshed with Remake cache');
+            return data;
+          });
+      });
+  }
+
+  function restoreCeramistAfterCombinedFailureV6568(error) {
+    const message = (error && error.message) || String(error || 'Technician cache refresh failed.');
+    setNoticeV6230('Remake cache refreshed, but the technician cache could not refresh. The previous saved technician cache will be restored. ' + message, 'warn');
+    setCombinedCeramistStatusV6568('Worker cache: waiting to restore the previous saved copy...');
+    console.warn('Native combined Remake and technician refresh completed with a technician warning.', error);
+    return Promise.resolve(browserCacheWriteCompletionV6568)
+      .catch(function() { return false; })
+      .then(function restorePriorCeramistBrowserCacheV6568() {
+        mainCacheSwapActiveV6346 = false;
+        setLoadingV6230(false);
+        clearCeramistMemoryV6346();
+        setCombinedCeramistStatusV6568('Worker cache: restoring the previous saved copy...');
+        loadCeramistRemakeAnalysisV6342(false);
+      });
+  }
+
+  function callRemakeFactorServerV6254(request, noticeText, allowBrowserFallback, refreshTechnicianAfterSuccess) {
+    request = Object.assign({}, request || {}, { compactForBrowser: true });
+    setLoadingV6230(true);
+    setNoticeV6230(noticeText || 'Loading...', 'warn');
+    google.script.run
+      .withSuccessHandler(data => {
+        const applied = handleDataV6230(data, false);
+        if (!applied) {
+          setLoadingV6230(false);
+          return;
+        }
+        if (refreshTechnicianAfterSuccess !== true) {
+          setLoadingV6230(false);
+          return;
+        }
+
+        mainCacheSwapActiveV6346 = true;
+        setLoadingV6230(true);
+        setNoticeV6230('Remake cache refreshed. Rebuilding technician responsibility...', 'warn');
+        refreshCeramistAfterRemakeV6568()
+          .then(function finishNativeCombinedRefreshV6568() {
+            mainCacheSwapActiveV6346 = false;
+            setLoadingV6230(false);
+            setNoticeV6230('', '');
+            if (typeof window.refreshCdaSharedCacheFooterV6567 === 'function') {
+              window.refreshCdaSharedCacheFooterV6567();
+            }
+          })
+          .catch(restoreCeramistAfterCombinedFailureV6568);
+      })
+      .withFailureHandler(error => {
+        setLoadingV6230(false);
+        mainCacheSwapActiveV6346 = false;
+        if (allowBrowserFallback) {
+          readRemakeFastCacheV6261()
+            .then(cached => {
+              if (cached && cached.ok) handleDataV6230(cached, true);
+              else setNoticeV6230((error && error.message) || String(error || 'Remake cache failed.'), 'error');
+            })
+            .catch(() => setNoticeV6230((error && error.message) || String(error || 'Remake cache failed.'), 'error'));
+        } else {
+          setNoticeV6230((error && error.message) || String(error || 'Remake cache failed.'), 'error');
+        }
+      })
+      .getRemakeFactorData(request);
+  }
+
+

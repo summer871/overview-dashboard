@@ -1,0 +1,245 @@
+<!-- RemakeSharedFilterAdapterV6646.html
+Version: v6.646
+Purpose: Compatibility adapter that makes SharedFilterBar the desktop Remake
+filter/header presentation owner while preserving the existing Remake filter
+state, undo, persistence, population, global-search, and dashboard render logic.
+
+Checkpoint B:
+- Desktop (1280px+) always uses SharedFilterBar.
+- The legacy filter bar is retained only for compact/mobile layouts.
+- No timer polling; mounting is event/DOM-observer driven.
+-->
+<style id="cdaRemakeSharedFilterAdapterV6646Styles">
+  @media (min-width:1280px) {
+    #remakeTabFilterHostV6337 > .remakeFilterBarV6230 {
+      display:none !important;
+    }
+    #remakeTabFilterHostV6337 > .cdaFilterBar {
+      display:grid !important;
+      grid-template-columns:minmax(82px,.54fr) minmax(108px,.76fr) minmax(132px,.96fr) minmax(116px,.82fr) minmax(132px,.96fr) minmax(108px,.76fr) !important;
+      flex:1 1 auto !important;
+      width:auto !important;
+      max-width:1240px !important;
+      min-width:0 !important;
+      gap:5px !important;
+      align-items:center !important;
+      margin:0 0 0 auto !important;
+    }
+    #remakeTabFilterHostV6337 .cdaFilter {
+      min-height:32px !important;
+    }
+    #remakeTabFilterHostV6337 .cdaFilterButton {
+      height:32px !important;
+      min-height:32px !important;
+    }
+  }
+  @media (max-width:1279px) {
+    #remakeTabFilterHostV6337 > .cdaFilterBar {
+      display:none !important;
+    }
+  }
+</style>
+<script id="cdaRemakeSharedFilterAdapterV6646">
+(function installRemakeSharedFilterAdapterV6646(){
+  'use strict';
+
+  if (window.CDA_REMAKE_SHARED_FILTER_ADAPTER_VERSION === 'v6.646') return;
+  window.CDA_REMAKE_SHARED_FILTER_ADAPTER_VERSION = 'v6.646';
+
+  const FILTER_KEY_V6646 = 'remake';
+  const HOST_SELECTOR_V6646 = '#remakeTabFilterHostV6337';
+  const filterKindsV6646 = ['year','department','product','productGroup','customer','reason'];
+  const searchStateV6646 = Object.create(null);
+  let instanceV6646 = null;
+  let observerV6646 = null;
+  let mutationOpenV6646 = false;
+
+  function requiredRuntimeReadyV6646(){
+    return typeof window.cdaSharedFilterBar === 'object'
+      && typeof filterMetaV6245 !== 'undefined'
+      && typeof uiV6230 !== 'undefined'
+      && typeof allOptionsForDropdownV6245 === 'function'
+      && typeof effectiveSelectionSetV6250 === 'function'
+      && typeof commitEffectiveSelectionV6389 === 'function'
+      && typeof setFilterValuesV6245 === 'function'
+      && typeof filterValuesV6245 === 'function'
+      && typeof excludedFilterValuesV6389 === 'function'
+      && typeof matchesFilterV6245 === 'function'
+      && typeof persistUiV6230 === 'function'
+      && typeof renderDashboardV6230 === 'function';
+  }
+
+  function optionsV6646(kind){
+    return allOptionsForDropdownV6245(kind).map(function(option){
+      return {
+        key:String(option && option.value != null ? option.value : ''),
+        label:String(option && option.label != null ? option.label : option && option.value != null ? option.value : ''),
+        active:!(option && option.active === false)
+      };
+    }).filter(function(option){ return !!option.key; });
+  }
+
+  function modeV6646(kind){
+    if (typeof filterIsNoneV6308 === 'function' && filterIsNoneV6308(kind)) return 'CUSTOM';
+    const selected = filterValuesV6245(kind);
+    const excluded = excludedFilterValuesV6389(kind);
+    return selected.length || excluded.length ? 'CUSTOM' : 'ALL';
+  }
+
+  function selectedV6646(kind){
+    return new Set(Array.from(effectiveSelectionSetV6250(kind) || []).map(String));
+  }
+
+  function rowValueV6646(row, kind){
+    if (!row) return '';
+    if (kind === 'year') return String(row.year == null ? '' : row.year);
+    if (kind === 'department') return String(row.department || '');
+    if (kind === 'product') return String(row.productKey || '');
+    if (kind === 'productGroup') return String(row.productGroup || row.department || 'Unassigned');
+    if (kind === 'customer') return String(row.customerKey || '');
+    if (kind === 'reason') {
+      if (typeof isRemakeV6230 === 'function' && !isRemakeV6230(row)) return '';
+      return String(row.remakeReason || 'Not specified');
+    }
+    return '';
+  }
+
+  function rowMatchesOtherFiltersV6646(row, targetKind){
+    return filterKindsV6646.every(function(kind){
+      if (kind === targetKind) return true;
+      const value = rowValueV6646(row, kind);
+      if (kind === 'reason' && !value) {
+        return modeV6646(kind) === 'ALL';
+      }
+      return matchesFilterV6245(kind, value);
+    });
+  }
+
+  function populationKeysV6646(targetKind){
+    const rows = (uiV6230 && Array.isArray(uiV6230.filterOptionRowsV6300))
+      ? uiV6230.filterOptionRowsV6300
+      : (typeof normalizedRowsV6230 === 'function' ? normalizedRowsV6230() : []);
+    const keys = new Set();
+    (rows || []).forEach(function(row){
+      if (!rowMatchesOtherFiltersV6646(row, targetKind)) return;
+      const value = rowValueV6646(row, targetKind);
+      if (value) keys.add(String(value));
+    });
+    return keys;
+  }
+
+  function selectionsEqualV6646(kind, nextSet, nextMode){
+    const currentMode = modeV6646(kind);
+    if (currentMode !== nextMode) return false;
+    const current = selectedV6646(kind);
+    if (current.size !== nextSet.size) return false;
+    for (const value of current) if (!nextSet.has(value)) return false;
+    return true;
+  }
+
+  function beginMutationV6646(){
+    if (mutationOpenV6646) return;
+    mutationOpenV6646 = true;
+    if (typeof pushRemakeUndoV6266 === 'function') pushRemakeUndoV6266();
+    queueMicrotask(function(){ mutationOpenV6646 = false; });
+  }
+
+  function applySelectionV6646(kind, nextSet, nextMode){
+    const cleanSet = new Set(Array.from(nextSet || []).map(String));
+    if (selectionsEqualV6646(kind, cleanSet, nextMode)) return;
+    beginMutationV6646();
+    if (nextMode === 'ALL') setFilterValuesV6245(kind, []);
+    else commitEffectiveSelectionV6389(kind, Array.from(cleanSet));
+    persistUiV6230();
+    renderDashboardV6230();
+  }
+
+  const adapterV6646 = {
+    getOptions:function(kind){ return optionsV6646(kind); },
+    getMode:function(kind){ return modeV6646(kind); },
+    getSelected:function(kind){ return selectedV6646(kind); },
+    getSearch:function(kind){ return searchStateV6646[kind] || ''; },
+    onSearch:function(kind, value){ searchStateV6646[kind] = String(value || ''); },
+    onSelectionChange:function(kind, nextSet, nextMode){ applySelectionV6646(kind, nextSet, nextMode); },
+    onReset:function(kind){ applySelectionV6646(kind, new Set(), 'ALL'); },
+    getPopulationKeys:function(kind){ return populationKeysV6646(kind); }
+  };
+
+  function filterConfigV6646(){
+    return filterKindsV6646.map(function(kind){
+      const meta = filterMetaV6245[kind] || {};
+      return {
+        key:kind,
+        label:String(meta.label || kind),
+        allLabel:String(meta.allLabel || ('All ' + kind)),
+        panelWidth:kind === 'year' ? 300 : 360,
+        position:(kind === 'customer' || kind === 'reason') ? 'right' : 'left'
+      };
+    });
+  }
+
+  function refreshV6646(){
+    if (!instanceV6646) return;
+    try { instanceV6646.render(); } catch (error) { console.warn('v6.646 shared Remake filter refresh warning', error); }
+  }
+
+  function mountV6646(){
+    if (instanceV6646) { refreshV6646(); return true; }
+    const host = document.querySelector(HOST_SELECTOR_V6646);
+    if (!host || !requiredRuntimeReadyV6646()) return false;
+    try {
+      instanceV6646 = window.cdaSharedFilterBar.create({
+        key:FILTER_KEY_V6646,
+        mountTarget:HOST_SELECTOR_V6646,
+        filters:filterConfigV6646(),
+        adapter:adapterV6646,
+        features:{ visibleToggle:true }
+      });
+      if (!instanceV6646 || !instanceV6646.mounted || !instanceV6646.el || !instanceV6646.el.bar) {
+        instanceV6646 = null;
+        return false;
+      }
+      host.classList.add('cdaSharedFilterActiveV6646');
+      refreshV6646();
+      window.CDA_REMAKE_SHARED_FILTER_ACTIVE = true;
+      return true;
+    } catch (error) {
+      console.warn('v6.646 SharedFilterBar mount failed for Remake desktop filters; compact/mobile legacy controls remain available below 1280px.', error);
+      instanceV6646 = null;
+      host.classList.remove('cdaSharedFilterActiveV6646');
+      window.CDA_REMAKE_SHARED_FILTER_ACTIVE = false;
+      return false;
+    }
+  }
+
+  function observeHostV6646(){
+    if (observerV6646 || !window.MutationObserver) return;
+    const tabs = document.querySelector('.managerTabs') || document.body;
+    if (!tabs) return;
+    observerV6646 = new MutationObserver(function(){
+      if (mountV6646() && observerV6646) {
+        observerV6646.disconnect();
+        observerV6646 = null;
+      }
+    });
+    observerV6646.observe(tabs, {childList:true, subtree:true});
+  }
+
+  function bootV6646(){
+    if (!mountV6646()) observeHostV6646();
+  }
+
+  window.refreshRemakeSharedFilterV6646 = refreshV6646;
+  window.mountRemakeSharedFilterV6646 = mountV6646;
+
+  document.addEventListener('click', function(event){
+    const target = event && event.target;
+    if (target && target.closest && target.closest('#remakeFactorTabBtn,[data-tab="remakeFactor"]')) {
+      requestAnimationFrame(bootV6646);
+    }
+  }, true);
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bootV6646, {once:true});
+  else bootV6646();
+})();
+</script>

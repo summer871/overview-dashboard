@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- v6.628 stable grid lifecycle platform: register saved geometry, stable table widths, and Chart.js first-draw rules before any dashboard body or startup script is parsed. -->
+  <?!= includeDashboardFile('SharedDashboardLayoutEditorV6593') ?>
+  <?!= includeDashboardFile('SharedDashboardTablePlatformV6586') ?>
+  <?!= includeDashboardFile('SharedVisualFitControllerV6617') ?>
+<?!= includeDashboardFile('SharedFilterBarStyles') ?>
+<?!= includeDashboardFile('SharedFilterBar') ?>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <?!= includeDashboardFile('DashboardFuzzySearch') ?>
+  <?!= includeDashboardFile('DashboardBaseStyles') ?>
+  <?!= includeDashboardFile('RemakeTailStyles') ?>
+
+  <?!= includeDashboardFile('RemakeHeadPresentationStyles') ?><?!= includeDashboardFile('SharedDashboardBootPresentation') ?><?!= includeDashboardFile('RemakeUsabilityPresentation') ?></head>
+<body>
+<?!= includeDashboardFile('DashboardShellMarkup') ?>  <?!= includeDashboardFile('RemakeRootAttributionBrowserIntegrationV1351') ?>
+  <?!= includeDashboardFile('DashboardMainScript', {dashboardBaseUrl: dashboardBaseUrl, dashboardPresentationVersion: dashboardPresentationVersion, dashboardPresentationMode: dashboardPresentationMode, dashboardPresentationSource: dashboardPresentationSource}) ?>
+<?!= includeDashboardFile('RemakeSharedFilterAdapterV6646') ?>
+<?!= includeDashboardFile('DashboardSupportScript01') ?>
+<?!= includeDashboardFile('RemakeLegacyPolishRuntime') ?><?!= includeDashboardFile('DashboardSupportScript02') ?>
+
+<?!= includeDashboardFile('RemakeLegacyLayoutRuntime') ?><?!= includeDashboardFile('RemakeCeramistTablePresentation') ?><?!= includeDashboardFile('DashboardSupportScript03') ?>
+<?!= includeDashboardFile('RemakeTableInteractionPresentation') ?><!-- v6.383 baseline: compact toolbar is mounted outside the rebuilt dashboard shell so
+     it cannot disappear during renders. Saved views use an inline editable
+     panel instead of browser prompt dialogs. -->
+<?!= includeDashboardFile('RemakeResponsiveStyles') ?>
+
+<?!= includeDashboardFile('RemakeCompactControlsPresentation') ?><?!= includeDashboardFile('DashboardSupportScript04') ?>
+
+
+<?!= includeDashboardFile('RemakeFilterSummaryPresentation') ?><?!= includeDashboardFile('RemakeSectionStateControllerV6402') ?>
+<?!= includeDashboardFile('RemakeKpiChooserV6403') ?>
+
+
+
+<?!= includeDashboardFile('SharedAtomicRenderingV6418') ?>
+
+
+<?!= includeDashboardFile('RemakeInteractionPolish') ?></body>
+</html>
+
+
+<!-- v6.407: stable chart month highlighting keeps values fixed and greys unselected months -->
+
+<script>window.CDA_REMAKE_GROUP_TOP_FILTER_VERSION = 'v6.401';</script>
+
+<script>window.CDA_REMAKE_STABLE_CHART_HIGHLIGHT_VERSION = 'v6.407';</script>
+
+<!-- v6.411: all normal data-loading, cache-checking, and cache-swap notices are displayed simply as Loading... while detailed errors remain unchanged. -->
+<!-- v6.412: Remake Factor dropdown/global searches use the Sales Customer Search-style fuzzy matcher: normalized text, compact text, tokens in any order, initials, partial words, and one-character typo tolerance. -->
+<script>window.CDA_REMAKE_SECTION_ARROW_VERSION = 'v6.408'; window.CDA_REMAKE_AUTO_SYNC_VERSION = 'v6.409';</script>
+
+<!-- v6.513: TAT keeps the Remake chart system, uses the same compact centered KPI sizing, removes the large coverage banner, and removes redundant card subtitles. -->
+<?!= includeDashboardFile('UnifiedControlsStyles') ?>
+<?!= includeDashboardFile('TatDashboardControllerScript') ?>
+<?!= includeDashboardFile('TatSharedFilterAdapterV6646') ?>
+
+
+
+<script>
+window.CDA_TAT_EXACT_REMAKE_PRESENTATION_VERSION = 'v6.513';
+</script>
+
+<!-- v6.513 keeps the actual Remake CSS aliases and adds the missing Remake KPI centering behavior for TAT. -->
+<?!= includeDashboardFile('TatRemakeAliasStyles') ?>
+
+<?!= includeDashboardFile('TatCompactPresentation') ?><!-- v6.517: safe intrinsic-width toolbar retry. Preserves the original TAT dropdown DOM and inline event handlers. -->
+<?!= includeDashboardFile('SharedTopParityStyles') ?>
+<?!= includeDashboardFile('SharedTableStyles') ?>
+<?!= includeDashboardFile('SharedTableModule') ?>
+
+
+<?!= includeDashboardFile('TatDropdownRepairPresentation') ?><?!= includeDashboardFile('SharedTopParityControllerV6527') ?>
+
+<!-- v6.531: shared application footer ownership for Remake and TAT. -->
+<?!= includeDashboardFile('SharedFooter') ?>

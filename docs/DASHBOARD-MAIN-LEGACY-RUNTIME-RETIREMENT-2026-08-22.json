@@ -1,0 +1,42 @@
+{
+  "datePt": "2026-08-22",
+  "checkpoint": "Retire paused Overview/legacy DashboardMain runtime from active execution",
+  "source": "DashboardMainScript.html",
+  "sourceBytesBefore": 125,
+  "sourceSha256Before": "33b3d96364964d308b9e8b6cf29b151a842d2e5f3363ba5f6b93fc95d42b41b4",
+  "sourceBytesAfter": 71,
+  "sourceSha256After": "61911dd10b35d84e56f4d1106fb9910e2763bc5aceae01d5fd4617a00ff33b5e",
+  "removedActiveInclude": "LegacyDashboardRuntime",
+  "activeRuntimeParent": "RemakeMainRuntimeV6230",
+  "activeLegacyRuntime": false,
+  "preservedArchivePath": "archive/dashboard-main-semantic-extraction-2026-08-21/DashboardMainScript.pre-legacy-runtime-extraction.html",
+  "preservedArchiveBytes": 776674,
+  "preservedArchiveSha256": "c699841f394d25ae29c4113f3364a2eb2f7cda06df8c30b2a27add8f6e6ff0ef",
+  "retiredRootFiles": [
+    "LegacyDashboardRuntime.html",
+    "LegacyOverviewRuntimeSegment01.html",
+    "LegacyOverviewRuntimeSegment02.html",
+    "LegacyOverviewRuntimeSegment03.html",
+    "LegacyOverviewRuntimeSegment04.html",
+    "LegacyOverviewRuntimeSegment05.html",
+    "LegacyOverviewRuntimeSegment06.html",
+    "LegacyOverviewRuntimeSegment07.html",
+    "LegacyOverviewRuntimeSegment08.html",
+    "LegacyOverviewRuntimeSegment09.html",
+    "LegacyOverviewRuntimeSegment10.html",
+    "LegacyOverviewRuntimeSegment11.html",
+    "LegacyOverviewRuntimeSegment12.html",
+    "LegacyOverviewRuntimeSegment13.html"
+  ],
+  "claspExclusions": [
+    "LegacyDashboardRuntime.html",
+    "LegacyOverviewRuntimeSegment*.html",
+    "archive/**"
+  ],
+  "tatRouterOwner": "TatDashboardControllerScript.html",
+  "tatDirectRemakeInitialization": "window.loadRemakeFactorData(false)",
+  "remakeTatBehaviorChangeIntended": false,
+  "pausedOverviewExecutionRemoved": true,
+  "productionDeployment": false,
+  "mergePerformed": false
+}

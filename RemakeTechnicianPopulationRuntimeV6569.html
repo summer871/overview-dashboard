@@ -1,0 +1,1341 @@
+  let ceramistPopulationMemoV6569 = {
+    signature:'',
+    rows:[],
+    audit:{
+      version:'v6.573',
+      mainRemakeRows:0,
+      sidecarRows:0,
+      mainRowsWithCaseNumber:0,
+      sidecarRowsWithCaseNumber:0,
+      matchedRows:0,
+      exactOrProductMatchedRows:0,
+      caseLevelMatchedRows:0,
+      synthesizedUnattributedRows:0,
+      joinedRows:0,
+      mainRemakeCases:0,
+      joinedCases:0,
+      attributedJoinedCases:0,
+      unattributedOnlyCases:0,
+      mixedCases:0,
+      sidecarReady:false,
+      caseNumberReady:false,
+      waitingForSidecar:true,
+      waitingForMainCaseNumber:false,
+      fallbackToSidecar:false,
+      complete:false
+    }
+  };
+  let ceramistPopulationSidecarRefreshQueuedV6570 = false;
+
+  function ceramistPopulationNormalizeCaseV6570(value) {
+    const clean = textV6230(value, '');
+    if (!clean) return '';
+    const numeric = Number(clean);
+    return Number.isFinite(numeric) && numeric > 0 ? String(Math.trunc(numeric)) : '';
+  }
+
+  function ceramistPopulationNormalizeProductV6570(value) {
+    return textV6230(value, '').replace(/\s+/g, ' ').trim().toUpperCase();
+  }
+
+  function ceramistPopulationCaseIdentityV6569(row) {
+    const candidates = [
+      row && row.currentCaseNumber,
+      row && row.remakeCaseNumber,
+      row && row.caseNumber,
+      row && row.currentCaseNo,
+      row && row.caseNo,
+      row && row.Cases_CaseNumber
+    ];
+    for (let index = 0; index < candidates.length; index += 1) {
+      const normalized = ceramistPopulationNormalizeCaseV6570(candidates[index]);
+      if (normalized) return normalized;
+    }
+    return '';
+  }
+
+  function ceramistPopulationProductIdentityV6569(row) {
+    return ceramistPopulationNormalizeProductV6570(row && (
+      row.currentProductId || row.currentProductID ||
+      row.remakeProductId || row.remakeProductID ||
+      row.productId || row.productID || row.CaseProducts_ProductID ||
+      row.productKey || row.productName
+    ));
+  }
+
+  function ceramistPopulationLineIdentityV6569(row) {
+    return textV6230(row && (
+      row.caseProductLineId || row.currentCaseProductLineId ||
+      row.currentCaseProductLineID || row.caseProductLineID ||
+      row.caseProductId || row.currentCaseProductId || row.currentCaseProductID ||
+      row.caseProductID || row.productLineId || row.productLineID ||
+      row.lineId || row.lineID
+    ), '');
+  }
+
+  function ceramistPopulationQueueSidecarRefreshV6570() {
+    if (ceramistPopulationSidecarRefreshQueuedV6570 || ceramistStateV6342.loading) return;
+    ceramistPopulationSidecarRefreshQueuedV6570 = true;
+    window.setTimeout(function requestReadySidecarV6570() {
+      ceramistPopulationSidecarRefreshQueuedV6570 = false;
+      if (Array.isArray(ceramistStateV6342.rows) && ceramistStateV6342.rows.length) return;
+      if (mainCacheSwapActiveV6346 || browserCacheWriteScheduledV6346) {
+        ceramistPopulationQueueSidecarRefreshV6570();
+        return;
+      }
+      loadCeramistRemakeAnalysisV6342(true);
+    }, 120);
+  }
+
+  function ceramistPopulationNumberTokenV6569(value, digits) {
+    const number = numV6230(value);
+    return Number.isFinite(number) ? number.toFixed(digits) : '';
+  }
+
+  function ceramistPopulationBroadKeyV6569(row) {
+    const caseNumber = ceramistPopulationCaseIdentityV6569(row);
+    const product = ceramistPopulationProductIdentityV6569(row);
+    if (!caseNumber || !product) return '';
+    return [caseNumber, product].join('\u0001');
+  }
+
+  function ceramistPopulationExactKeyV6569(row) {
+    const broadKey = ceramistPopulationBroadKeyV6569(row);
+    if (!broadKey) return '';
+    return [
+      broadKey,
+      ceramistPopulationLineIdentityV6569(row),
+      ceramistPopulationNumberTokenV6569(
+        row && (row.remakeUnits !== undefined ? row.remakeUnits : (row.quantity !== undefined ? row.quantity : row.units)),
+        4
+      ),
+      ceramistPopulationNumberTokenV6569(row && row.remakeDiscount, 2),
+      textV6230(row && row.remakeReason, '').toLowerCase()
+    ].join('\u0001');
+  }
+
+  function ceramistPopulationBucketV6569(map, key, item) {
+    if (!key) return;
+    if (!map.has(key)) map.set(key, []);
+    map.get(key).push(item);
+  }
+
+  function ceramistTakePopulationMatchV6569(map, key, claimed) {
+    if (!key) return null;
+    const candidates = map.get(key) || [];
+    for (let index = 0; index < candidates.length; index += 1) {
+      const candidate = candidates[index];
+      if (claimed.has(candidate.index)) continue;
+      claimed.add(candidate.index);
+      return candidate.row;
+    }
+    return null;
+  }
+
+  function ceramistPopulationCaseCountV6571(rows) {
+    return new Set((rows || []).map(ceramistPopulationCaseIdentityV6569).filter(Boolean)).size;
+  }
+
+  function ceramistPopulationCaseCoverageV6571(rows) {
+    const cases = new Map();
+    (rows || []).forEach(function(row) {
+      const key = ceramistPopulationCaseIdentityV6569(row);
+      if (!key) return;
+      if (!cases.has(key)) cases.set(key, { attributed:false, unattributed:false });
+      const item = cases.get(key);
+      if (ceramistIsAttributedV6343(row)) item.attributed = true;
+      else item.unattributed = true;
+    });
+    let attributed = 0;
+    let unattributedOnly = 0;
+    let mixed = 0;
+    cases.forEach(function(item) {
+      if (item.attributed) attributed += 1;
+      if (!item.attributed && item.unattributed) unattributedOnly += 1;
+      if (item.attributed && item.unattributed) mixed += 1;
+    });
+    return {
+      total:cases.size,
+      attributed:attributed,
+      unattributedOnly:unattributedOnly,
+      mixed:mixed
+    };
+  }
+
+  function ceramistPopulationCaseRepresentativesV6570(rows) {
+    const grouped = new Map();
+    (rows || []).forEach(function(row) {
+      const caseKey = ceramistPopulationCaseIdentityV6569(row);
+      if (!caseKey) return;
+      if (!grouped.has(caseKey)) grouped.set(caseKey, []);
+      grouped.get(caseKey).push(row);
+    });
+    const representatives = new Map();
+    grouped.forEach(function(caseRows, caseKey) {
+      const attributed = caseRows.filter(ceramistIsAttributedV6343);
+      const workers = new Map();
+      attributed.forEach(function(row) {
+        const worker = textV6230(
+          row && (row.responsibleCeramistDisplay || row.responsibleCeramist),
+          ''
+        ).toLowerCase();
+        if (worker && !workers.has(worker)) workers.set(worker, row);
+      });
+      if (workers.size === 1) representatives.set(caseKey, Array.from(workers.values())[0]);
+    });
+    return representatives;
+  }
+
+  function ceramistOverlayMainPopulationV6569(sidecarRow, mainRow, matchMethod) {
+    const matched = !!sidecarRow;
+    const row = Object.assign({}, sidecarRow || {});
+    const caseNumber = ceramistPopulationCaseIdentityV6569(mainRow);
+    const caseId = textV6230(mainRow && mainRow.caseId, caseNumber);
+    const productId = textV6230(mainRow && mainRow.productId, '');
+    const productName = textV6230(mainRow && mainRow.productName, productId || 'Unknown product');
+    const productKey = textV6230(mainRow && mainRow.productKey, productId || productName);
+    const customerId = textV6230(mainRow && mainRow.customerId, '');
+    const customerName = textV6230(mainRow && mainRow.customerName, customerId || 'Unknown customer');
+
+    row.month = textV6230(mainRow && mainRow.month, row.month || '');
+    row.year = Number(mainRow && mainRow.year || row.year || 0) || '';
+    row.invoiceDate = textV6230(mainRow && mainRow.invoiceDate, row.invoiceDate || '');
+    row.caseId = caseId || textV6230(row.caseId, '');
+    row.caseNumber = caseNumber || ceramistPopulationCaseIdentityV6569(row);
+    row.currentCaseNumber = caseNumber || textV6230(row.currentCaseNumber, row.caseNumber);
+    row.remakeCaseNumber = caseNumber || textV6230(row.remakeCaseNumber, row.caseNumber);
+    row.caseProductLineId = textV6230(
+      mainRow && mainRow.caseProductLineId,
+      ceramistPopulationLineIdentityV6569(row)
+    );
+    row.customerId = customerId || textV6230(row.customerId, '');
+    row.customerKey = customerId || textV6230(row.customerKey, row.customerId);
+    row.customerName = customerName;
+    row.customerDisplayName = textV6230(
+      mainRow && (mainRow.customerDisplayLabel || mainRow.customerDisplayName),
+      customerName
+    );
+    row.practiceName = textV6230(mainRow && mainRow.practiceName, row.practiceName || '');
+    row.customerActive = mainRow && mainRow.customerActive === false ? false : true;
+    row.department = textV6230(mainRow && mainRow.department, row.department || 'Unassigned');
+    row.productId = productId || textV6230(row.productId, '');
+    row.currentProductId = productId || textV6230(row.currentProductId, row.productId);
+    row.productKey = productKey || textV6230(row.productKey, row.productId || productName);
+    row.productName = productName;
+    row.productGroup = textV6230(mainRow && mainRow.productGroup, row.productGroup || 'Unassigned');
+    row.remakeReason = textV6230(mainRow && mainRow.remakeReason, row.remakeReason || 'Not specified');
+    row.quantity = numV6230(mainRow && (mainRow.quantity !== undefined ? mainRow.quantity : mainRow.units));
+    row.units = row.quantity;
+    row.isRemake = true;
+    row.remakeUnits = numV6230(mainRow && (
+      mainRow.remakeUnits !== undefined ? mainRow.remakeUnits :
+      (mainRow.quantity !== undefined ? mainRow.quantity : mainRow.units)
+    ));
+    row.remakeDiscount = Math.abs(numV6230(mainRow && mainRow.remakeDiscount));
+    row.caseStatus = textV6230(mainRow && mainRow.caseStatus, row.caseStatus || '');
+    row.invoiceDateTryIn = textV6230(mainRow && mainRow.invoiceDateTryIn, row.invoiceDateTryIn || '');
+    row.populationSourceV6569 = matched
+      ? 'main_remake_population_plus_ceramist_attribution'
+      : 'main_remake_population_unattributed';
+    row.populationMatchMethodV6571 = textV6230(matchMethod, matched ? 'sidecar' : 'unattributed');
+
+    if (matched) return row;
+
+    row.currentProductCeramicsEligible = false;
+    row.currentProductCeramicsEligibilityReason = 'No Ceramist attribution sidecar record exists for this remake case';
+    row.responsibleCeramist = '[Unattributed]';
+    row.responsibleCeramistDisplay = '[Unattributed]';
+    row.responsibleTechnicianNumber = '';
+    row.responsibleTechnicianType = '';
+    row.responsibleWorkerType = '';
+    row.responsibleWorkerCategory = 'Unattributed';
+    row.responsibleWorkerSection = 'Unattributed';
+    row.attributionStatus = 'unattributed';
+    row.attributionBasis = 'missing_sidecar_record';
+    row.attributionReason = row.currentProductCeramicsEligibilityReason;
+    row.caseLevelResponsibilityApplied = true;
+    row.invoiceNoteUsedForAttribution = false;
+    return row;
+  }
+
+  function ceramistPopulationFallbackToSidecarV6571(signature, sourceSidecarRows, sourceMainRows, reason) {
+    const fallbackRows = sourceSidecarRows.map(function(row) { return Object.assign({}, row); });
+    const mainRowsWithCaseNumber = sourceMainRows.filter(function(row) {
+      return !!ceramistPopulationCaseIdentityV6569(row);
+    }).length;
+    const sidecarRowsWithCaseNumber = sourceSidecarRows.filter(function(row) {
+      return !!ceramistPopulationCaseIdentityV6569(row);
+    }).length;
+    ceramistPopulationMemoV6569 = {
+      signature:signature,
+      rows:fallbackRows,
+      audit:{
+        version:'v6.573',
+        mainRemakeRows:sourceMainRows.length,
+        sidecarRows:sourceSidecarRows.length,
+        mainRowsWithCaseNumber:mainRowsWithCaseNumber,
+        sidecarRowsWithCaseNumber:sidecarRowsWithCaseNumber,
+        matchedRows:sourceSidecarRows.length,
+        exactOrProductMatchedRows:sourceSidecarRows.length,
+        caseLevelMatchedRows:0,
+        synthesizedUnattributedRows:0,
+        joinedRows:fallbackRows.length,
+        mainRemakeCases:ceramistPopulationCaseCountV6571(sourceMainRows),
+        joinedCases:ceramistPopulationCaseCountV6571(fallbackRows),
+        attributedJoinedCases:ceramistPopulationCaseCoverageV6571(fallbackRows).attributed,
+        unattributedOnlyCases:ceramistPopulationCaseCoverageV6571(fallbackRows).unattributedOnly,
+        mixedCases:ceramistPopulationCaseCoverageV6571(fallbackRows).mixed,
+        sidecarReady:sourceSidecarRows.length > 0,
+        caseNumberReady:false,
+        waitingForSidecar:false,
+        waitingForMainCaseNumber:reason === 'main_case_number_missing',
+        fallbackToSidecar:true,
+        fallbackReason:reason,
+        complete:false
+      }
+    };
+    return fallbackRows;
+  }
+
+  function ceramistBuildCompletePopulationV6569(sidecarRows, mainRows) {
+    const sourceSidecarRows = Array.isArray(sidecarRows) ? sidecarRows.filter(Boolean) : [];
+    const sourceMainRows = Array.isArray(mainRows) ? mainRows.filter(function(row) {
+      return row && isRemakeV6230(row);
+    }) : [];
+    const remakeState = window.remakeFactorState || {};
+    const remakeData = remakeState.data || {};
+    const mainRowsWithCaseNumber = sourceMainRows.filter(function(row) {
+      return !!ceramistPopulationCaseIdentityV6569(row);
+    }).length;
+    const sidecarRowsWithCaseNumber = sourceSidecarRows.filter(function(row) {
+      return !!ceramistPopulationCaseIdentityV6569(row);
+    }).length;
+    const signature = [
+      textV6230(remakeData.generatedAt || remakeData.lastRefreshAt, ''),
+      textV6230(ceramistStateV6342.cacheToken || ceramistStateV6342.caseLevelRefreshedAt, ''),
+      sourceMainRows.length,
+      sourceSidecarRows.length,
+      mainRowsWithCaseNumber,
+      sidecarRowsWithCaseNumber
+    ].join('|');
+
+    if (ceramistPopulationMemoV6569.signature === signature) {
+      return ceramistPopulationMemoV6569.rows;
+    }
+
+    if (!sourceMainRows.length) {
+      return ceramistPopulationFallbackToSidecarV6571(signature, sourceSidecarRows, sourceMainRows, 'main_population_not_loaded');
+    }
+
+    if (!sourceSidecarRows.length) {
+      ceramistPopulationQueueSidecarRefreshV6570();
+      ceramistPopulationMemoV6569 = {
+        signature:signature,
+        rows:[],
+        audit:{
+          version:'v6.573',
+          mainRemakeRows:sourceMainRows.length,
+          sidecarRows:0,
+          mainRowsWithCaseNumber:mainRowsWithCaseNumber,
+          sidecarRowsWithCaseNumber:0,
+          matchedRows:0,
+          exactOrProductMatchedRows:0,
+          caseLevelMatchedRows:0,
+          synthesizedUnattributedRows:0,
+          joinedRows:0,
+          mainRemakeCases:ceramistPopulationCaseCountV6571(sourceMainRows),
+          joinedCases:0,
+          attributedJoinedCases:0,
+          unattributedOnlyCases:0,
+          mixedCases:0,
+          sidecarReady:false,
+          caseNumberReady:mainRowsWithCaseNumber === sourceMainRows.length,
+          waitingForSidecar:true,
+          waitingForMainCaseNumber:false,
+          fallbackToSidecar:false,
+          complete:false
+        }
+      };
+      return [];
+    }
+
+    if (mainRowsWithCaseNumber !== sourceMainRows.length) {
+      return ceramistPopulationFallbackToSidecarV6571(
+        signature,
+        sourceSidecarRows,
+        sourceMainRows,
+        'main_case_number_missing'
+      );
+    }
+
+    if (!sidecarRowsWithCaseNumber) {
+      return ceramistPopulationFallbackToSidecarV6571(
+        signature,
+        sourceSidecarRows,
+        sourceMainRows,
+        'sidecar_case_number_missing'
+      );
+    }
+
+    const exactBuckets = new Map();
+    const broadBuckets = new Map();
+    const caseRepresentatives = ceramistPopulationCaseRepresentativesV6570(sourceSidecarRows);
+    sourceSidecarRows.forEach(function(row, index) {
+      const item = { index:index, row:row };
+      ceramistPopulationBucketV6569(exactBuckets, ceramistPopulationExactKeyV6569(row), item);
+      ceramistPopulationBucketV6569(broadBuckets, ceramistPopulationBroadKeyV6569(row), item);
+    });
+
+    const claimed = new Set();
+    let exactOrProductMatchedRows = 0;
+    let caseLevelMatchedRows = 0;
+    let synthesizedRows = 0;
+    const joinedRows = sourceMainRows.map(function(mainRow) {
+      let matchMethod = '';
+      let sidecarRow = ceramistTakePopulationMatchV6569(
+        exactBuckets,
+        ceramistPopulationExactKeyV6569(mainRow),
+        claimed
+      );
+      if (sidecarRow) matchMethod = 'case_product_exact';
+      if (!sidecarRow) {
+        sidecarRow = ceramistTakePopulationMatchV6569(
+          broadBuckets,
+          ceramistPopulationBroadKeyV6569(mainRow),
+          claimed
+        );
+        if (sidecarRow) matchMethod = 'case_product';
+      }
+      if (sidecarRow) {
+        exactOrProductMatchedRows += 1;
+      } else {
+        sidecarRow = caseRepresentatives.get(ceramistPopulationCaseIdentityV6569(mainRow)) || null;
+        if (sidecarRow) {
+          caseLevelMatchedRows += 1;
+          matchMethod = 'case_level_unique_worker';
+        }
+      }
+      if (!sidecarRow) {
+        synthesizedRows += 1;
+        matchMethod = 'unattributed_no_sidecar_match';
+      }
+      return ceramistOverlayMainPopulationV6569(sidecarRow, mainRow, matchMethod);
+    });
+
+    const matchedRows = exactOrProductMatchedRows + caseLevelMatchedRows;
+    const coverage = ceramistPopulationCaseCoverageV6571(joinedRows);
+    const audit = {
+      version:'v6.573',
+      mainRemakeRows:sourceMainRows.length,
+      sidecarRows:sourceSidecarRows.length,
+      mainRowsWithCaseNumber:mainRowsWithCaseNumber,
+      sidecarRowsWithCaseNumber:sidecarRowsWithCaseNumber,
+      matchedRows:matchedRows,
+      exactOrProductMatchedRows:exactOrProductMatchedRows,
+      caseLevelMatchedRows:caseLevelMatchedRows,
+      synthesizedUnattributedRows:synthesizedRows,
+      joinedRows:joinedRows.length,
+      mainRemakeCases:ceramistPopulationCaseCountV6571(sourceMainRows),
+      joinedCases:coverage.total,
+      attributedJoinedCases:coverage.attributed,
+      unattributedOnlyCases:coverage.unattributedOnly,
+      mixedCases:coverage.mixed,
+      sidecarReady:true,
+      caseNumberReady:true,
+      waitingForSidecar:false,
+      waitingForMainCaseNumber:false,
+      fallbackToSidecar:false,
+      complete:joinedRows.length === sourceMainRows.length &&
+        coverage.total === ceramistPopulationCaseCountV6571(sourceMainRows)
+    };
+
+    ceramistPopulationMemoV6569 = {
+      signature:signature,
+      rows:joinedRows,
+      audit:audit
+    };
+    return joinedRows;
+  }
+
+  const ceramistPopulationApiV6573 = Object.freeze({
+    version:'v6.573',
+    audit:function() {
+      const mainRows = normalizedRowsV6230().filter(function(row) {
+        return row && isRemakeV6230(row);
+      });
+      const sidecarRows = Array.isArray(ceramistStateV6342.rows) ? ceramistStateV6342.rows : [];
+      if (mainRows.length || sidecarRows.length) {
+        ceramistBuildCompletePopulationV6569(sidecarRows, mainRows);
+      }
+      return Object.assign({}, ceramistPopulationMemoV6569.audit || {}, {
+        version:'v6.573',
+        stateLoaded:ceramistStateV6342.loaded === true,
+        stateLoading:ceramistStateV6342.loading === true,
+        stateOk:ceramistStateV6342.ok === true,
+        liveMainRemakeRows:mainRows.length,
+        liveMainRowsWithCaseNumber:mainRows.filter(function(row) {
+          return !!ceramistPopulationCaseIdentityV6569(row);
+        }).length,
+        liveSidecarRows:sidecarRows.length,
+        liveSidecarRowsWithCaseNumber:sidecarRows.filter(function(row) {
+          return !!ceramistPopulationCaseIdentityV6569(row);
+        }).length
+      });
+    }
+  });
+  window.cdaCeramistPopulationReconciliationV6573 = ceramistPopulationApiV6573;
+  window.cdaCeramistPopulationReconciliationV6571 = ceramistPopulationApiV6573;
+  window.cdaCeramistPopulationReconciliationV6570 = ceramistPopulationApiV6573;
+  window.cdaCeramistPopulationReconciliationV6569 = ceramistPopulationApiV6573;
+
+  function ceramistRowsInDashboardScopeV6342(ignoreFilterKind) {
+    const sidecarRows = Array.isArray(ceramistStateV6342.rows) ? ceramistStateV6342.rows : [];
+    const mainRows = normalizedRowsV6230();
+    let rows = ceramistBuildCompletePopulationV6569(sidecarRows, mainRows);
+    if (!rows.length) return [];
+    if (mainRows.length) {
+      rows = ceramistEnrichTryInFromMainV6348(rows, mainRows);
+      const scope = comparisonScopeV6295(mainRows);
+      rows = rowsInComparisonYearV6295(rows, scope.currentYear, scope.months, scope);
+    }
+    const filterOptionsV6371 = { year:false, months:false };
+    const ignoredKindV6371 = String(ignoreFilterKind || '');
+    if (ignoredKindV6371) filterOptionsV6371[ignoredKindV6371] = false;
+    return rowsForRemakeFiltersV6252(rows, filterOptionsV6371);
+  }
+  function ceramistCaseStatusMapV6343(rows) {
+    const map = new Map();
+    (rows || []).forEach(function(row) {
+      const key = ceramistCaseKeyV6342(row);
+      if (!key) return;
+      if (!map.has(key)) map.set(key, { key:key, hasAttributed:false, hasUnattributed:false });
+      const item = map.get(key);
+      if (ceramistIsAttributedV6343(row)) item.hasAttributed = true;
+      else item.hasUnattributed = true;
+    });
+    map.forEach(function(item) {
+      item.status = item.hasAttributed && item.hasUnattributed ? 'partial' : (item.hasAttributed ? 'full' : 'unattributed');
+    });
+    return map;
+  }
+  function ceramistRowsForCaseStatusV6343(rows, status, statusMap) {
+    if (!status || status === 'all') return (rows || []).slice();
+    const map = statusMap || ceramistCaseStatusMapV6343(rows);
+    return (rows || []).filter(function(row) {
+      const item = map.get(ceramistCaseKeyV6342(row));
+      return !!item && item.status === status;
+    });
+  }
+  function ceramistRowsForDiagnosticV6343(rows, flag) {
+    if (!flag || flag === 'none') return (rows || []).slice();
+    const matches = new Set();
+    (rows || []).forEach(function(row) {
+      const key = ceramistCaseKeyV6342(row);
+      const isMatch = flag === 'multi' ? row && row.multiChain === true
+        : flag === 'rootMissing' ? row && row.rootCeramicsMissing === true
+        : flag === 'noteEvidence' ? ceramistHasPriorNoteEvidenceV6349(row)
+        : false;
+      if (key && isMatch) matches.add(key);
+    });
+    return (rows || []).filter(row => matches.has(ceramistCaseKeyV6342(row)));
+  }
+  function ceramistCleanWorkerLabelV6349(value, fallback) {
+    const label = textV6230(value, fallback || '').trim();
+    return label.replace(/\s*[-\u2013\u2014]\s*$/, '').trim();
+  }
+  function ceramistNormalizeWorkerIdentityV6351(value) {
+    return ceramistCleanWorkerLabelV6349(value, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, ' ')
+      .trim();
+  }
+  function ceramistWorkerGroupIdentityV6351(row) {
+    const rawKey = textV6230(row && row.responsibleCeramist, '[Unattributed]');
+    const unattributed = rawKey === '[Unattributed]' || !ceramistIsAttributedV6343(row);
+    if (unattributed) {
+      return {
+        key:'[Unattributed]',
+        label:'Unattributed',
+        workerType:'',
+        workerCategory:'Unattributed',
+        workerSection:'Unattributed'
+      };
+    }
+    const label = ceramistCleanWorkerLabelV6349(row && row.responsibleCeramistDisplay, rawKey);
+    const workerType = textV6230(row && row.responsibleWorkerType, textV6230(row && row.responsibleCeramistTechnicianType, ''));
+    const workerCategory = textV6230(row && row.responsibleWorkerCategory, /^ceramist$/i.test(workerType) ? 'Ceramist' : 'Worker type missing');
+    const workerSection = textV6230(row && row.responsibleWorkerSection, /^ceramist$/i.test(workerType) ? 'Ceramists' : 'Technicians / Try-ins');
+    const techNumber = textV6230(row && (row.responsibleCeramistTechnicianNumber || row.responsibleTechnicianNumber || row.responsibleTechNumber), '').replace(/^TECH#?/i, '').trim();
+    const normalizedLabel = ceramistNormalizeWorkerIdentityV6351(label || rawKey);
+    const key = techNumber
+      ? 'worker-tech-' + techNumber
+      : 'worker-name-' + (normalizedLabel || ceramistNormalizeWorkerIdentityV6351(rawKey)) + '-' + ceramistNormalizeWorkerIdentityV6351(workerType || workerCategory);
+    return {
+      key:key,
+      label:label || rawKey,
+      workerType:workerType,
+      workerCategory:workerCategory,
+      workerSection:workerSection
+    };
+  }
+  function ceramistGroupRowsV6342(rows) {
+    const groups = new Map();
+    (rows || []).forEach(function(row) {
+      const identity = ceramistWorkerGroupIdentityV6351(row);
+      const key = identity.key;
+      if (!groups.has(key)) {
+        groups.set(key, {
+          key:key,
+          label:identity.label,
+          workerType:identity.workerType,
+          workerCategory:identity.workerCategory,
+          workerSection:identity.workerSection,
+          caseKeys:new Set(),
+          caseNumbers:new Set(),
+          reviewReasons:new Set(),
+          remakeUnits:0,
+          remakeDiscount:0,
+          productRows:0
+        });
+      }
+      const group = groups.get(key);
+      if ((!group.label || group.label === group.key) && identity.label) group.label = identity.label;
+      if (!group.workerType && identity.workerType) group.workerType = identity.workerType;
+      if (/^ceramist$/i.test(identity.workerType || identity.workerCategory)) {
+        group.workerType = identity.workerType || 'Ceramist';
+        group.workerCategory = 'Ceramist';
+        group.workerSection = 'Ceramists';
+      }
+      const caseKey = ceramistCaseKeyV6342(row);
+      const caseNumber = ceramistRemakeCaseNumberV6349(row);
+      if (caseKey) group.caseKeys.add(caseKey);
+      if (caseNumber) group.caseNumbers.add(caseNumber);
+      if (key === '[Unattributed]') group.reviewReasons.add(ceramistUnassignedReasonV6349(row));
+      group.remakeUnits += numV6230(row.remakeUnits);
+      group.remakeDiscount += Math.abs(numV6230(row.remakeDiscount));
+      group.productRows += 1;
+    });
+    const totalUnits = Array.from(groups.values()).reduce((sum, group) => sum + numV6230(group.remakeUnits), 0);
+    return Array.from(groups.values()).map(function(group) {
+      return {
+        key:group.key,
+        label:group.label,
+        workerType:group.workerType,
+        workerCategory:group.workerCategory,
+        workerSection:group.workerSection,
+        caseNumbers:Array.from(group.caseNumbers).sort(function(a,b) {
+          return String(a).localeCompare(String(b), undefined, { numeric:true, sensitivity:'base' });
+        }),
+        reviewReasons:Array.from(group.reviewReasons).sort(),
+        remakeCases:group.caseKeys.size,
+        remakeUnits:group.remakeUnits,
+        shareUnits:totalUnits ? group.remakeUnits / totalUnits : 0,
+        remakeDiscount:group.remakeDiscount,
+        productRows:group.productRows
+      };
+    });
+  }
+  function ceramistBreakdownInfoV6343(row, mode) {
+    const safeMode = ['product','group','department','customer','reason'].indexOf(mode) >= 0 ? mode : 'product';
+    if (safeMode === 'group') {
+      const label = textV6230(row && row.productGroup, 'Unassigned');
+      return { key:label, label:label };
+    }
+    if (safeMode === 'department') {
+      const label = textV6230(row && row.department, 'Unassigned');
+      return { key:label, label:label };
+    }
+    if (safeMode === 'customer') {
+      const customer = textV6230(row && (row.customerName || row.customerDisplayName), textV6230(row && row.customerId, 'Unknown customer'));
+      const practice = textV6230(row && row.practiceName, '');
+      const label = practice && customer.indexOf(practice) < 0 ? customer + ' - ' + practice : customer;
+      return { key:textV6230(row && row.customerKey, label), label:label };
+    }
+    if (safeMode === 'reason') {
+      const label = textV6230(row && row.remakeReason, 'Not specified');
+      return { key:label, label:label };
+    }
+    const label = textV6230(row && row.productName, textV6230(row && row.productId, 'Unknown product'));
+    return { key:textV6230(row && row.productKey, label), label:label };
+  }
+  function ceramistRemakeCaseNumberV6349(row) {
+    return textV6230(row && (row.remakeCaseNumber || row.caseNumber || row.caseId), '');
+  }
+  function ceramistPriorNoteTechNumbersV6349(row) {
+    const values = [];
+    ['previous','root'].forEach(function(prefix) {
+      const list = Array.isArray(row && row[prefix + 'InvoiceNoteTechNumbers'])
+        ? row[prefix + 'InvoiceNoteTechNumbers']
+        : [];
+      list.forEach(function(value) {
+        const clean = String(value || '').trim();
+        if (clean && values.indexOf(clean) < 0) values.push(clean);
+      });
+    });
+    return values;
+  }
+  function ceramistHasPriorNoteEvidenceV6349(row) {
+    return ceramistPriorNoteTechNumbersV6349(row).length > 0;
+  }
+  function ceramistCompletedFromPriorNoteV6349(row) {
+    return !!(row && (row.previousCompletedViaInvoiceNote === true || row.rootCompletedViaInvoiceNote === true ||
+      /^(previous|root)_invoice_note_tech_completed$/i.test(String(row.attributionBasis || ''))));
+  }
+  function ceramistUnassignedReasonV6349(row) {
+    if (!row) return 'No CERAMICS task assigned';
+    const basis = String(row.attributionBasis || '').toLowerCase();
+    const explicitReason = textV6230(row.attributionReason || row.currentProductCeramicsEligibilityReason, '');
+    if (basis === 'missing_sidecar_record') {
+      return explicitReason || 'No Ceramist attribution sidecar record exists for this remake case';
+    }
+    if (basis === 'population_chain_pending') {
+      return explicitReason || 'Remake chain attribution is queued for the next cache refresh';
+    }
+    if (basis === 'population_chain_error') {
+      return explicitReason || 'Remake chain attribution could not be resolved';
+    }
+    if (basis === 'not_current_product_ceramics_eligible') {
+      return explicitReason || 'Not eligible: no exact current-product CERAMICS task';
+    }
+    if (basis === 'multiple_case_level_workers') {
+      return 'Multiple completed CERAMICS workers require review';
+    }
+    if (basis === 'no_case_level_ceramics_worker') {
+      return 'No completed CERAMICS worker on the prior/root case';
+    }
+    const hasLinkedCase = !!textV6230(row.previousCaseNumber || row.rootCaseNumber, '');
+    if (!hasLinkedCase || basis === 'unlinked' || numV6230(row.chainDepth) <= 0) {
+      return 'No remake case ID found';
+    }
+    return explicitReason || 'No CERAMICS task assigned';
+  }
+  function ceramistNoteTokensV6343(row) {
+    const tokens = [];
+    [
+      ['Previous case', 'previous'],
+      ['Root case', 'root']
+    ].forEach(function(item) {
+      const label = item[0];
+      const prefix = item[1];
+      const values = Array.isArray(row && row[prefix + 'InvoiceNoteTechNumbers'])
+        ? row[prefix + 'InvoiceNoteTechNumbers'].map(String).filter(Boolean)
+        : [];
+      if (!values.length) return;
+      const display = ceramistCleanWorkerLabelV6349(row && row[prefix + 'CeramistDisplay'], '');
+      const type = textV6230(row && (row[prefix + 'CeramistTechnicianType'] || row[prefix + 'WorkerType']), '');
+      if (values.length > 1) {
+        tokens.push(label + ': multiple TECH# values (' + values.join(', ') + ')');
+        return;
+      }
+      const identity = display || ('TECH#' + values[0]);
+      const typeText = type ? ', ' + type : '';
+      const accepted = row && row[prefix + 'CompletedViaInvoiceNote'] === true;
+      tokens.push(label + ': ' + identity + ' (TECH#' + values[0] + typeText + ')' + (accepted ? ' - completed via invoice note' : ' - needs review'));
+    });
+    return tokens;
+  }
+
+  function ceramistDetailRowsV6343(rows, selectedCeramist, mode) {
+    const groups = new Map();
+    (rows || []).filter(function(row) {
+      return ceramistWorkerGroupIdentityV6351(row).key === selectedCeramist;
+    }).forEach(function(row) {
+      const info = ceramistBreakdownInfoV6343(row, mode);
+      const mapKey = info.key + '\u0001' + info.label;
+      if (!groups.has(mapKey)) {
+        groups.set(mapKey, {
+          key:info.key,
+          label:info.label,
+          caseKeys:new Set(),
+          caseNumbers:new Set(),
+          noteCaseKeys:new Set(),
+          noteCompletedCaseKeys:new Set(),
+          noteTokens:new Set(),
+          reviewReasons:new Set(),
+          noCeramicsTaskCaseNumbers:new Set(),
+          noRemakeCaseIdCaseNumbers:new Set(),
+          attributionBases:new Set(),
+          remakeUnits:0,
+          remakeDiscount:0,
+          productRows:0
+        });
+      }
+      const group = groups.get(mapKey);
+      const caseKey = ceramistCaseKeyV6342(row);
+      const caseNumber = ceramistRemakeCaseNumberV6349(row);
+      if (caseKey) group.caseKeys.add(caseKey);
+      if (caseNumber) group.caseNumbers.add(caseNumber);
+      if (caseKey && ceramistHasPriorNoteEvidenceV6349(row)) group.noteCaseKeys.add(caseKey);
+      if (caseKey && ceramistCompletedFromPriorNoteV6349(row)) group.noteCompletedCaseKeys.add(caseKey);
+      ceramistNoteTokensV6343(row).forEach(value => group.noteTokens.add(value));
+      if (selectedCeramist === '[Unattributed]') {
+        const conciseReason = ceramistUnassignedReasonV6349(row);
+        group.reviewReasons.add(conciseReason);
+        if (caseNumber) {
+          if (conciseReason === 'No remake case ID found') {
+            group.noRemakeCaseIdCaseNumbers.add(caseNumber);
+          } else {
+            group.noCeramicsTaskCaseNumbers.add(caseNumber);
+          }
+        }
+      }
+      const basis = textV6230(row && row.attributionBasis, '');
+      if (basis) group.attributionBases.add(basis);
+      group.remakeUnits += numV6230(row && row.remakeUnits);
+      group.remakeDiscount += Math.abs(numV6230(row && row.remakeDiscount));
+      group.productRows += 1;
+    });
+    const result = Array.from(groups.values()).map(function(group) {
+      const caseNumbers = Array.from(group.caseNumbers).sort(function(a,b) {
+        return String(a).localeCompare(String(b), undefined, { numeric:true, sensitivity:'base' });
+      });
+      return {
+        key:group.key,
+        label:group.label,
+        caseNumbers:caseNumbers,
+        reviewReasons:Array.from(group.reviewReasons).sort(),
+        noCeramicsTaskCaseNumbers:Array.from(group.noCeramicsTaskCaseNumbers).sort(function(a,b) {
+          return String(a).localeCompare(String(b), undefined, { numeric:true, sensitivity:'base' });
+        }),
+        noRemakeCaseIdCaseNumbers:Array.from(group.noRemakeCaseIdCaseNumbers).sort(function(a,b) {
+          return String(a).localeCompare(String(b), undefined, { numeric:true, sensitivity:'base' });
+        }),
+        remakeCases:group.caseKeys.size,
+        remakeUnits:group.remakeUnits,
+        remakeDiscount:group.remakeDiscount,
+        noteEvidenceCases:group.noteCaseKeys.size,
+        noteCompletedCases:group.noteCompletedCaseKeys.size,
+        noteTokens:Array.from(group.noteTokens),
+        attributionBases:Array.from(group.attributionBases),
+        productRows:group.productRows
+      };
+    });
+    const totalUnits = result.reduce(function(sum, row) { return sum + numV6230(row.remakeUnits); }, 0);
+    result.forEach(function(row) { row.shareUnits = totalUnits ? numV6230(row.remakeUnits) / totalUnits : 0; });
+    return result;
+  }
+  function setCeramistKpiTextV6342(id, value) {
+    const node = idV6230(id);
+    if (node) node.textContent = value;
+  }
+  function ceramistCacheStampV6342(value) {
+    const raw = textV6230(value, '');
+    if (!raw) return 'date unavailable';
+    const parsed = new Date(raw);
+    return isNaN(parsed.getTime()) ? raw : parsed.toLocaleString(undefined, { year:'numeric', month:'short', day:'numeric', hour:'numeric', minute:'2-digit' });
+  }
+  function renderCeramistAnalysisV6342() {
+    const table = idV6230('remakeCeramistTableV6342');
+    const detailTable = idV6230('remakeCeramistDetailTableV6343');
+    if (!table || !detailTable) return;
+    const status = idV6230('remakeCeramistStatusV6342');
+    const masterHeader = '<colgroup>'
+      + '<col style="width:28%">'
+      + '<col style="width:13%">'
+      + '<col style="width:14%">'
+      + '<col style="width:13%">'
+      + '<col style="width:15%">'
+      + '<col style="width:17%">'
+      + '</colgroup><thead><tr>'
+      + thV6230('ceramist','label','Worker',false,'','Responsible worker')
+      + thV6230('ceramist','workerCategory','Type',false,'','Worker classification')
+      + thV6230('ceramist','remakeCases','Rmk Cases',true,'','Remake Cases')
+      + thV6230('ceramist','remakeUnits','Rmk Units',true,'','Remake Units')
+      + thV6230('ceramist','shareUnits','Unit Share %',true,'','Share of all visible remake units')
+      + thV6230('ceramist','remakeDiscount','Rmk Disc.',true,'','Remake Discount')
+      + '</tr></thead>';
+    const breakdownLabels = { product:'Product', group:'Group', department:'Department', customer:'Customer', reason:'Reason' };
+    const breakdown = breakdownLabels[ceramistStateV6342.breakdown] ? ceramistStateV6342.breakdown : 'product';
+    const detailHeader = '<colgroup><col><col><col><col><col></colgroup><thead><tr>'
+      + thV6230('ceramistDetail','label',breakdownLabels[breakdown],false)
+      + thV6230('ceramistDetail','remakeCases','Rmk Cases',true,'','Remake Cases')
+      + thV6230('ceramistDetail','remakeUnits','Rmk Units',true,'','Remake Units')
+      + thV6230('ceramistDetail','shareUnits','Unit Share %',true,'','Share of the selected worker group\'s visible remake units')
+      + thV6230('ceramistDetail','remakeDiscount','Rmk Disc.',true,'','Remake Discount')
+      + '</tr></thead>';
+
+    if (ceramistStateV6342.loading) {
+      if (status) status.textContent = 'Loading...';
+      table.innerHTML = masterHeader + '<tbody><tr><td colspan="6">Loading...</td></tr></tbody>';
+      detailTable.innerHTML = detailHeader + '<tbody><tr><td colspan="5">Loading...</td></tr></tbody>';
+      return;
+    }
+    if (!ceramistStateV6342.loaded || !ceramistStateV6342.ok) {
+      const message = ceramistStateV6342.message || 'Ceramist analysis loads when this section comes into view.';
+      if (status) status.textContent = message;
+      table.innerHTML = masterHeader + '<tbody><tr><td colspan="6">' + escV6230(message) + '</td></tr></tbody>';
+      detailTable.innerHTML = detailHeader + '<tbody><tr><td colspan="5">' + escV6230(message) + '</td></tr></tbody>';
+      ['remakeCeramistVisibleCasesV6343','remakeCeramistUnitsV6342','remakeCeramistDiscountV6342','remakeCeramistCoverageV6342'].forEach(id => setCeramistKpiTextV6342(id, '-'));
+      return;
+    }
+
+    const liveMainRemakeRowsV6570 = normalizedRowsV6230().filter(function(row) {
+      return row && isRemakeV6230(row);
+    });
+    const liveSidecarRowsV6570 = Array.isArray(ceramistStateV6342.rows) ? ceramistStateV6342.rows : [];
+    if (liveMainRemakeRowsV6570.length && !liveSidecarRowsV6570.length) {
+      ceramistPopulationQueueSidecarRefreshV6570();
+      const waitingMessageV6570 = 'Loading technician attribution before building the Unattributed group...';
+      if (status) status.textContent = waitingMessageV6570;
+      table.innerHTML = masterHeader + '<tbody><tr><td colspan="6">' + escV6230(waitingMessageV6570) + '</td></tr></tbody>';
+      detailTable.innerHTML = detailHeader + '<tbody><tr><td colspan="5">Waiting for technician attribution.</td></tr></tbody>';
+      ['remakeCeramistVisibleCasesV6343','remakeCeramistUnitsV6342','remakeCeramistDiscountV6342','remakeCeramistCoverageV6342'].forEach(function(id) {
+        setCeramistKpiTextV6342(id, '-');
+      });
+      return;
+    }
+
+    const scopedRows = ceramistRowsInDashboardScopeV6342();
+    const statusMap = ceramistCaseStatusMapV6343(scopedRows);
+    const counts = {
+      all:statusMap.size,
+      full:0,
+      partial:0,
+      unattributed:0,
+      multi:ceramistDistinctCaseCountV6342(ceramistRowsForDiagnosticV6343(scopedRows, 'multi')),
+      rootMissing:ceramistDistinctCaseCountV6342(ceramistRowsForDiagnosticV6343(scopedRows, 'rootMissing')),
+      noteEvidence:ceramistDistinctCaseCountV6342(ceramistRowsForDiagnosticV6343(scopedRows, 'noteEvidence'))
+    };
+    statusMap.forEach(function(item){ counts[item.status] += 1; });
+    const countIds = {
+      all:'remakeCeramistAllCountV6342', full:'remakeCeramistFullCountV6343', partial:'remakeCeramistPartialCountV6343',
+      unattributed:'remakeCeramistUnattributedCountV6342', multi:'remakeCeramistMultiCountV6342',
+      rootMissing:'remakeCeramistRootMissingCountV6342', noteEvidence:'remakeCeramistNoteEvidenceCountV6343'
+    };
+    Object.keys(countIds).forEach(flag => setCeramistKpiTextV6342(countIds[flag], fmtCountV6230(counts[flag])));
+    document.querySelectorAll('#remakeCeramistCaseStatusBarV6343 [data-ceramist-case-status]').forEach(function(button) {
+      button.classList.toggle('active', String(button.getAttribute('data-ceramist-case-status')) === String(ceramistStateV6342.caseStatus || 'all'));
+    });
+    document.querySelectorAll('#remakeCeramistDiagnosticBarV6343 [data-ceramist-diagnostic]').forEach(function(button) {
+      button.classList.toggle('active', String(button.getAttribute('data-ceramist-diagnostic')) === String(ceramistStateV6342.diagnosticFlag || 'none'));
+    });
+    document.querySelectorAll('#remakeCeramistBreakdownBarV6343 [data-ceramist-breakdown]').forEach(function(button) {
+      button.classList.toggle('active', String(button.getAttribute('data-ceramist-breakdown')) === breakdown);
+    });
+
+    const statusRows = ceramistRowsForCaseStatusV6343(scopedRows, ceramistStateV6342.caseStatus || 'all', statusMap);
+    const selectedRows = ceramistRowsForDiagnosticV6343(statusRows, ceramistStateV6342.diagnosticFlag || 'none');
+    const attributedRows = selectedRows.filter(ceramistIsAttributedV6343);
+    const groups = sortedRowsV6230(ceramistGroupRowsV6342(selectedRows), 'ceramist');
+    if (!groups.some(row => String(row.key) === String(ceramistStateV6342.selectedCeramist))) {
+      if (ceramistStateV6342.selectionCleared === true) {
+        ceramistStateV6342.selectedCeramist = '';
+      } else {
+        const preferred = groups.find(row => String(row.key) !== '[Unattributed]') || groups[0];
+        ceramistStateV6342.selectedCeramist = preferred ? String(preferred.key) : '';
+      }
+    }
+    const selectedCeramist = ceramistStateV6342.selectedCeramist;
+    const selectedGroup = groups.find(row => String(row.key) === String(selectedCeramist));
+
+    // v6.371: Match the established dashboard-table cross-filter behavior.
+    // The worker detail table ignores only its own active dimension while it
+    // calculates its rows, so the selected value stays highlighted and the
+    // remaining values stay visible but dimmed. Every other dashboard filter
+    // still applies, and the worker master table/KPIs remain fully filtered.
+    const detailFilterKindV6371 = breakdown === 'group' ? 'productGroup' : breakdown;
+    const activeDetailValuesV6371 = new Set(filterValuesV6245(detailFilterKindV6371).map(String));
+    const detailScopedRowsV6371 = ceramistRowsInDashboardScopeV6342(detailFilterKindV6371);
+    const detailStatusMapV6371 = ceramistCaseStatusMapV6343(detailScopedRowsV6371);
+    const detailStatusRowsV6371 = ceramistRowsForCaseStatusV6343(
+      detailScopedRowsV6371,
+      ceramistStateV6342.caseStatus || 'all',
+      detailStatusMapV6371
+    );
+    const detailSelectedRowsV6371 = ceramistRowsForDiagnosticV6343(
+      detailStatusRowsV6371,
+      ceramistStateV6342.diagnosticFlag || 'none'
+    );
+    const rawDetailRowsV6371 = selectedCeramist
+      ? sortedRowsV6230(ceramistDetailRowsV6343(detailSelectedRowsV6371, selectedCeramist, breakdown), 'ceramistDetail')
+      : [];
+    const detailRows = selectedRowsFirstV6311(
+      rawDetailRowsV6371,
+      activeDetailValuesV6371,
+      row => row.key,
+      200
+    );
+    uiV6230.lastTables.ceramist = groups;
+    uiV6230.lastTables.ceramistDetail = detailRows;
+    uiV6230.lastCeramistRowsV6342 = selectedRows;
+    // v6.399: attribution is case-based, not product-row-based.
+    const attributionCaseMapV6399 = ceramistCaseStatusMapV6343(selectedRows);
+    const attributionCaseTotalV6399 = attributionCaseMapV6399.size;
+    let attributionCaseFullV6399 = 0;
+    attributionCaseMapV6399.forEach(function(item) { if (item && item.status === 'full') attributionCaseFullV6399 += 1; });
+    const coverage = attributionCaseTotalV6399 ? attributionCaseFullV6399 / attributionCaseTotalV6399 : 0;
+    setCeramistKpiTextV6342('remakeCeramistVisibleCasesV6343', fmtCountV6230(ceramistDistinctCaseCountV6342(selectedRows)));
+    setCeramistKpiTextV6342('remakeCeramistUnitsV6342', fmtCountV6230(selectedRows.reduce((sum,row) => sum + numV6230(row.remakeUnits), 0), 1));
+    setCeramistKpiTextV6342('remakeCeramistDiscountV6342', fmtCurrencyV6230(selectedRows.reduce((sum,row) => sum + Math.abs(numV6230(row.remakeDiscount)), 0)));
+    setCeramistKpiTextV6342('remakeCeramistCoverageV6342', fmtPctV6230(coverage));
+    if (status) status.textContent = ceramistStateV6342.statusText || '';
+    const detailTitle = idV6230('remakeCeramistDetailTitleV6343');
+    if (detailTitle) detailTitle.textContent = selectedCeramist
+      ? ceramistCleanWorkerLabelV6349(selectedGroup && selectedGroup.label, selectedCeramist) + ' \u00b7 ' + breakdownLabels[breakdown] + ' breakdown'
+      : 'Select a worker';
+    // v6.572: Keep technician hover copy informational; omit action-instruction helper text.
+
+    if (!groups.length) {
+      table.innerHTML = masterHeader + '<tbody><tr><td colspan="6">No worker attribution rows match these filters.</td></tr></tbody>';
+      detailTable.innerHTML = detailHeader + '<tbody><tr><td colspan="5">No selected worker detail.</td></tr></tbody>';
+      scheduleRemakePopoutSyncV6339(120);
+      return;
+    }
+
+    function masterRowHtmlV6349(row, selected) {
+      const className = String(row.key) === '[Unattributed]' ? ' class="ceramistUnattributedV6342"' : '';
+      const selectedClasses = selected ? ' selectedV6230 ceramistSelectedV6343' : '';
+      const label = ceramistCleanWorkerLabelV6349(row.label || row.key, row.key);
+      const isUnassignedV6399 = String(row.key) === '[Unattributed]';
+      const unassignedHelpV6399 = 'Unassigned means one confirmed responsible worker could not be determined.';
+      const unassignedReasonsV6569 = (row.reviewReasons || []).length
+        ? 'Reasons: ' + row.reviewReasons.join('; ')
+        : 'Reason details are available after selecting this row.';
+      const unassignedCasesV6569 = 'Cases: ' + caseListTextV6349(row.caseNumbers || []);
+      const unassignedTitleV6569 = [unassignedHelpV6399, unassignedReasonsV6569, unassignedCasesV6569].join(' | ');
+      const masterTitleV6399 = isUnassignedV6399 ? unassignedTitleV6569 : label;
+      const labelTitleV6399 = isUnassignedV6399 ? unassignedTitleV6569 : label;
+      return '<tr class="clickable' + selectedClasses + '" aria-selected="' + (selected ? 'true' : 'false') + '" title="' + escV6230(masterTitleV6399) + '" onclick="selectCeramistV6343(\'' + escJsV6230(row.key) + '\')">'
+        + '<td' + className + ' title="' + escV6230(labelTitleV6399) + '">' + escV6230(label) + '</td>'
+        + '<td title="' + escV6230(row.workerType || row.workerCategory || '') + '">' + escV6230(row.workerCategory || row.workerType || 'Not classified') + '</td>'
+        + '<td class="num">' + escV6230(fmtCountV6230(row.remakeCases)) + '</td>'
+        + '<td class="num">' + escV6230(fmtCountV6230(row.remakeUnits, 1)) + '</td>'
+        + '<td class="num" title="Share of all visible remake units">' + escV6230(fmtPctV6230(row.shareUnits)) + '</td>'
+        + '<td class="num">' + escV6230(fmtCurrencyV6230(row.remakeDiscount)) + '</td>'
+        + '</tr>';
+    }
+
+    const sectionOrderV6348 = ['Ceramists', 'Technicians / Try-ins', 'Unattributed'];
+    const masterRowsV6348 = [];
+    const selectedMasterRow = groups.find(function(row) { return String(row.key) === String(selectedCeramist); });
+    if (selectedMasterRow) masterRowsV6348.push(masterRowHtmlV6349(selectedMasterRow, true));
+    sectionOrderV6348.forEach(function(section) {
+      const sectionRows = groups.filter(function(row) {
+        if (selectedMasterRow && String(row.key) === String(selectedMasterRow.key)) return false;
+        return textV6230(row && row.workerSection, row && row.key === '[Unattributed]' ? 'Unattributed' : 'Technicians / Try-ins') === section;
+      });
+      if (!sectionRows.length) return;
+      masterRowsV6348.push('<tr class="ceramistSectionRowV6348"><td colspan="6">' + escV6230(section) + '</td></tr>');
+      sectionRows.forEach(function(row) { masterRowsV6348.push(masterRowHtmlV6349(row, false)); });
+    });
+    table.innerHTML = masterHeader + '<tbody>' + masterRowsV6348.join('') + '</tbody>';
+    // v6.354: The selected worker is already rendered as the first row.
+    // Do not also make it sticky; the two pinning systems caused the row to
+    // float over section labels while the Ceramist table was scrolled.
+    table.querySelectorAll('.selectedPinnedV6311').forEach(function(row) {
+      row.classList.remove('selectedPinnedV6311');
+    });
+
+    function caseListTextV6349(values) {
+      const list = Array.isArray(values) ? values : [];
+      if (!list.length) return 'No case numbers recorded';
+      const visible = list.slice(0, 25);
+      return visible.join(', ') + (list.length > visible.length ? ' +' + (list.length - visible.length) + ' more' : '');
+    }
+
+    const detailFilterKindV6370 = detailFilterKindV6371;
+    const activeDetailValuesV6370 = activeDetailValuesV6371;
+    detailTable.innerHTML = detailHeader + '<tbody>' + (detailRows.length ? detailRows.map(function(row) {
+      const titleParts = [row.label || row.key];
+      if (selectedCeramist === '[Unattributed]') {
+        if (row.noCeramicsTaskCaseNumbers && row.noCeramicsTaskCaseNumbers.length) {
+          titleParts.push('No CERAMICS task assigned: ' + caseListTextV6349(row.noCeramicsTaskCaseNumbers));
+        }
+        if (row.noRemakeCaseIdCaseNumbers && row.noRemakeCaseIdCaseNumbers.length) {
+          titleParts.push('No remake case ID found: ' + caseListTextV6349(row.noRemakeCaseIdCaseNumbers));
+        }
+        if (titleParts.length === 1) titleParts.push('Remake cases: ' + caseListTextV6349(row.caseNumbers));
+      } else {
+        titleParts.push('Remake cases: ' + caseListTextV6349(row.caseNumbers));
+        if (row.noteTokens && row.noteTokens.length) titleParts.push('Prior/root invoice-note details: ' + row.noteTokens.join(' | '));
+      }
+      const rowTooltip = titleParts.join(' | ');
+      const badgeCount = row.noteCompletedCases || row.noteEvidenceCases;
+      const badgeLabel = row.noteCompletedCases ? ' VIA NOTE' : ' NOTE REVIEW';
+      const badge = badgeCount ? '<span class="ceramistNoteBadgeV6343">' + escV6230(fmtCountV6230(badgeCount)) + badgeLabel + '</span>' : '';
+      const detailLabelV6368 = textV6230(row.label || row.key, 'Detail');
+      const detailFilterValueV6370 = String(row.key == null ? '' : row.key);
+      const isDetailSelectedV6370 = activeDetailValuesV6370.has(detailFilterValueV6370);
+      const detailSelectedClassV6370 = isDetailSelectedV6370 ? ' selectedV6230' : '';
+      const detailDimClassV6370 = activeDetailValuesV6370.size && !isDetailSelectedV6370 ? ' dimmedV6266' : '';
+      return '<tr class="clickable ceramistDetailClickableV6368' + detailSelectedClassV6370 + detailDimClassV6370 + '" tabindex="0" aria-selected="' + (isDetailSelectedV6370 ? 'true' : 'false') + '" title="' + escV6230(rowTooltip) + '"'
+        + ' data-detail-filter-kind="' + escV6230(detailFilterKindV6370) + '"'
+        + ' data-detail-filter-value="' + escV6230(detailFilterValueV6370) + '"'
+        + ' onclick="selectCeramistDetailV6368(this,event)"'
+        + ' onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();selectCeramistDetailV6368(this,event);}">'
+        + '<td><span class="ceramistDetailLabelV6368">' + escV6230(detailLabelV6368) + badge + '</span></td>'
+        + '<td class="num">' + escV6230(fmtCountV6230(row.remakeCases)) + '</td>'
+        + '<td class="num">' + escV6230(fmtCountV6230(row.remakeUnits, 1)) + '</td>'
+        + '<td class="num">' + escV6230(fmtPctV6230(row.shareUnits)) + '</td>'
+        + '<td class="num">' + escV6230(fmtCurrencyV6230(row.remakeDiscount)) + '</td>'
+        + '</tr>';
+    }).join('') : '<tr><td colspan="5">No detail rows for this selection.</td></tr>') + '</tbody>';
+    if (typeof window.clearCeramistDetailSelectionV6368 === 'function') window.clearCeramistDetailSelectionV6368(detailTable);
+    scheduleRemakePopoutSyncV6339(120);
+  }
+
+  window.clearCeramistDetailSelectionV6368 = function clearCeramistDetailSelectionV6368() {
+    const overlay = document.getElementById('ceramistCaseDialogOverlayV6369');
+    if (overlay) overlay.remove();
+  };
+
+  window.selectCeramistDetailV6368 = function selectCeramistDetailV6368(row, event) {
+    if (!row || !row.dataset) return;
+    const kind = String(row.dataset.detailFilterKind || '');
+    const value = String(row.dataset.detailFilterValue || '');
+    if (!kind || !value) return;
+    window.clearCeramistDetailSelectionV6368();
+    window.applyRemakeTableFilterV6230(kind, value, event || window.event);
+  };
+
+  function disconnectCeramistLazyLoadV6346() {
+    if (ceramistLazyObserverV6346) {
+      try { ceramistLazyObserverV6346.disconnect(); } catch (error) {}
+      ceramistLazyObserverV6346 = null;
+    }
+    if (ceramistLazyFallbackHandlerV6346) {
+      try { window.removeEventListener('scroll', ceramistLazyFallbackHandlerV6346); } catch (error) {}
+      ceramistLazyFallbackHandlerV6346 = null;
+      ceramistLazyFallbackBoundV6346 = false;
+    }
+  }
+
+  function armCeramistLazyLoadV6346() {
+    if (ceramistStateV6342.loaded || ceramistStateV6342.loading || ceramistLazyRequestedV6346) return;
+    const status = idV6230('remakeCeramistStatusV6342');
+    if (mainCacheSwapActiveV6346 || browserCacheWriteScheduledV6346) {
+      if (status) status.textContent = 'Worker cache: waiting for the main Remake cache...';
+      return;
+    }
+    const card = idV6230('remakeCeramistCardV6342');
+    if (!card) return;
+    if (status) status.textContent = 'Worker cache: loads when the worker section comes into view.';
+    disconnectCeramistLazyLoadV6346();
+    const requestLoad = function requestLazyCeramistLoadV6346() {
+      if (ceramistStateV6342.loaded || ceramistStateV6342.loading || ceramistLazyRequestedV6346) return;
+      ceramistLazyRequestedV6346 = true;
+      window.setTimeout(function startLazyCeramistLoadV6346() {
+        ceramistLazyRequestedV6346 = false;
+        if (mainCacheSwapActiveV6346 || browserCacheWriteScheduledV6346) {
+          armCeramistLazyLoadV6346();
+          return;
+        }
+        loadCeramistRemakeAnalysisV6342(false);
+      }, 160);
+    };
+    if (typeof window.IntersectionObserver === 'function') {
+      ceramistLazyObserverV6346 = new IntersectionObserver(function(entries) {
+        if (!entries.some(entry => entry && entry.isIntersecting)) return;
+        disconnectCeramistLazyLoadV6346();
+        requestLoad();
+      }, { root: null, rootMargin: '240px 0px', threshold: 0.01 });
+      ceramistLazyObserverV6346.observe(card);
+      return;
+    }
+    const checkFallback = function checkCeramistViewportV6346() {
+      const rect = card.getBoundingClientRect();
+      if (rect.top <= (window.innerHeight || document.documentElement.clientHeight || 0) + 240 && rect.bottom >= -240) {
+        disconnectCeramistLazyLoadV6346();
+        requestLoad();
+        return;
+      }
+      if (!ceramistLazyFallbackBoundV6346) {
+        ceramistLazyFallbackBoundV6346 = true;
+        ceramistLazyFallbackHandlerV6346 = function recheckCeramistViewportV6346() {
+          ceramistLazyFallbackBoundV6346 = false;
+          ceramistLazyFallbackHandlerV6346 = null;
+          checkFallback();
+        };
+        window.addEventListener('scroll', ceramistLazyFallbackHandlerV6346, { passive: true, once: true });
+      }
+    };
+    checkFallback();
+  }
+
+  function applyCeramistPayloadV6364(data, fromBrowser) {
+    const receivedRows = data && Array.isArray(data.rows) ? data.rows : [];
+    const rowShapeReady = !receivedRows.length || receivedRows.every(function(row) {
+      return row && typeof row === 'object';
+    });
+    const emptySavedBrowserPayloadV6570 = fromBrowser === true && receivedRows.length === 0;
+    const ok = !!(data && data.ok && Array.isArray(data.rows) && rowShapeReady && !emptySavedBrowserPayloadV6570);
+    if (receivedRows.length) {
+      ceramistPopulationMemoV6569.signature = '';
+      ceramistPopulationSidecarRefreshQueuedV6570 = false;
+    }
+    ceramistStateV6342.loading = false;
+    ceramistStateV6342.loaded = true;
+    ceramistStateV6342.ok = ok;
+    ceramistStateV6342.rows = ok ? receivedRows : [];
+    ceramistStateV6342.stats = data && data.stats || {};
+    ceramistStateV6342.version = data && data.version || '';
+    ceramistStateV6342.generatedAt = data && data.generatedAt || '';
+    ceramistStateV6342.caseLevelRefreshedAt = data && data.caseLevelRefreshedAt || '';
+    ceramistStateV6342.cacheToken = data && data.cacheToken || '';
+    ceramistStateV6342.driveUpdatedAt = data && data.driveUpdatedAt || '';
+    ceramistStateV6342.badgeUpdatedAt = data && data.badgeUpdatedAt || '';
+    ceramistStateV6342.browserCached = fromBrowser === true;
+    ceramistStateV6342.syncing = false;
+    ceramistStateV6342.message = emptySavedBrowserPayloadV6570
+      ? 'The saved technician browser cache was empty and is being replaced from the nightly source.'
+      : (rowShapeReady
+        ? (data && data.message || '')
+        : 'The technician attribution cache contains an invalid row and could not be reconciled with the Remake population.');
+    if (ok) {
+      const stamp = ceramistStateV6342.caseLevelRefreshedAt || ceramistStateV6342.generatedAt || ceramistStateV6342.driveUpdatedAt;
+      ceramistStateV6342.statusText = 'Worker cache updated: ' + (stamp ? ceramistCacheStampV6342(stamp) : 'date unavailable') + (fromBrowser ? ' · saved browser copy' : ' · nightly source');
+    } else {
+      ceramistStateV6342.statusText = '';
+    }
+    renderCeramistAnalysisV6342();
+    return ok;
+  }
+
+  function setCeramistStatusTextV6364(value) {
+    ceramistStateV6342.statusText = String(value || '');
+    const status = idV6230('remakeCeramistStatusV6342');
+    if (status && ceramistStateV6342.loaded && ceramistStateV6342.ok) status.textContent = ceramistStateV6342.statusText;
+  }
+
+  function requestCeramistServerPayloadV6364(loadGenerationV6346, keepCachedVisibleV6364) {
+    if (!window.google || !google.script || !google.script.run) {
+      if (keepCachedVisibleV6364 && ceramistStateV6342.ok) {
+        ceramistStateV6342.syncing = false;
+        setCeramistStatusTextV6364('Worker cache: saved copy · server check unavailable');
+        return;
+      }
+      ceramistStateV6342.loading = false;
+      ceramistStateV6342.loaded = true;
+      ceramistStateV6342.ok = false;
+      ceramistStateV6342.message = 'Apps Script bridge is unavailable for the Ceramist preview.';
+      renderCeramistAnalysisV6342();
+      return;
+    }
+    if (keepCachedVisibleV6364) {
+      ceramistStateV6342.syncing = true;
+      setCeramistStatusTextV6364('Worker cache: updating from nightly source...');
+    }
+    google.script.run
+      .withSuccessHandler(function(data) {
+        if (loadGenerationV6346 !== ceramistLoadGenerationV6346 || mainCacheSwapActiveV6346) return;
+        const applied = applyCeramistPayloadV6364(data, false);
+        if (applied) scheduleCeramistBrowserCacheWriteV6364(data);
+      })
+      .withFailureHandler(function(error) {
+        if (loadGenerationV6346 !== ceramistLoadGenerationV6346 || mainCacheSwapActiveV6346) return;
+        ceramistStateV6342.syncing = false;
+        if (keepCachedVisibleV6364 && ceramistStateV6342.ok) {
+          setCeramistStatusTextV6364('Worker cache: saved copy · nightly check failed');
+          console.warn('Ceramist nightly payload refresh failed', error);
+          return;
+        }
+        ceramistStateV6342.loading = false;
+        ceramistStateV6342.loaded = true;
+        ceramistStateV6342.ok = false;
+        ceramistStateV6342.rows = [];
+        ceramistStateV6342.message = 'Ceramist preview could not load. Replace CeramistRemakeProfiler.gs with v7.6 and set its cache file property. ' + (error && error.message ? error.message : String(error || ''));
+        renderCeramistAnalysisV6342();
+      })
+      .getCeramistRemakeAnalysisData();
+  }
+
+  function checkCeramistServerMetaV6364(loadGenerationV6346, cachedTokenV6364) {
+    if (!window.google || !google.script || !google.script.run) {
+      setCeramistStatusTextV6364('Worker cache: saved copy · server check unavailable');
+      return;
+    }
+    ceramistStateV6342.syncing = true;
+    setCeramistStatusTextV6364('Loading...');
+    google.script.run
+      .withSuccessHandler(function(meta) {
+        if (loadGenerationV6346 !== ceramistLoadGenerationV6346 || mainCacheSwapActiveV6346) return;
+        ceramistStateV6342.syncing = false;
+        const serverToken = meta && meta.cacheToken || '';
+        ceramistStateV6342.driveUpdatedAt = meta && meta.driveUpdatedAt || ceramistStateV6342.driveUpdatedAt;
+        ceramistStateV6342.badgeUpdatedAt = meta && meta.badgeUpdatedAt || ceramistStateV6342.badgeUpdatedAt;
+        if (meta && meta.ok && serverToken && cachedTokenV6364 && serverToken === cachedTokenV6364) {
+          const stamp = ceramistStateV6342.caseLevelRefreshedAt || ceramistStateV6342.generatedAt || ceramistStateV6342.driveUpdatedAt;
+          setCeramistStatusTextV6364('Worker cache updated: ' + (stamp ? ceramistCacheStampV6342(stamp) : 'date unavailable') + ' · saved copy is current');
+          return;
+        }
+        requestCeramistServerPayloadV6364(loadGenerationV6346, true);
+      })
+      .withFailureHandler(function(error) {
+        if (loadGenerationV6346 !== ceramistLoadGenerationV6346 || mainCacheSwapActiveV6346) return;
+        ceramistStateV6342.syncing = false;
+        setCeramistStatusTextV6364('Worker cache: saved copy · nightly check failed');
+        console.warn('Ceramist cache metadata check failed', error);
+      })
+      .getCeramistRemakeAnalysisCacheMeta();
+  }
+
+  function loadCeramistRemakeAnalysisV6342(force) {
+    if (ceramistStateV6342.loading || (ceramistStateV6342.loaded && !force)) return;
+    if (mainCacheSwapActiveV6346 || browserCacheWriteScheduledV6346) {
+      armCeramistLazyLoadV6346();
+      return;
+    }
+    disconnectCeramistLazyLoadV6346();
+    const loadGenerationV6346 = ++ceramistLoadGenerationV6346;
+    ceramistStateV6342.loading = true;
+    ceramistStateV6342.loaded = false;
+    ceramistStateV6342.ok = false;
+    ceramistStateV6342.statusText = '';
+    renderCeramistAnalysisV6342();
+
+    if (force) {
+      requestCeramistServerPayloadV6364(loadGenerationV6346, false);
+      return;
+    }
+
+    readCeramistFastCacheV6364()
+      .then(function(cached) {
+        if (loadGenerationV6346 !== ceramistLoadGenerationV6346 || mainCacheSwapActiveV6346) return;
+        if (cached && applyCeramistPayloadV6364(cached, true)) {
+          checkCeramistServerMetaV6364(loadGenerationV6346, cached.cacheToken || '');
+          return;
+        }
+        if (cached) deleteCeramistFastCacheV6364().catch(function(){});
+        ceramistStateV6342.loading = true;
+        ceramistStateV6342.loaded = false;
+        renderCeramistAnalysisV6342();
+        requestCeramistServerPayloadV6364(loadGenerationV6346, false);
+      })
+      .catch(function() {
+        if (loadGenerationV6346 !== ceramistLoadGenerationV6346 || mainCacheSwapActiveV6346) return;
+        requestCeramistServerPayloadV6364(loadGenerationV6346, false);
+      });
+  }
+
+  window.setCeramistCaseStatusV6343 = function setCeramistCaseStatusV6343(value) {
+    const allowed = ['all','full','partial','unattributed'];
+    ceramistStateV6342.caseStatus = allowed.indexOf(String(value)) >= 0 ? String(value) : 'all';
+    renderCeramistAnalysisV6342();
+  };
+  window.setCeramistDiagnosticV6343 = function setCeramistDiagnosticV6343(value) {
+    const allowed = ['none','multi','rootMissing','noteEvidence'];
+    ceramistStateV6342.diagnosticFlag = allowed.indexOf(String(value)) >= 0 ? String(value) : 'none';
+    renderCeramistAnalysisV6342();
+  };
+  window.setCeramistBreakdownV6343 = function setCeramistBreakdownV6343(value) {
+    const allowed = ['product','group','department','customer','reason'];
+    ceramistStateV6342.breakdown = allowed.indexOf(String(value)) >= 0 ? String(value) : 'product';
+    renderCeramistAnalysisV6342();
+  };
+  window.selectCeramistV6343 = function selectCeramistV6343(value) {
+    const next = String(value || '');
+    if (next && next === String(ceramistStateV6342.selectedCeramist || '')) {
+      ceramistStateV6342.selectedCeramist = '';
+      ceramistStateV6342.selectionCleared = true;
+    } else {
+      ceramistStateV6342.selectedCeramist = next;
+      ceramistStateV6342.selectionCleared = !next;
+    }
+    renderCeramistAnalysisV6342();
+  };
+  window.setCeramistFlagV6342 = function setCeramistFlagV6342(flag) {
+    if (flag === 'unattributed') window.setCeramistCaseStatusV6343('unattributed');
+    else window.setCeramistDiagnosticV6343(flag === 'all' ? 'none' : flag);
+  };
+
+

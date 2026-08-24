@@ -1,0 +1,68 @@
+  function ceramistCaseKeyV6342(row) {
+    return textV6230(row && (row.remakeCaseNumber || row.caseNumber || row.caseId), '');
+  }
+  function ceramistDistinctCaseCountV6342(rows) {
+    return new Set((rows || []).map(ceramistCaseKeyV6342).filter(Boolean)).size;
+  }
+  function ceramistIsAttributedV6343(row) {
+    const worker = textV6230(row && row.responsibleCeramist, '');
+    return String(row && row.attributionStatus || '') === 'attributed' && !!worker && worker !== '[Unattributed]';
+  }
+  function ceramistTryInContextV6348(row) {
+    const values = [
+      row && row.caseStatus,
+      row && row.status,
+      row && row.Cases_Status,
+      row && row.invoiceDateTryIn,
+      row && row.Cases_InvoiceDateTryIn,
+      row && row.currentInvoiceDateTryIn,
+      row && row.tryInStatus,
+      row && row.isTryIn
+    ];
+    return values.some(function(value) {
+      if (value === true) return true;
+      return /try\s*-?\s*in|invoice[^a-z0-9]*for[^a-z0-9]*try/i.test(String(value || ''));
+    });
+  }
+  function ceramistEnrichTryInFromMainV6348(rows, mainRows) {
+    const lookup = new Map();
+    (mainRows || []).forEach(function(row) {
+      const caseKey = textV6230(row && row.caseId, '');
+      const productKey = textV6230(row && (row.productId || row.productKey), '');
+      if (!caseKey || !productKey) return;
+      const key = caseKey + '\u0001' + productKey;
+      const current = lookup.get(key) || { caseStatus:'', invoiceDateTryIn:'', isTryIn:false };
+      current.caseStatus = current.caseStatus || textV6230(row && row.caseStatus, '');
+      current.invoiceDateTryIn = current.invoiceDateTryIn || textV6230(row && row.invoiceDateTryIn, '');
+      current.isTryIn = current.isTryIn || ceramistTryInContextV6348(row);
+      lookup.set(key, current);
+    });
+    return (rows || []).map(function(row) {
+      const caseKey = textV6230(row && (row.remakeCaseNumber || row.caseNumber || row.caseId), '');
+      const productKey = textV6230(row && (row.productId || row.productKey), '');
+      const context = lookup.get(caseKey + '\u0001' + productKey);
+      if (context) {
+        if (!row.caseStatus && context.caseStatus) row.caseStatus = context.caseStatus;
+        if (!row.invoiceDateTryIn && context.invoiceDateTryIn) row.invoiceDateTryIn = context.invoiceDateTryIn;
+        row.isTryInContext = row.isTryInContext === true || context.isTryIn === true;
+      }
+      const type = textV6230(row && (row.responsibleWorkerType || row.responsibleCeramistTechnicianType), '');
+      const responsible = textV6230(row && row.responsibleCeramist, '[Unattributed]');
+      if (responsible === '[Unattributed]') {
+        row.responsibleWorkerCategory = 'Unattributed';
+        row.responsibleWorkerSection = 'Unattributed';
+      } else if (/^ceramist$/i.test(type)) {
+        row.responsibleWorkerCategory = 'Ceramist';
+        row.responsibleWorkerSection = 'Ceramists';
+      } else {
+        row.responsibleWorkerCategory = row.isTryInContext === true ? 'Technician - Try-in' : 'Technician';
+        row.responsibleWorkerSection = 'Technicians / Try-ins';
+      }
+      return row;
+    });
+  }
+  // v6.573: Reconcile the complete Remake population to the Ceramist sidecar
+  // with the authoritative numeric current case number retained by the compact
+  // browser payload. GUID case IDs are intentionally not used as attribution
+  // join keys. When an older browser cache lacks caseNumber, keep the proven
+  // sidecar view instead of falsely labeling every remake row Unattributed.

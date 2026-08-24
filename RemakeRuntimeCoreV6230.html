@@ -1,0 +1,707 @@
+  const VERSION_TEXT_V6230 = 'v6.402 Remake Factor + Group filter + dual exports + stable selections + two-hour page-only reload + collapsible Customers/Technicians';
+  const CACHE_KEY_V6230 = 'cdaRemakeFactorIndexedCache.v6346';
+  const LEGACY_CACHE_KEYS_V6230 = [
+    // v6.254 intentionally does not read old browser cache keys.
+    // This forces a fresh read from the Drive/server cache after the customer-name fixes.
+  ];
+  const REMAKE_RUNTIME_BRIDGE_VERSION_V6637 = 'v6.637';
+  function remakeRuntimeGetV6637(name) {
+    switch (String(name || "")) {
+      case 'expandRemakeBrowserReadyPayloadV6388': return expandRemakeBrowserReadyPayloadV6388;
+      case 'normalizeRowsV6230': return normalizeRowsV6230;
+      case 'rowsForRemakeFiltersV6252': return rowsForRemakeFiltersV6252;
+      case 'populateFiltersV6230': return populateFiltersV6230;
+      case 'slimDataV6230': return slimDataV6230;
+      case 'handleDataV6230': return handleDataV6230;
+      case 'isRemakeV6230': return isRemakeV6230;
+      default: return null;
+    }
+  }
+  function remakeRuntimeSetV6637(name, fn) {
+    if (typeof fn !== 'function') return false;
+    switch (String(name || "")) {
+      case 'expandRemakeBrowserReadyPayloadV6388': expandRemakeBrowserReadyPayloadV6388 = fn; break;
+      case 'normalizeRowsV6230': normalizeRowsV6230 = fn; break;
+      case 'rowsForRemakeFiltersV6252': rowsForRemakeFiltersV6252 = fn; break;
+      case 'populateFiltersV6230': populateFiltersV6230 = fn; break;
+      case 'slimDataV6230': slimDataV6230 = fn; break;
+      case 'handleDataV6230': handleDataV6230 = fn; break;
+      case 'isRemakeV6230': isRemakeV6230 = fn; break;
+      default: return false;
+    }
+    return true;
+  }
+  window.cdaRemakeRuntimeBridgeV6637 = Object.freeze({
+    version: REMAKE_RUNTIME_BRIDGE_VERSION_V6637,
+    get: remakeRuntimeGetV6637,
+    set: remakeRuntimeSetV6637,
+    has: function(name) { return typeof remakeRuntimeGetV6637(name) === 'function'; }
+  });
+  document.dispatchEvent(new CustomEvent('cdaRemakeRuntimeBridgeReadyV6637', { detail: { version: REMAKE_RUNTIME_BRIDGE_VERSION_V6637 } }));
+  const MODE_KEY_V6230 = 'cdaRemakeFactorMode.v6230';
+  const TREND_MEASURE_KEY_V6245 = 'cdaRemakeFactorTrendMeasure.v6245';
+  const TREND_VALUE_KEY_V6247 = 'cdaRemakeFactorTrendValueMode.v6247';
+  const TREND_CUMULATIVE_KEY_V6302 = 'cdaRemakeFactorTrendCumulative.v6302';
+  const MONTHS_KEY_V6230 = 'cdaRemakeFactorMonths.v6230';
+  const FILTERS_KEY_V6230 = 'cdaRemakeFactorFilters.v6230';
+  const FILTER_EXCLUSIONS_KEY_V6389 = 'cdaRemakeFactorFilterExclusions.v6389';
+  const SORT_KEY_V6230 = 'cdaRemakeFactorSorts.v6230';
+  const CUSTOMER_TABLE_MODE_KEY_V6251 = 'cdaRemakeFactorCustomerTableMode.v6251';
+  const PRODUCT_TABLE_MODE_KEY_V6264 = 'cdaRemakeFactorProductTableMode.v6264';
+  const TABLE_COMPARE_KEY_V6297 = 'cdaRemakeFactorTableCompare.v6297';
+
+  let remakeChartV6230 = null;
+  let customerChartV6230 = null;
+  let renderTimerV6230 = 0;
+  let startupTimerV6230 = 0;
+  // v6.346 memory guard: a full Remake payload must never overlap the prior
+  // 114k-row browser state, a second full IndexedDB structured clone, and the
+  // separate Ceramist payload. Normal filter-click transitions remain intact.
+  let mainCacheSwapActiveV6346 = false;
+  let suppressNextMorphV6346 = false;
+  let browserCacheWriteScheduledV6346 = false;
+  let browserCacheWriteRunningV6346 = false;
+  let browserCacheWriteHandleV6346 = 0;
+  let browserCacheWriteHandleTypeV6346 = '';
+  let browserCacheWritePromiseV6346 = Promise.resolve();
+  let browserCacheWriteCompletionV6568 = Promise.resolve(true);
+  let finishBrowserCacheWriteCompletionV6568 = null;
+  let remakeMetaCheckRunningV6409 = false;
+  let remakeMetaLastCheckedAtV6409 = 0;
+  let remakeAutoSyncTimerV6409 = 0;
+  let remakeBrowserReadyEnsureRunningV6410 = false;
+  let remakeBrowserReadyPollTimerV6410 = 0;
+  let remakeBrowserReadyPollStartedAtV6410 = 0;
+  const REMAKE_META_MIN_GAP_MS_V6409 = 30 * 1000;
+  const REMAKE_AUTO_SYNC_INTERVAL_MS_V6409 = 2 * 60 * 60 * 1000;
+  const REMAKE_FOCUS_SYNC_MIN_AGE_MS_V6409 = 10 * 60 * 1000;
+  const REMAKE_BROWSER_READY_POLL_INTERVAL_MS_V6410 = 30 * 1000;
+  const REMAKE_BROWSER_READY_POLL_MAX_MS_V6410 = 10 * 60 * 1000;
+  let ceramistLazyObserverV6346 = null;
+  let ceramistLazyRequestedV6346 = false;
+  let ceramistLazyFallbackBoundV6346 = false;
+  let ceramistLazyFallbackHandlerV6346 = null;
+  let ceramistLoadGenerationV6346 = 0;
+  // v6.364: the separate Ceramics Worker Analysis now has its own chunked
+  // IndexedDB cache. It renders the last nightly result immediately and only
+  // downloads the Drive payload when the lightweight server token changes.
+  let ceramistBrowserCacheWriteScheduledV6364 = false;
+  let ceramistBrowserCacheWriteRunningV6364 = false;
+  let ceramistBrowserCacheWriteHandleV6364 = 0;
+  let ceramistBrowserCacheWriteHandleTypeV6364 = '';
+  let ceramistBrowserCacheWritePromiseV6364 = Promise.resolve();
+
+  const defaultSortsV6230 = {
+    reason: { field: 'remakeCases', dir: 'desc' },
+    department: { field: 'remakeCases', dir: 'desc' },
+    product: { field: 'remakeCases', dir: 'desc' },
+    customer: { field: 'remakeCaseRate', dir: 'desc' },
+    ceramist: { field: 'remakeUnits', dir: 'desc' },
+    ceramistDetail: { field: 'remakeUnits', dir: 'desc' }
+  };
+
+  const uiV6230 = {
+    mode: readLocalTextV6230(MODE_KEY_V6230) || 'line',
+    trendMeasure: readLocalTextV6230(TREND_MEASURE_KEY_V6245) || 'cases',
+    trendValueMode: readLocalTextV6230(TREND_VALUE_KEY_V6247) || 'total',
+    trendCumulative: readLocalTextV6230(TREND_CUMULATIVE_KEY_V6302) === '1',
+    customerTableMode: readLocalTextV6230(CUSTOMER_TABLE_MODE_KEY_V6251) === 'all' ? 'all' : 'highest',
+    productTableMode: readLocalTextV6230(PRODUCT_TABLE_MODE_KEY_V6264) === 'group' ? 'group' : 'product',
+    tableCompareV6297: Object.assign({ reason: false, department: false, product: false, customer: false }, readLocalJsonV6230(TABLE_COMPARE_KEY_V6297, {})),
+    selectedMonths: new Set(readLocalJsonV6230(MONTHS_KEY_V6230, [])),
+    filters: Object.assign({ year: '', department: '', product: '', productGroup: '', customer: '', reason: '' }, readLocalJsonV6230(FILTERS_KEY_V6230, {})),
+    filterExclusionsV6389: Object.assign({ year: [], department: [], product: [], productGroup: [], customer: [], reason: [] }, readLocalJsonV6230(FILTER_EXCLUSIONS_KEY_V6389, {})),
+    sorts: Object.assign({}, defaultSortsV6230, readLocalJsonV6230(SORT_KEY_V6230, {})),
+    filterOptionsV6245: {},
+    selectedOnlyV6245: {},
+    lastTables: {},
+    lastTrendRows: [],
+    lastStamp: 'Not loaded'
+  };
+
+  /* v6.342: Ceramist attribution is intentionally isolated from the large
+     Remake Factor browser cache. The dashboard reads one compact Drive JSON
+     through getCeramistRemakeAnalysisData(); it never calls CRM or BigQuery
+     while rendering or cross-filtering. */
+  const ceramistStateV6342 = {
+    loading: false,
+    loaded: false,
+    ok: false,
+    rows: [],
+    stats: {},
+    version: '',
+    generatedAt: '',
+    caseLevelRefreshedAt: '',
+    cacheToken: '',
+    driveUpdatedAt: '',
+    badgeUpdatedAt: '',
+    browserCached: false,
+    syncing: false,
+    statusText: '',
+    message: '',
+    caseStatus: 'all',
+    diagnosticFlag: 'none',
+    selectedCeramist: '',
+    selectionCleared: false,
+    breakdown: 'product'
+  };
+
+  ['year','department','product','productGroup','customer','reason'].forEach(kind => {
+    const raw = uiV6230.filters[kind];
+    if (Array.isArray(raw)) uiV6230.filters[kind] = raw;
+    else if (raw) uiV6230.filters[kind] = [String(raw)];
+    else uiV6230.filters[kind] = [];
+    const excludedRaw = uiV6230.filterExclusionsV6389[kind];
+    if (Array.isArray(excludedRaw)) uiV6230.filterExclusionsV6389[kind] = excludedRaw.map(String).filter(Boolean);
+    else if (excludedRaw) uiV6230.filterExclusionsV6389[kind] = [String(excludedRaw)];
+    else uiV6230.filterExclusionsV6389[kind] = [];
+    if (uiV6230.filters[kind].length) uiV6230.filterExclusionsV6389[kind] = [];
+  });
+
+  const undoV6266 = { stack: [], max: 40, restoring: false, lastSnapshot: '' };
+  if (uiV6230.mode !== 'bar') uiV6230.mode = 'line';
+  if (uiV6230.trendMeasure !== 'units') uiV6230.trendMeasure = 'cases';
+  if (uiV6230.trendValueMode !== 'percent') uiV6230.trendValueMode = 'total';
+  uiV6230.trendCumulative = uiV6230.trendCumulative === true;
+
+  function idV6230(id) { return document.getElementById(id); }
+  function textV6230(value, fallback) {
+    const clean = String(value === null || value === undefined ? '' : value).replace(/\s+/g, ' ').trim();
+    return clean || fallback || '';
+  }
+  function numV6230(value) { return Number(value || 0) || 0; }
+  function escV6230(value) {
+    return String(value === null || value === undefined ? '' : value).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+  }
+  function escJsV6230(value) {
+    return String(value === null || value === undefined ? '' : value).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\r?\n/g, ' ');
+  }
+  function readLocalTextV6230(key) { try { return window.localStorage ? localStorage.getItem(key) : null; } catch (error) { return null; } }
+  function writeLocalTextV6230(key, value) { try { if (window.localStorage) localStorage.setItem(key, value); } catch (error) {} }
+  function readLocalJsonV6230(key, fallback) { try { const raw = window.localStorage ? localStorage.getItem(key) : null; return raw ? JSON.parse(raw) : fallback; } catch (error) { return fallback; } }
+  function writeLocalJsonV6230(key, value) { try { if (window.localStorage) localStorage.setItem(key, JSON.stringify(value)); } catch (error) {} }
+  function fmtCountV6230(value, digits) { return numV6230(value).toLocaleString(undefined, { minimumFractionDigits: digits || 0, maximumFractionDigits: digits || 0 }); }
+  function fmtCurrencyV6230(value) { return numV6230(value).toLocaleString(undefined, { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }); }
+  function fmtPctV6230(value, digits) { return (numV6230(value) * 100).toLocaleString(undefined, { minimumFractionDigits: digits === undefined ? 1 : digits, maximumFractionDigits: digits === undefined ? 1 : digits }) + '%'; }
+  function fmtPpV6230(value) { const n = numV6230(value); return (n > 0 ? '+' : '') + n.toFixed(1) + ' pp'; }
+  function nativeEventV6230(event) { return event && event.native ? event.native : (event || window.event); }
+  function additiveV6230(event) { const e = nativeEventV6230(event); return !!(e && (e.ctrlKey || e.metaKey)); }
+  function slugV6230(value) { return String(value || 'remake').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'remake'; }
+
+  function remakeSnapshotV6266() {
+    return JSON.stringify({
+      filters: uiV6230.filters || {},
+      selectedMonths: Array.from(uiV6230.selectedMonths || []),
+      mode: uiV6230.mode === 'bar' ? 'bar' : 'line',
+      filterExclusionsV6389: uiV6230.filterExclusionsV6389 || {},
+      trendMeasure: uiV6230.trendMeasure || 'cases',
+      trendValueMode: uiV6230.trendValueMode || 'total',
+      trendCumulative: uiV6230.trendCumulative === true,
+      customerTableMode: uiV6230.customerTableMode || 'highest',
+      productTableMode: uiV6230.productTableMode || 'product',
+      tableCompareV6297: Object.assign({}, uiV6230.tableCompareV6297 || {}),
+      sorts: uiV6230.sorts || {}
+    });
+  }
+
+  function pushRemakeUndoV6266() {
+    if (undoV6266.restoring) return;
+    const snapshot = remakeSnapshotV6266();
+    const prior = undoV6266.stack.length ? undoV6266.stack[undoV6266.stack.length - 1] : '';
+    if (snapshot === prior || snapshot === undoV6266.lastSnapshot) return;
+    undoV6266.stack.push(snapshot);
+    if (undoV6266.stack.length > undoV6266.max) undoV6266.stack.shift();
+    undoV6266.lastSnapshot = snapshot;
+  }
+
+  function applyRemakeSnapshotV6266(snapshotText) {
+    let snapshot = null;
+    try { snapshot = JSON.parse(snapshotText || '{}'); } catch (error) { snapshot = {}; }
+    undoV6266.restoring = true;
+    try {
+      uiV6230.filters = Object.assign({ year: [], department: [], product: [], productGroup: [], customer: [], reason: [] }, snapshot.filters || {});
+      ['year','department','product','productGroup','customer','reason'].forEach(kind => {
+        const raw = uiV6230.filters[kind];
+        uiV6230.filters[kind] = Array.isArray(raw) ? raw.map(String) : (raw ? [String(raw)] : []);
+      });
+      uiV6230.selectedMonths = new Set((snapshot.selectedMonths || []).map(String));
+      uiV6230.mode = snapshot.mode === 'bar' ? 'bar' : 'line';
+      uiV6230.filterExclusionsV6389 = Object.assign({ year: [], department: [], product: [], productGroup: [], customer: [], reason: [] }, snapshot.filterExclusionsV6389 || {});
+      ['year','department','product','productGroup','customer','reason'].forEach(function(kind){
+        const excluded = uiV6230.filterExclusionsV6389[kind];
+        uiV6230.filterExclusionsV6389[kind] = Array.isArray(excluded) ? excluded.map(String).filter(Boolean) : (excluded ? [String(excluded)] : []);
+        if (uiV6230.filters[kind].length) uiV6230.filterExclusionsV6389[kind] = [];
+      });
+      uiV6230.trendMeasure = snapshot.trendMeasure === 'units' ? 'units' : 'cases';
+      uiV6230.trendValueMode = snapshot.trendValueMode === 'percent' ? 'percent' : 'total';
+      uiV6230.trendCumulative = snapshot.trendCumulative === true;
+      uiV6230.customerTableMode = snapshot.customerTableMode === 'all' ? 'all' : 'highest';
+      uiV6230.productTableMode = snapshot.productTableMode === 'group' ? 'group' : 'product';
+      uiV6230.tableCompareV6297 = Object.assign({ reason:false, department:false, product:false, customer:false }, snapshot.tableCompareV6297 || {});
+      uiV6230.sorts = Object.assign({}, defaultSortsV6230, snapshot.sorts || {});
+      persistUiV6230();
+      syncFilterControlsV6230();
+    } finally {
+      undoV6266.restoring = false;
+      undoV6266.lastSnapshot = remakeSnapshotV6266();
+    }
+    renderDashboardV6230();
+  }
+
+  window.undoRemakeFilterChangeV6266 = function undoRemakeFilterChangeV6266() {
+    const snapshot = undoV6266.stack.pop();
+    if (!snapshot) {
+      setNoticeV6230('Nothing to go back to yet.', 'warn');
+      return;
+    }
+    applyRemakeSnapshotV6266(snapshot);
+  };
+
+  document.addEventListener('keydown', function(event) {
+    const activePage = idV6230('remakeFactorPage');
+    if (!activePage || !activePage.classList.contains('active')) return;
+    const target = event && event.target;
+    if (target && target.closest && target.closest('input, textarea, select, [contenteditable="true"]')) return;
+    const key = String(event.key || '').toLowerCase();
+    if ((event.ctrlKey || event.metaKey) && key === 'z' && !event.shiftKey) {
+      event.preventDefault();
+      window.undoRemakeFilterChangeV6266();
+    }
+  });
+
+  const remakeTrendDragBandPluginV6266 = {
+    id: 'remakeTrendDragBandV6266',
+    beforeDatasetsDraw: function(chart) {
+      const range = chart && chart.$remakeDragRangeV6266;
+      if (!range || !chart.scales || !chart.scales.x) return;
+      const xScale = chart.scales.x;
+      const area = chart.chartArea || {};
+      const start = Math.min(range.start, range.end);
+      const end = Math.max(range.start, range.end);
+      const left = Math.max(area.left || 0, xScale.getPixelForValue(start) - 18);
+      const right = Math.min(area.right || chart.width, xScale.getPixelForValue(end) + 18);
+      const ctx = chart.ctx;
+      ctx.save();
+      ctx.fillStyle = 'rgba(245,158,11,.14)';
+      ctx.strokeStyle = 'rgba(245,158,11,.55)';
+      ctx.lineWidth = 1;
+      ctx.fillRect(left, area.top || 0, Math.max(1, right - left), Math.max(1, (area.bottom || chart.height) - (area.top || 0)));
+      ctx.strokeRect(left, area.top || 0, Math.max(1, right - left), Math.max(1, (area.bottom || chart.height) - (area.top || 0)));
+      ctx.restore();
+    }
+  };
+
+
+
+  const remakeSelectedMonthBandPluginV6268 = {
+    id: 'remakeSelectedMonthBandV6268',
+    beforeDatasetsDraw: function(chart) {
+      const selected = uiV6230 && uiV6230.selectedMonths ? uiV6230.selectedMonths : new Set();
+      if (!selected || !selected.size || !chart || !chart.scales || !chart.scales.x) return;
+      const area = chart.chartArea || {};
+      const xScale = chart.scales.x;
+      const ctx = chart.ctx;
+      const labels = (chart.data && chart.data.labels) || [];
+      ctx.save();
+      for (let index = 0; index < labels.length; index += 1) {
+        const isSelectedMonthIndex = (chart.data.datasets || []).some(dataset => {
+          const keys = dataset && dataset.monthKeys ? dataset.monthKeys : [];
+          return keys[index] && selected.has(String(keys[index]));
+        });
+        if (!isSelectedMonthIndex) continue;
+        const center = xScale.getPixelForValue(index);
+        const prev = index > 0 ? xScale.getPixelForValue(index - 1) : area.left;
+        const next = index < labels.length - 1 ? xScale.getPixelForValue(index + 1) : area.right;
+        const halfWidth = Math.max(12, Math.min(36, ((next - prev) / 2) * 0.72));
+        const left = Math.max(area.left || 0, center - halfWidth);
+        const right = Math.min(area.right || chart.width, center + halfWidth);
+        ctx.fillStyle = 'rgba(245,158,11,.105)';
+        ctx.fillRect(left, area.top || 0, Math.max(1, right - left), Math.max(1, (area.bottom || chart.height) - (area.top || 0)));
+      }
+      ctx.restore();
+    }
+  };
+
+  function chartMonthIndexFromPointerV6266(chart, event) {
+    if (!chart || !chart.scales || !chart.scales.x || !event) return null;
+    const rect = chart.canvas.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const index = Math.round(chart.scales.x.getValueForPixel(x));
+    if (!Number.isFinite(index)) return null;
+    return Math.max(0, Math.min(11, index));
+  }
+
+  function selectRemakeMonthRangeV6266(startIndex, endIndex, years, groupByMonth, event) {
+    const start = Math.min(startIndex, endIndex);
+    const end = Math.max(startIndex, endIndex);
+    const additive = additiveV6230(event);
+    pushRemakeUndoV6266();
+    const next = additive ? new Set(uiV6230.selectedMonths || []) : new Set();
+    (years || []).forEach(year => {
+      for (let index = start; index <= end; index += 1) {
+        const key = String(year) + '-' + String(index + 1).padStart(2, '0');
+        if (!groupByMonth || groupByMonth.has(key)) next.add(key);
+      }
+    });
+    uiV6230.selectedMonths = next;
+    persistUiV6230();
+    renderDashboardV6230();
+  }
+
+  function installRemakeTrendDragV6266(chart, years, groupByMonth) {
+    if (!chart || !chart.canvas) return;
+    const canvas = chart.canvas;
+    let dragging = false;
+    let startIndex = null;
+    let lastIndex = null;
+    let moved = false;
+    canvas.onpointerdown = function(event) {
+      if (event.button !== undefined && event.button !== 0) return;
+      const index = chartMonthIndexFromPointerV6266(chart, event);
+      if (index === null) return;
+      dragging = true;
+      moved = false;
+      startIndex = index;
+      lastIndex = index;
+      chart.$remakeDragRangeV6266 = { start: startIndex, end: lastIndex };
+      try { canvas.setPointerCapture(event.pointerId); } catch (error) {}
+      chart.draw();
+    };
+    canvas.onpointermove = function(event) {
+      if (!dragging) return;
+      const index = chartMonthIndexFromPointerV6266(chart, event);
+      if (index === null) return;
+      if (index !== lastIndex) moved = true;
+      lastIndex = index;
+      chart.$remakeDragRangeV6266 = { start: startIndex, end: lastIndex };
+      chart.draw();
+    };
+    canvas.onpointerup = function(event) {
+      if (!dragging) return;
+      dragging = false;
+      const index = chartMonthIndexFromPointerV6266(chart, event);
+      if (index !== null) lastIndex = index;
+      chart.$remakeDragRangeV6266 = null;
+      if (moved && startIndex !== null && lastIndex !== null) {
+        chart.$remakeSuppressNextClickV6266 = true;
+        selectRemakeMonthRangeV6266(startIndex, lastIndex, years, groupByMonth, event);
+      } else {
+        chart.draw();
+      }
+    };
+    canvas.onpointercancel = function() {
+      dragging = false;
+      chart.$remakeDragRangeV6266 = null;
+      chart.draw();
+    };
+  }
+
+
+  const REMAKE_FAST_CACHE_DB_V6261 = 'remakeFactorFastCacheDb';
+  const REMAKE_FAST_CACHE_STORE_V6261 = 'payloads';
+  const REMAKE_FAST_CACHE_MODE_V6346 = 'monthlyChunksV6346';
+  const REMAKE_FAST_CACHE_CHUNK_PREFIX_V6346 = CACHE_KEY_V6230 + '.month.';
+  const REMAKE_FAST_CACHE_LEGACY_KEYS_V6346 = ['cdaRemakeFactorIndexedCache.v6340'];
+
+  function openRemakeFastCacheDbV6261() {
+    return new Promise((resolve, reject) => {
+      if (!window.indexedDB) {
+        reject(new Error('IndexedDB unavailable'));
+        return;
+      }
+      const request = indexedDB.open(REMAKE_FAST_CACHE_DB_V6261, 1);
+      request.onupgradeneeded = event => {
+        const db = event.target.result;
+        if (!db.objectStoreNames.contains(REMAKE_FAST_CACHE_STORE_V6261)) {
+          db.createObjectStore(REMAKE_FAST_CACHE_STORE_V6261);
+        }
+      };
+      request.onerror = event => reject(event.target.error || new Error('IndexedDB open failed'));
+      request.onsuccess = event => resolve(event.target.result);
+    });
+  }
+
+  function readRemakeFastCacheValueV6346(db, key) {
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(REMAKE_FAST_CACHE_STORE_V6261, 'readonly');
+      const store = tx.objectStore(REMAKE_FAST_CACHE_STORE_V6261);
+      const request = store.get(key);
+      request.onerror = event => reject(event.target.error || new Error('IndexedDB get failed'));
+      request.onsuccess = event => resolve(event.target.result || null);
+    });
+  }
+
+  function writeRemakeFastCacheValueV6346(db, key, value) {
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(REMAKE_FAST_CACHE_STORE_V6261, 'readwrite');
+      tx.oncomplete = () => resolve(true);
+      tx.onerror = event => reject(event.target.error || new Error('IndexedDB set failed'));
+      tx.objectStore(REMAKE_FAST_CACHE_STORE_V6261).put(value, key);
+    });
+  }
+
+  function deleteRemakeFastCacheKeysV6346(db, keepChunkKeys, deleteManifest) {
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(REMAKE_FAST_CACHE_STORE_V6261, 'readwrite');
+      const store = tx.objectStore(REMAKE_FAST_CACHE_STORE_V6261);
+      const request = store.openCursor();
+      request.onerror = event => reject(event.target.error || new Error('IndexedDB cursor failed'));
+      request.onsuccess = event => {
+        const cursor = event.target.result;
+        if (!cursor) return;
+        const key = String(cursor.key || '');
+        const isCurrentManifest = key === CACHE_KEY_V6230;
+        const isCurrentChunk = key.indexOf(REMAKE_FAST_CACHE_CHUNK_PREFIX_V6346) === 0;
+        const isLegacy = REMAKE_FAST_CACHE_LEGACY_KEYS_V6346.indexOf(key) >= 0;
+        const removeChunk = isCurrentChunk && (!keepChunkKeys || !keepChunkKeys.has(key));
+        if ((deleteManifest && isCurrentManifest) || removeChunk || isLegacy) cursor.delete();
+        cursor.continue();
+      };
+      tx.oncomplete = () => resolve(true);
+      tx.onerror = event => reject(event.target.error || new Error('IndexedDB cleanup failed'));
+    });
+  }
+
+  function remakeFastCacheMonthV6346(row) {
+    return monthKeyV6230(row && (row.month || row.invoiceMonth || row.invoiceDate || row.Cases_InvoiceDate || row.dateIn)) || 'Unknown';
+  }
+
+  async function readRemakeFastCacheV6261() {
+    const db = await openRemakeFastCacheDbV6261();
+    try {
+      const manifest = await readRemakeFastCacheValueV6346(db, CACHE_KEY_V6230);
+      if (!manifest) return null;
+      // The v6.346 key is new, but retaining this fallback makes the reader
+      // tolerant if a partial deployment ever wrote a single compact object.
+      if (manifest.cacheMode !== REMAKE_FAST_CACHE_MODE_V6346) return manifest;
+      const entries = Array.isArray(manifest.entries) ? manifest.entries : [];
+      const rows = [];
+      for (let index = 0; index < entries.length; index += 1) {
+        const entry = entries[index] || {};
+        const chunk = entry.key ? await readRemakeFastCacheValueV6346(db, entry.key) : null;
+        if (!chunk || !Array.isArray(chunk.rows)) return null;
+        for (let rowIndex = 0; rowIndex < chunk.rows.length; rowIndex += 1) rows.push(chunk.rows[rowIndex]);
+      }
+      if (Number(manifest.totalRows || 0) !== rows.length) return null;
+      return Object.assign({}, manifest.meta || {}, {
+        ok: true,
+        browserRowsNormalized: true,
+        browserRowSchema: 'remakeBrowserRowV1323',
+        rows: rows
+      });
+    } finally {
+      db.close();
+    }
+  }
+
+  async function writeRemakeFastCacheV6261(data) {
+    const rows = data && Array.isArray(data.rows) ? data.rows : [];
+    const grouped = new Map();
+    rows.forEach(row => {
+      const month = remakeFastCacheMonthV6346(row);
+      if (!grouped.has(month)) grouped.set(month, []);
+      grouped.get(month).push(row);
+    });
+    const generation = Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8);
+    const meta = Object.assign({}, data || {});
+    delete meta.rows;
+    delete meta.detailRows;
+    const entries = [];
+    const keepChunkKeys = new Set();
+    const db = await openRemakeFastCacheDbV6261();
+    try {
+      const months = Array.from(grouped.keys()).sort();
+      // Each month is committed in its own transaction. IndexedDB therefore
+      // structured-clones only one month at a time instead of duplicating all
+      // 114k rows in memory during one giant put().
+      for (let index = 0; index < months.length; index += 1) {
+        const month = months[index];
+        const monthRows = grouped.get(month) || [];
+        const key = REMAKE_FAST_CACHE_CHUNK_PREFIX_V6346 + generation + '.' + encodeURIComponent(month);
+        await writeRemakeFastCacheValueV6346(db, key, { month: month, rows: monthRows });
+        entries.push({ month: month, key: key, rowCount: monthRows.length });
+        keepChunkKeys.add(key);
+      }
+      // Publish the new manifest only after every chunk succeeds, so a failed
+      // write cannot replace the last readable browser cache.
+      await writeRemakeFastCacheValueV6346(db, CACHE_KEY_V6230, {
+        ok: true,
+        cacheMode: REMAKE_FAST_CACHE_MODE_V6346,
+        generation: generation,
+        generatedAt: meta.generatedAt || '',
+        totalRows: rows.length,
+        entries: entries,
+        meta: meta
+      });
+      await deleteRemakeFastCacheKeysV6346(db, keepChunkKeys, false);
+      return true;
+    } finally {
+      db.close();
+    }
+  }
+
+  async function deleteRemakeFastCacheV6261() {
+    try {
+      const db = await openRemakeFastCacheDbV6261();
+      try {
+        return await deleteRemakeFastCacheKeysV6346(db, null, true);
+      } finally {
+        db.close();
+      }
+    } catch (error) {
+      return false;
+    }
+  }
+
+  const CERAMIST_FAST_CACHE_KEY_V6364 = 'cdaCeramistAnalysisIndexedCache.v6364';
+  const CERAMIST_FAST_CACHE_MODE_V6364 = 'monthlyChunksV6364';
+  const CERAMIST_FAST_CACHE_CHUNK_PREFIX_V6364 = CERAMIST_FAST_CACHE_KEY_V6364 + '.month.';
+
+  function ceramistFastCacheMonthV6364(row) {
+    return monthKeyV6230(row && (row.month || row.invoiceMonth || row.invoiceDate || row.Cases_InvoiceDate || row.dateIn)) || 'Unknown';
+  }
+
+  function deleteCeramistFastCacheKeysV6364(db, keepChunkKeys, deleteManifest) {
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(REMAKE_FAST_CACHE_STORE_V6261, 'readwrite');
+      const store = tx.objectStore(REMAKE_FAST_CACHE_STORE_V6261);
+      const request = store.openCursor();
+      request.onerror = event => reject(event.target.error || new Error('Ceramist IndexedDB cursor failed'));
+      request.onsuccess = event => {
+        const cursor = event.target.result;
+        if (!cursor) return;
+        const key = String(cursor.key || '');
+        const isManifest = key === CERAMIST_FAST_CACHE_KEY_V6364;
+        const isChunk = key.indexOf(CERAMIST_FAST_CACHE_CHUNK_PREFIX_V6364) === 0;
+        const removeChunk = isChunk && (!keepChunkKeys || !keepChunkKeys.has(key));
+        if ((deleteManifest && isManifest) || removeChunk) cursor.delete();
+        cursor.continue();
+      };
+      tx.oncomplete = () => resolve(true);
+      tx.onerror = event => reject(event.target.error || new Error('Ceramist IndexedDB cleanup failed'));
+    });
+  }
+
+  async function readCeramistFastCacheV6364() {
+    const db = await openRemakeFastCacheDbV6261();
+    try {
+      const manifest = await readRemakeFastCacheValueV6346(db, CERAMIST_FAST_CACHE_KEY_V6364);
+      if (!manifest || manifest.cacheMode !== CERAMIST_FAST_CACHE_MODE_V6364) return null;
+      const entries = Array.isArray(manifest.entries) ? manifest.entries : [];
+      const rows = [];
+      for (let index = 0; index < entries.length; index += 1) {
+        const entry = entries[index] || {};
+        const chunk = entry.key ? await readRemakeFastCacheValueV6346(db, entry.key) : null;
+        if (!chunk || !Array.isArray(chunk.rows)) return null;
+        for (let rowIndex = 0; rowIndex < chunk.rows.length; rowIndex += 1) rows.push(chunk.rows[rowIndex]);
+      }
+      if (Number(manifest.totalRows || 0) !== rows.length) return null;
+      return Object.assign({}, manifest.meta || {}, {
+        ok: true,
+        browserCached: true,
+        cacheToken: manifest.cacheToken || (manifest.meta && manifest.meta.cacheToken) || '',
+        rows: rows
+      });
+    } finally {
+      db.close();
+    }
+  }
+
+  async function writeCeramistFastCacheV6364(data) {
+    const rows = data && Array.isArray(data.rows) ? data.rows : [];
+    const grouped = new Map();
+    rows.forEach(row => {
+      const month = ceramistFastCacheMonthV6364(row);
+      if (!grouped.has(month)) grouped.set(month, []);
+      grouped.get(month).push(row);
+    });
+    const generation = Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8);
+    const meta = Object.assign({}, data || {});
+    delete meta.rows;
+    const entries = [];
+    const keepChunkKeys = new Set();
+    const db = await openRemakeFastCacheDbV6261();
+    try {
+      const months = Array.from(grouped.keys()).sort();
+      for (let index = 0; index < months.length; index += 1) {
+        const month = months[index];
+        const monthRows = grouped.get(month) || [];
+        const key = CERAMIST_FAST_CACHE_CHUNK_PREFIX_V6364 + generation + '.' + encodeURIComponent(month);
+        await writeRemakeFastCacheValueV6346(db, key, { month: month, rows: monthRows });
+        entries.push({ month: month, key: key, rowCount: monthRows.length });
+        keepChunkKeys.add(key);
+      }
+      await writeRemakeFastCacheValueV6346(db, CERAMIST_FAST_CACHE_KEY_V6364, {
+        ok: true,
+        cacheMode: CERAMIST_FAST_CACHE_MODE_V6364,
+        generation: generation,
+        cacheToken: meta.cacheToken || '',
+        generatedAt: meta.generatedAt || '',
+        totalRows: rows.length,
+        entries: entries,
+        meta: meta
+      });
+      await deleteCeramistFastCacheKeysV6364(db, keepChunkKeys, false);
+      return true;
+    } finally {
+      db.close();
+    }
+  }
+
+  async function deleteCeramistFastCacheV6364() {
+    try {
+      const db = await openRemakeFastCacheDbV6261();
+      try {
+        return await deleteCeramistFastCacheKeysV6364(db, null, true);
+      } finally {
+        db.close();
+      }
+    } catch (error) {
+      return false;
+    }
+  }
+
+  function cancelScheduledCeramistBrowserCacheWriteV6364() {
+    if (ceramistBrowserCacheWriteHandleV6364) {
+      try {
+        if (ceramistBrowserCacheWriteHandleTypeV6364 === 'idle' && typeof window.cancelIdleCallback === 'function') {
+          window.cancelIdleCallback(ceramistBrowserCacheWriteHandleV6364);
+        } else {
+          window.clearTimeout(ceramistBrowserCacheWriteHandleV6364);
+        }
+      } catch (error) {}
+    }
+    ceramistBrowserCacheWriteHandleV6364 = 0;
+    ceramistBrowserCacheWriteHandleTypeV6364 = '';
+    if (!ceramistBrowserCacheWriteRunningV6364) ceramistBrowserCacheWriteScheduledV6364 = false;
+  }
+
+  function scheduleCeramistBrowserCacheWriteV6364(data) {
+    cancelScheduledCeramistBrowserCacheWriteV6364();
+    ceramistBrowserCacheWriteScheduledV6364 = true;
+    const save = function saveCeramistBrowserCacheV6364() {
+      ceramistBrowserCacheWriteHandleV6364 = 0;
+      ceramistBrowserCacheWriteHandleTypeV6364 = '';
+      ceramistBrowserCacheWriteRunningV6364 = true;
+      ceramistBrowserCacheWritePromiseV6364 = writeCeramistFastCacheV6364(data)
+        .catch(error => { console.warn('Ceramist browser cache write skipped', error); return false; })
+        .finally(function finishCeramistBrowserCacheWriteV6364() {
+          ceramistBrowserCacheWriteRunningV6364 = false;
+          ceramistBrowserCacheWriteScheduledV6364 = false;
+        });
+    };
+    if (typeof window.requestIdleCallback === 'function') {
+      ceramistBrowserCacheWriteHandleTypeV6364 = 'idle';
+      ceramistBrowserCacheWriteHandleV6364 = window.requestIdleCallback(save, { timeout: 5000 });
+    } else {
+      ceramistBrowserCacheWriteHandleTypeV6364 = 'timeout';
+      ceramistBrowserCacheWriteHandleV6364 = window.setTimeout(save, 500);
+    }
+  }
+
+  function setBannerV6230() {
+    const banner = idV6230('singleShellDebugBanner');
+    if (banner && banner.textContent !== VERSION_TEXT_V6230) banner.textContent = VERSION_TEXT_V6230;
+    document.querySelectorAll('.debugBadge').forEach(el => { if (el.textContent !== 'v6.281') el.textContent = 'v6.281'; });
+  }
+

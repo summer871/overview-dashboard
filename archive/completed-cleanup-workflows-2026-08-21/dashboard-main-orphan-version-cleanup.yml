@@ -1,0 +1,16 @@
+name: DashboardMain orphaned version cleanup
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/ai-readable-cleanup-2026-08-21
+      - run: echo 'No safe literal-unreferenced versioned functions were found on 2026-08-21; migration is required before further deletion.'

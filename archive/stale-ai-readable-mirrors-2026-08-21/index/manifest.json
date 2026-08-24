@@ -1,0 +1,21 @@
+{
+  "generatedAt": "2026-08-21T22:52:41.846Z",
+  "authoritativeSource": "Index.html",
+  "authoritativeSourceBytes": 4622,
+  "authoritativeSourceSha256": "0f340a75d31fc45ed4d6e324411dbcd3af7b34343e42d1a9e1e6c5771867fad3",
+  "maxAiReadableBytes": 75000,
+  "targetBytes": 62000,
+  "chunkCount": 1,
+  "chunks": [
+    {
+      "file": "docs/ai-readable/index/IndexPart01.html.txt",
+      "bytes": 4622,
+      "sha256": "0f340a75d31fc45ed4d6e324411dbcd3af7b34343e42d1a9e1e6c5771867fad3",
+      "aiReadable": true
+    }
+  ],
+  "byteForByteReconstructionVerified": true,
+  "runtimeSourceChanged": false,
+  "behaviorChangeIntended": false,
+  "note": "Index.html is itself AI-readable. This single .txt mirror remains inspection-only and must never be included by Index.html."
+}

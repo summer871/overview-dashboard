@@ -1,0 +1,34 @@
+name: Dashboard main AI-readable mirror
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out cleanup branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/ai-readable-cleanup-2026-08-21
+          fetch-depth: 0
+
+      - name: Verify existing mirror
+        run: |
+          node - <<'NODE'
+          const fs = require('fs');
+          const path = require('path');
+          const crypto = require('crypto');
+          const dir = 'docs/ai-readable/dashboard-main';
+          const manifest = JSON.parse(fs.readFileSync(path.join(dir, 'manifest.json'), 'utf8'));
+          const rebuilt = manifest.chunks.map(item => fs.readFileSync(item.file, 'utf8')).join('');
+          const source = fs.readFileSync(manifest.authoritativeSource, 'utf8');
+          const hash = value => crypto.createHash('sha256').update(value, 'utf8').digest('hex');
+          if (rebuilt !== source || hash(source) !== manifest.authoritativeSourceSha256) {
+            throw new Error('DashboardMain inspection mirror is stale.');
+          }
+          console.log(`Verified existing ${manifest.chunkCount}-part DashboardMain mirror.`);
+          NODE

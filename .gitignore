@@ -7,3 +7,4 @@ service-account*.json
 *.key
 *.pem
 node_modules/
+reports/

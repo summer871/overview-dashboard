@@ -1,0 +1,59 @@
+{
+  "datePt": "2026-08-21",
+  "checkpoint": "Remove paused Overview branches from mixed smooth atomic polish block",
+  "source": "Index.html",
+  "behaviorChangeIntended": false,
+  "sourceGitBlobShaBefore": "ed756e1cf1037f2c074dade1aa99b9c2db595b05",
+  "sourceSha256Before": "2112310c754e6599e8ae671bc422349e25d635d9e0daa080787f16501ec6c82d",
+  "sourceSha256After": "a0135992850278d80ce9116cd7cd0dec97271d2530d27bd6fd365e3d7d1ea660",
+  "bytesBefore": 185534,
+  "bytesAfter": 176702,
+  "bytesRemoved": 8832,
+  "archivePath": "archive/overview-paused-2026-08-21/Index.pre-smooth-polish-overview-removal.html",
+  "archiveByteForByteVerified": true,
+  "overviewOneReferencesBefore": 26,
+  "overviewOneReferencesAfter": 0,
+  "overviewTwoReferencesBefore": 3,
+  "overviewTwoReferencesAfter": 3,
+  "styleOverviewSelectorBranchesRemoved": 21,
+  "styleRulesRemoved": 13,
+  "styleMixedRulesNarrowed": 4,
+  "removedOverviewScriptHooks": [
+    "animateOverviewUpdateV6424",
+    "scheduleOverviewUpdateV6424",
+    "installPillObserverV6424",
+    "renderAll v6.424 wrapper",
+    "handleData v6.424 wrapper",
+    "Overview activity detector/listeners"
+  ],
+  "preservedLiveBehavior": [
+    "Remake button/dropdown paint transitions",
+    "Remake dropdown transform origin",
+    "Remake reduced-motion handling",
+    "Remake dropdown open animation",
+    "active tab animation"
+  ],
+  "protectedTokenCountsBefore": {
+    "remakeFactorPage": 542,
+    "remakeDropdownButton": 10,
+    "remakeDropdownPanel": 9,
+    "tatFilterHost": 4,
+    "sharedFilterInclude": 1,
+    "remakeAdapterInclude": 1,
+    "tatControllerInclude": 1,
+    "tatAdapterInclude": 1
+  },
+  "protectedTokenCountsAfter": {
+    "remakeFactorPage": 541,
+    "remakeDropdownButton": 10,
+    "remakeDropdownPanel": 9,
+    "tatFilterHost": 4,
+    "sharedFilterInclude": 1,
+    "remakeAdapterInclude": 1,
+    "tatControllerInclude": 1,
+    "tatAdapterInclude": 1
+  },
+  "scriptTagBoundaryCountsPreserved": true,
+  "styleTagBoundaryCountsPreserved": true,
+  "productionDeployment": false
+}

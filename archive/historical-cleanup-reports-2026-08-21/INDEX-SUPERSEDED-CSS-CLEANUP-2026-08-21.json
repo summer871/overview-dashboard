@@ -1,0 +1,32 @@
+{
+  "generatedAt": "2026-08-21T20:09:52.229Z",
+  "source": "Index.html",
+  "sourceSha256Before": "8973e2241075ea49318d33b1a57a94e6f462452dbe0798428f60f680b06d31fa",
+  "sourceSha256After": "ea9d79d1622d5387af8ad89747e47967d9a73418e62b315790758e113c858780",
+  "sourceBytesBefore": 213662,
+  "sourceBytesAfter": 213396,
+  "removedBytes": 266,
+  "removedRules": 2,
+  "styleBlocksParsed": 26,
+  "behaviorChangeIntended": false,
+  "parser": "postcss",
+  "criterion": "Single-selector static CSS rule, same selector and at-rule context repeated later, every earlier exact longhand property redeclared later with equal-or-stronger !important precedence; shorthand/custom-property/complex selector candidates excluded.",
+  "removed": [
+    {
+      "selector": "#remakeFactorPage.cleanRemakeV6230 #remakeCeramistDetailTableV6343 tbody tr.ceramistDetailClickableV6368",
+      "context": "root",
+      "line": 114,
+      "properties": [
+        "cursor"
+      ]
+    },
+    {
+      "selector": "#remakeFactorPage.cleanRemakeV6230 .ceramistPanelV6343.detailOpenV6368 .ceramistPreviewTableWrapV6342",
+      "context": "root",
+      "line": 2596,
+      "properties": [
+        "height"
+      ]
+    }
+  ]
+}

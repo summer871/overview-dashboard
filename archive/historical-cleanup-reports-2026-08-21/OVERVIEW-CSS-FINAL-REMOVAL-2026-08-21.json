@@ -1,0 +1,51 @@
+{
+  "datePt": "2026-08-21",
+  "checkpoint": "Final remaining Overview-only CSS removal",
+  "source": "DashboardBaseStyles.html",
+  "behaviorChangeIntended": false,
+  "sourceGitBlobShaBefore": "0ea60c3e709759ff12934a50c54563d1e1fae671",
+  "sourceSha256Before": "343565d5414d4f9ec01aefc3f22fa2016815547b132cc744a611055eaf5d18c9",
+  "sourceSha256After": "b2c385324b6803764804e524364e25029eee9584a588e42fd1bad65512ae4c39",
+  "bytesBefore": 105192,
+  "bytesAfter": 102513,
+  "bytesRemoved": 2679,
+  "removedRuleCount": 15,
+  "remainingOverviewSelectorCount": 0,
+  "styleBlockCount": 1,
+  "archivePath": "archive/overview-paused-2026-08-21/DashboardBaseStyles.pre-final-overview-css-removal.html",
+  "archiveByteForByteVerified": true,
+  "parser": "built-in brace/string/comment-aware CSS scanner; leading comments stripped for selector classification only",
+  "removalCriterion": "Remove exactly the 15 previously retained rules only when every selector branch remains anchored to deleted Overview UI after leading comment trivia is ignored. Reject protected Remake/TAT/shared-filter selectors.",
+  "protectedTokenCountsBefore": {
+    "#remakeFactorPage": 1,
+    "#remakeTabFilterHostV6337": 0,
+    "#tatTabFilterHostV6509": 0,
+    ".remakeFilterBarV6230": 0,
+    ".cdaFilterBar": 0
+  },
+  "protectedTokenCountsAfter": {
+    "#remakeFactorPage": 1,
+    "#remakeTabFilterHostV6337": 0,
+    "#tatTabFilterHostV6509": 0,
+    ".remakeFilterBarV6230": 0,
+    ".cdaFilterBar": 0
+  },
+  "removedSelectors": [
+    ".overviewTwoShell",
+    "#overviewOne.tabPage",
+    "#overviewOne .areaCustomers .chartBox,\n    #overviewOne .areaUnits .chartBox,\n    #overviewOne .areaRpac .chartBox,\n    #overviewOne .areaAvg .chartBox",
+    "#overviewOne .moverArea",
+    "#overviewOne .moverArea .tableScroll",
+    "#overviewOne .moverArea .tableScroll",
+    "#overviewOne .grid",
+    "#overviewOne.legacyOverviewReference:not(.active)",
+    "#overviewTwo .overviewTwoShellV150",
+    "#overviewTwo .o2InsightGridV152",
+    "#overviewTwo .o2FeatureDockV153",
+    "#overviewTwo .o2InsightGridV152",
+    "#overviewTwo .overviewTwoShellV150",
+    "#overviewTwo .overviewTwoShellV150",
+    "#overviewTwo .overviewTwoShellV150"
+  ],
+  "productionDeployment": false
+}

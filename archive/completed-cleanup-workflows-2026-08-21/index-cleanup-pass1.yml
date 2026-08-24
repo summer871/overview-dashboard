@@ -1,0 +1,28 @@
+name: Index cleanup pass 1
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  extract-fuzzy-search:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out cleanup branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/ai-readable-cleanup-2026-08-21
+          fetch-depth: 0
+
+      - name: Verify completed extraction
+        run: |
+          grep -q "includeDashboardFile('DashboardFuzzySearch')" Index.html
+          grep -q 'id="dashboardFuzzySearchV6412"' DashboardFuzzySearch.html
+          ! grep -q 'id="dashboardFuzzySearchV6412"' Index.html
+          node - <<'NODE'
+          const fs = require('fs');
+          const report = JSON.parse(fs.readFileSync('docs/INDEX-CLEANUP-PASS1-2026-08-21.json', 'utf8'));
+          if (!report.reconstructionVerified) throw new Error('Completed extraction verification is missing.');
+          NODE

@@ -1,0 +1,917 @@
+{
+  "datePt": "2026-08-21",
+  "purpose": "Conservative static audit before removing the staged legacy/paused Overview runtime from active execution.",
+  "behaviorChangeIntended": false,
+  "legacyDomain": "legacy dashboard / paused Overview staging",
+  "legacyBytes": 776603,
+  "remakeBytesAudited": 447047,
+  "tatFilesAudited": [
+    "TatDashboardControllerScript.html",
+    "TatSharedFilterAdapterV6646.html",
+    "TatDashboardBootstrapV6547.html",
+    "TatDashboardDefinitionV6547.html"
+  ],
+  "legacyDeclaredSymbolCount": 2074,
+  "activeDeclaredSymbolCount": 1548,
+  "candidateCrossDomainSymbolCount": 98,
+  "candidateCrossDomainSymbols": [
+    {
+      "name": "remakeFactorPage",
+      "remakeReferences": 226,
+      "tatReferences": 4,
+      "totalReferences": 230,
+      "legacyDeclarationCount": 74
+    },
+    {
+      "name": "border",
+      "remakeReferences": 154,
+      "tatReferences": 9,
+      "totalReferences": 163,
+      "legacyDeclarationCount": 235
+    },
+    {
+      "name": "span",
+      "remakeReferences": 95,
+      "tatReferences": 38,
+      "totalReferences": 133,
+      "legacyDeclarationCount": 225
+    },
+    {
+      "name": "a",
+      "remakeReferences": 99,
+      "tatReferences": 15,
+      "totalReferences": 114,
+      "legacyDeclarationCount": 316
+    },
+    {
+      "name": "reason",
+      "remakeReferences": 81,
+      "tatReferences": 7,
+      "totalReferences": 88,
+      "legacyDeclarationCount": 30
+    },
+    {
+      "name": "units",
+      "remakeReferences": 38,
+      "tatReferences": 40,
+      "totalReferences": 78,
+      "legacyDeclarationCount": 122
+    },
+    {
+      "name": "grid",
+      "remakeReferences": 41,
+      "tatReferences": 7,
+      "totalReferences": 48,
+      "legacyDeclarationCount": 110
+    },
+    {
+      "name": "tbody",
+      "remakeReferences": 45,
+      "tatReferences": 2,
+      "totalReferences": 47,
+      "legacyDeclarationCount": 30
+    },
+    {
+      "name": "g",
+      "remakeReferences": 12,
+      "tatReferences": 34,
+      "totalReferences": 46,
+      "legacyDeclarationCount": 84
+    },
+    {
+      "name": "radius",
+      "remakeReferences": 42,
+      "tatReferences": 0,
+      "totalReferences": 42,
+      "legacyDeclarationCount": 86
+    },
+    {
+      "name": "option",
+      "remakeReferences": 10,
+      "tatReferences": 26,
+      "totalReferences": 36,
+      "legacyDeclarationCount": 45
+    },
+    {
+      "name": "open",
+      "remakeReferences": 22,
+      "tatReferences": 12,
+      "totalReferences": 34,
+      "legacyDeclarationCount": 60
+    },
+    {
+      "name": "abs",
+      "remakeReferences": 28,
+      "tatReferences": 3,
+      "totalReferences": 31,
+      "legacyDeclarationCount": 64
+    },
+    {
+      "name": "position",
+      "remakeReferences": 22,
+      "tatReferences": 7,
+      "totalReferences": 29,
+      "legacyDeclarationCount": 47
+    },
+    {
+      "name": "bar",
+      "remakeReferences": 23,
+      "tatReferences": 4,
+      "totalReferences": 27,
+      "legacyDeclarationCount": 139
+    },
+    {
+      "name": "box",
+      "remakeReferences": 26,
+      "tatReferences": 0,
+      "totalReferences": 26,
+      "legacyDeclarationCount": 80
+    },
+    {
+      "name": "inline",
+      "remakeReferences": 22,
+      "tatReferences": 4,
+      "totalReferences": 26,
+      "legacyDeclarationCount": 42
+    },
+    {
+      "name": "y",
+      "remakeReferences": 20,
+      "tatReferences": 6,
+      "totalReferences": 26,
+      "legacyDeclarationCount": 106
+    },
+    {
+      "name": "column",
+      "remakeReferences": 14,
+      "tatReferences": 9,
+      "totalReferences": 23,
+      "legacyDeclarationCount": 34
+    },
+    {
+      "name": "trend",
+      "remakeReferences": 23,
+      "tatReferences": 0,
+      "totalReferences": 23,
+      "legacyDeclarationCount": 22
+    },
+    {
+      "name": "last",
+      "remakeReferences": 22,
+      "tatReferences": 0,
+      "totalReferences": 22,
+      "legacyDeclarationCount": 25
+    },
+    {
+      "name": "fallback",
+      "remakeReferences": 13,
+      "tatReferences": 7,
+      "totalReferences": 20,
+      "legacyDeclarationCount": 17
+    },
+    {
+      "name": "cached",
+      "remakeReferences": 18,
+      "tatReferences": 0,
+      "totalReferences": 18,
+      "legacyDeclarationCount": 11
+    },
+    {
+      "name": "formatter",
+      "remakeReferences": 16,
+      "tatReferences": 2,
+      "totalReferences": 18,
+      "legacyDeclarationCount": 31
+    },
+    {
+      "name": "summary",
+      "remakeReferences": 14,
+      "tatReferences": 4,
+      "totalReferences": 18,
+      "legacyDeclarationCount": 36
+    },
+    {
+      "name": "px",
+      "remakeReferences": 7,
+      "tatReferences": 10,
+      "totalReferences": 17,
+      "legacyDeclarationCount": 36
+    },
+    {
+      "name": "monthNum",
+      "remakeReferences": 0,
+      "tatReferences": 16,
+      "totalReferences": 16,
+      "legacyDeclarationCount": 29
+    },
+    {
+      "name": "scale",
+      "remakeReferences": 12,
+      "tatReferences": 4,
+      "totalReferences": 16,
+      "legacyDeclarationCount": 14
+    },
+    {
+      "name": "limit",
+      "remakeReferences": 11,
+      "tatReferences": 4,
+      "totalReferences": 15,
+      "legacyDeclarationCount": 16
+    },
+    {
+      "name": "block",
+      "remakeReferences": 10,
+      "tatReferences": 4,
+      "totalReferences": 14,
+      "legacyDeclarationCount": 43
+    },
+    {
+      "name": "cur",
+      "remakeReferences": 0,
+      "tatReferences": 14,
+      "totalReferences": 14,
+      "legacyDeclarationCount": 7
+    },
+    {
+      "name": "metric",
+      "remakeReferences": 14,
+      "tatReferences": 0,
+      "totalReferences": 14,
+      "legacyDeclarationCount": 20
+    },
+    {
+      "name": "sum",
+      "remakeReferences": 14,
+      "tatReferences": 0,
+      "totalReferences": 14,
+      "legacyDeclarationCount": 31
+    },
+    {
+      "name": "detail",
+      "remakeReferences": 8,
+      "tatReferences": 4,
+      "totalReferences": 12,
+      "legacyDeclarationCount": 20
+    },
+    {
+      "name": "it",
+      "remakeReferences": 11,
+      "tatReferences": 1,
+      "totalReferences": 12,
+      "legacyDeclarationCount": 24
+    },
+    {
+      "name": "select",
+      "remakeReferences": 12,
+      "tatReferences": 0,
+      "totalReferences": 12,
+      "legacyDeclarationCount": 42
+    },
+    {
+      "name": "totals",
+      "remakeReferences": 9,
+      "tatReferences": 2,
+      "totalReferences": 11,
+      "legacyDeclarationCount": 9
+    },
+    {
+      "name": "canvasId",
+      "remakeReferences": 10,
+      "tatReferences": 0,
+      "totalReferences": 10,
+      "legacyDeclarationCount": 122
+    },
+    {
+      "name": "facts",
+      "remakeReferences": 10,
+      "tatReferences": 0,
+      "totalReferences": 10,
+      "legacyDeclarationCount": 52
+    },
+    {
+      "name": "stats",
+      "remakeReferences": 10,
+      "tatReferences": 0,
+      "totalReferences": 10,
+      "legacyDeclarationCount": 45
+    },
+    {
+      "name": "direction",
+      "remakeReferences": 9,
+      "tatReferences": 0,
+      "totalReferences": 9,
+      "legacyDeclarationCount": 10
+    },
+    {
+      "name": "fn",
+      "remakeReferences": 9,
+      "tatReferences": 0,
+      "totalReferences": 9,
+      "legacyDeclarationCount": 10
+    },
+    {
+      "name": "pluginOptions",
+      "remakeReferences": 9,
+      "tatReferences": 0,
+      "totalReferences": 9,
+      "legacyDeclarationCount": 34
+    },
+    {
+      "name": "productRows",
+      "remakeReferences": 9,
+      "tatReferences": 0,
+      "totalReferences": 9,
+      "legacyDeclarationCount": 2
+    },
+    {
+      "name": "tab",
+      "remakeReferences": 3,
+      "tatReferences": 6,
+      "totalReferences": 9,
+      "legacyDeclarationCount": 53
+    },
+    {
+      "name": "compact",
+      "remakeReferences": 5,
+      "tatReferences": 3,
+      "totalReferences": 8,
+      "legacyDeclarationCount": 22
+    },
+    {
+      "name": "as",
+      "remakeReferences": 6,
+      "tatReferences": 1,
+      "totalReferences": 7,
+      "legacyDeclarationCount": 26
+    },
+    {
+      "name": "charts",
+      "remakeReferences": 0,
+      "tatReferences": 7,
+      "totalReferences": 7,
+      "legacyDeclarationCount": 54
+    },
+    {
+      "name": "features",
+      "remakeReferences": 0,
+      "tatReferences": 7,
+      "totalReferences": 7,
+      "legacyDeclarationCount": 2
+    },
+    {
+      "name": "presentation",
+      "remakeReferences": 6,
+      "tatReferences": 1,
+      "totalReferences": 7,
+      "legacyDeclarationCount": 4
+    },
+    {
+      "name": "bucket",
+      "remakeReferences": 0,
+      "tatReferences": 6,
+      "totalReferences": 6,
+      "legacyDeclarationCount": 12
+    },
+    {
+      "name": "chartArea",
+      "remakeReferences": 6,
+      "tatReferences": 0,
+      "totalReferences": 6,
+      "legacyDeclarationCount": 45
+    },
+    {
+      "name": "r",
+      "remakeReferences": 3,
+      "tatReferences": 3,
+      "totalReferences": 6,
+      "legacyDeclarationCount": 51
+    },
+    {
+      "name": "activeTab",
+      "remakeReferences": 3,
+      "tatReferences": 2,
+      "totalReferences": 5,
+      "legacyDeclarationCount": 59
+    },
+    {
+      "name": "drawChart",
+      "remakeReferences": 5,
+      "tatReferences": 0,
+      "totalReferences": 5,
+      "legacyDeclarationCount": 18
+    },
+    {
+      "name": "inactiveBadge",
+      "remakeReferences": 5,
+      "tatReferences": 0,
+      "totalReferences": 5,
+      "legacyDeclarationCount": 11
+    },
+    {
+      "name": "legend",
+      "remakeReferences": 3,
+      "tatReferences": 2,
+      "totalReferences": 5,
+      "legacyDeclarationCount": 29
+    },
+    {
+      "name": "remakeFactorTabBtn",
+      "remakeReferences": 1,
+      "tatReferences": 4,
+      "totalReferences": 5,
+      "legacyDeclarationCount": 5
+    },
+    {
+      "name": "componentId",
+      "remakeReferences": 4,
+      "tatReferences": 0,
+      "totalReferences": 4,
+      "legacyDeclarationCount": 174
+    },
+    {
+      "name": "escapeHtml",
+      "remakeReferences": 0,
+      "tatReferences": 4,
+      "totalReferences": 4,
+      "legacyDeclarationCount": 80
+    },
+    {
+      "name": "filtered",
+      "remakeReferences": 4,
+      "tatReferences": 0,
+      "totalReferences": 4,
+      "legacyDeclarationCount": 23
+    },
+    {
+      "name": "firstHeader",
+      "remakeReferences": 4,
+      "tatReferences": 0,
+      "totalReferences": 4,
+      "legacyDeclarationCount": 17
+    },
+    {
+      "name": "found",
+      "remakeReferences": 4,
+      "tatReferences": 0,
+      "totalReferences": 4,
+      "legacyDeclarationCount": 12
+    },
+    {
+      "name": "highlighted",
+      "remakeReferences": 4,
+      "tatReferences": 0,
+      "totalReferences": 4,
+      "legacyDeclarationCount": 47
+    },
+    {
+      "name": "period",
+      "remakeReferences": 4,
+      "tatReferences": 0,
+      "totalReferences": 4,
+      "legacyDeclarationCount": 4
+    },
+    {
+      "name": "pp",
+      "remakeReferences": 4,
+      "tatReferences": 0,
+      "totalReferences": 4,
+      "legacyDeclarationCount": 5
+    },
+    {
+      "name": "barLabelPlacement",
+      "remakeReferences": 1,
+      "tatReferences": 2,
+      "totalReferences": 3,
+      "legacyDeclarationCount": 3
+    },
+    {
+      "name": "c",
+      "remakeReferences": 0,
+      "tatReferences": 3,
+      "totalReferences": 3,
+      "legacyDeclarationCount": 11
+    },
+    {
+      "name": "more",
+      "remakeReferences": 1,
+      "tatReferences": 2,
+      "totalReferences": 3,
+      "legacyDeclarationCount": 10
+    },
+    {
+      "name": "ms",
+      "remakeReferences": 3,
+      "tatReferences": 0,
+      "totalReferences": 3,
+      "legacyDeclarationCount": 14
+    },
+    {
+      "name": "older",
+      "remakeReferences": 2,
+      "tatReferences": 1,
+      "totalReferences": 3,
+      "legacyDeclarationCount": 10
+    },
+    {
+      "name": "url",
+      "remakeReferences": 0,
+      "tatReferences": 3,
+      "totalReferences": 3,
+      "legacyDeclarationCount": 10
+    },
+    {
+      "name": "baseline",
+      "remakeReferences": 2,
+      "tatReferences": 0,
+      "totalReferences": 2,
+      "legacyDeclarationCount": 7
+    },
+    {
+      "name": "buckets",
+      "remakeReferences": 2,
+      "tatReferences": 0,
+      "totalReferences": 2,
+      "legacyDeclarationCount": 10
+    },
+    {
+      "name": "categoricalPage",
+      "remakeReferences": 1,
+      "tatReferences": 1,
+      "totalReferences": 2,
+      "legacyDeclarationCount": 13
+    },
+    {
+      "name": "categoricalTabBtn",
+      "remakeReferences": 1,
+      "tatReferences": 1,
+      "totalReferences": 2,
+      "legacyDeclarationCount": 12
+    },
+    {
+      "name": "chartType",
+      "remakeReferences": 2,
+      "tatReferences": 0,
+      "totalReferences": 2,
+      "legacyDeclarationCount": 16
+    },
+    {
+      "name": "closeUnderConstructionMenu",
+      "remakeReferences": 2,
+      "tatReferences": 0,
+      "totalReferences": 2,
+      "legacyDeclarationCount": 9
+    },
+    {
+      "name": "customerIds",
+      "remakeReferences": 0,
+      "tatReferences": 2,
+      "totalReferences": 2,
+      "legacyDeclarationCount": 3
+    },
+    {
+      "name": "customerLabel",
+      "remakeReferences": 0,
+      "tatReferences": 2,
+      "totalReferences": 2,
+      "legacyDeclarationCount": 3
+    },
+    {
+      "name": "customerNames",
+      "remakeReferences": 0,
+      "tatReferences": 2,
+      "totalReferences": 2,
+      "legacyDeclarationCount": 7
+    },
+    {
+      "name": "cy",
+      "remakeReferences": 0,
+      "tatReferences": 2,
+      "totalReferences": 2,
+      "legacyDeclarationCount": 2
+    },
+    {
+      "name": "h",
+      "remakeReferences": 2,
+      "tatReferences": 0,
+      "totalReferences": 2,
+      "legacyDeclarationCount": 27
+    },
+    {
+      "name": "keyFn",
+      "remakeReferences": 0,
+      "tatReferences": 2,
+      "totalReferences": 2,
+      "legacyDeclarationCount": 26
+    },
+    {
+      "name": "latest",
+      "remakeReferences": 2,
+      "tatReferences": 0,
+      "totalReferences": 2,
+      "legacyDeclarationCount": 12
+    },
+    {
+      "name": "old",
+      "remakeReferences": 2,
+      "tatReferences": 0,
+      "totalReferences": 2,
+      "legacyDeclarationCount": 10
+    },
+    {
+      "name": "overviewNavActions",
+      "remakeReferences": 1,
+      "tatReferences": 1,
+      "totalReferences": 2,
+      "legacyDeclarationCount": 13
+    },
+    {
+      "name": "overviewOne",
+      "remakeReferences": 1,
+      "tatReferences": 1,
+      "totalReferences": 2,
+      "legacyDeclarationCount": 265
+    },
+    {
+      "name": "overviewTwo",
+      "remakeReferences": 1,
+      "tatReferences": 1,
+      "totalReferences": 2,
+      "legacyDeclarationCount": 16
+    },
+    {
+      "name": "reduced",
+      "remakeReferences": 2,
+      "tatReferences": 0,
+      "totalReferences": 2,
+      "legacyDeclarationCount": 3
+    },
+    {
+      "name": "shouldUseDailyRevenueTrend",
+      "remakeReferences": 2,
+      "tatReferences": 0,
+      "totalReferences": 2,
+      "legacyDeclarationCount": 2
+    },
+    {
+      "name": "tabOneBtn",
+      "remakeReferences": 1,
+      "tatReferences": 1,
+      "totalReferences": 2,
+      "legacyDeclarationCount": 13
+    },
+    {
+      "name": "tagName",
+      "remakeReferences": 1,
+      "tatReferences": 1,
+      "totalReferences": 2,
+      "legacyDeclarationCount": 5
+    },
+    {
+      "name": "underConstructionBtn",
+      "remakeReferences": 1,
+      "tatReferences": 1,
+      "totalReferences": 2,
+      "legacyDeclarationCount": 13
+    },
+    {
+      "name": "clamp",
+      "remakeReferences": 1,
+      "tatReferences": 0,
+      "totalReferences": 1,
+      "legacyDeclarationCount": 7
+    },
+    {
+      "name": "collision",
+      "remakeReferences": 0,
+      "tatReferences": 1,
+      "totalReferences": 1,
+      "legacyDeclarationCount": 2
+    },
+    {
+      "name": "kpis",
+      "remakeReferences": 1,
+      "tatReferences": 0,
+      "totalReferences": 1,
+      "legacyDeclarationCount": 30
+    },
+    {
+      "name": "slow",
+      "remakeReferences": 1,
+      "tatReferences": 0,
+      "totalReferences": 1,
+      "legacyDeclarationCount": 9
+    }
+  ],
+  "bareGlobalCandidateCount": 9,
+  "bareGlobalCandidates": [
+    {
+      "name": "scale",
+      "remakeReferences": 12,
+      "tatReferences": 4,
+      "totalReferences": 16,
+      "legacyDeclarationCount": 14,
+      "remakeBareCalls": 8,
+      "tatBareCalls": 0,
+      "remakeTypeof": 0,
+      "tatTypeof": 0,
+      "guardedOnly": false
+    },
+    {
+      "name": "formatter",
+      "remakeReferences": 16,
+      "tatReferences": 2,
+      "totalReferences": 18,
+      "legacyDeclarationCount": 31,
+      "remakeBareCalls": 5,
+      "tatBareCalls": 1,
+      "remakeTypeof": 0,
+      "tatTypeof": 0,
+      "guardedOnly": false
+    },
+    {
+      "name": "facts",
+      "remakeReferences": 10,
+      "tatReferences": 0,
+      "totalReferences": 10,
+      "legacyDeclarationCount": 52,
+      "remakeBareCalls": 0,
+      "tatBareCalls": 0,
+      "remakeTypeof": 3,
+      "tatTypeof": 0,
+      "guardedOnly": true
+    },
+    {
+      "name": "closeUnderConstructionMenu",
+      "remakeReferences": 2,
+      "tatReferences": 0,
+      "totalReferences": 2,
+      "legacyDeclarationCount": 9,
+      "remakeBareCalls": 1,
+      "tatBareCalls": 0,
+      "remakeTypeof": 1,
+      "tatTypeof": 0,
+      "guardedOnly": true
+    },
+    {
+      "name": "fn",
+      "remakeReferences": 9,
+      "tatReferences": 0,
+      "totalReferences": 9,
+      "legacyDeclarationCount": 10,
+      "remakeBareCalls": 0,
+      "tatBareCalls": 0,
+      "remakeTypeof": 1,
+      "tatTypeof": 0,
+      "guardedOnly": true
+    },
+    {
+      "name": "drawChart",
+      "remakeReferences": 5,
+      "tatReferences": 0,
+      "totalReferences": 5,
+      "legacyDeclarationCount": 18,
+      "remakeBareCalls": 0,
+      "tatBareCalls": 0,
+      "remakeTypeof": 1,
+      "tatTypeof": 0,
+      "guardedOnly": true
+    },
+    {
+      "name": "keyFn",
+      "remakeReferences": 0,
+      "tatReferences": 2,
+      "totalReferences": 2,
+      "legacyDeclarationCount": 26,
+      "remakeBareCalls": 0,
+      "tatBareCalls": 1,
+      "remakeTypeof": 0,
+      "tatTypeof": 0,
+      "guardedOnly": false
+    },
+    {
+      "name": "shouldUseDailyRevenueTrend",
+      "remakeReferences": 2,
+      "tatReferences": 0,
+      "totalReferences": 2,
+      "legacyDeclarationCount": 2,
+      "remakeBareCalls": 0,
+      "tatBareCalls": 0,
+      "remakeTypeof": 1,
+      "tatTypeof": 0,
+      "guardedOnly": true
+    },
+    {
+      "name": "clamp",
+      "remakeReferences": 1,
+      "tatReferences": 0,
+      "totalReferences": 1,
+      "legacyDeclarationCount": 7,
+      "remakeBareCalls": 1,
+      "tatBareCalls": 0,
+      "remakeTypeof": 0,
+      "tatTypeof": 0,
+      "guardedOnly": false
+    }
+  ],
+  "unguardedBareGlobalCandidateCount": 4,
+  "unguardedBareGlobalCandidates": [
+    {
+      "name": "scale",
+      "remakeReferences": 12,
+      "tatReferences": 4,
+      "totalReferences": 16,
+      "legacyDeclarationCount": 14,
+      "remakeBareCalls": 8,
+      "tatBareCalls": 0,
+      "remakeTypeof": 0,
+      "tatTypeof": 0,
+      "guardedOnly": false
+    },
+    {
+      "name": "formatter",
+      "remakeReferences": 16,
+      "tatReferences": 2,
+      "totalReferences": 18,
+      "legacyDeclarationCount": 31,
+      "remakeBareCalls": 5,
+      "tatBareCalls": 1,
+      "remakeTypeof": 0,
+      "tatTypeof": 0,
+      "guardedOnly": false
+    },
+    {
+      "name": "keyFn",
+      "remakeReferences": 0,
+      "tatReferences": 2,
+      "totalReferences": 2,
+      "legacyDeclarationCount": 26,
+      "remakeBareCalls": 0,
+      "tatBareCalls": 1,
+      "remakeTypeof": 0,
+      "tatTypeof": 0,
+      "guardedOnly": false
+    },
+    {
+      "name": "clamp",
+      "remakeReferences": 1,
+      "tatReferences": 0,
+      "totalReferences": 1,
+      "legacyDeclarationCount": 7,
+      "remakeBareCalls": 1,
+      "tatBareCalls": 0,
+      "remakeTypeof": 0,
+      "tatTypeof": 0,
+      "guardedOnly": false
+    }
+  ],
+  "referencedLegacyWindowExportCount": 6,
+  "referencedLegacyWindowExports": [
+    {
+      "name": "remakeFactorState",
+      "remakeReferences": 70,
+      "tatReferences": 1,
+      "shadowedByActiveDeclaration": true,
+      "activeWindowReferences": 71
+    },
+    {
+      "name": "switchTab",
+      "remakeReferences": 6,
+      "tatReferences": 4,
+      "shadowedByActiveDeclaration": true,
+      "activeWindowReferences": 6
+    },
+    {
+      "name": "loadRemakeFactorData",
+      "remakeReferences": 4,
+      "tatReferences": 0,
+      "shadowedByActiveDeclaration": true,
+      "activeWindowReferences": 4
+    },
+    {
+      "name": "refreshRemakeFactorData",
+      "remakeReferences": 4,
+      "tatReferences": 0,
+      "shadowedByActiveDeclaration": true,
+      "activeWindowReferences": 3
+    },
+    {
+      "name": "applyRemakeFactorFilters",
+      "remakeReferences": 1,
+      "tatReferences": 0,
+      "shadowedByActiveDeclaration": true,
+      "activeWindowReferences": 1
+    },
+    {
+      "name": "renderRemakeFactorDashboardV6216",
+      "remakeReferences": 1,
+      "tatReferences": 0,
+      "shadowedByActiveDeclaration": true,
+      "activeWindowReferences": 1
+    }
+  ],
+  "unshadowedLegacyWindowExportCount": 0,
+  "unshadowedLegacyWindowExports": [],
+  "allReferencedLegacyWindowExportsShadowedByActiveDeclarations": true,
+  "interpretation": "Property calls such as Math.abs, window.open, and platform.util.escapeHtml are excluded from bare-call signals. A legacy removal blocker must be either an unshadowed window export or an unguarded bare global that is truly resolved from the legacy runtime after contextual trace.",
+  "runtimeFilesChanged": false
+}

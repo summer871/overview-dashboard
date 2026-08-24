@@ -1,0 +1,705 @@
+  /* v6.388 first-open optimization: use the nightly browser-ready consolidated gzip cache before falling back to monthly Drive shards. */
+  function remakeDictionaryValueV6388(values, index, fallback) {
+    const numericIndex = Number(index);
+    if (!Array.isArray(values) || !Number.isFinite(numericIndex) || numericIndex < 0 || numericIndex >= values.length) return fallback;
+    const value = values[numericIndex];
+    return value === undefined || value === null ? fallback : value;
+  }
+
+  function remakeCustomerLabelV6388(customerId, customerName, practiceName) {
+    const id = String(customerId || '').trim();
+    const name = String(customerName || '').trim();
+    const practice = String(practiceName || '').trim();
+    const cleanName = name && name !== id ? name : '';
+    const cleanPractice = practice && practice !== id ? practice : '';
+    let label = cleanName && cleanPractice && cleanName !== cleanPractice
+      ? cleanName + ' - ' + cleanPractice
+      : (cleanName || cleanPractice || id || 'Unknown customer');
+    if (id && label !== id && label.indexOf('(' + id + ')') < 0) label += ' (' + id + ')';
+    return label;
+  }
+
+  async function expandRemakeBrowserReadyPayloadV6388(packed) {
+    if (!packed || packed.browserRowsPacked !== true || packed.browserRowSchema !== 'remakeBrowserPackedV1330') {
+      throw new Error('The optimized Remake cache uses an unsupported row schema.');
+    }
+    const dictionaries = packed.dictionaries || {};
+    const sourceRows = Array.isArray(packed.rows) ? packed.rows : [];
+    const rows = new Array(sourceRows.length);
+    const months = dictionaries.months || [];
+    const dates = dictionaries.dates || [];
+    const cases = dictionaries.cases || [];
+    const caseNumbers = dictionaries.caseNumbers || [];
+    const customers = dictionaries.customers || [];
+    const departments = dictionaries.departments || [];
+    const products = dictionaries.products || [];
+    const groups = dictionaries.groups || [];
+    const reasons = dictionaries.reasons || [];
+    const discountSources = dictionaries.discountSources || [];
+
+    for (let index = 0; index < sourceRows.length; index += 1) {
+      const packedRow = sourceRows[index] || [];
+      const month = String(remakeDictionaryValueV6388(months, packedRow[0], '') || '');
+      const customer = remakeDictionaryValueV6388(customers, packedRow[3], []) || [];
+      const product = remakeDictionaryValueV6388(products, packedRow[5], []) || [];
+      const customerId = String(customer[0] || '').trim();
+      const customerName = String(customer[1] || customer[2] || customerId || 'Unknown customer').trim();
+      const practiceName = String(customer[2] || '').trim();
+      const productId = String(product[0] || '').trim();
+      const productName = String(product[1] || productId || 'Unknown product').trim();
+      const isRemake = Number(packedRow[9]) === 1;
+      const quantity = Number(packedRow[8] || 0);
+      const department = String(remakeDictionaryValueV6388(departments, packedRow[4], 'Unassigned') || 'Unassigned');
+      const productGroup = String(remakeDictionaryValueV6388(groups, packedRow[6], department || 'Unassigned') || department || 'Unassigned');
+      rows[index] = {
+        month: month,
+        year: /^\d{4}/.test(month) ? Number(month.slice(0, 4)) : '',
+        invoiceDate: String(remakeDictionaryValueV6388(dates, packedRow[1], '') || ''),
+        caseId: String(remakeDictionaryValueV6388(cases, packedRow[2], '') || ''),
+        caseNumber: String(remakeDictionaryValueV6388(caseNumbers, packedRow[15], '') || ''),
+        customerId: customerId || customerName,
+        customerKey: customerId || customerName,
+        customerName: customerName,
+        practiceName: practiceName,
+        customerDisplayLabel: remakeCustomerLabelV6388(customerId, customerName, practiceName),
+        customerActive: Number(customer[3]) === 0 ? false : true,
+        department: department,
+        productId: productId,
+        productKey: productId || productName,
+        productName: productName,
+        productGroup: productGroup,
+        remakeReason: String(remakeDictionaryValueV6388(reasons, packedRow[7], isRemake ? 'Not specified' : 'Not a remake') || (isRemake ? 'Not specified' : 'Not a remake')),
+        quantity: quantity,
+        units: quantity,
+        isRemake: isRemake,
+        remakeUnits: Number(packedRow[10] || 0),
+        remakeDiscount: Number(packedRow[11] || 0),
+        isRealInvoicedCharge: Number(packedRow[12]) === 0 ? false : true,
+        chargeAmount: Number(packedRow[13] || 0),
+        remakeDiscountSource: String(remakeDictionaryValueV6388(discountSources, packedRow[14], '') || '')
+      };
+      if (index > 0 && index % 6000 === 0) {
+        await new Promise(resolve => window.setTimeout(resolve, 0));
+      }
+    }
+
+    packed.rows = null;
+    packed.dictionaries = null;
+    return {
+      ok: true,
+      version: packed.version || 'RemakeFactorBrowserReady v1.33.0',
+      storageMode: packed.storageMode || 'browserReadyConsolidatedGzip',
+      generatedAt: packed.generatedAt || '',
+      source: packed.source || 'Nightly browser-ready Remake Factor cache',
+      message: packed.message || '',
+      dateRange: packed.dateRange || {},
+      stats: Object.assign({}, packed.stats || {}, {
+        browserReadyConsolidated: true,
+        browserRows: rows.length
+      }),
+      browserRowsNormalized: true,
+      browserRowSchema: 'remakeBrowserRowV1323',
+      rows: rows
+    };
+  }
+
+  function remakeBase64BytesV6388(base64Text) {
+    const binary = window.atob(String(base64Text || ''));
+    const bytes = new Uint8Array(binary.length);
+    for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
+    return bytes;
+  }
+
+  async function decodeRemakeBrowserReadyEnvelopeV6388(envelope) {
+    if (!envelope || !envelope.ok || !envelope.payloadBase64) {
+      throw new Error(envelope && envelope.message ? envelope.message : 'The optimized nightly Remake cache is not available.');
+    }
+    if (typeof window.DecompressionStream !== 'function') {
+      throw new Error('This browser cannot open the optimized gzip cache.');
+    }
+    const compressedBytes = remakeBase64BytesV6388(envelope.payloadBase64);
+    envelope.payloadBase64 = '';
+    const decompressedStream = new Blob([compressedBytes]).stream().pipeThrough(new DecompressionStream('gzip'));
+    const jsonText = await new Response(decompressedStream).text();
+    const packed = JSON.parse(jsonText);
+    const expanded = await expandRemakeBrowserReadyPayloadV6388(packed);
+    expanded.cacheToken = envelope.cacheToken || '';
+    expanded.sourceGeneratedAt = envelope.sourceGeneratedAt || expanded.generatedAt || '';
+    expanded.currentSourceGeneratedAt = envelope.currentSourceGeneratedAt || '';
+    expanded.browserReadyBuiltAt = envelope.builtAt || '';
+    expanded.browserReadyFileSizeBytes = Number(envelope.fileSizeBytes || 0);
+    expanded.browserReadyRowCount = Number(envelope.rowCount || (expanded.rows && expanded.rows.length) || 0);
+    expanded.browserReadyStale = envelope.stale === true;
+    return expanded;
+  }
+
+  function currentRemakeCacheTokenV6409(cachedData) {
+    if (cachedData && cachedData.cacheToken) return String(cachedData.cacheToken);
+    if (window.remakeFactorState && window.remakeFactorState.cacheToken) return String(window.remakeFactorState.cacheToken);
+    if (window.remakeFactorState && window.remakeFactorState.data && window.remakeFactorState.data.cacheToken) {
+      return String(window.remakeFactorState.data.cacheToken);
+    }
+    return '';
+  }
+
+  function keepCurrentRemakeCacheNoticeV6409(message, tone) {
+    if (message) setNoticeV6230(message, tone || 'warn');
+    window.setTimeout(function clearNonBlockingRemakeSyncNoticeV6409() {
+      if (window.remakeFactorState && window.remakeFactorState.loaded && !window.remakeFactorState.loading) {
+        setNoticeV6230('', '');
+      }
+    }, 7000);
+  }
+
+  // The slow monthly-shard path is retained only for an explicit user reload.
+  function requestCurrentMonthlyRemakeCacheV6409(reasonText) {
+    return prepareMainCacheSwapV6346(reasonText || 'Loading...')
+      .then(function requestCurrentMonthlyRemakeCacheAfterReleaseV6409() {
+        callRemakeFactorServerV6254(
+          { forceRefresh: false },
+          'Loading...',
+          false
+        );
+        return true;
+      })
+      .catch(function failCurrentMonthlyRemakeCacheV6409(error) {
+        mainCacheSwapActiveV6346 = false;
+        setLoadingV6230(false);
+        keepCurrentRemakeCacheNoticeV6409('The saved Remake cache could not load. ' + ((error && error.message) || String(error || '')), 'error');
+        return false;
+      });
+  }
+
+  function clearRemakeBrowserReadyPollV6410() {
+    if (remakeBrowserReadyPollTimerV6410) window.clearTimeout(remakeBrowserReadyPollTimerV6410);
+    remakeBrowserReadyPollTimerV6410 = 0;
+    remakeBrowserReadyPollStartedAtV6410 = 0;
+  }
+
+  function scheduleRemakeBrowserReadyPollV6410() {
+    if (remakeBrowserReadyPollTimerV6410) return;
+    if (!remakeBrowserReadyPollStartedAtV6410) remakeBrowserReadyPollStartedAtV6410 = Date.now();
+    if (Date.now() - remakeBrowserReadyPollStartedAtV6410 > REMAKE_BROWSER_READY_POLL_MAX_MS_V6410) {
+      clearRemakeBrowserReadyPollV6410();
+      keepCurrentRemakeCacheNoticeV6409('The optimized Remake cache is still rebuilding. The current dashboard remains available; use Reload Saved Cache later if needed.', 'warn');
+      return;
+    }
+    remakeBrowserReadyPollTimerV6410 = window.setTimeout(function pollRemakeBrowserReadyMetaV6410() {
+      remakeBrowserReadyPollTimerV6410 = 0;
+      checkRemakeFactorServerMetaV6409({ force: true, reason: 'browser-ready-rebuild-poll' });
+    }, REMAKE_BROWSER_READY_POLL_INTERVAL_MS_V6410);
+  }
+
+  function ensureRemakeBrowserReadyRebuildV6410() {
+    if (remakeBrowserReadyEnsureRunningV6410) {
+      scheduleRemakeBrowserReadyPollV6410();
+      return;
+    }
+    if (!window.google || !google.script || !google.script.run) return;
+    remakeBrowserReadyEnsureRunningV6410 = true;
+    google.script.run
+      .withSuccessHandler(function() {
+        remakeBrowserReadyEnsureRunningV6410 = false;
+        scheduleRemakeBrowserReadyPollV6410();
+      })
+      .withFailureHandler(function(error) {
+        remakeBrowserReadyEnsureRunningV6410 = false;
+        console.warn('Could not schedule the optimized Remake cache rebuild.', error);
+        scheduleRemakeBrowserReadyPollV6410();
+      })
+      .ensureRemakeFactorBrowserReadyCacheCurrentV1332();
+  }
+
+  function requestCurrentBrowserReadyRemakeCacheV6409(reasonText) {
+    callRemakeFactorBrowserReadyServerV6388(
+      reasonText || 'A newer optimized Remake cache is available. Updating automatically...',
+      {
+        preserveCurrent: true,
+        allowMonthlyFallback: false,
+        ensureIfUnavailable: true,
+        automatic: true
+      }
+    );
+    return Promise.resolve(true);
+  }
+
+  function remakeIsoTimeV6410(value) {
+    const parsed = Date.parse(String(value || ''));
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+
+  function checkRemakeFactorServerMetaV6409(options) {
+    const requested = options || {};
+    const now = Date.now();
+    if (remakeMetaCheckRunningV6409 || mainCacheSwapActiveV6346) return Promise.resolve(false);
+    if (window.remakeFactorState && window.remakeFactorState.loading) return Promise.resolve(false);
+    if (!requested.force && now - remakeMetaLastCheckedAtV6409 < REMAKE_META_MIN_GAP_MS_V6409) return Promise.resolve(false);
+    if (!window.google || !google.script || !google.script.run) return Promise.resolve(false);
+
+    remakeMetaCheckRunningV6409 = true;
+    remakeMetaLastCheckedAtV6409 = now;
+    const cachedToken = currentRemakeCacheTokenV6409(requested.cachedData);
+    const cachedSourceGeneratedAt = String(
+      requested.cachedData && (requested.cachedData.sourceGeneratedAt || requested.cachedData.generatedAt || requested.cachedData.lastRefreshAt) ||
+      window.remakeFactorState && (window.remakeFactorState.sourceGeneratedAt || (window.remakeFactorState.data && (window.remakeFactorState.data.sourceGeneratedAt || window.remakeFactorState.data.generatedAt))) ||
+      ''
+    );
+
+    return new Promise(function(resolve) {
+      google.script.run
+        .withSuccessHandler(function(meta) {
+          remakeMetaCheckRunningV6409 = false;
+          if (!meta) {
+            keepCurrentRemakeCacheNoticeV6409('The dashboard could not verify the optimized Remake cache. The current browser copy remains visible.', 'warn');
+            resolve(false);
+            return;
+          }
+
+          const serverToken = String(meta.cacheToken || '');
+          const currentSource = String(meta.currentSourceGeneratedAt || '');
+          const browserSource = String(meta.sourceGeneratedAt || '');
+          const browserReadyIsStale = meta.stale === true || (!!currentSource && !!browserSource && currentSource !== browserSource);
+          const browserAlreadyHasCurrentMonthlySource = !!currentSource && !!cachedSourceGeneratedAt && currentSource === cachedSourceGeneratedAt;
+          const browserCacheAtLeastAsNewAsOptimized = !!cachedSourceGeneratedAt && !!browserSource && remakeIsoTimeV6410(cachedSourceGeneratedAt) >= remakeIsoTimeV6410(browserSource);
+          const optimizedFileIsUsable = !!meta.fileId && !!serverToken && (meta.ok === true || meta.servable === true || meta.stale === true);
+
+          if (browserReadyIsStale) {
+            setStampV6230('Using saved data: ' + (cachedSourceGeneratedAt || browserSource || 'loaded') + ' · optimized cache rebuilding');
+            ensureRemakeBrowserReadyRebuildV6410();
+
+            // Never downgrade a browser that already has the newest monthly source.
+            if (browserAlreadyHasCurrentMonthlySource || browserCacheAtLeastAsNewAsOptimized) {
+              scheduleRemakeBrowserReadyPollV6410();
+              setNoticeV6230('', '');
+              resolve(true);
+              return;
+            }
+
+            // A new/empty browser may still use the latest available optimized snapshot
+            // immediately while its replacement is built in the background.
+            if (optimizedFileIsUsable && serverToken !== cachedToken) {
+              requestCurrentBrowserReadyRemakeCacheV6409(cachedToken
+                ? 'Loading...'
+                : 'Loading...');
+              scheduleRemakeBrowserReadyPollV6410();
+              resolve(true);
+              return;
+            }
+
+            scheduleRemakeBrowserReadyPollV6410();
+            keepCurrentRemakeCacheNoticeV6409('Loading...', 'warn');
+            resolve(true);
+            return;
+          }
+
+          clearRemakeBrowserReadyPollV6410();
+
+          if (optimizedFileIsUsable && serverToken && serverToken !== cachedToken) {
+            requestCurrentBrowserReadyRemakeCacheV6409(cachedToken
+              ? 'Loading...'
+              : 'Loading...');
+            resolve(true);
+            return;
+          }
+
+          if (optimizedFileIsUsable && serverToken && cachedToken && serverToken === cachedToken) {
+            const stamp = meta.sourceGeneratedAt || meta.builtAt || cachedSourceGeneratedAt || '';
+            setStampV6230('Browser cache current: ' + (stamp || 'verified'));
+            setNoticeV6230('', '');
+            resolve(true);
+            return;
+          }
+
+          if (!optimizedFileIsUsable) {
+            ensureRemakeBrowserReadyRebuildV6410();
+            scheduleRemakeBrowserReadyPollV6410();
+            keepCurrentRemakeCacheNoticeV6409(meta.message || 'The optimized Remake cache is being prepared. The current browser copy remains visible.', 'warn');
+            resolve(false);
+            return;
+          }
+
+          keepCurrentRemakeCacheNoticeV6409(meta.message || 'The dashboard could not verify a newer optimized Remake cache. The current browser copy remains visible.', 'warn');
+          resolve(false);
+        })
+        .withFailureHandler(function(error) {
+          remakeMetaCheckRunningV6409 = false;
+          keepCurrentRemakeCacheNoticeV6409('Optimized Remake cache check failed. The current browser copy remains visible.', 'warn');
+          console.warn('Remake cache metadata check failed', error);
+          resolve(false);
+        })
+        .getRemakeFactorBrowserReadyMetaV1330();
+    });
+  }
+
+  window.checkRemakeFactorServerMetaV6409 = checkRemakeFactorServerMetaV6409;
+
+  function callRemakeFactorBrowserReadyServerV6388(noticeText, options) {
+    const requested = options || {};
+    let releasedCurrentDataV6410 = false;
+    const hasCurrentData = !!(
+      requested.preserveCurrent !== false &&
+      window.remakeFactorState &&
+      window.remakeFactorState.loaded &&
+      Array.isArray(window.remakeFactorState.rows) &&
+      window.remakeFactorState.rows.length
+    );
+
+    if (hasCurrentData) {
+      keepCurrentRemakeCacheNoticeV6409(noticeText || 'Loading...', 'warn');
+    } else {
+      setLoadingV6230(true);
+      setNoticeV6230(noticeText || 'Loading...', 'warn');
+    }
+
+    function fallbackToMonthlyShardsV6388(reason) {
+      if (!requested.allowMonthlyFallback) {
+        setLoadingV6230(false);
+        mainCacheSwapActiveV6346 = false;
+        if (requested.ensureIfUnavailable !== false) {
+          ensureRemakeBrowserReadyRebuildV6410();
+          scheduleRemakeBrowserReadyPollV6410();
+        }
+        const prefix = reason ? String(reason) + ' ' : '';
+        if (releasedCurrentDataV6410) {
+          readRemakeFastCacheV6261()
+            .then(function restorePriorBrowserCacheV6410(cached) {
+              if (cached && cached.ok) {
+                handleDataV6230(cached, true);
+                keepCurrentRemakeCacheNoticeV6409(prefix + 'The prior browser cache was restored while the optimized cache is prepared.', 'warn');
+              } else {
+                keepCurrentRemakeCacheNoticeV6409(prefix + 'The optimized cache is being prepared. Use Reload Saved Cache later if it does not appear automatically.', 'warn');
+              }
+            })
+            .catch(function() {
+              keepCurrentRemakeCacheNoticeV6409(prefix + 'The optimized cache is being prepared. Use Reload Saved Cache later if it does not appear automatically.', 'warn');
+            });
+          return;
+        }
+        keepCurrentRemakeCacheNoticeV6409(prefix + (hasCurrentData
+          ? 'Loading...'
+          : 'The optimized cache is being prepared. Use Reload Saved Cache later if it does not appear automatically.'), 'warn');
+        return;
+      }
+
+      const prefix = reason ? String(reason) + ' ' : '';
+      const loadMonthly = function() {
+        callRemakeFactorServerV6254(
+          { forceRefresh: false },
+          prefix + 'Loading...',
+          false
+        );
+      };
+      if (hasCurrentData) {
+        prepareMainCacheSwapV6346(prefix + 'Loading...')
+          .then(loadMonthly)
+          .catch(function(error) {
+            mainCacheSwapActiveV6346 = false;
+            setLoadingV6230(false);
+            keepCurrentRemakeCacheNoticeV6409((error && error.message) || String(error || 'The saved cache could not load.'), 'error');
+          });
+      } else {
+        loadMonthly();
+      }
+    }
+
+    google.script.run
+      .withSuccessHandler(function(envelope) {
+        if (!envelope || !envelope.ok || !envelope.payloadBase64) {
+          fallbackToMonthlyShardsV6388((envelope && envelope.message) || 'Optimized cache unavailable.');
+          return;
+        }
+
+        const decodeAfterRelease = function() {
+          releasedCurrentDataV6410 = hasCurrentData;
+          return decodeRemakeBrowserReadyEnvelopeV6388(envelope)
+            .then(function(data) {
+              setLoadingV6230(false);
+              handleDataV6230(data, false);
+              if (data.browserReadyStale === true) {
+                ensureRemakeBrowserReadyRebuildV6410();
+                scheduleRemakeBrowserReadyPollV6410();
+              } else {
+                clearRemakeBrowserReadyPollV6410();
+              }
+            });
+        };
+
+        const readyToDecode = hasCurrentData
+          ? prepareMainCacheSwapV6346('Optimized cache downloaded. Switching to the newer snapshot...')
+          : Promise.resolve();
+
+        readyToDecode
+          .then(decodeAfterRelease)
+          .catch(function(error) {
+            console.warn('Optimized Remake cache could not be used.', error);
+            fallbackToMonthlyShardsV6388('Optimized cache could not be opened.');
+          });
+      })
+      .withFailureHandler(function(error) {
+        console.warn('Optimized Remake cache request failed.', error);
+        fallbackToMonthlyShardsV6388('Optimized cache request failed.');
+      })
+      .getRemakeFactorBrowserReadyDataV1330();
+  }
+
+  window.loadRemakeFactorData = function loadRemakeFactorDataV6230(forceRefresh) {
+    installStylesV6230();
+    buildShellV6230(false);
+    setBannerV6230();
+    if (!window.remakeFactorState) window.remakeFactorState = {};
+    if (window.remakeFactorState.loading) return;
+    if (!forceRefresh && window.remakeFactorState.loaded && Array.isArray(window.remakeFactorState.rows) && window.remakeFactorState.rows.length) {
+      renderDashboardV6230();
+      window.setTimeout(function verifyLoadedRemakeCacheV6409() {
+        checkRemakeFactorServerMetaV6409({ cachedData: window.remakeFactorState.data || {}, reason: 'memory' });
+      }, 0);
+      return;
+    }
+
+    const request = forceRefresh
+      ? { forceRefresh: true, quickRefresh: true, incrementalRefresh: true, openRefreshMonths: 1, lookbackMonths: 12, pageSize: 120, maxPages: 50, maxPagesPerChunk: 50, maxDetailFetches: 160, fetchProductMap: false, fetchCustomerMap: true, chunkByMonth: true }
+      : { forceRefresh: false };
+
+    if (!forceRefresh) {
+      setLoadingV6230(true);
+      readRemakeFastCacheV6261()
+        .then(cached => {
+          setLoadingV6230(false);
+          if (cached && cached.ok) {
+            handleDataV6230(cached, true);
+            window.setTimeout(function verifySavedRemakeCacheV6409() {
+              checkRemakeFactorServerMetaV6409({ cachedData: cached, reason: 'open' });
+            }, 0);
+            return;
+          }
+          callRemakeFactorBrowserReadyServerV6388('Loading...', { preserveCurrent: false, allowMonthlyFallback: false, ensureIfUnavailable: true });
+        })
+        .catch(() => {
+          setLoadingV6230(false);
+          callRemakeFactorBrowserReadyServerV6388('Loading...', { preserveCurrent: false, allowMonthlyFallback: false, ensureIfUnavailable: true });
+        });
+      return;
+    }
+
+    prepareMainCacheSwapV6346('Releasing the prior browser cache before refresh...')
+      .then(function requestMemorySafeRefreshV6346() {
+        callRemakeFactorServerV6254(request, 'Refreshing current open invoice month...', false, true);
+      })
+      .catch(function failMemorySafeRefreshV6346(error) {
+        mainCacheSwapActiveV6346 = false;
+        setLoadingV6230(false);
+        setNoticeV6230((error && error.message) || String(error || 'Remake refresh failed.'), 'error');
+      });
+  };
+
+  window.refreshRemakeFactorData = function refreshRemakeFactorDataV6230() { window.loadRemakeFactorData(true); };
+
+  window.cdaNativeCombinedCacheRefreshV6568 = Object.freeze({
+    version: 'v6.568',
+    owner: 'refreshRemakeFactorDataV6230',
+    sequence: Object.freeze([
+      'getRemakeFactorData',
+      'refreshCeramistCaseLevelResponsibilityNightlyV75',
+      'getCeramistRemakeAnalysisData',
+      'writeCeramistFastCacheV6364'
+    ]),
+    audit: function auditNativeCombinedCacheRefreshV6568() {
+      return {
+        version: 'v6.568',
+        nativeRefreshOwner: typeof window.refreshRemakeFactorData === 'function',
+        mainRefreshFunction: 'loadRemakeFactorDataV6230',
+        technicianRefreshFunction: 'refreshCeramistCaseLevelResponsibilityNightlyV75',
+        technicianPayloadFunction: 'getCeramistRemakeAnalysisData',
+        browserCacheWriter: 'writeCeramistFastCacheV6364',
+        temporaryButtonListener: false,
+        ok: typeof window.refreshRemakeFactorData === 'function'
+      };
+    }
+  });
+
+  window.reloadRemakeFactorSavedCache = function reloadRemakeFactorSavedCacheV6410() {
+    installStylesV6230();
+    buildShellV6230(false);
+    if (!window.remakeFactorState) window.remakeFactorState = {};
+    if (window.remakeFactorState.loading) return;
+    try { localStorage.removeItem(CACHE_KEY_V6230); } catch (error) {}
+    deleteRemakeFastCacheV6261()
+      .catch(function() { return false; })
+      .then(function reloadSavedCacheAfterBrowserDeleteV6410() {
+        callRemakeFactorBrowserReadyServerV6388(
+          'Loading...',
+          {
+            preserveCurrent: true,
+            allowMonthlyFallback: true,
+            ensureIfUnavailable: true,
+            automatic: false
+          }
+        );
+      })
+      .catch(function failMemorySafeReloadV6410(error) {
+        mainCacheSwapActiveV6346 = false;
+        setLoadingV6230(false);
+        setNoticeV6230((error && error.message) || String(error || 'Remake reload failed.'), 'error');
+      });
+  };
+
+  window.rebuildRemakeFactorHistoricalData = function rebuildRemakeFactorHistoricalDataV6254() {
+    const ok = window.confirm('This will rebuild the full historical Remake Factor cache from MagicTouch/API and may take several minutes. It will also rebuild customer labels from API customer fields. Continue?');
+    if (!ok) return;
+    installStylesV6230();
+    buildShellV6230(false);
+    if (!window.remakeFactorState) window.remakeFactorState = {};
+    if (window.remakeFactorState.loading) return;
+    try { localStorage.removeItem(CACHE_KEY_V6230); } catch (error) {}
+    const request = {
+      forceRefresh: true,
+      fullRefresh: true,
+      historicalRebuild: true,
+      incrementalRefresh: false,
+      quickRefresh: false,
+      lookbackMonths: 36,
+      pageSize: 250,
+      maxPages: 240,
+      maxPagesPerChunk: 90,
+      maxDetailFetches: 900,
+      fetchProductMap: true,
+      fetchCustomerMap: true,
+      chunkByMonth: true
+    };
+    prepareMainCacheSwapV6346('Releasing the prior browser cache before the historical rebuild...')
+      .then(function deletePriorBrowserCacheForRebuildV6346() { return deleteRemakeFastCacheV6261().catch(() => false); })
+      .then(function requestMemorySafeHistoricalRebuildV6346() {
+        callRemakeFactorServerV6254(request, 'Rebuilding full historical Remake Factor cache from MagicTouch/API...', false);
+      })
+      .catch(function failMemorySafeHistoricalRebuildV6346(error) {
+        mainCacheSwapActiveV6346 = false;
+        setLoadingV6230(false);
+        setNoticeV6230((error && error.message) || String(error || 'Historical Remake rebuild failed.'), 'error');
+      });
+  };
+  window.applyRemakeFactorFilters = function applyRemakeFactorFiltersV6230() { pushRemakeUndoV6266(); syncFiltersFromControlsV6230(); persistUiV6230(); renderDashboardV6230(); };
+  window.renderRemakeFactorDashboard = renderDashboardV6230;
+  window.renderRemakeFactorDashboardV6216 = renderDashboardV6230;
+  window.renderRemakeFactorDashboardV6226 = renderDashboardV6230;
+  window.renderRemakeFactorDashboardV6229 = renderDashboardV6230;
+
+  function installOverviewSafetyV6230() {
+    if (typeof shouldUseDailyRevenueTrend === 'function') shouldUseDailyRevenueTrend = function shouldUseDailyRevenueTrendV6230() { return false; };
+    if (typeof drawChart === 'function' && !drawChart.__v6230NoDayClicks) {
+      const previousDrawChart = drawChart;
+      drawChart = function drawChartV6230(canvasId, config) {
+        if (config && config.data && Array.isArray(config.data.labels)) {
+          const labels = config.data.labels.map(label => String(label));
+          const looksLikeDayAxis = labels.length > 1 && labels.length <= 31 && labels.every(label => /^\d{1,2}$/.test(label)) && labels.some(label => Number(label) > 12);
+          if (looksLikeDayAxis && config.options) config.options.onClick = null;
+        }
+        return previousDrawChart.call(this, canvasId, config);
+      };
+      drawChart.__v6230NoDayClicks = true;
+    }
+  }
+
+  function switchToRemakeV6230() {
+    if (typeof state !== 'undefined' && state) state.activeTab = 'remakeFactor';
+    if (typeof closeUnderConstructionMenu === 'function') closeUnderConstructionMenu();
+    if (typeof closeDropdowns === 'function') closeDropdowns();
+    ['overviewOne','categoricalPage','overviewTwo'].forEach(id => { const el = idV6230(id); if (el) el.classList.remove('active'); });
+    const page = idV6230('remakeFactorPage');
+    if (page) page.classList.add('active');
+    [['tabOneBtn', false], ['remakeFactorTabBtn', true], ['underConstructionBtn', false], ['categoricalTabBtn', false]].forEach(([id, active]) => { const el = idV6230(id); if (el) el.classList.toggle('active', !!active); });
+    const nav = idV6230('overviewNavActions');
+    if (nav) nav.style.display = 'none';
+    installStylesV6230();
+    buildShellV6230(false);
+    if (!window.remakeFactorState || !window.remakeFactorState.loaded) window.loadRemakeFactorData(false);
+    else renderDashboardV6230();
+  }
+
+  function installSwitchAndRenderV6230() {
+    const previousSwitch = typeof window.switchTab === 'function' ? window.switchTab : (typeof switchTab === 'function' ? switchTab : null);
+    if (previousSwitch && !previousSwitch.__v6230CleanRemake) {
+      const switchTabV6230 = function switchTabV6230(tab) {
+        if (tab === 'remakeFactor') { switchToRemakeV6230(); return; }
+        const result = previousSwitch.apply(this, arguments);
+        setBannerV6230();
+        return result;
+      };
+      switchTabV6230.__v6230CleanRemake = true;
+      window.switchTab = switchTabV6230;
+      try { switchTab = switchTabV6230; } catch (error) {}
+    }
+
+    if (typeof renderAll === 'function' && !renderAll.__v6230CleanRemake) {
+      const previousRenderAll = renderAll;
+      renderAll = function renderAllV6230() {
+        if (typeof state !== 'undefined' && state && state.activeTab === 'remakeFactor') { renderDashboardV6230(); return; }
+        return previousRenderAll.apply(this, arguments);
+      };
+      renderAll.__v6230CleanRemake = true;
+    }
+  }
+
+  function installUniversalResponsibilityInteractionsV6504() {
+    if (window.applyRemakeTableFilterV6230 && !window.applyRemakeTableFilterV6230.__v6504Responsibility) {
+      const previous = window.applyRemakeTableFilterV6230;
+      const wrapped = function(kind,value,event) {
+        const normalized = normalizedResponsibilityKindV6504(kind);
+        const current = new Set(filterValuesV6245(normalized).map(String));
+        const val = String(value);
+        if (additiveV6230(event)) { if (current.has(val)) current.delete(val); else current.add(val); }
+        else { if (current.size === 1 && current.has(val)) current.clear(); else { current.clear(); current.add(val); } }
+        setRemakeResponsibilitySelectionV6504(normalized,Array.from(current));
+        return previous.apply(this,arguments);
+      };
+      wrapped.__v6504Responsibility = true;
+      window.applyRemakeTableFilterV6230 = wrapped;
+    }
+    if (window.toggleRemakeMultiValueV6245 && !window.toggleRemakeMultiValueV6245.__v6504Responsibility) {
+      const previous = window.toggleRemakeMultiValueV6245;
+      const wrapped = function(kind,value) { const next=effectiveSelectionSetV6250(kind); const val=String(value); if(next.has(val))next.delete(val);else next.add(val); setRemakeResponsibilitySelectionV6504(kind,next.size===1?Array.from(next):[]); return previous.apply(this,arguments); };
+      wrapped.__v6504Responsibility=true; window.toggleRemakeMultiValueV6245=wrapped;
+    }
+    if (window.onlyRemakeMultiValueV6245 && !window.onlyRemakeMultiValueV6245.__v6504Responsibility) {
+      const previous=window.onlyRemakeMultiValueV6245; const wrapped=function(kind,value){setRemakeResponsibilitySelectionV6504(kind,[String(value)]);return previous.apply(this,arguments);}; wrapped.__v6504Responsibility=true; window.onlyRemakeMultiValueV6245=wrapped;
+    }
+    if (window.toggleVisibleRemakeOptionsV6502 && !window.toggleVisibleRemakeOptionsV6502.__v6504Responsibility) {
+      const previous=window.toggleVisibleRemakeOptionsV6502; const wrapped=function(kind,checked,event){const next=effectiveSelectionSetV6250(kind);visibleOptionsForDropdownV6245(kind).forEach(function(opt){const value=String(opt.value);if(checked)next.add(value);else next.delete(value);});setRemakeResponsibilitySelectionV6504(kind,next.size===1?Array.from(next):[]);return previous.apply(this,arguments);}; wrapped.__v6504Responsibility=true; window.toggleVisibleRemakeOptionsV6502=wrapped;
+    }
+    if (window.selectVisibleRemakeOptionsV6245 && !window.selectVisibleRemakeOptionsV6245.__v6504Responsibility) {
+      const previous=window.selectVisibleRemakeOptionsV6245; const wrapped=function(kind){clearRemakeResponsibilitySelectionV6504(kind);return previous.apply(this,arguments);}; wrapped.__v6504Responsibility=true; window.selectVisibleRemakeOptionsV6245=wrapped;
+    }
+    if (window.clearRemakeMultiFilterV6245 && !window.clearRemakeMultiFilterV6245.__v6504Responsibility) {
+      const previous=window.clearRemakeMultiFilterV6245; const wrapped=function(kind){clearRemakeResponsibilitySelectionV6504(kind);return previous.apply(this,arguments);}; wrapped.__v6504Responsibility=true; window.clearRemakeMultiFilterV6245=wrapped;
+    }
+    if (window.selectNoneRemakeOptionsV6308 && !window.selectNoneRemakeOptionsV6308.__v6504Responsibility) {
+      const previous=window.selectNoneRemakeOptionsV6308; const wrapped=function(kind){clearRemakeResponsibilitySelectionV6504(kind);return previous.apply(this,arguments);}; wrapped.__v6504Responsibility=true; window.selectNoneRemakeOptionsV6308=wrapped;
+    }
+    if (window.clearRemakeFilterV6230 && !window.clearRemakeFilterV6230.__v6504Responsibility) {
+      const previous=window.clearRemakeFilterV6230; const wrapped=function(kind){clearRemakeResponsibilitySelectionV6504(kind);return previous.apply(this,arguments);}; wrapped.__v6504Responsibility=true; window.clearRemakeFilterV6230=wrapped;
+    }
+    if (window.selectCeramistV6343 && !window.selectCeramistV6343.__v6504Responsibility) {
+      const previous=window.selectCeramistV6343; const wrapped=function(value){const next=String(value||'');const clearing=next&&next===String(ceramistStateV6342.selectedCeramist||'');setRemakeResponsibilitySelectionV6504('technician',clearing?[]:[next]);const result=previous.apply(this,arguments);window.setTimeout(function(){renderCustomerResponsibilitySummaryV6503();renderCustomerChartV6230();},0);return result;}; wrapped.__v6504Responsibility=true; window.selectCeramistV6343=wrapped;
+    }
+    window.setRemakeResponsibilitySelectionV6504=setRemakeResponsibilitySelectionV6504;
+  }
+
+  function startupV6230() {
+    installStylesV6230();
+    buildShellV6230(false);
+    installSwitchAndRenderV6230();
+    installUniversalResponsibilityInteractionsV6504();
+    installOverviewSafetyV6230();
+    setBannerV6230();
+    if (typeof state !== 'undefined' && state && state.activeTab === 'remakeFactor') {
+      if (!window.remakeFactorState || !window.remakeFactorState.loaded) window.loadRemakeFactorData(false);
+      else renderDashboardV6230();
+    }
+  }
+
+  let startupCompletedV6624 = false;
+  function startupOnceV6624() {
+    if (startupCompletedV6624) return;
+    startupCompletedV6624 = true;
+    startupV6230();
+  }
+

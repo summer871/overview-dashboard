@@ -1,0 +1,101 @@
+{
+  "datePt": "2026-08-21",
+  "checkpoint": "Large Index presentation extraction batch",
+  "behaviorChangeIntended": false,
+  "source": "Index.html",
+  "sourceSha256Before": "f7678829b26a72c064c7c2ec7973b3e8fbc3b2983ee7d753d796ccc382faac97",
+  "sourceSha256After": "c8d9040749fdedd50b9291a02eeb3cca2f46a3dba003067e76dad4230d4a7504",
+  "bytesBefore": 139762,
+  "bytesAfter": 55263,
+  "bytesRemovedFromIndex": 84499,
+  "archivePath": "archive/index-semantic-extraction-2026-08-21/Index.pre-presentation-module-extraction.html",
+  "archiveByteForByteVerified": true,
+  "compositionByteForByteReconstructionVerified": true,
+  "existingIncludeOrderAndCountsPreserved": true,
+  "overviewReferencesAfter": 0,
+  "modules": [
+    {
+      "name": "RemakeHeadPresentationStyles",
+      "path": "RemakeHeadPresentationStyles.html",
+      "bytes": 3990,
+      "sha256": "cff53b1013170a8dda264c2c4f03095d6473bbe8cf8be6537ac37d012ab0f623",
+      "extractedByteForByte": true,
+      "includeCountInIndex": 1
+    },
+    {
+      "name": "SharedDashboardBootPresentation",
+      "path": "SharedDashboardBootPresentation.html",
+      "bytes": 823,
+      "sha256": "8960ebc519e4508f5dbbd235d74e703944d0b5c605074707e236218f4eed7a41",
+      "extractedByteForByte": true,
+      "includeCountInIndex": 1
+    },
+    {
+      "name": "RemakeUsabilityPresentation",
+      "path": "RemakeUsabilityPresentation.html",
+      "bytes": 9343,
+      "sha256": "71a7e2b6ef9d7131956dd5c1b040e43682b3d28194e86c4ff0167b27fa26e4ab",
+      "extractedByteForByte": true,
+      "includeCountInIndex": 1
+    },
+    {
+      "name": "RemakeCeramistTablePresentation",
+      "path": "RemakeCeramistTablePresentation.html",
+      "bytes": 23756,
+      "sha256": "4a77c64d95edc859e7325c2c4bb63e5c08f9fd8553d36200024506fbdded4025",
+      "extractedByteForByte": true,
+      "includeCountInIndex": 1
+    },
+    {
+      "name": "RemakeTableInteractionPresentation",
+      "path": "RemakeTableInteractionPresentation.html",
+      "bytes": 15547,
+      "sha256": "3cc444d535a69be66b2dd452dbc12dadac62343f8b92e4a1e9d6620cf6ccc360",
+      "extractedByteForByte": true,
+      "includeCountInIndex": 1
+    },
+    {
+      "name": "RemakeCompactControlsPresentation",
+      "path": "RemakeCompactControlsPresentation.html",
+      "bytes": 10853,
+      "sha256": "998e819266eda7f4e0533710ba2c47a0b37ffec79c9a4f11f65c8356c5b3d583",
+      "extractedByteForByte": true,
+      "includeCountInIndex": 1
+    },
+    {
+      "name": "RemakeFilterSummaryPresentation",
+      "path": "RemakeFilterSummaryPresentation.html",
+      "bytes": 5418,
+      "sha256": "ee08b67f66c538ab64644f26950398943195606e9e5b4be3a6c5adf884afce8b",
+      "extractedByteForByte": true,
+      "includeCountInIndex": 1
+    },
+    {
+      "name": "RemakeInteractionPolish",
+      "path": "RemakeInteractionPolish.html",
+      "bytes": 9184,
+      "sha256": "ec48a7fbdf4bb6a2aebcd4c25076b291b954b3a8dc4957f7cc991404e6b93686",
+      "extractedByteForByte": true,
+      "includeCountInIndex": 1
+    },
+    {
+      "name": "TatCompactPresentation",
+      "path": "TatCompactPresentation.html",
+      "bytes": 3581,
+      "sha256": "0cfbd51979c048d8d3de21eaba1bcd78a51ea0dc8cb8fd12a81fef0270bd16a5",
+      "extractedByteForByte": true,
+      "includeCountInIndex": 1
+    },
+    {
+      "name": "TatDropdownRepairPresentation",
+      "path": "TatDropdownRepairPresentation.html",
+      "bytes": 2613,
+      "sha256": "f33460c27d110f49f26f9eac17566613d2cb9892f617765eeba931fea42e7d63",
+      "extractedByteForByte": true,
+      "includeCountInIndex": 1
+    }
+  ],
+  "logicRewritten": false,
+  "loadOrderChanged": false,
+  "productionDeployment": false
+}

@@ -2,15 +2,10 @@
   "name": "overview-dashboard",
   "private": true,
   "version": "0.1.0",
-  "description": "Google Apps Script dashboard with a safe local preview mode.",
+  "description": "Google Apps Script dashboard source and validation tooling.",
   "scripts": {
-    "preview": "node preview/server.js",
     "audit:components": "node scripts/audit-dashboard-components.js",
-    "audit:matrix": "node scripts/build-component-migration-matrix.js",
-    "audit:dashboard": "npm run audit:components && npm run audit:matrix",
-    "validate:reference": "node scripts/validate-reference-rebuild.js",
-    "validate:syntax": "node scripts/validate-reference-syntax.js",
-    "validate:entrypoint": "node scripts/validate-entrypoint-foundation.js"
+    "audit:dashboard": "npm run audit:components"
   },
   "engines": {
     "node": ">=18"

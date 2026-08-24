@@ -1,0 +1,16 @@
+name: Remake shared filter activation
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/ai-readable-cleanup-2026-08-21
+      - run: test -s docs/REMAKE-SHARED-FILTER-ACTIVATION-v6.646.json

@@ -7,7 +7,7 @@ const path = require('path');
 const root = process.cwd();
 const outDir = path.join(root, 'reports');
 const sourceExtensions = new Set(['.html', '.htm', '.js', '.gs', '.css']);
-const excluded = new Set(['.git', '.github', '.clasp', 'node_modules', 'dist', 'build', 'coverage', 'reports']);
+const excluded = new Set(['.git', '.github', '.clasp', 'node_modules', 'dist', 'build', 'coverage', 'reports', 'archive', 'tests']);
 const selfPath = 'scripts/audit-dashboard-components.js';
 
 function walk(directory, files = []) {

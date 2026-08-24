@@ -388,320 +388,7 @@
     const m=metrics(rows),excluded=m.cases-m.eligibleCases;const setText=function(name,value){const node=id(name);if(node)node.textContent=value;};setText('tatCoverageCasesV6509',fmtNum(m.cases,0));setText('tatCoverageUnitsV6509',fmtNum(m.units,2));setText('tatCoverageEligibleV6509',fmtNum(m.eligibleCases,0));setText('tatCoveragePctV6509',fmtPct(m.coverage));setText('tatCoverageExcludedV6509',fmtNum(excluded,0));
     const coverage=id('tatCoverageV6509'),note=id('tatCoverageNoteV6509'),qualityCoverage=id('tatQualityCoverageV6513');if(coverage)coverage.classList.toggle('warn',!state.dataQualityAvailable||excluded>0);if(note){const reportingYear=selectedTatReportingYearV6510();note.textContent=state.dataQualityAvailable?'Base totals show '+reportingYear+' only, matching Remake. '+(reportingYear===2026?'2025 is comparison-only. ':'')+'Average, median, distribution, and OTP use the eligible subset; review excluded and flagged cases below.':'This is an older TAT browser cache. Rebuild from the saved checkpoints to reconcile totals and display invalid cases.';}if(qualityCoverage){qualityCoverage.textContent=fmtNum(m.cases,0)+' cases · '+fmtNum(m.units,2)+' units · '+fmtPct(m.coverage)+' coverage · '+fmtNum(excluded,0)+' excluded';qualityCoverage.classList.toggle('warn',excluded>0);}
   }
-  function destroyChart(name){if(state.charts[name]){try{state.charts[name].destroy();}catch(error){}delete state.charts[name];}}
-  function createChart(name,config){const canvas=id(name);if(!canvas||typeof Chart==='undefined')return null;const existing=state.charts[name];if(existing&&existing.config&&existing.config.type===config.type){existing.data=config.data;existing.options=config.options;existing.update('none');return existing;}destroyChart(name);state.charts[name]=new Chart(canvas,config);return state.charts[name];}
-  function chartDefaults(){return {responsive:true,maintainAspectRatio:false,resizeDelay:0,animation:false,animations:false,transitions:{active:{animation:{duration:0}},resize:{animation:{duration:0}}},layout:{padding:{top:14,right:6,bottom:0,left:2}},events:['mousemove','mouseout','click','touchstart','touchmove'],interaction:{mode:'index',intersect:false},hover:{mode:'index',intersect:false,animationDuration:0},plugins:{legend:{display:false,position:'top',align:'start',labels:{boxWidth:18,boxHeight:2,color:'#475569',usePointStyle:false,font:{family:'Roboto, Arial, sans-serif',size:11,weight:'500'},padding:6}},tooltip:{enabled:true,position:'average',intersect:false,displayColors:true,caretPadding:8,backgroundColor:'rgba(17,24,39,.94)',titleColor:'#ffffff',bodyColor:'#ffffff',borderColor:'rgba(255,255,255,.14)',borderWidth:1,padding:10,cornerRadius:6,titleFont:{family:'Roboto, Arial, sans-serif',size:11,weight:'700'},bodyFont:{family:'Roboto, Arial, sans-serif',size:11,weight:'700'}}},scales:{x:{grid:{display:false},border:{display:true,color:'rgba(100,116,139,.42)',width:1.1},ticks:{color:'#334155',font:{family:'Roboto, Arial, sans-serif',size:11,weight:'700'},padding:5,maxRotation:0}},y:{beginAtZero:true,grid:{color:'rgba(148,163,184,.22)',borderDash:[2,8],lineWidth:.9,drawTicks:false},border:{display:false},ticks:{color:'#667085',font:{family:'Roboto, Arial, sans-serif',size:10},padding:6,maxTicksLimit:5}}}};}
-
-  function installTatMonthDragV6512(chart,years,monthCount){
-    if(!chart||!chart.canvas)return;
-    const canvas=chart.canvas;let dragging=false,startIndex=null,lastIndex=null,moved=false;
-    function pointerIndex(event){if(!chart.scales||!chart.scales.x)return null;const rect=canvas.getBoundingClientRect(),x=event.clientX-rect.left,index=Math.round(chart.scales.x.getValueForPixel(x));if(!Number.isFinite(index))return null;return Math.max(0,Math.min(monthCount-1,index));}
-    canvas.onpointerdown=function(event){if(event.button!==undefined&&event.button!==0)return;const index=pointerIndex(event);if(index===null)return;dragging=true;startIndex=index;lastIndex=index;moved=false;try{canvas.setPointerCapture(event.pointerId);}catch(error){}};
-    canvas.onpointermove=function(event){if(!dragging)return;const index=pointerIndex(event);if(index===null)return;if(index!==lastIndex)moved=true;lastIndex=index;};
-    canvas.onpointerup=function(event){if(!dragging)return;dragging=false;try{canvas.releasePointerCapture(event.pointerId);}catch(error){}if(!moved||startIndex===null||lastIndex===null)return;const from=Math.min(startIndex,lastIndex),to=Math.max(startIndex,lastIndex),additive=!!(event.ctrlKey||event.metaKey||event.shiftKey),next=additive?new Set(state.cross.months):new Set();years.forEach(function(year){for(let index=from;index<=to;index+=1)next.add(String(year)+'-'+String(index+1).padStart(2,'0'));});state.cross.months=next;chart.$tatSuppressNextClickV6512=true;renderAll();};
-    canvas.onpointercancel=function(){dragging=false;};
-  }
-  function renderMonthly(){
-    const rows=comparisonRowsV6510({ignoreMonth:true}),currentYear=selectedTatReportingYearV6510(),priorYear=currentYear===2026?2025:null,years=priorYear?[priorYear,currentYear]:[currentYear],baseMonthNames=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-    const currentEligible=aggregateCases(rows.filter(function(row){return Number(row.year)===currentYear;})).filter(function(row){return row.tatEligible&&Number.isFinite(Number(row.businessTatDays));});
-    const priorEligible=priorYear?aggregateCases(rows.filter(function(row){return Number(row.year)===priorYear;})).filter(function(row){return row.tatEligible&&Number.isFinite(Number(row.businessTatDays));}):[];
-    let latestMonth=currentEligible.reduce(function(max,row){return Math.max(max,Number(row.monthNum)||0);},0);
-    if(!latestMonth)latestMonth=priorEligible.reduce(function(max,row){return Math.max(max,Number(row.monthNum)||0);},0);
-    latestMonth=Math.max(1,Math.min(12,latestMonth||1));
-    const labels=baseMonthNames.slice(0,latestMonth),selectedIndexes=new Set();
-    labels.forEach(function(_,index){const mm=String(index+1).padStart(2,'0');if(years.some(function(year){return state.cross.months.has(String(year)+'-'+mm);}))selectedIndexes.add(index);});
-    const hasSelection=selectedIndexes.size>0,orange='#f59e0b',mutedPoint='rgba(100,116,139,.58)',mutedLine='rgba(100,116,139,.54)';
-    const palette={current:{border:'#2563eb'},prior:{border:'#8da2bd'}};
-    const datasets=years.map(function(year){
-      const isCurrent=Number(year)===Number(currentYear),color=isCurrent?palette.current:palette.prior,monthKeys=labels.map(function(_,index){return String(year)+'-'+String(index+1).padStart(2,'0');});
-      const values=monthKeys.map(function(key,index){const monthRows=rows.filter(function(row){return Number(row.year)===Number(year)&&Number(row.monthNum)===index+1;}),eligible=aggregateCases(monthRows).filter(function(row){return row.tatEligible&&Number.isFinite(Number(row.businessTatDays));});return eligible.length?Number(avg(eligible.map(function(row){return row.businessTatDays;})).toFixed(2)):null;});
-      const pointBackground=monthKeys.map(function(_,index){if(!hasSelection)return color.border;return selectedIndexes.has(index)?orange:mutedPoint;});
-      const pointRadius=monthKeys.map(function(_,index){if(!hasSelection)return isCurrent?2.8:2.2;return selectedIndexes.has(index)?(isCurrent?5.2:4.2):(isCurrent?2:1.5);});
-      const pointHoverRadius=monthKeys.map(function(_,index){return hasSelection&&selectedIndexes.has(index)?6.4:(isCurrent?4.4:3.6);});
-      return {label:String(year),monthKeys:monthKeys,data:values,borderColor:color.border,backgroundColor:'transparent',fill:false,tension:.38,borderWidth:isCurrent?3.4:2.2,borderDash:isCurrent?[]:[7,5],segment:hasSelection?{borderColor:function(context){const p0=Number(context.p0DataIndex),p1=Number(context.p1DataIndex);return selectedIndexes.has(p0)&&selectedIndexes.has(p1)?color.border:mutedLine;}}:undefined,pointRadius:pointRadius,pointHoverRadius:pointHoverRadius,pointHitRadius:18,pointBackgroundColor:pointBackground,pointBorderColor:'#fff',pointBorderWidth:2,spanGaps:false};
-    });
-    const options=chartDefaults();
-    options.plugins.executiveValueLabels={display:true,barLabelPlacement:'above'};
-    options.plugins.revenueGapBand={display:years.length>=2,currentYear:currentYear,priorYear:priorYear,higherIsBad:true,selectedMonthIndexesV6407:Array.from(selectedIndexes)};
-    options.plugins.revenueTrendCallouts={display:years.length>=2,currentYear:currentYear,priorYear:priorYear,higherIsBad:true,deltaAsPoints:false,selectedMonthIndexesV6407:Array.from(selectedIndexes)};
-    options.plugins.legend={display:true,position:'top',align:'start',labels:{boxWidth:18,boxHeight:2,color:'#475569',usePointStyle:false,font:{family:'Roboto, Arial, sans-serif',size:11,weight:'500'},padding:6}};
-    options.plugins.tooltip={enabled:true,position:'average',intersect:false,displayColors:true,caretPadding:8,backgroundColor:'rgba(17,24,39,.94)',titleColor:'#fff',bodyColor:'#fff',borderColor:'rgba(255,255,255,.14)',borderWidth:1,padding:10,callbacks:{title:function(items){if(!items||!items.length)return '';const item=items[0],dataset=item.dataset||{},key=dataset.monthKeys&&dataset.monthKeys[item.dataIndex];return key?labels[item.dataIndex]+' '+String(key).slice(0,4):String(item.label||'');},label:function(context){return String(context.dataset.label)+': '+fmtNum(context.raw,2)+' business days';},footer:function(items){if(!items||items.length<2)return '';const current=items.find(function(item){return Number(item.dataset&&item.dataset.label)===Number(currentYear);}),prior=items.find(function(item){return Number(item.dataset&&item.dataset.label)===Number(priorYear);});if(!current||!prior||!Number.isFinite(Number(current.raw))||!Number.isFinite(Number(prior.raw)))return '';const difference=Number(current.raw)-Number(prior.raw);return 'Change: '+(difference>0?'+':'')+fmtNum(difference,2)+' days';}}};
-    options.interaction={mode:'index',intersect:false};options.hover={mode:'index',intersect:false,animationDuration:0};
-    options.scales.x.ticks={color:'#334155',font:{family:'Roboto, Arial, sans-serif',size:11,weight:'700'},padding:5,maxRotation:0,autoSkip:false};
-    options.scales.y.title={display:true,text:'Business days',color:'#202124',font:{family:'Roboto, Arial, sans-serif',size:11,weight:'700'},padding:{bottom:0}};options.scales.y.afterFit=function(scale){scale.width+=16;};
-    options.onClick=function(event,elements,chart){if(chart&&chart.$tatSuppressNextClickV6512){chart.$tatSuppressNextClickV6512=false;return;}const points=elements&&elements.length?elements:chart.getElementsAtEventForMode(event,'nearest',{intersect:false,axis:'x'},true);if(!points||!points.length)return;const point=points[0],dataset=chart.data.datasets[point.datasetIndex],key=dataset&&dataset.monthKeys&&dataset.monthKeys[point.index];if(!key)return;if(state.cross.months.has(key))state.cross.months.delete(key);else state.cross.months.add(key);renderAll();};
-    const chart=createChart('tatMonthlyChartV6509',{type:'line',data:{labels:labels,datasets:datasets},options:options});installTatMonthDragV6512(chart,years,latestMonth);
-  }
-  function renderDistribution(){
-    const rows=reportingRowsV6510({ignoreBucket:true}),cases=aggregateCases(rows).filter(function(row){return row.tatEligible&&Number.isFinite(Number(row.businessTatDays));}),allCounts=Array.from({length:32},function(){return 0;});
-    cases.forEach(function(row){allCounts[Math.min(31,Math.max(0,Math.round(num(row.businessTatDays))))]+=1;});
-    let lastRegular=0;for(let index=30;index>=0;index-=1){if(allCounts[index]>0){lastRegular=index;break;}}
-    const labels=Array.from({length:lastRegular+1},function(_,index){return String(index);}),counts=allCounts.slice(0,lastRegular+1);if(allCounts[31]>0){labels.push('31+');counts.push(allCounts[31]);}
-    let values=counts.slice();if(state.distributionMode==='percent')values=counts.map(function(value){return cases.length?value/cases.length*100:0;});if(state.distributionMode==='cumulative'){let running=0;values=counts.map(function(value){running+=value;return cases.length?running/cases.length*100:0;});}
-    const sub=id('tatDistributionSubV6509');if(sub)sub.textContent=state.distributionMode==='cases'?'Eligible case count by business-day bucket':state.distributionMode==='cumulative'?'Cumulative share completed by each business-day bucket':'Percent of eligible cases by business-day bucket';
-    const cumulative=state.distributionMode==='cumulative',hasSelection=state.cross.tatBuckets.size>0;
-    const dataset={label:cumulative?'Cumulative completion':'Eligible cases',data:values,borderColor:cumulative?'#2563eb':function(context){const label=labels[context.dataIndex];if(state.cross.tatBuckets.has(label))return '#d97706';if(hasSelection)return 'rgba(148,163,184,.34)';return '#2f6fe4';},backgroundColor:cumulative?'transparent':function(context){const label=labels[context.dataIndex];if(state.cross.tatBuckets.has(label))return 'rgba(245,158,11,.78)';if(hasSelection)return 'rgba(148,163,184,.18)';return '#4285f4';},borderWidth:cumulative?3.4:1.2,borderDash:[],fill:false,borderRadius:0,borderSkipped:false,tension:cumulative?.38:0,pointRadius:cumulative?2.8:undefined,pointHoverRadius:cumulative?4.4:undefined,pointHitRadius:cumulative?18:undefined,pointBackgroundColor:cumulative?'#2563eb':undefined,pointBorderColor:'#fff',pointBorderWidth:cumulative?2:0,maxBarThickness:cumulative?undefined:34,categoryPercentage:cumulative?undefined:.72,barPercentage:cumulative?undefined:.82};
-    const options=chartDefaults();options.interaction={mode:'index',intersect:false};options.hover={mode:'index',intersect:false,animationDuration:0};
-    options.plugins.executiveValueLabels={display:!cumulative,barLabelPlacement:'insideTop'};
-    options.plugins.tooltip={enabled:true,position:'average',intersect:false,displayColors:true,caretPadding:8,backgroundColor:'rgba(17,24,39,.94)',titleColor:'#fff',bodyColor:'#fff',borderColor:'rgba(255,255,255,.14)',borderWidth:1,padding:10,callbacks:{title:function(items){return items&&items.length?(String(items[0].label)==='31+'?'31+ business days':String(items[0].label)+' business days'):'';},label:function(context){if(state.distributionMode==='cases')return fmtNum(context.raw,0)+' cases';return fmtNum(context.raw,1)+'%';}}};
-    options.scales.x.ticks={color:'#334155',font:{family:'Roboto, Arial, sans-serif',size:11,weight:'700'},padding:5,maxRotation:0,autoSkip:labels.length>18,maxTicksLimit:18};
-    options.scales.x.title={display:true,text:'Business TAT days',color:'#202124',font:{family:'Roboto, Arial, sans-serif',size:11,weight:'700'}};
-    options.scales.y.ticks.callback=function(value){return state.distributionMode==='cases'?fmtNum(value,0):fmtNum(value,0)+'%';};options.scales.y.title={display:true,text:state.distributionMode==='cases'?'Cases':'Percent of cases',color:'#202124',font:{family:'Roboto, Arial, sans-serif',size:11,weight:'700'}};options.scales.y.afterFit=function(scale){scale.width+=16;};
-    options.onClick=function(event,elements,chart){const points=elements&&elements.length?elements:chart.getElementsAtEventForMode(event,'nearest',{intersect:false,axis:'x'},true);if(!points||!points.length)return;const label=labels[points[0].index];if(state.cross.tatBuckets.has(label))state.cross.tatBuckets.delete(label);else state.cross.tatBuckets.add(label);renderAll();};
-    createChart('tatDistributionChartV6509',{type:cumulative?'line':'bar',data:{labels:labels,datasets:[dataset]},options:options});
-  }
-  function tatDepartmentDisplayV6523(value){return String(value||'Unassigned')==='Unassigned'?'Needs product mapping':String(value||'');}
-  function tatProductGroupsV6523(rows){
-    return groupRows(rows,function(row){return String(row.productId||row.productsDescription||'Unknown product')+'||'+String(row.productsDescription||'');},function(row){const idValue=String(row.productId||'').trim(),name=String(row.productsDescription||'Unknown product').trim();return idValue&&name?idValue+' - '+name:(name||idValue||'Unknown product');}).sort(function(a,b){return b.units-a.units||a.label.localeCompare(b.label,undefined,{numeric:true,sensitivity:'base'});});
-  }
-  function tatMetricCellsV6523(group){const remakePct=group.units?group.remakeUnits/group.units:NaN;return '<td class="num">'+fmtNum(group.units,1)+'</td><td class="num">'+fmtNum(group.remakeUnits,1)+'</td><td class="num">'+(Number.isFinite(remakePct)?fmtPct(remakePct):'-')+'</td><td class="num">'+(group.eligibleCases?fmtNum(group.avgTat,2):'-')+'</td><td class="num">'+(Number.isFinite(group.otpPct)?fmtPct(group.otpPct):'-')+'</td><td class="num">'+fmtNum(group.avgLate,2)+'</td>';}
-  /* v6.540: TAT tables are declared, not hand-rendered. Column definitions and
-     row objects go to SharedTableModule, which owns the header, sorting, the
-     column chooser, cross-filter clicks and selected-row pinning. This is the
-     same code path Remake uses, which is why the two tabs can no longer drift. */
-  function cdaTatPctV6540(value){return Number.isFinite(Number(value))?fmtPct(value):'-';}
-  function cdaTatDeptColumnsV6540(){
-    return [
-      {field:'label',label:'Department / Product',title:'Department / Product',hideable:false},
-      {field:'units',label:'Sold Units',title:'Sold Units',type:'decimal',decimals:1,format:function(v){return fmtNum(v,1);}},
-      {field:'remakeUnits',label:'Remake Units',title:'Remake Units',type:'decimal',decimals:1,format:function(v){return fmtNum(v,1);}},
-      {field:'remakePct',label:'Remake %',title:'Remake %',type:'percent',value:function(row){return row.units?row.remakeUnits/row.units:NaN;},format:function(v){return cdaTatPctV6540(v);}},
-      {field:'avgTat',label:'Avg TAT',title:'Average TAT',type:'decimal',decimals:2,format:function(v,row){return row&&!row.eligibleCases?'-':fmtNum(v,2);}},
-      {field:'otpPct',label:'OTP',title:'On Time to Promise',type:'percent',format:function(v){return cdaTatPctV6540(v);}},
-      {field:'avgLate',label:'Avg Days Late',title:'Average Days Late',type:'decimal',decimals:2,format:function(v){return fmtNum(v,2);}}
-    ];
-  }
-  function cdaTatExclusiveV6540(type){
-    return mode(type)==='CUSTOM'&&selectedSet(type).size===1?Array.from(selectedSet(type))[0]:'';
-  }
-  /* Cross-filter parity with Remake: plain click selects exclusively (or clears
-     if it was the only selection), ctrl/cmd/shift click adds and removes.
-     Both delegate to TAT's existing filter state, which stays the single
-     source of truth. The module never owns TAT selection. */
-  function cdaTatRowClickV6540(type){
-    return function(row,key,event,additive){
-      if(!key)return false;
-      if(additive)toggleTatOptionV6509(type,key);
-      else onlyTatOptionV6509(type,key,event);
-      return false;
-    };
-  }
-  function cdaTatRegisterTablesV6540(){
-    if(!window.cdaTable||cdaTatRegisterTablesV6540.done)return;
-    cdaTatRegisterTablesV6540.done=true;
-
-    cdaTable.register({
-      key:'tatDepartment',tableId:'tatDepartmentTableV6509',
-      columns:cdaTatDeptColumnsV6540(),
-      rowKey:function(row){return row.key;},
-      defaultSort:{field:'units',dir:'desc'},
-      limit:500,filterKind:'department',manageSelection:false,
-      emptyText:'No departments match the filters.',
-      childRowClass:'tatProductDetailRowV6523',
-      childRows:function(row,selected){
-        if(!selected)return [];
-        return tatProductGroupsV6523(row.rows||[]).slice(0,100).map(function(product){
-          return Object.assign({},product,{label:'\u2192 '+product.label});
-        });
-      },
-      onRowClick:cdaTatRowClickV6540('department')
-    });
-
-    cdaTable.register({
-      key:'tatLate',tableId:'tatLateTableV6509',
-      columns:[
-        {field:'label',label:'Performance',title:'Performance',hideable:false,sortable:true,width:'55%'},
-        {field:'count',label:'Cases',title:'Cases',type:'count',width:'22%',format:function(v){return fmtNum(v,0);}},
-        {field:'share',label:'Share',title:'Share of eligible cases',type:'percent',width:'23%',format:function(v){return cdaTatPctV6540(v);}}
-      ],
-      rowKey:function(row){return row.key;},
-      defaultSort:{field:'order',dir:'asc'},
-      limit:50,filterKind:'lateBand',manageSelection:false,
-      emptyText:'No due-date eligible cases match the filters.',
-      onRowClick:function(row,key){selectTatLateBandV6509(key);return false;}
-    });
-
-    cdaTable.register({
-      key:'tatCustomer',tableId:'tatCustomerTableV6509',
-      columns:[
-        {field:'label',label:'Customer',title:'Customer',hideable:false},
-        {field:'cases',label:'Cases',title:'Cases',type:'count',format:function(v){return fmtNum(v,0);}},
-        {field:'units',label:'Sold Units',title:'Sold Units',type:'decimal',decimals:1,format:function(v){return fmtNum(v,1);}},
-        {field:'remakeUnits',label:'Remake Units',title:'Remake Units',type:'decimal',decimals:1,format:function(v){return fmtNum(v,1);}},
-        {field:'remakePct',label:'Remake %',title:'Remake %',type:'percent',value:function(row){return row.units?row.remakeUnits/row.units:NaN;},format:function(v){return cdaTatPctV6540(v);}},
-        {field:'avgTat',label:'Avg TAT',title:'Average TAT',type:'decimal',decimals:2,format:function(v,row){return row&&!row.eligibleCases?'-':fmtNum(v,2);}},
-        {field:'otpPct',label:'OTP',title:'On Time to Promise',type:'percent',format:function(v){return cdaTatPctV6540(v);}},
-        {field:'avgLate',label:'Avg Days Late',title:'Average Days Late',type:'decimal',decimals:2,format:function(v){return fmtNum(v,2);}}
-      ],
-      rowKey:function(row){return row.key;},
-      defaultSort:{field:'units',dir:'desc'},
-      limit:500,filterKind:'customer',manageSelection:false,
-      emptyText:'No customers match the filters.',
-      onRowClick:cdaTatRowClickV6540('customer')
-    });
-
-    cdaTable.register({
-      key:'tatQuality',tableId:'tatQualityTableV6509',
-      columns:[
-        {field:'issue',label:'Issue',title:'Issue',hideable:false},
-        {field:'caseNumber',label:'Case',title:'Case'},
-        {field:'customerLabel',label:'Customer',title:'Customer'},
-        {field:'departmentsLabel',label:'Departments',title:'Departments'},
-        {field:'invoiceDate',label:'Invoice Date',title:'Invoice Date'},
-        {field:'dateIn',label:'Date In',title:'Date In'},
-        {field:'completionDate',label:'TAT End',title:'TAT End'},
-        {field:'businessTatDays',label:'TAT Days',title:'TAT Days',type:'count',format:function(v,row){return row&&row.tatEligible?fmtNum(v,0):'-';}},
-        {field:'units',label:'Units',title:'Units',type:'decimal',decimals:2,format:function(v){return fmtNum(v,2);}},
-        {field:'remakeUnits',label:'Remake Units',title:'Remake Units',type:'decimal',decimals:2,format:function(v){return fmtNum(v,2);}}
-      ],
-      rowKey:function(row){return row.rowKeyV6540;},
-      defaultSort:{field:'invoiceDate',dir:'desc'},
-      limit:1000,filterKind:'customer',manageSelection:false,
-      emptyText:'No cases match this quality selection.',
-      onRowClick:function(row){if(row)onlyTatOptionV6509('customer',String(row.customerId||row.customerName||''));return false;}
-    });
-  }
-
-  function renderDepartmentTable(){
-    cdaTatRegisterTablesV6540();
-    if(!window.cdaTable||!cdaTable.registered('tatDepartment'))return;
-    const groups=groupRows(reportingRowsV6510(),function(row){return row.productsDepartment||'Unassigned';},function(row){return tatDepartmentDisplayV6523(row.productsDepartment||'Unassigned');});
-    const exclusive=cdaTatExclusiveV6540('department');
-    cdaTable.setSelection('tatDepartment',exclusive?[exclusive]:[],{render:false});
-    cdaTable.setRows('tatDepartment',groups);
-  }
-  const LATE_BANDS=[{label:'On time',test:function(days){return days<=0;}},{label:'1-2 days late',test:function(days){return days>=1&&days<=2;}},{label:'3-5 days late',test:function(days){return days>=3&&days<=5;}},{label:'6-10 days late',test:function(days){return days>=6&&days<=10;}},{label:'11-30 days late',test:function(days){return days>=11&&days<=30;}},{label:'31+ days late',test:function(days){return days>=31;}}];
-  function renderLateTable(){
-    cdaTatRegisterTablesV6540();
-    if(!window.cdaTable||!cdaTable.registered('tatLate'))return;
-    const cases=aggregateCases(reportingRowsV6510({ignoreLate:true})).filter(function(row){return row.otpEligible;});
-    const rows=cases.length?LATE_BANDS.map(function(band,index){
-      const count=cases.filter(function(row){return band.test(num(row.daysLate));}).length;
-      return {key:band.label,label:band.label,order:index,count:count,share:count/cases.length};
-    }):[];
-    cdaTable.setSelection('tatLate',state.cross.lateBand?[state.cross.lateBand]:[],{render:false});
-    cdaTable.setRows('tatLate',rows);
-  }
-  function renderCustomerTable(){
-    cdaTatRegisterTablesV6540();
-    if(!window.cdaTable||!cdaTable.registered('tatCustomer'))return;
-    const groups=groupRows(reportingRowsV6510(),function(row){return String(row.customerId||row.customerName||'Unknown');},function(row){var n=row.customerName||'Unknown customer',c=row.customerId||'';return c?n+' ('+c+')':n;});
-    const exclusive=cdaTatExclusiveV6540('customer');
-    cdaTable.setSelection('tatCustomer',exclusive?[exclusive]:[],{render:false});
-    cdaTable.setRows('tatCustomer',groups);
-  }
-  function qualityIssueForCase(row){if(row.tatIssue)return row.tatIssue;if(row.tatEligible&&!row.otpEligible)return 'Missing due date';if(row.missingHoldEndCount>0)return 'Missing hold end';if(row.usedInvoiceDateFallback)return 'Invoice date fallback';return '';}
-  function issueCases(rows,issue){return aggregateCases(rows).filter(function(row){if(issue==='Missing Date In')return row.tatIssue==='Missing Date In';if(issue==='Completion date is before Date In')return row.tatIssue==='Completion date is before Date In';if(issue==='Missing due date')return row.tatEligible&&!row.otpEligible;if(issue==='Missing hold end')return row.missingHoldEndCount>0;if(issue==='Invoice date fallback')return row.usedInvoiceDateFallback;return false;});}
-  function renderQuality(){
-    cdaTatRegisterTablesV6540();
-    const contextRows=reportingRowsV6510({ignoreIssue:true}),summary=id('tatIssueSummaryV6509');
-    if(!summary||!window.cdaTable||!cdaTable.registered('tatQuality'))return;
-    if(!state.dataQualityAvailable){
-      summary.innerHTML='<div class="tatEmptyV6509" style="grid-column:1/-1">Run the v3 checkpoint rebuild to load excluded and review-needed cases.</div>';
-      cdaTable.setRows('tatQuality',[]);
-      return;
-    }
-    summary.innerHTML=QUALITY_ISSUES.map(function(issue){const count=issueCases(contextRows,issue).length;return '<button class="tatIssueButtonV6509 '+(state.cross.issue===issue?'active':'')+'" type="button" onclick="selectTatIssueV6509(\''+escJs(issue)+'\')"><span>'+esc(issue)+'</span><strong>'+fmtNum(count,0)+'</strong></button>';}).join('');
-    let cases=[];
-    if(state.cross.issue)cases=issueCases(contextRows,state.cross.issue);
-    else{const map=new Map();QUALITY_ISSUES.forEach(function(issue){issueCases(contextRows,issue).forEach(function(row){const key=row.key+'||'+issue;if(!map.has(key))map.set(key,Object.assign({},row,{displayIssue:issue}));});});cases=Array.from(map.values());}
-    const rows=cases.map(function(row){
-      return Object.assign({},row,{
-        rowKeyV6540:String(row.key)+'||'+String(row.displayIssue||state.cross.issue||''),
-        issue:row.displayIssue||state.cross.issue||qualityIssueForCase(row),
-        customerLabel:row.customerName||row.customerId||'Unknown',
-        departmentsLabel:Array.from(row.departments||[]).join(', ')
-      });
-    });
-    cdaTable.setRows('tatQuality',rows);
-  }
-
-  const TAT_KPI_STORAGE_KEY_V6528='cdaTatKpiVisibility.v6528';
-  const TAT_KPI_DEFS_V6528=[
-    {key:'avgTat',valueId:'tatKpiAvgV6509',label:'Average TAT'},
-    {key:'otp',valueId:'tatKpiOtpV6509',label:'On Time to Promise'},
-    {key:'avgLate',valueId:'tatKpiLateV6509',label:'Average Days Late'},
-    {key:'soldUnits',valueId:'tatKpi31V6509',label:'Sold Units'},
-    {key:'remakePct',valueId:'tatKpiRemakePctV6523',label:'Remake %'}
-  ];
-  let tatKpiPopoverV6528=null;
-  function allTatKpiKeysV6528(){return TAT_KPI_DEFS_V6528.map(function(def){return def.key;});}
-  function readTatKpiVisibilityV6528(){
-    try{
-      const saved=JSON.parse(localStorage.getItem(TAT_KPI_STORAGE_KEY_V6528)||'null');
-      if(saved&&Array.isArray(saved.visible)){
-        const allowed=new Set(allTatKpiKeysV6528());
-        return new Set(saved.visible.filter(function(key){return allowed.has(key);}));
-      }
-    }catch(error){}
-    return new Set(allTatKpiKeysV6528());
-  }
-  function writeTatKpiVisibilityV6528(visible){try{localStorage.setItem(TAT_KPI_STORAGE_KEY_V6528,JSON.stringify({visible:Array.from(visible||[])}));}catch(error){}}
-  function closeTatKpiChooserV6528(){
-    if(tatKpiPopoverV6528&&tatKpiPopoverV6528.parentNode)tatKpiPopoverV6528.parentNode.removeChild(tatKpiPopoverV6528);
-    tatKpiPopoverV6528=null;
-    const button=id('tatKpiChooserButtonV6528');if(button)button.setAttribute('aria-expanded','false');
-  }
-  function positionTatKpiChooserV6528(){
-    const button=id('tatKpiChooserButtonV6528');if(!button||!tatKpiPopoverV6528)return;
-    const rect=button.getBoundingClientRect(),width=Math.min(238,Math.max(180,window.innerWidth-20));
-    tatKpiPopoverV6528.style.width=width+'px';
-    tatKpiPopoverV6528.style.left=Math.max(10,Math.min(window.innerWidth-width-10,rect.right-width))+'px';
-    const estimatedHeight=Math.min(330,window.innerHeight-20),below=rect.bottom+6;
-    tatKpiPopoverV6528.style.top=(below+estimatedHeight<=window.innerHeight-10?below:Math.max(10,rect.top-estimatedHeight-6))+'px';
-  }
-  function applyTatKpiVisibilityV6528(){
-    const strip=id('tatDashboardPageV6509')&&id('tatDashboardPageV6509').querySelector('.tatKpisV6509');if(!strip)return;
-    const visible=readTatKpiVisibilityV6528();let visibleCount=0;
-    TAT_KPI_DEFS_V6528.forEach(function(def){
-      const value=id(def.valueId),card=value&&value.closest?value.closest('.tatKpiV6509'):null;if(!card)return;
-      const show=visible.has(def.key);card.classList.toggle('remakeKpiHiddenV6403',!show);card.setAttribute('aria-hidden',show?'false':'true');if(show)visibleCount+=1;
-    });
-    strip.classList.toggle('remakeKpisAllHiddenV6403',visibleCount===0);
-    applyTatKpiSpacingV6513();
-    const button=id('tatKpiChooserButtonV6528');if(button){
-      const hiddenCount=TAT_KPI_DEFS_V6528.length-visibleCount;
-      button.classList.toggle('hasHiddenKpisV6403',hiddenCount>0);
-      const label=hiddenCount>0?'Choose KPI cards. '+hiddenCount+' KPI'+(hiddenCount===1?'':'s')+' hidden.':'Choose KPI cards';
-      button.title=label;button.setAttribute('aria-label',label);
-    }
-  }
-  function renderTatKpiChooserV6528(){
-    if(!tatKpiPopoverV6528)return;
-    const visible=readTatKpiVisibilityV6528();
-    const options=TAT_KPI_DEFS_V6528.map(function(def){return '<label class="remakeKpiChooserOptionV6403"><input type="checkbox" data-tat-kpi-choice-v6528="'+def.key+'"'+(visible.has(def.key)?' checked':'')+'><span>'+esc(def.label)+'</span></label>';}).join('');
-    tatKpiPopoverV6528.innerHTML='<div class="remakeKpiChooserHeaderV6403"><div class="remakeKpiChooserTitleV6403">KPI cards</div><button type="button" class="remakeKpiChooserCloseV6403" aria-label="Close">×</button></div><div class="remakeKpiChooserOptionsV6403">'+options+'</div><div class="remakeKpiChooserFooterV6403"><button type="button" data-tat-kpi-action-v6528="hide">Hide all</button><button type="button" data-tat-kpi-action-v6528="show">Show all</button></div>';
-    tatKpiPopoverV6528.querySelector('.remakeKpiChooserCloseV6403').addEventListener('click',closeTatKpiChooserV6528);
-    tatKpiPopoverV6528.querySelectorAll('[data-tat-kpi-choice-v6528]').forEach(function(input){input.addEventListener('change',function(){const next=readTatKpiVisibilityV6528(),key=input.getAttribute('data-tat-kpi-choice-v6528');if(input.checked)next.add(key);else next.delete(key);writeTatKpiVisibilityV6528(next);applyTatKpiVisibilityV6528();});});
-    tatKpiPopoverV6528.querySelector('[data-tat-kpi-action-v6528="hide"]').addEventListener('click',function(){writeTatKpiVisibilityV6528(new Set());applyTatKpiVisibilityV6528();renderTatKpiChooserV6528();});
-    tatKpiPopoverV6528.querySelector('[data-tat-kpi-action-v6528="show"]').addEventListener('click',function(){writeTatKpiVisibilityV6528(new Set(allTatKpiKeysV6528()));applyTatKpiVisibilityV6528();renderTatKpiChooserV6528();});
-  }
-  function toggleTatKpiChooserV6528(event){
-    if(event){event.preventDefault();event.stopPropagation();}
-    if(tatKpiPopoverV6528){closeTatKpiChooserV6528();return;}
-    const button=id('tatKpiChooserButtonV6528');if(!button)return;
-    tatKpiPopoverV6528=document.createElement('div');tatKpiPopoverV6528.className='remakeKpiChooserPopoverV6403';tatKpiPopoverV6528.setAttribute('role','dialog');tatKpiPopoverV6528.setAttribute('aria-label','Choose KPI cards');document.body.appendChild(tatKpiPopoverV6528);button.setAttribute('aria-expanded','true');renderTatKpiChooserV6528();positionTatKpiChooserV6528();
-  }
-  function bindTatKpiChooserV6528(){const button=id('tatKpiChooserButtonV6528');if(button&&!button.dataset.boundV6528){button.dataset.boundV6528='true';button.addEventListener('click',toggleTatKpiChooserV6528);}applyTatKpiVisibilityV6528();}
-
-  function applyTatKpiSpacingV6513(){
-    const strip=id('tatDashboardPageV6509')&&id('tatDashboardPageV6509').querySelector('.tatKpisV6509');
-    if(!strip)return;
-    const cards=Array.from(strip.querySelectorAll('.tatKpiV6509')).filter(function(card){return card&&getComputedStyle(card).display!=='none';});
-    const count=Math.max(1,cards.length||1),desktop=window.innerWidth>=1280;
-    if(!desktop){strip.style.removeProperty('grid-template-columns');strip.style.removeProperty('max-width');strip.style.removeProperty('width');strip.style.removeProperty('margin-left');strip.style.removeProperty('margin-right');return;}
-    const gap=12,available=Math.max(320,(strip.parentElement&&strip.parentElement.clientWidth)||strip.clientWidth||window.innerWidth),comfortableCardWidth=Math.max(160,Math.min(220,Math.floor((available-((count-1)*gap)-24)/count))),centeredWidth=Math.min(available,(count*comfortableCardWidth)+((count-1)*gap)+24);
-    strip.style.setProperty('grid-template-columns','repeat('+count+', minmax(0, 1fr))','important');
-    strip.style.setProperty('max-width',centeredWidth+'px','important');
-    strip.style.setProperty('width','100%','important');
-    strip.style.setProperty('margin-left','auto','important');
-    strip.style.setProperty('margin-right','auto','important');
-  }
-  function renderAll(){
-    applyTatProductGroupsV6525(state.rows);
-    migrateTatProductGroupStateV6525();
-    renderFilters();const rows=reportingRowsV6510();renderKpis();renderCoverage(rows);renderMonthly();renderDepartmentTable();renderDistribution();renderLateTable();renderCustomerTable();renderQuality();applyTatKpiVisibilityV6528();applyCollapsedState();saveViewState();const stamp=id('tatStampV6509');if(stamp&&!state.loading)stamp.textContent=state.meta&&state.meta.generatedAtDisplay?state.meta.generatedAtDisplay:(state.loaded?'TAT cache loaded':'TAT cache not loaded');
-  }
+<?!= includeDashboardFile('TatDashboardRenderRuntimeV6509') ?>
 
   function closeDropdowns(){FILTER_TYPES.forEach(function(type){const panel=id('tatFilterPanel_'+type+'_V6509'),button=id('tatFilterButton_'+type+'_V6509');if(panel)panel.classList.remove('open');if(button){button.setAttribute('aria-expanded','false');button.classList.remove('active');if(mode(type)!=='ALL')button.classList.add('active');}});}
   function positionPanel(button,panel,width){
@@ -750,6 +437,49 @@
   window.toggleTatSettingsV6509=function(event){toggleFloating('tatSettingsButtonV6509','tatSettingsPanelV6509',event);renderFilters();};
   window.renderTatGlobalSearchV6509=function(value){const host=id('tatGlobalSearchResultsV6509');if(!host)return;const term=String(value||'').trim();if(!term){host.innerHTML='<div class="remakeDropdownEmptyV6245">Type to search departments, products, groups, customers, and reasons.</div>';return;}const results=[];['department','product','productGroup','customer','reason'].forEach(function(type){optionList(type).forEach(function(option){if(results.length<75&&fuzzy(option.label+' '+option.key,term))results.push({type:type,key:option.key,label:option.label});});});host.innerHTML=results.length?results.map(function(item){return '<div class="tatGlobalResultV6509" onclick="selectTatGlobalOptionV6509(\''+escJs(item.type)+'\',\''+escJs(item.key)+'\')"><span class="type">'+esc(LABELS[item.type])+'</span><span class="label">'+esc(item.label)+'</span><span>+</span></div>';}).join(''):'<div class="remakeDropdownEmptyV6245">No matching filters.</div>';};
   window.selectTatGlobalOptionV6509=function(type,key){ensureCustom(type);selectedSet(type).add(String(key));normalizeMode(type);renderAll();const input=id('tatGlobalSearchInputV6509');renderTatGlobalSearchV6509(input&&input.value||'');};
+
+
+  // v6.646: expose the existing TAT filter state through a narrow adapter
+  // contract so SharedFilterBar can own presentation without creating a
+  // second filter data model.
+  let tatSharedFilterRenderQueuedV6646=false;
+  function scheduleTatSharedFilterRenderV6646(){
+    if(tatSharedFilterRenderQueuedV6646)return;
+    tatSharedFilterRenderQueuedV6646=true;
+    queueMicrotask(function(){tatSharedFilterRenderQueuedV6646=false;renderAll();});
+  }
+  function tatSharedPopulationKeysV6646(targetType){
+    const keys=new Set();
+    (state.rows||[]).forEach(function(row){
+      const year=Number(row.year);if(year!==2025&&year!==2026)return;
+      const matchesOthers=FILTER_TYPES.every(function(type){return type===targetType||isSelected(type,filterKey(type,row));});
+      if(!matchesOthers)return;
+      const key=filterKey(targetType,row);if(key)keys.add(String(key));
+    });
+    return keys;
+  }
+  window.cdaTatFilterBridgeV6646=Object.freeze({
+    version:'v6.646',
+    types:FILTER_TYPES.slice(),
+    labels:Object.assign({},LABELS),
+    allLabels:Object.assign({},ALL_LABELS),
+    getOptions:function(type){return optionList(type).map(function(option){return {key:String(option.key),label:String(option.label)};});},
+    getMode:function(type){return mode(type);},
+    getSelected:function(type){return new Set(Array.from(selectedSet(type)).map(String));},
+    getSearch:function(type){return state.searches[type]||'';},
+    setSearch:function(type,value){state.searches[type]=String(value||'');},
+    applySelection:function(type,nextSet,nextMode){
+      if(FILTER_TYPES.indexOf(type)<0)return;
+      const set=selectedSet(type);set.clear();
+      if(nextMode==='ALL')setMode(type,'ALL');
+      else{
+        Array.from(nextSet||[]).map(String).forEach(function(value){set.add(value);});
+        setMode(type,'CUSTOM');normalizeMode(type);
+      }
+      scheduleTatSharedFilterRenderV6646();
+    },
+    getPopulationKeys:function(type){return tatSharedPopulationKeysV6646(type);}
+  });
 
   function csvEscape(value){const text=String(value==null?'':value);return /[",\n]/.test(text)?'"'+text.replace(/"/g,'""')+'"':text;}
   function downloadCsv(name,headers,rows){const text=[headers].concat(rows).map(function(row){return row.map(csvEscape).join(',');}).join('\n'),blob=new Blob([text],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download=name;document.body.appendChild(link);link.click();link.remove();window.setTimeout(function(){URL.revokeObjectURL(url);},500);}
@@ -800,7 +530,15 @@
   function ensureLegacyRemakeInitializedV6627(){
     if(legacyRemakeInitializedV6627)return true;
     legacyRemakeInitializedV6627=true;
-    if(previousSwitch){try{previousSwitch.call(window,'remakeFactor');}catch(error){}}
+    if(previousSwitch){
+      try{previousSwitch.call(window,'remakeFactor');}catch(error){}
+    }else if(typeof window.loadRemakeFactorData==='function'){
+      if(!window.remakeFactorState||!window.remakeFactorState.loaded){
+        try{window.loadRemakeFactorData(false);}catch(error){}
+      }else if(typeof window.renderRemakeFactorDashboard==='function'){
+        try{window.renderRemakeFactorDashboard();}catch(error){}
+      }
+    }
     return true;
   }
   function releaseBootV6627(){

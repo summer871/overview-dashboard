@@ -1,0 +1,1059 @@
+  function kpiYearValuesV6281(rows) {
+    return Array.from(new Set((rows || []).map(row => Number(row.year)).filter(year => Number.isFinite(year)))).sort((a, b) => a - b);
+  }
+  function kpiMonthNumberV6281(row) {
+    const key = String(row && row.month ? row.month : '');
+    const n = Number(key.slice(5, 7));
+    return Number.isFinite(n) && n >= 1 && n <= 12 ? String(n).padStart(2, '0') : '';
+  }
+  function kpiSelectedMonthNumbersV6281() {
+    const selected = uiV6230.selectedMonths || new Set();
+    const values = Array.from(selected).map(key => String(key).slice(5, 7)).filter(mm => /^\d{2}$/.test(mm));
+    return new Set(values);
+  }
+
+  function remakeInvoiceDayV6306(row) {
+    const raw = textV6230(row && row.invoiceDate, '');
+    const iso = raw.match(/^\d{4}-\d{2}-(\d{2})/);
+    if (iso) return Number(iso[1]) || 0;
+    const parsed = raw ? new Date(raw) : null;
+    return parsed && Number.isFinite(parsed.getTime()) ? parsed.getDate() : 0;
+  }
+  function remakeComparisonDateScopeV6306(rows, currentYear, priorYear, months) {
+    const monthNumbers = Array.from(months || []).map(Number).filter(month => month >= 1 && month <= 12).sort((a, b) => a - b);
+    const latestMonth = monthNumbers.length ? monthNumbers[monthNumbers.length - 1] : 0;
+    const now = new Date();
+    let maxCurrentDay = 0;
+    (rows || []).forEach(row => {
+      if (Number(row.year) !== Number(currentYear)) return;
+      if (Number(kpiMonthNumberV6281(row)) !== Number(latestMonth)) return;
+      maxCurrentDay = Math.max(maxCurrentDay, remakeInvoiceDayV6306(row));
+    });
+    const sameOpenCalendarMonth = Number(currentYear) === now.getFullYear() && latestMonth === (now.getMonth() + 1);
+    const daysInMonth = latestMonth ? new Date(Number(currentYear), latestMonth, 0).getDate() : 0;
+    const cutoffDay = sameOpenCalendarMonth && maxCurrentDay ? Math.min(maxCurrentDay, now.getDate()) : 0;
+    const isPartialMonth = !!(sameOpenCalendarMonth && cutoffDay && cutoffDay < daysInMonth);
+    return { currentYear, priorYear, latestMonth, cutoffDay, daysInMonth, isPartialMonth };
+  }
+  function remakeRowWithinAlignedPriorPeriodV6306(row, scope) {
+    if (!scope || !scope.isPartialMonth) return true;
+    if (Number(row && row.year) !== Number(scope.priorYear)) return true;
+    if (Number(kpiMonthNumberV6281(row)) !== Number(scope.latestMonth)) return true;
+    const day = remakeInvoiceDayV6306(row);
+    return !day || day <= Number(scope.cutoffDay || 0);
+  }
+  function remakePartialMonthNoteV6306(scope) {
+    if (!scope || !scope.isPartialMonth) return '';
+    const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const monthLabel = monthNames[Math.max(0, Number(scope.latestMonth || 1) - 1)] || 'Current month';
+    return 'Partial-month comparison: ' + monthLabel + ' 1-' + scope.cutoffDay + ', ' + scope.currentYear + ' vs ' + monthLabel + ' 1-' + scope.cutoffDay + ', ' + scope.priorYear + '. Completed months use full-month totals.';
+  }
+  function setRemakeComparisonDateNoteV6306(scope) {
+    // v6.307: Preserve the comparison-period calculation for the tooltip,
+    // but do not render a persistent banner above the chart.
+    return scope;
+  }
+  function selectedKpiYearV6281(rows) {
+    const yearFilter = Array.from(effectiveSelectionSetV6250('year')).map(value => Number(value)).filter(year => Number.isFinite(year));
+    if (yearFilter.length) return Math.max.apply(null, yearFilter);
+    const years = kpiYearValuesV6281(rows);
+    return years.length ? years[years.length - 1] : null;
+  }
+  function kpiComparisonV6281(allRows, optionsV6407) {
+    const baseNoYear = rowsForBaseFiltersV6252(allRows, { year: false, months: false });
+    const remakeNoYear = rowsForRemakeFiltersV6252(allRows, { year: false, months: false });
+    /* v6.311 stable calendar context.
+       A department, product, reason, or customer selection may change values,
+       but it must not shorten the comparison window merely because that item
+       has no activity in a later month. Explicit month selections still win. */
+    const currentYear = selectedKpiYearV6281(allRows);
+    const priorYear = currentYear ? currentYear - 1 : null;
+    // v6.407: chart highlighting is presentation-only. The trend can ask for
+    // a stable comparison scope that ignores highlighted months, while KPIs and
+    // the rest of the dashboard continue to honor the active month selection.
+    const ignoreHighlightedMonthsV6407 = !!(optionsV6407 && optionsV6407.ignoreHighlightedMonths);
+    const selectedMonths = ignoreHighlightedMonthsV6407 ? new Set() : kpiSelectedMonthNumbersV6281();
+    let months = selectedMonths;
+    if (!months.size && currentYear) {
+      months = new Set((allRows || []).filter(row => Number(row.year) === currentYear).map(kpiMonthNumberV6281).filter(Boolean));
+    }
+    const dateScopeV6306 = remakeComparisonDateScopeV6306(allRows, currentYear, priorYear, months);
+    function inYearAndMonths(row, year) {
+      if (!year || Number(row.year) !== Number(year)) return false;
+      const mm = kpiMonthNumberV6281(row);
+      if (months.size && !months.has(mm)) return false;
+      return remakeRowWithinAlignedPriorPeriodV6306(row, dateScopeV6306);
+    }
+    const currentTotalRows = baseNoYear.filter(row => inYearAndMonths(row, currentYear));
+    const currentRemakeRows = remakeNoYear.filter(row => inYearAndMonths(row, currentYear));
+    const priorTotalRows = baseNoYear.filter(row => inYearAndMonths(row, priorYear));
+    const priorRemakeRows = remakeNoYear.filter(row => inYearAndMonths(row, priorYear));
+    return {
+      currentYear,
+      priorYear,
+      months: Array.from(months).sort(),
+      dateScopeV6306,
+      current: summarizeSplitV6252(currentTotalRows, currentRemakeRows),
+      prior: summarizeSplitV6252(priorTotalRows, priorRemakeRows)
+    };
+  }
+  function kpiDeltaHtmlV6281(metric, current, prior, priorYear, formatter, options) {
+    const priorValue = numV6230(prior && prior[metric]);
+    if (!priorYear || !Number.isFinite(priorValue) || Math.abs(priorValue) < 0.0000001) return '';
+    const currentValue = numV6230(current && current[metric]);
+    const delta = currentValue - priorValue;
+    const higherIsBad = !!(options && options.higherIsBad);
+    const neutral = Math.abs(delta) < 0.0000001;
+    const good = neutral ? false : (higherIsBad ? delta < 0 : delta > 0);
+    const isRateMetric = metric === 'remakeCaseRate' || metric === 'remakeUnitRate';
+    const pct = delta / Math.abs(priorValue);
+    const sign = delta > 0 ? '+' : '';
+    const deltaText = isRateMetric
+      ? sign + (delta * 100).toFixed(1) + '%'
+      : sign + Math.round(pct * 100) + '%';
+    const cls = neutral ? 'neutral' : (good ? 'good' : 'bad');
+    return '<span class="priorV6281">' + escV6230(priorYear + ': ' + formatter(priorValue)) + '</span><span class="deltaV6281 ' + cls + '">' + escV6230(deltaText) + '</span>';
+  }
+  function setKpisV6230(summary, priorSummary, meta) {
+    summary = summary || {};
+    priorSummary = priorSummary || {};
+    meta = meta || {};
+    const priorYear = meta.priorYear || '';
+    const configs = [
+      { id: 'remakeTotalCases', metric: 'totalCases', value: fmtCountV6230(summary.totalCases), formatter: v => fmtCountV6230(v), higherIsBad: false },
+      { id: 'remakeCases', metric: 'remakeCases', value: fmtCountV6230(summary.remakeCases), formatter: v => fmtCountV6230(v), higherIsBad: true },
+      { id: 'remakeCaseRate', metric: 'remakeCaseRate', value: fmtPctV6230(summary.remakeCaseRate), formatter: v => fmtPctV6230(v), higherIsBad: true },
+      { id: 'remakeTotalUnits', metric: 'totalUnits', value: fmtCountV6230(summary.totalUnits, 1), formatter: v => fmtCountV6230(v, 1), higherIsBad: false },
+      { id: 'remakeUnits', metric: 'remakeUnits', value: fmtCountV6230(summary.remakeUnits, 1), formatter: v => fmtCountV6230(v, 1), higherIsBad: true },
+      { id: 'remakeUnitRate', metric: 'remakeUnitRate', value: fmtPctV6230(summary.remakeUnitRate), formatter: v => fmtPctV6230(v), higherIsBad: true },
+      { id: 'remakeDiscount', metric: 'remakeDiscount', value: fmtCurrencyV6230(summary.remakeDiscount), formatter: v => fmtCurrencyV6230(v), higherIsBad: true }
+    ];
+    configs.forEach(config => {
+      const el = idV6230(config.id);
+      if (el) el.textContent = config.value;
+      const sub = idV6230(config.id + 'Sub');
+      if (sub) sub.innerHTML = kpiDeltaHtmlV6281(config.metric, summary, priorSummary, priorYear, config.formatter, { higherIsBad: config.higherIsBad });
+    });
+  }
+
+  function monthlyGroupsV6230(rows) {
+    return groupV6230(rows, row => row.month || 'Unknown', row => row.month || 'Unknown').filter(row => row.key !== 'Unknown').sort((a, b) => sortMonthV6230(a.key, b.key)).slice(-24);
+  }
+
+  function setModeButtonsV6230() {
+    [['line', 'remakeModeLineV6230'], ['bar', 'remakeModeBarV6230'], ['mom', 'remakeModeMomV6230']].forEach(([mode, id]) => {
+      const el = idV6230(id);
+      if (el) { const active = uiV6230.mode === mode; el.classList.toggle('active', active); el.setAttribute('aria-pressed', active ? 'true' : 'false'); }
+    });
+    [['cases', 'remakeMeasureCasesV6245'], ['units', 'remakeMeasureUnitsV6245']].forEach(([measure, id]) => {
+      const el = idV6230(id);
+      if (el) { const active = (uiV6230.trendMeasure || 'cases') === measure; el.classList.toggle('active', active); el.setAttribute('aria-pressed', active ? 'true' : 'false'); }
+    });
+    [['total', 'remakeValueTotalV6247'], ['percent', 'remakeValuePercentV6247']].forEach(([mode, id]) => {
+      const el = idV6230(id);
+      if (el) { const active = (uiV6230.trendValueMode || 'total') === mode; el.classList.toggle('active', active); el.setAttribute('aria-pressed', active ? 'true' : 'false'); }
+    });
+    const viewGroup = idV6230('remakeTrendViewGroupV6304');
+    const monthly = idV6230('remakeMonthlyV6304');
+    const cumulative = idV6230('remakeCumulativeV6302');
+    const allowed = (uiV6230.mode || 'line') === 'line' && (uiV6230.trendValueMode || 'total') === 'total';
+    const cumulativeActive = allowed && uiV6230.trendCumulative === true;
+    if (viewGroup) {
+      viewGroup.hidden = !allowed;
+      viewGroup.setAttribute('aria-hidden', allowed ? 'false' : 'true');
+    }
+    if (monthly) {
+      monthly.classList.toggle('active', allowed && !cumulativeActive);
+      monthly.setAttribute('aria-pressed', allowed && !cumulativeActive ? 'true' : 'false');
+    }
+    if (cumulative) {
+      cumulative.classList.toggle('active', cumulativeActive);
+      cumulative.setAttribute('aria-pressed', cumulativeActive ? 'true' : 'false');
+    }
+  }
+
+  function renderTrendV6230(allRows, baseRows, remakeBaseRows) {
+    const canvas = idV6230('remakeTrendChartV6230');
+    if (!canvas) return;
+    // v6.407: derive the trend comparison period without the highlighted
+    // months. This prevents Jan-Mar highlighting from shortening the chart's
+    // aligned comparison window or changing any monthly/cumulative values.
+    const trendComparisonPackV6407 = kpiComparisonV6281(allRows || [], { ignoreHighlightedMonths: true });
+    const trendComparisonScopeV6306 = {
+      currentYear: trendComparisonPackV6407.currentYear,
+      priorYear: trendComparisonPackV6407.priorYear,
+      months: new Set((trendComparisonPackV6407.months || []).map(mm => String(mm).padStart(2, '0'))),
+      dateScopeV6306: trendComparisonPackV6407.dateScopeV6306 || null
+    };
+    // Month clicks are visual highlights only for this chart. Rebuild the
+    // trend from the full non-month-filtered scope so selecting Jan-Mar greys
+    // the other months without changing their values.
+    const trendBaseSourceV6306 = rowsForBaseFiltersV6252(allRows, { months: false });
+    const trendRemakeSourceV6306 = rowsForRemakeFiltersV6252(allRows, { months: false });
+    const alignedTrendBaseV6306 = (trendBaseSourceV6306 || []).filter(row => remakeRowWithinAlignedPriorPeriodV6306(row, trendComparisonScopeV6306.dateScopeV6306));
+    const alignedTrendRemakesV6306 = (trendRemakeSourceV6306 || []).filter(row => remakeRowWithinAlignedPriorPeriodV6306(row, trendComparisonScopeV6306.dateScopeV6306));
+    const allGroups = monthlyGroupsSplitV6252(alignedTrendBaseV6306, alignedTrendRemakesV6306);
+    setRemakeComparisonDateNoteV6306(trendComparisonScopeV6306.dateScopeV6306);
+    uiV6230.lastTrendRows = allGroups;
+    const groupByMonth = new Map();
+    allGroups.forEach(row => groupByMonth.set(String(row.key), row));
+
+    const baseMonthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const selected = uiV6230.selectedMonths || new Set();
+    const mode = uiV6230.mode || 'line';
+    const measure = uiV6230.trendMeasure === 'units' ? 'units' : 'cases';
+    const valueMode = uiV6230.trendValueMode === 'percent' ? 'percent' : 'total';
+    const isPercent = valueMode === 'percent';
+    const isMom = mode === 'mom';
+    const isBar = mode === 'bar' || mode === 'mom';
+    const isUnits = measure === 'units';
+    const isCumulative = mode === 'line' && valueMode === 'total' && uiV6230.trendCumulative === true;
+
+    let years = Array.from(new Set(allGroups.map(row => String(row.key || '').slice(0, 4)).filter(year => /^\d{4}$/.test(year)))).sort();
+    const preferredYears = ['2025', '2026'].filter(year => years.indexOf(year) >= 0);
+    years = preferredYears.length ? preferredYears : years.slice(-2);
+
+    function valueForGroup(group) {
+      if (!group) return null;
+      const total = isUnits ? numV6230(group.remakeUnits) : numV6230(group.remakeCases);
+      const rate = numV6230(isUnits ? group.remakeUnitRate : group.remakeCaseRate) * 100;
+      return isPercent ? rate : total;
+    }
+    function formatValue(value) {
+      if (value === null || value === undefined || value === '') return '-';
+      const n = numV6230(value);
+      if (isMom) return isPercent ? fmtPpV6230(n) : ((n > 0 ? '+' : '') + fmtCountV6230(n, isUnits ? 1 : 0));
+      return isPercent ? n.toFixed(1) + '%' : fmtCountV6230(n, isUnits ? 1 : 0);
+    }
+
+    const orange = '#f59e0b';
+    const overviewPalette = {
+      current: {
+        border: '#2563eb',
+        area: 'rgba(37,99,235,.13)',
+        bar: '#4285f4',
+        barBorder: '#2f6fe4'
+      },
+      prior: {
+        border: '#8da2bd',
+        area: 'rgba(141,162,189,.08)',
+        bar: '#94a3b8',
+        barBorder: '#64748b'
+      },
+      extra: {
+        border: '#c47a2c',
+        area: 'rgba(196,122,44,.07)',
+        bar: '#d98b3f',
+        barBorder: '#b96a21'
+      }
+    };
+    const muted = 'rgba(148,163,184,.18)';
+    const metricLabel = isPercent ? (isUnits ? 'Unit remake rate' : 'Case remake rate') : (isUnits ? 'Remake units' : 'Remake cases');
+    const axisTitle = isMom
+      ? (isPercent ? 'Point Change' : (isUnits ? 'Unit Change' : 'Case Change'))
+      : (isCumulative ? (isUnits ? 'Cumulative Remake Units' : 'Cumulative Remake Cases') : (isPercent ? (isUnits ? 'Unit Rate' : 'Case Rate') : (isUnits ? 'Remake Units' : 'Remake Cases')));
+    const numericYears = years.map(year => Number(year)).filter(year => Number.isFinite(year));
+    const currentYear = numericYears.length ? Math.max.apply(null, numericYears) : Number(years[years.length - 1] || 2026);
+    const priorYear = numericYears.filter(year => year < currentYear).sort((a, b) => b - a)[0] || currentYear - 1;
+    const latestYtdMonthNumber = allGroups.reduce((maxMonth, row) => {
+      const key = String(row && row.key ? row.key : '');
+      const yearNumber = Number(key.slice(0, 4));
+      const monthNumber = Number(key.slice(5, 7));
+      if (!Number.isFinite(yearNumber) || !Number.isFinite(monthNumber) || monthNumber < 1 || monthNumber > 12) return maxMonth;
+      if (yearNumber === currentYear) return Math.max(maxMonth, monthNumber);
+      if (years.length === 1) return Math.max(maxMonth, monthNumber);
+      return maxMonth;
+    }, 0);
+    const monthNames = baseMonthNames.slice(0, Math.max(1, Math.min(12, latestYtdMonthNumber || 12)));
+    const selectedMonthIndexesV6407 = new Set();
+    if (selected.size) {
+      monthNames.forEach(function(label, monthIndex) {
+        const mm = String(monthIndex + 1).padStart(2, '0');
+        if (years.some(function(year) { return selected.has(String(year) + '-' + mm); })) {
+          selectedMonthIndexesV6407.add(monthIndex);
+        }
+      });
+    }
+    const hasMonthHighlightV6407 = selectedMonthIndexesV6407.size > 0;
+
+    const datasets = years.map((year) => {
+      const yearNumber = Number(year);
+      const isCurrent = yearNumber === currentYear;
+      const isPrior = yearNumber === priorYear;
+      const color = isCurrent ? overviewPalette.current : isPrior ? overviewPalette.prior : overviewPalette.extra;
+      const monthKeys = monthNames.map((label, monthIndex) => year + '-' + String(monthIndex + 1).padStart(2, '0'));
+      const baseValues = monthKeys.map(key => valueForGroup(groupByMonth.get(key)));
+      let values = baseValues;
+      if (isMom) {
+        values = baseValues.map((value, index) => {
+          if (value === null || value === undefined) return null;
+          if (index === 0 || baseValues[index - 1] === null || baseValues[index - 1] === undefined) return null;
+          return value - baseValues[index - 1];
+        });
+      } else if (isCumulative) {
+        let running = 0;
+        let started = false;
+        values = baseValues.map(value => {
+          if (value === null || value === undefined) return started ? running : null;
+          running += numV6230(value);
+          started = true;
+          return running;
+        });
+      }
+      const dimPointV6407 = isCurrent ? 'rgba(100,116,139,.58)' : 'rgba(148,163,184,.48)';
+      const dimLineV6407 = isCurrent ? 'rgba(100,116,139,.54)' : 'rgba(148,163,184,.42)';
+      const pointBackground = monthKeys.map(function(key, index) {
+        if (!hasMonthHighlightV6407) return color.border;
+        return selectedMonthIndexesV6407.has(index) ? orange : dimPointV6407;
+      });
+      const pointRadius = monthKeys.map(function(key, index) {
+        if (!hasMonthHighlightV6407) return isCurrent ? 2.8 : 2.2;
+        return selectedMonthIndexesV6407.has(index) ? (isCurrent ? 5.2 : 4.2) : (isCurrent ? 2.0 : 1.5);
+      });
+      const pointHoverRadius = monthKeys.map(function(key, index) {
+        return hasMonthHighlightV6407 && selectedMonthIndexesV6407.has(index) ? 6.4 : (isCurrent ? 4.4 : 3.6);
+      });
+      const barBackground = monthKeys.map(function(key, index) {
+        if (!hasMonthHighlightV6407) return color.bar;
+        return selectedMonthIndexesV6407.has(index) ? 'rgba(245,158,11,.78)' : muted;
+      });
+      const barBorder = monthKeys.map(function(key, index) {
+        if (!hasMonthHighlightV6407) return color.barBorder;
+        return selectedMonthIndexesV6407.has(index) ? 'rgba(217,119,6,.98)' : 'rgba(148,163,184,.26)';
+      });
+      const momBackground = values.map((value, index) => {
+        const key = monthKeys[index];
+        if (value === null || value === undefined || !Number.isFinite(Number(value))) return 'rgba(0,0,0,0)';
+        if (selectedMonthIndexesV6407.has(index)) return 'rgba(245,158,11,.82)';
+        const positive = Number(value) > 0;
+        const negative = Number(value) < 0;
+        const alpha = hasMonthHighlightV6407 ? (isCurrent ? .18 : .10) : (isCurrent ? .78 : .30);
+        if (positive) return 'rgba(220,38,38,' + alpha + ')';
+        if (negative) return 'rgba(5,150,105,' + alpha + ')';
+        return isCurrent ? 'rgba(100,116,139,.52)' : 'rgba(148,163,184,.24)';
+      });
+      const momBorder = values.map((value, index) => {
+        const key = monthKeys[index];
+        if (selectedMonthIndexesV6407.has(index)) return 'rgba(217,119,6,.98)';
+        const positive = Number(value) > 0;
+        const negative = Number(value) < 0;
+        if (positive) return isCurrent ? 'rgba(185,28,28,.96)' : 'rgba(185,28,28,.52)';
+        if (negative) return isCurrent ? 'rgba(4,120,87,.96)' : 'rgba(4,120,87,.52)';
+        return isCurrent ? 'rgba(71,85,105,.86)' : 'rgba(100,116,139,.42)';
+      });
+      return {
+        label: String(year),
+        data: values,
+        monthKeys: monthKeys,
+        borderColor: isBar ? (isMom ? momBorder : barBorder) : color.border,
+        backgroundColor: isBar ? (isMom ? momBackground : barBackground) : 'transparent',
+        fill: false,
+        tension: isBar ? 0 : .38,
+        borderWidth: isBar ? 1.2 : (isCurrent ? 3.4 : isPrior ? 2.2 : 1.8),
+        borderDash: !isBar && !isCurrent ? (isPrior ? [7, 5] : [2, 5]) : [],
+        segment: !isBar && hasMonthHighlightV6407 ? {
+          borderColor: function(context) {
+            const p0 = Number(context && context.p0DataIndex);
+            const p1 = Number(context && context.p1DataIndex);
+            return selectedMonthIndexesV6407.has(p0) && selectedMonthIndexesV6407.has(p1) ? color.border : dimLineV6407;
+          }
+        } : undefined,
+        pointRadius: isBar ? 0 : pointRadius,
+        pointHoverRadius: isBar ? 0 : pointHoverRadius,
+        pointHitRadius: isBar ? 0 : 18,
+        pointBackgroundColor: isBar ? undefined : pointBackground,
+        pointBorderColor: '#fff',
+        pointBorderWidth: isBar ? 0 : 2,
+        maxBarThickness: isBar ? (isMom ? 38 : 34) : undefined,
+        categoryPercentage: isBar ? (isMom ? .76 : .72) : undefined,
+        barPercentage: isBar ? (isMom ? .86 : .82) : undefined,
+        borderRadius: isBar ? 0 : undefined,
+        borderSkipped: false,
+        spanGaps: false
+      };
+    });
+
+    const stableTooltipPluginV6248 = {
+      id: 'stableRemakeTrendTooltipV6248',
+      afterInit: function() {},
+      afterEvent: function() {}
+    };
+    const remakeMomPolishPluginV6302 = {
+      id: 'remakeMomPolishV6302',
+      beforeDatasetsDraw: function(chart, args, pluginOptions) {
+        if (!pluginOptions || pluginOptions.display !== true || !chart.chartArea || !chart.scales || !chart.scales.y) return;
+        const area = chart.chartArea;
+        const yScale = chart.scales.y;
+        const zeroY = Math.max(area.top, Math.min(area.bottom, yScale.getPixelForValue(0)));
+        const ctx = chart.ctx;
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(area.left, area.top, area.right - area.left, area.bottom - area.top);
+        ctx.clip();
+        if (zeroY > area.top) {
+          ctx.fillStyle = 'rgba(254,242,242,.38)';
+          ctx.fillRect(area.left, area.top, area.right - area.left, zeroY - area.top);
+        }
+        if (zeroY < area.bottom) {
+          ctx.fillStyle = 'rgba(236,253,245,.34)';
+          ctx.fillRect(area.left, zeroY, area.right - area.left, area.bottom - zeroY);
+        }
+        ctx.setLineDash([]);
+        ctx.lineWidth = 1.45;
+        ctx.strokeStyle = 'rgba(71,85,105,.68)';
+        ctx.beginPath();
+        ctx.moveTo(area.left, zeroY);
+        ctx.lineTo(area.right, zeroY);
+        ctx.stroke();
+        ctx.restore();
+
+        ctx.save();
+        ctx.font = '800 9.5px Roboto, Arial, sans-serif';
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'top';
+        ctx.fillStyle = '#b42318';
+        ctx.fillText('INCREASE = WORSE', area.right - 4, area.top + 4);
+        ctx.textBaseline = 'bottom';
+        ctx.fillStyle = '#067647';
+        ctx.fillText('DECREASE = BETTER', area.right - 4, area.bottom - 4);
+        ctx.restore();
+      },
+      afterDatasetsDraw: function(chart, args, pluginOptions) {
+        if (!pluginOptions || pluginOptions.display !== true || !chart.chartArea) return;
+        const area = chart.chartArea;
+        const currentYear = Number(pluginOptions.currentYear || 0);
+        const showPriorLabels = (area.right - area.left) >= 760;
+        const ctx = chart.ctx;
+        chart.data.datasets.forEach(function(dataset, datasetIndex) {
+          const isCurrent = Number(dataset.label) === currentYear;
+          if (!isCurrent && !showPriorLabels) return;
+          const meta = chart.getDatasetMeta(datasetIndex);
+          if (!meta || meta.hidden) return;
+          (meta.data || []).forEach(function(element, index) {
+            const raw = Number(dataset.data[index]);
+            if (!Number.isFinite(raw) || Math.abs(raw) < .0000001 || !element) return;
+            const props = typeof element.getProps === 'function' ? element.getProps(['x','y','base'], true) : element;
+            if (!props || !Number.isFinite(props.x) || !Number.isFinite(props.y) || !Number.isFinite(props.base)) return;
+            const positive = raw > 0;
+            const valueText = pluginOptions.isPercent
+              ? ((raw > 0 ? '+' : '') + raw.toFixed(1) + ' pp')
+              : ((raw > 0 ? '+' : '') + fmtCountV6230(raw, pluginOptions.isUnits ? 1 : 0));
+            const preferredY = positive ? Math.min(props.y, props.base) - 5 : Math.max(props.y, props.base) + 5;
+            const labelY = Math.max(area.top + 14, Math.min(area.bottom - 14, preferredY));
+            ctx.save();
+            ctx.font = (isCurrent ? '900 11px ' : '700 10px ') + 'Roboto, Arial, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = positive ? 'bottom' : 'top';
+            ctx.lineWidth = 3.5;
+            ctx.strokeStyle = 'rgba(255,255,255,.95)';
+            ctx.strokeText(valueText, props.x, labelY);
+            ctx.fillStyle = positive ? (isCurrent ? '#b42318' : '#a65b56') : (isCurrent ? '#067647' : '#4d806d');
+            ctx.fillText(valueText, props.x, labelY);
+            ctx.restore();
+          });
+        });
+      }
+    };
+    const trendConfigV6302 = {
+      type: isBar ? 'bar' : 'line',
+      plugins: [stableTooltipPluginV6248, remakeSelectedMonthBandPluginV6268, remakeTrendDragBandPluginV6266, remakeMomPolishPluginV6302],
+      data: {
+        labels: monthNames,
+        datasets: datasets
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: { duration: 85, easing: 'easeOutQuad' },
+        transitions: {
+          active: { animation: { duration: 45, easing: 'easeOutQuad' } },
+          resize: { animation: { duration: 70, easing: 'easeOutQuad' } }
+        },
+        layout: { padding: { top: 14, right: 6, bottom: 0, left: 2 } },
+        events: ['mousemove', 'mouseout', 'click', 'touchstart', 'touchmove'],
+        interaction: { mode: 'index', intersect: false },
+        hover: { mode: 'index', intersect: false, animationDuration: 0 },
+        onClick: function(event, elements, chart) {
+          if (chart && chart.$remakeSuppressNextClickV6266) { chart.$remakeSuppressNextClickV6266 = false; return; }
+          const points = elements && elements.length ? elements : chart.getElementsAtEventForMode(event, 'nearest', { intersect: false, axis: 'x' }, true);
+          if (!points || !points.length) return;
+          const point = points[0];
+          const dataset = chart.data && chart.data.datasets ? chart.data.datasets[point.datasetIndex] : null;
+          const key = dataset && dataset.monthKeys ? dataset.monthKeys[point.index] : '';
+          if (key && groupByMonth.has(key)) toggleMonthV6230(key, nativeEventV6230(event));
+        },
+        plugins: {
+          executiveValueLabels: { display: !isMom, barLabelPlacement: isBar && !isMom ? 'insideTop' : 'above' },
+          remakeMomPolishV6302: { display: isMom, currentYear: currentYear, priorYear: priorYear, isPercent: isPercent, isUnits: isUnits },
+          revenueGapBand: { display: years.length >= 2 && !isMom, currentYear: currentYear, priorYear: priorYear, higherIsBad: true, selectedMonthIndexesV6407: Array.from(selectedMonthIndexesV6407) },
+          revenueTrendCallouts: { display: years.length >= 2 && !isMom, currentYear: currentYear, priorYear: priorYear, higherIsBad: true, deltaAsPoints: isPercent, selectedMonthIndexesV6407: Array.from(selectedMonthIndexesV6407) },
+          legend: { position: 'top', align: 'start', labels: { boxWidth: 18, boxHeight: 2, color:'#475569', usePointStyle: false, font: { family:'Roboto, Arial, sans-serif', size: 11, weight: '500' }, padding:6 } },
+          tooltip: {
+            enabled: true,
+            position: 'average',
+            intersect: false,
+            displayColors: true,
+            caretPadding: 8,
+            backgroundColor: 'rgba(17,24,39,.94)',
+            titleColor: '#ffffff',
+            bodyColor: '#ffffff',
+            borderColor: 'rgba(255,255,255,.14)',
+            borderWidth: 1,
+            padding: 10,
+            callbacks: {
+              title: items => {
+                if (!items || !items.length) return '';
+                const item = items[0];
+                const dataset = item.dataset || {};
+                const monthKey = dataset.monthKeys ? dataset.monthKeys[item.dataIndex] : '';
+                return monthKey ? monthLabelV6230(monthKey) : String(item.label || '');
+              },
+              label: ctx => (ctx.dataset && ctx.dataset.label ? ctx.dataset.label : 'Year') + ': ' + formatValue(ctx.raw),
+              footer: items => {
+                if (!items || items.length < 2) return '';
+                const currentItem = items.find(item => Number(item.dataset && item.dataset.label) === currentYear);
+                const priorItem = items.find(item => Number(item.dataset && item.dataset.label) === priorYear);
+                if (!currentItem || !priorItem) return '';
+                const currentValue = Number(currentItem.raw);
+                const priorValue = Number(priorItem.raw);
+                if (!Number.isFinite(currentValue) || !Number.isFinite(priorValue)) return '';
+                const delta = currentValue - priorValue;
+                let changeText = '';
+                if (isPercent) changeText = 'Change: ' + (delta > 0 ? '+' : '') + delta.toFixed(1) + '%';
+                else if (Math.abs(priorValue) < 0.0000001) changeText = 'Change: ' + (Math.abs(currentValue) < 0.0000001 ? '0%' : 'New');
+                else {
+                  const relative = delta / Math.abs(priorValue) * 100;
+                  changeText = 'Change: ' + (relative > 0 ? '+' : '') + Math.round(relative) + '%';
+                }
+                const scopeV6306 = trendComparisonScopeV6306.dateScopeV6306;
+                const monthIndexV6306 = Number(currentItem.dataIndex) + 1;
+                const dateTextV6306 = scopeV6306 && scopeV6306.isPartialMonth && monthIndexV6306 === Number(scopeV6306.latestMonth)
+                  ? remakePartialMonthNoteV6306(scopeV6306).replace('Partial-month comparison: ', 'Period: ').replace('. Completed months use full-month totals.', '')
+                  : '';
+                return dateTextV6306 ? [changeText, dateTextV6306] : changeText;
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            grid: { display: false },
+            border: { display: true, color: 'rgba(100,116,139,.42)', width: 1.1 },
+            ticks: { color: '#334155', font: { size: 11, weight: '700' }, padding: 5, maxRotation: 0, autoSkip: false }
+          },
+          y: {
+            beginAtZero: isMom ? false : true,
+            grid: { color: 'rgba(148,163,184,.22)', borderDash: [2, 8], lineWidth: .9, drawTicks: false },
+            border: { display: false },
+            ticks: { color: '#667085', font:{size:10}, padding:6, maxTicksLimit:4, callback: value => isPercent ? (isMom ? Number(value || 0).toFixed(1) + ' pp' : Number(value || 0).toFixed(0) + '%') : fmtCountV6230(value, isUnits ? 1 : 0) },
+            title: { display: true, text: axisTitle, color: '#202124', font: { size: 11, weight: '700' }, padding:{bottom:0} },
+            afterFit: scale => { scale.width += 16; }
+          }
+        }
+      }
+    };
+    const nextTrendTypeV6302 = trendConfigV6302.type;
+    const currentTrendTypeV6302 = remakeChartV6230 && remakeChartV6230.config ? remakeChartV6230.config.type : '';
+    if (remakeChartV6230 && currentTrendTypeV6302 === nextTrendTypeV6302) {
+      remakeChartV6230.data = trendConfigV6302.data;
+      remakeChartV6230.options = trendConfigV6302.options;
+      remakeChartV6230.update();
+    } else {
+      try { if (remakeChartV6230) remakeChartV6230.destroy(); } catch (error) {}
+      remakeChartV6230 = new Chart(canvas.getContext('2d'), trendConfigV6302);
+    }
+    installRemakeTrendDragV6266(remakeChartV6230, years, groupByMonth);
+  }
+
+  function keepRemakeTrendTooltipV6248(chart, index) {
+    // v6.249 anti-twitch: intentionally no-op. Tooltip is handled by Chart.js
+    // on hover without forcing chart.update() loops.
+  }
+
+
+  const comparisonDeltaPrefixV6303 = 'deltaV6303__';
+  function priorFieldV6303(field) {
+    const clean = String(field || '');
+    return clean ? 'prior' + clean.charAt(0).toUpperCase() + clean.slice(1) : '';
+  }
+  function deltaFieldV6303(field) { return comparisonDeltaPrefixV6303 + String(field || ''); }
+  function isPointDeltaFieldV6303(field) {
+    return field === 'remakeCaseRate' || field === 'remakeUnitRate' || field === 'shareCases' || field === 'shareUnits';
+  }
+  function isComparisonSortFieldV6303(field) {
+    const clean = String(field || '');
+    return clean.indexOf(comparisonDeltaPrefixV6303) === 0 || /^prior[A-Z]/.test(clean);
+  }
+  function comparisonDeltaSortValueV6303(row, field) {
+    const priorField = priorFieldV6303(field);
+    const current = numV6230(row && row[field]);
+    const prior = numV6230(row && row[priorField]);
+    if (isPointDeltaFieldV6303(field)) return current - prior;
+    if (Math.abs(prior) < 0.0000001) {
+      if (Math.abs(current) < 0.0000001) return 0;
+      return current > 0 ? Number.POSITIVE_INFINITY : Number.NEGATIVE_INFINITY;
+    }
+    return (current - prior) / Math.abs(prior);
+  }
+  function sortValueV6230(row, field) {
+    if (field === 'label' || field === 'name' || field === 'customerName' || field === 'productName') return String(row.label || row.name || row.customerName || row.productName || row.key || '').toLowerCase();
+    if (field === 'currentWorker') return String(row.currentWorker || '').toLowerCase();
+    if (field === 'customerId') return String(row.customerId || row.key || '').toLowerCase();
+    if (field === 'status') return row.customerActive === false ? 0 : 1;
+    if (String(field || '').indexOf(comparisonDeltaPrefixV6303) === 0) {
+      return comparisonDeltaSortValueV6303(row, String(field).slice(comparisonDeltaPrefixV6303.length));
+    }
+    return numV6230(row[field]);
+  }
+  function sortedRowsV6230(rows, tableKey) {
+    const sort = uiV6230.sorts[tableKey] || defaultSortsV6230[tableKey] || { field: 'remakeCases', dir: 'desc' };
+    const dir = sort.dir === 'asc' ? 1 : -1;
+    return (rows || []).slice().sort((a, b) => {
+      const av = sortValueV6230(a, sort.field);
+      const bv = sortValueV6230(b, sort.field);
+      if (typeof av === 'string' || typeof bv === 'string') return String(av).localeCompare(String(bv), undefined, { numeric: true, sensitivity: 'base' }) * dir;
+      if (av !== bv) return (av - bv) * dir;
+      return String(a.label || a.key).localeCompare(String(b.label || b.key), undefined, { numeric: true, sensitivity: 'base' });
+    });
+  }
+  /* v6.311 selected-row pinning.
+     A selected table value moves above the active sort order and stays pinned
+     beneath the sticky header while the table scrolls. Clearing the filter
+     returns the row to the normal sort order. */
+  function selectedRowsFirstV6311(rows, selectedValues, keyGetter, limit) {
+    const source = (rows || []).slice();
+    const selectedOrder = Array.from(selectedValues || []).map(String);
+    if (!selectedOrder.length) return source.slice(0, limit || source.length);
+    const order = new Map(selectedOrder.map((value, index) => [value, index]));
+    const pinned = [];
+    const rest = [];
+    source.forEach(function(row) {
+      const key = String(keyGetter ? keyGetter(row) : (row && row.key));
+      if (order.has(key)) pinned.push(row);
+      else rest.push(row);
+    });
+    pinned.sort(function(a, b) {
+      const aKey = String(keyGetter ? keyGetter(a) : (a && a.key));
+      const bKey = String(keyGetter ? keyGetter(b) : (b && b.key));
+      return Number(order.get(aKey)) - Number(order.get(bKey));
+    });
+    const maxRows = Math.max(Number(limit || source.length), pinned.length);
+    return pinned.concat(rest).slice(0, maxRows);
+  }
+  function applySelectedRowPinningV6311(table) {
+    if (!table) return;
+    const selectedRows = Array.from(table.querySelectorAll('tbody tr.selectedV6230'));
+    selectedRows.forEach(function(row) { row.classList.add('selectedPinnedV6311'); });
+    if (!selectedRows.length) return;
+    const measure = function() {
+      const header = table.querySelector('thead');
+      let top = header ? Math.max(0, header.getBoundingClientRect().height) : 34;
+      selectedRows.forEach(function(row) {
+        row.style.setProperty('--remake-selected-pin-top-v6311', top + 'px');
+        top += Math.max(1, row.getBoundingClientRect().height);
+      });
+    };
+    if (window.requestAnimationFrame) window.requestAnimationFrame(measure);
+    else measure();
+  }
+
+  function glyphV6230(tableKey, field) {
+    const sort = uiV6230.sorts[tableKey] || {};
+    if (sort.field !== field) return '';
+    return sort.dir === 'asc' ? '&#9650;' : '&#9660;';
+  }
+  function thV6230(tableKey, field, label, numeric, extraClass, titleLabel) {
+    const className = 'sortableV6230' + (numeric ? ' num' : '') + (extraClass ? ' ' + extraClass : '');
+    const fullLabel = titleLabel || label;
+    const role = /(?:^|\s)(?:priorYearHeaderV6301|deltaHeaderV6301)(?:\s|$)/.test(String(extraClass || '')) ? 'extended' : 'standard';
+    return '<th class="' + className + '" data-cda-field="' + escV6230(field) + '" data-cda-column-role="' + role + '" title="Sort by ' + escV6230(fullLabel) + '" aria-label="Sort by ' + escV6230(fullLabel) + '" onclick="setRemakeSortV6230(\'' + escJsV6230(tableKey) + '\',\'' + escJsV6230(field) + '\')">' + escV6230(label) + '<span class="sortGlyphV6230">' + glyphV6230(tableKey, field) + '</span></th>';
+  }
+  window.setRemakeSortV6230 = function setRemakeSortV6230(tableKey, field) {
+    const current = uiV6230.sorts[tableKey] || { field, dir: 'desc' };
+    uiV6230.sorts[tableKey] = { field, dir: current.field === field && current.dir === 'desc' ? 'asc' : 'desc' };
+    writeLocalJsonV6230(SORT_KEY_V6230, uiV6230.sorts);
+    // Sorting is presentation-only. Keep it local so the trend chart and the
+    // other tables do not blink or rebuild.
+    if (tableKey === 'ceramist' || tableKey === 'ceramistDetail') {
+      renderCeramistAnalysisV6342();
+    } else if (['reason','department','product','customer'].indexOf(tableKey) >= 0 && typeof runGentleTableMorphV6297 === 'function') {
+      runGentleTableMorphV6297(tableKey, function(){ renderTableSectionOnlyV6297(tableKey); }, tableKey === 'customer' ? { preserveChart: true } : null);
+    } else renderDashboardV6230();
+  };
+
+
+  const comparisonPackCacheV6301 = { rows: null, signature: '', pack: null };
+  function comparisonFilterSignatureV6301() {
+    const parts = ['year','department','product','productGroup','customer','reason'].map(function(kind){
+      return kind + '=' + filterValuesV6245(kind).map(String).sort().join('|') + ';excluded=' + excludedFilterValuesV6389(kind).map(String).sort().join('|');
+    });
+    parts.push('months=' + Array.from(uiV6230.selectedMonths || []).map(String).sort().join('|'));
+    return parts.join('::');
+  }
+  function comparisonPackV6301(allRows) {
+    const rows = allRows || [];
+    const signature = comparisonFilterSignatureV6301();
+    if (comparisonPackCacheV6301.rows === rows && comparisonPackCacheV6301.signature === signature && comparisonPackCacheV6301.pack) {
+      return comparisonPackCacheV6301.pack;
+    }
+    const pack = kpiComparisonV6281(rows);
+    comparisonPackCacheV6301.rows = rows;
+    comparisonPackCacheV6301.signature = signature;
+    comparisonPackCacheV6301.pack = pack;
+    return pack;
+  }
+  function comparisonScopeV6295(allRows) {
+    const pack = comparisonPackV6301(allRows || []);
+    const months = new Set((pack && pack.months || []).map(mm => String(mm).padStart(2, '0')));
+    return { currentYear: pack.currentYear, priorYear: pack.priorYear, months, dateScopeV6306: pack.dateScopeV6306 || null };
+  }
+  function rowsInComparisonYearV6295(rows, year, months, comparisonScope) {
+    return (rows || []).filter(row => {
+      if (Number(row.year) !== Number(year)) return false;
+      const mm = kpiMonthNumberV6281(row);
+      if (months && months.size && !months.has(mm)) return false;
+      return remakeRowWithinAlignedPriorPeriodV6306(row, comparisonScope && comparisonScope.dateScopeV6306);
+    });
+  }
+  function attachPriorGroupsV6295(currentGroups, priorGroups) {
+    const priorMap = new Map((priorGroups || []).map(row => [String(row.key), row]));
+    return (currentGroups || []).map(row => {
+      const prior = priorMap.get(String(row.key)) || {};
+      return Object.assign({}, row, {
+        priorTotalCases: numV6230(prior.totalCases),
+        priorRemakeCases: numV6230(prior.remakeCases),
+        priorRemakeCaseRate: numV6230(prior.remakeCaseRate),
+        priorTotalUnits: numV6230(prior.totalUnits),
+        priorRemakeUnits: numV6230(prior.remakeUnits),
+        priorRemakeUnitRate: numV6230(prior.remakeUnitRate),
+        priorRemakeDiscount: numV6230(prior.remakeDiscount),
+        priorShareCases: numV6230(prior.shareCases),
+        priorShareUnits: numV6230(prior.shareUnits)
+      });
+    });
+  }
+  function withReasonSharesV6301(groups, totals) {
+    const caseTotal = numV6230(totals && totals.remakeCases);
+    const unitTotal = numV6230(totals && totals.remakeUnits);
+    return (groups || []).map(function(row){
+      return Object.assign({}, row, {
+        shareCases: caseTotal ? numV6230(row.remakeCases) / caseTotal : 0,
+        shareUnits: unitTotal ? numV6230(row.remakeUnits) / unitTotal : 0
+      });
+    });
+  }
+  function relativeDeltaTextV6295(current, prior) {
+    current = numV6230(current); prior = numV6230(prior);
+    if (Math.abs(prior) < 0.0000001) return Math.abs(current) < 0.0000001 ? '0%' : 'New';
+    const pct = (current - prior) / Math.abs(prior) * 100;
+    return (pct > 0 ? '+' : '') + Math.round(pct) + '%';
+  }
+  function pointDeltaTextV6295(currentRate, priorRate) {
+    const points = (numV6230(currentRate) - numV6230(priorRate)) * 100;
+    return (points > 0 ? '+' : '') + points.toFixed(1) + '%';
+  }
+  function deltaClassV6295(current, prior, higherIsBad) {
+    const delta = numV6230(current) - numV6230(prior);
+    if (Math.abs(delta) < 0.0000001) return 'deltaNeutralV6295';
+    const good = higherIsBad ? delta < 0 : delta > 0;
+    return good ? 'deltaGoodV6295' : 'deltaBadV6295';
+  }
+  function priorHeaderV6295(label) {
+    const pack = comparisonScopeV6295(normalizedRowsV6230());
+    return (pack.priorYear || 'Prior') + ' ' + label;
+  }
+
+  function tableCompareOnV6297(tableKey) {
+    return !!(uiV6230.tableCompareV6297 && uiV6230.tableCompareV6297[tableKey]);
+  }
+  function metricCellV6297(current, prior, formatter, deltaMode, higherIsBad, neutralDelta) {
+    const main = '<span class="metricPrimaryV6297">' + escV6230(formatter(current)) + '</span>';
+    if (!Number.isFinite(Number(prior))) return main;
+    let deltaText = '';
+    if (deltaMode === 'points') deltaText = pointDeltaTextV6295(current, prior);
+    else deltaText = relativeDeltaTextV6295(current, prior);
+    const tone = neutralDelta ? 'deltaNeutralV6295' : deltaClassV6295(current, prior, higherIsBad !== false);
+    return main + '<span class="metricCompareV6297">2025: ' + escV6230(formatter(prior)) + ' <span class="' + tone + '">' + escV6230(deltaText) + '</span></span>';
+  }
+  function metricHeaderCellsV6301(tableKey, field, currentLabel, priorLabel, compare, currentTitle, priorTitle) {
+    let html = thV6230(tableKey, field, currentLabel, true, '', currentTitle || currentLabel);
+    if (compare) {
+      html += thV6230(tableKey, priorFieldV6303(field), priorLabel, true, 'priorYearHeaderV6301', priorTitle || priorLabel);
+      html += thV6230(tableKey, deltaFieldV6303(field), 'Delta', true, 'deltaHeaderV6301');
+    }
+    return html;
+  }
+  function metricValueCellsV6301(compare, current, prior, formatter, deltaMode, higherIsBad, neutralDelta) {
+    let html = '<td class="num currentYearCellV6301">' + escV6230(formatter(current)) + '</td>';
+    if (!compare) return html;
+    const deltaText = deltaMode === 'points' ? pointDeltaTextV6295(current, prior) : relativeDeltaTextV6295(current, prior);
+    const tone = neutralDelta ? 'deltaNeutralV6295' : deltaClassV6295(current, prior, higherIsBad !== false);
+    html += '<td class="num priorYearCellV6301">' + escV6230(formatter(prior)) + '</td>';
+    html += '<td class="num deltaCellV6301"><span class="' + tone + '">' + escV6230(deltaText) + '</span></td>';
+    return html;
+  }
+  function reasonMetricHeaderCellsV6301(tableKey, field, currentLabel, priorLabel, compare, currentTitle, priorTitle) {
+    return metricHeaderCellsV6301(tableKey, field, currentLabel, priorLabel, compare, currentTitle, priorTitle);
+  }
+  function syncTableCompareButtonsV6297() {
+    const map = { reason:'remakeReasonCompareBtnV6297', department:'remakeDepartmentCompareBtnV6297', product:'remakeProductCompareBtnV6297', customer:'remakeCustomerCompareBtnV6297' };
+    Object.keys(map).forEach(function(key){ const btn=idV6230(map[key]); if(btn) btn.classList.toggle('active', tableCompareOnV6297(key)); });
+  }
+
+  /* v6.314 compact visual year labels.
+     Current-year table columns omit the year prefix; prior-year comparison columns keep '25.
+     Exports retain full four-digit years. */
+  function shortYearLabelV6312(value) {
+    const text = String(value == null ? '' : value).trim();
+    return /^\d{4}$/.test(text) ? "'" + text.slice(-2) : text;
+  }
+
+  /* v6.334 compact detail-table headings.
+     Standard detail tables show both denominator volume and remake volume:
+     Cases, Rmk Cases, Case %, Units, Rmk Units, Unit %, and Rmk Disc.
+     Full metric names remain available in each sortable header tooltip. */
+  function renderStandardTableV6230(id, tableKey, rows, firstHeader, filterKind, limit) {
+    const table = idV6230(id);
+    if (!table) return;
+    const activeValues = filterKind ? new Set(filterValuesV6245(filterKind).map(String)) : new Set();
+    const sorted = selectedRowsFirstV6311(sortedRowsV6230(rows, tableKey), activeValues, row => row.key, limit || 200);
+    uiV6230.lastTables[tableKey] = sorted;
+    const compare = tableCompareOnV6297(tableKey);
+    const scope = comparisonScopeV6295(normalizedRowsV6230());
+    const year = scope.currentYear || 'Current';
+    const priorYear = scope.priorYear || 'Prior';
+    const yearLabelV6312 = shortYearLabelV6312(year);
+    const priorYearLabelV6312 = shortYearLabelV6312(priorYear);
+    table.classList.toggle('compareColumnsV6301', compare);
+    const header = '<thead><tr>'
+      + thV6230(tableKey, 'label', firstHeader, false)
+      + metricHeaderCellsV6301(tableKey, 'totalCases', 'Cases', priorYearLabelV6312 + ' Cases', compare, 'Total Cases', priorYear + ' Total Cases')
+      + metricHeaderCellsV6301(tableKey, 'remakeCases', 'Rmk Cases', priorYearLabelV6312 + ' Rmk Cases', compare, 'Remake Cases', priorYear + ' Remake Cases')
+      + metricHeaderCellsV6301(tableKey, 'remakeCaseRate', 'Case %', priorYearLabelV6312 + ' Case %', compare, 'Remake Case Rate', priorYear + ' Remake Case Rate')
+      + metricHeaderCellsV6301(tableKey, 'totalUnits', 'Units', priorYearLabelV6312 + ' Units', compare, 'Total Units', priorYear + ' Total Units')
+      + metricHeaderCellsV6301(tableKey, 'remakeUnits', 'Rmk Units', priorYearLabelV6312 + ' Rmk Units', compare, 'Remake Units', priorYear + ' Remake Units')
+      + metricHeaderCellsV6301(tableKey, 'remakeUnitRate', 'Unit %', priorYearLabelV6312 + ' Unit %', compare, 'Remake Unit Rate', priorYear + ' Remake Unit Rate')
+      + metricHeaderCellsV6301(tableKey, 'remakeDiscount', 'Rmk Disc.', priorYearLabelV6312 + ' Rmk Disc.', compare, 'Remake Discount', priorYear + ' Remake Discount')
+      + '</tr></thead>';
+    const columnCount = compare ? 22 : 8;
+    if (!sorted.length) { table.innerHTML = header + '<tbody><tr><td colspan="' + columnCount + '">No matching rows.</td></tr></tbody>'; return; }
+    table.innerHTML = header + '<tbody>' + sorted.map(row => {
+      const isSelected = activeValues.has(String(row.key));
+      const selectedClass = isSelected ? ' selectedV6230' : '';
+      const dimClass = activeValues.size && !isSelected ? ' dimmedV6266' : '';
+      return '<tr class="clickable' + selectedClass + dimClass + '" onclick="applyRemakeTableFilterV6230(\'' + escJsV6230(filterKind) + '\',\'' + escJsV6230(row.key) + '\',event)">'
+        + '<td>' + escV6230(row.label || row.key) + '</td>'
+        + metricValueCellsV6301(compare, row.totalCases, row.priorTotalCases, v => fmtCountV6230(v), 'relative', false, true)
+        + metricValueCellsV6301(compare, row.remakeCases, row.priorRemakeCases, v => fmtCountV6230(v), 'relative', true, false)
+        + metricValueCellsV6301(compare, row.remakeCaseRate, row.priorRemakeCaseRate, v => fmtPctV6230(v), 'points', true, false)
+        + metricValueCellsV6301(compare, row.totalUnits, row.priorTotalUnits, v => fmtCountV6230(v, 1), 'relative', false, true)
+        + metricValueCellsV6301(compare, row.remakeUnits, row.priorRemakeUnits, v => fmtCountV6230(v, 1), 'relative', true, false)
+        + metricValueCellsV6301(compare, row.remakeUnitRate, row.priorRemakeUnitRate, v => fmtPctV6230(v), 'points', true, false)
+        + metricValueCellsV6301(compare, row.remakeDiscount, row.priorRemakeDiscount, v => fmtCurrencyV6230(v), 'relative', true, false)
+        + '</tr>';
+    }).join('') + '</tbody>';
+    applySelectedRowPinningV6311(table);
+  }
+
+
+  /* v6.241 Remake Reasons table clarification.
+     A remake reason only exists on remake rows, so showing both Total Cases and
+     Remake Cases by reason makes every row read as 100%. Keep the underlying
+     calculations/functions intact, but display reason rows as remake distribution. */
+  function renderRemakeReasonTableV6241(id, tableKey, rows, firstHeader, filterKind, limit, totals) {
+    const table = idV6230(id);
+    if (!table) return;
+    const activeValues = filterKind ? new Set(filterValuesV6245(filterKind).map(String)) : new Set();
+    const sorted = selectedRowsFirstV6311(sortedRowsV6230(rows, tableKey), activeValues, row => row.key, limit || 200);
+    uiV6230.lastTables[tableKey] = sorted;
+    const compare = tableCompareOnV6297('reason');
+    const scope = comparisonScopeV6295(normalizedRowsV6230());
+    const year = scope.currentYear || 'Current';
+    const priorYear = scope.priorYear || 'Prior';
+    const yearLabelV6312 = shortYearLabelV6312(year);
+    const priorYearLabelV6312 = shortYearLabelV6312(priorYear);
+    table.classList.toggle('compareColumnsV6301', compare);
+    const header = '<thead><tr>'
+      + thV6230(tableKey, 'label', firstHeader, false)
+      + reasonMetricHeaderCellsV6301(tableKey, 'remakeCases', 'Rmk Cases', priorYearLabelV6312 + ' Rmk Cases', compare, 'Remake Cases', priorYear + ' Remake Cases')
+      + reasonMetricHeaderCellsV6301(tableKey, 'shareCases', 'Case Share %', priorYearLabelV6312 + ' Case Share %', compare, '% of Remake Cases', priorYear + ' % of Remake Cases')
+      + reasonMetricHeaderCellsV6301(tableKey, 'remakeUnits', 'Rmk Units', priorYearLabelV6312 + ' Rmk Units', compare, 'Remake Units', priorYear + ' Remake Units')
+      + reasonMetricHeaderCellsV6301(tableKey, 'shareUnits', 'Unit Share %', priorYearLabelV6312 + ' Unit Share %', compare, '% of Remake Units', priorYear + ' % of Remake Units')
+      + reasonMetricHeaderCellsV6301(tableKey, 'remakeDiscount', 'Rmk Disc.', priorYearLabelV6312 + ' Rmk Disc.', compare, 'Remake Discount', priorYear + ' Remake Discount')
+      + '</tr></thead>';
+    const columnCount = compare ? 16 : 6;
+    if (!sorted.length) { table.innerHTML = header + '<tbody><tr><td colspan="' + columnCount + '">No matching rows.</td></tr></tbody>'; return; }
+    table.innerHTML = header + '<tbody>' + sorted.map(row => {
+      const isSelected = activeValues.has(String(row.key));
+      const selectedClass = isSelected ? ' selectedV6230' : '';
+      const dimClass = activeValues.size && !isSelected ? ' dimmedV6266' : '';
+      return '<tr class="clickable' + selectedClass + dimClass + '" onclick="applyRemakeTableFilterV6230(\'' + escJsV6230(filterKind) + '\',\'' + escJsV6230(row.key) + '\',event)">'
+        + '<td>' + escV6230(row.label || row.key) + '</td>'
+        + metricValueCellsV6301(compare, row.remakeCases, row.priorRemakeCases, v => fmtCountV6230(v), 'relative', true, false)
+        + metricValueCellsV6301(compare, row.shareCases, row.priorShareCases, v => fmtPctV6230(v), 'points', true, false)
+        + metricValueCellsV6301(compare, row.remakeUnits, row.priorRemakeUnits, v => fmtCountV6230(v, 1), 'relative', true, false)
+        + metricValueCellsV6301(compare, row.shareUnits, row.priorShareUnits, v => fmtPctV6230(v), 'points', true, false)
+        + metricValueCellsV6301(compare, row.remakeDiscount, row.priorRemakeDiscount, v => fmtCurrencyV6230(v), 'relative', true, false)
+        + '</tr>';
+    }).join('') + '</tbody>';
+    applySelectedRowPinningV6311(table);
+  }
+
+
+  const remakeResponsibilitySelectionV6504 = { kind:'', values:[] };
+
+  function normalizedResponsibilityKindV6504(kind) {
+    const raw = String(kind || '');
+    if (raw === 'group') return 'productGroup';
+    if (raw === 'ceramist') return 'technician';
+    return raw;
+  }
+  function cleanResponsibilityValuesV6504(values) {
+    const seen = new Set();
+    return (Array.isArray(values) ? values : [values]).map(String).filter(function(value){
+      if (!value || value === REMAKE_NONE_FILTER_VALUE_V6308 || seen.has(value)) return false;
+      seen.add(value); return true;
+    });
+  }
+  function setRemakeResponsibilitySelectionV6504(kind, values) {
+    const clean = cleanResponsibilityValuesV6504(values);
+    remakeResponsibilitySelectionV6504.kind = clean.length ? normalizedResponsibilityKindV6504(kind) : '';
+    remakeResponsibilitySelectionV6504.values = clean;
+    window.setTimeout(function(){
+      try { renderCustomerResponsibilitySummaryV6503(); } catch (error) {}
+      try { renderCustomerChartV6230(); } catch (error) {}
+    }, 0);
+  }
+  function clearRemakeResponsibilitySelectionV6504(kind) {
+    const normalized = normalizedResponsibilityKindV6504(kind);
+    if (!normalized || normalized === 'all' || remakeResponsibilitySelectionV6504.kind === normalized) setRemakeResponsibilitySelectionV6504('', []);
+  }
+  function responsibilityKindLabelV6504(kind) {
+    return ({customer:'Customer',department:'Department',product:'Product',productGroup:'Product group',reason:'Remake reason',technician:'Technician'})[kind] || 'Selected item';
+  }
+  function responsibilityRowsV6504(kind) {
+    if (kind === 'customer') return Array.isArray(uiV6230.lastCustomerGroupsV6291) ? uiV6230.lastCustomerGroupsV6291 : [];
+    if (kind === 'department') return Array.isArray(uiV6230.lastDepartmentGroupsV6297) ? uiV6230.lastDepartmentGroupsV6297 : [];
+    if (kind === 'reason') return Array.isArray(uiV6230.lastReasonGroupsV6297) ? uiV6230.lastReasonGroupsV6297 : [];
+    if (kind === 'product' || kind === 'productGroup') {
+      const activeKind = uiV6230.productTableMode === 'group' ? 'productGroup' : 'product';
+      return activeKind === kind && Array.isArray(uiV6230.lastProductGroupsV6297) ? uiV6230.lastProductGroupsV6297 : [];
+    }
+    if (kind === 'technician') return Array.isArray(uiV6230.lastTables.ceramist) ? uiV6230.lastTables.ceramist : [];
+    return [];
+  }
+  function responsibilityRowMatchesV6504(kind, value, row) {
+    const target = String(value);
+    if (kind === 'customer') return String(row && row.customerKey) === target;
+    if (kind === 'department') return String(row && (row.department || 'Unassigned')) === target;
+    if (kind === 'product') return String(row && row.productKey) === target;
+    if (kind === 'productGroup') return String(row && (row.productGroup || row.department || 'Unassigned')) === target;
+    if (kind === 'reason') return String(row && (row.remakeReason || 'Not specified')) === target;
+    return false;
+  }
+  function computedResponsibilityMetricsV6504(kind, value) {
+    const allRows = normalizedRowsV6230();
+    const scope = comparisonScopeV6295(allRows);
+    const currentRows = rowsInComparisonYearV6295(allRows, scope.currentYear, scope.months, scope);
+    const options = { year:false, months:false };
+    options[kind] = false;
+    const denominatorTotalRows = rowsForBaseFiltersV6252(currentRows, options);
+    const denominatorRemakeRows = rowsForRemakeFiltersV6252(currentRows, options);
+    const selectedTotalRows = kind === 'reason' ? [] : denominatorTotalRows.filter(function(row){ return responsibilityRowMatchesV6504(kind,value,row); });
+    const selectedRemakeRows = denominatorRemakeRows.filter(function(row){ return responsibilityRowMatchesV6504(kind,value,row); });
+    const denominator = summarizeSplitV6252(denominatorTotalRows, denominatorRemakeRows);
+    const selected = summarizeSplitV6252(selectedTotalRows, selectedRemakeRows);
+    return {
+      remakeCases:selected.remakeCases,
+      remakeUnits:selected.remakeUnits,
+      remakeDiscount:selected.remakeDiscount,
+      caseShare:denominator.remakeCases ? selected.remakeCases / denominator.remakeCases : 0,
+      unitShare:denominator.remakeUnits ? selected.remakeUnits / denominator.remakeUnits : 0,
+      discountShare:denominator.remakeDiscount ? selected.remakeDiscount / denominator.remakeDiscount : 0,
+      caseRate:selected.remakeCaseRate,
+      unitRate:selected.remakeUnitRate
+    };
+  }
+  function responsibilityItemV6504() {
+    const kind = normalizedResponsibilityKindV6504(remakeResponsibilitySelectionV6504.kind);
+    const values = cleanResponsibilityValuesV6504(remakeResponsibilitySelectionV6504.values);
+    if (!kind || !values.length) return {state:'empty'};
+    if (values.length !== 1) return {state:'multiple',kind:kind,count:values.length};
+    const value = values[0];
+    const rows = responsibilityRowsV6504(kind);
+    const row = rows.find(function(item){ return String(item && item.key) === value; });
+    if (!row && kind === 'technician') return {state:'waiting',kind:kind,value:value};
+    let metrics = null;
+    let rateAvailable = kind !== 'reason' && kind !== 'technician';
+    if (kind === 'technician') {
+      const caseTotal = rows.reduce(function(sum,item){ return sum + numV6230(item && item.remakeCases); },0);
+      const unitTotal = rows.reduce(function(sum,item){ return sum + numV6230(item && item.remakeUnits); },0);
+      const discountTotal = rows.reduce(function(sum,item){ return sum + Math.abs(numV6230(item && item.remakeDiscount)); },0);
+      metrics = {
+        remakeCases:numV6230(row.remakeCases),
+        remakeUnits:numV6230(row.remakeUnits),
+        remakeDiscount:Math.abs(numV6230(row.remakeDiscount)),
+        caseShare:caseTotal ? numV6230(row.remakeCases) / caseTotal : 0,
+        unitShare:unitTotal ? numV6230(row.remakeUnits) / unitTotal : 0,
+        discountShare:discountTotal ? Math.abs(numV6230(row.remakeDiscount)) / discountTotal : 0,
+        caseRate:0,
+        unitRate:0
+      };
+    } else {
+      metrics = computedResponsibilityMetricsV6504(kind,value);
+    }
+    const fallbackLabel = typeof filterOptionLabelV6245 === 'function' ? filterOptionLabelV6245(kind,value) : value;
+    const label = kind === 'customer'
+      ? ((row && (row.customerDisplayLabel || row.label || row.customerName || row.key)) || fallbackLabel || value)
+      : ((row && (row.label || row.customerName || row.key)) || fallbackLabel || value);
+    return Object.assign({state:'ready',kind:kind,label:label,rateAvailable:rateAvailable},metrics);
+  }
+  function renderCustomerResponsibilitySummaryV6503() {
+    const host = idV6230('remakeCustomerResponsibilitySummaryV6502');
+    if (!host) return;
+    const item = responsibilityItemV6504();
+    if (item.state === 'empty') {
+      host.innerHTML = '<div class="remakeResponsibilityEmptyV6504">Select one customer, department, product, product group, remake reason, or technician. This panel will show how much of the current filtered remake total came from that item.</div>';
+      return;
+    }
+    if (item.state === 'multiple') {
+      host.innerHTML = '<div class="remakeResponsibilityMultipleV6504">' + escV6230(String(item.count)) + ' ' + escV6230(responsibilityKindLabelV6504(item.kind).toLowerCase()) + ' values are selected. Choose one item to see its individual responsibility share.</div>';
+      return;
+    }
+    if (item.state !== 'ready') {
+      host.innerHTML = '<div class="remakeResponsibilityEmptyV6504">The selected item is loading in the current filter context.</div>';
+      return;
+    }
+    const rates = item.rateAvailable
+      ? '<div class="remakeResponsibilityMetricV6504"><span>Internal case rate</span><strong>' + escV6230(fmtPctV6230(item.caseRate)) + '</strong></div><div class="remakeResponsibilityMetricV6504"><span>Internal unit rate</span><strong>' + escV6230(fmtPctV6230(item.unitRate)) + '</strong></div>'
+      : '';
+    const note = item.rateAvailable ? '' : '<div class="remakeResponsibilityRateNoteV6504">An internal rate is not shown because this selection does not have a reliable all-work denominator in the current cache.</div>';
+    host.innerHTML = '<div class="remakeResponsibilityHeaderV6504"><div><div class="remakeResponsibilityKickerV6504">Selected item responsibility</div><strong class="remakeResponsibilityNameV6504">' + escV6230(item.label) + '</strong><span class="remakeResponsibilityTypeV6504">' + escV6230(responsibilityKindLabelV6504(item.kind)) + '</span></div></div><div class="remakeResponsibilityMetricsV6504">'
+      + '<div class="remakeResponsibilityMetricV6504"><span>Remake cases</span><strong>' + escV6230(fmtCountV6230(item.remakeCases)) + '</strong></div><div class="remakeResponsibilityMetricV6504 shareV6504"><span>Case share</span><strong>' + escV6230(fmtPctV6230(item.caseShare)) + '</strong></div>'
+      + '<div class="remakeResponsibilityMetricV6504"><span>Remake units</span><strong>' + escV6230(fmtCountV6230(item.remakeUnits,1)) + '</strong></div><div class="remakeResponsibilityMetricV6504 shareV6504"><span>Unit share</span><strong>' + escV6230(fmtPctV6230(item.unitShare)) + '</strong></div>'
+      + '<div class="remakeResponsibilityMetricV6504"><span>Remake discount</span><strong>' + escV6230(fmtCurrencyV6230(item.remakeDiscount)) + '</strong></div><div class="remakeResponsibilityMetricV6504 shareV6504"><span>Discount share</span><strong>' + escV6230(fmtPctV6230(item.discountShare)) + '</strong></div>' + rates + '</div>' + note;
+  }
+
+  /* v6.303 customer ranking rule.
+     The chart must always represent the highest remake-rate customers in the
+     active filter context. Table sorting is presentation-only and may reorder
+     that fixed leader set, but it must never change the chart membership/order. */
+  function customerHighestRateRowsV6303(customerGroups, limit) {
+    const remakeCustomers = (customerGroups || []).filter(row => row && numV6230(row.remakeCases) > 0);
+    const eligible = remakeCustomers.filter(row => numV6230(row.totalCases) >= 5 || numV6230(row.remakeCases) > 1);
+    const source = eligible.length ? eligible : remakeCustomers;
+    return source.slice().sort((a, b) => {
+      const rateGap = numV6230(b.remakeCaseRate) - numV6230(a.remakeCaseRate);
+      if (Math.abs(rateGap) > 0.0000001) return rateGap;
+      const remakeGap = numV6230(b.remakeCases) - numV6230(a.remakeCases);
+      if (Math.abs(remakeGap) > 0.0000001) return remakeGap;
+      const caseGap = numV6230(b.totalCases) - numV6230(a.totalCases);
+      if (Math.abs(caseGap) > 0.0000001) return caseGap;
+      return String(a.customerDisplayLabel || a.label || a.customerName || a.key || '').localeCompare(String(b.customerDisplayLabel || b.label || b.customerName || b.key || ''), undefined, { numeric: true, sensitivity: 'base' });
+    }).slice(0, limit || 12);
+  }
+  function customerLeaderRowsV6244(customerGroups, limit) {
+    return sortedRowsV6230(customerHighestRateRowsV6303(customerGroups, limit), 'customer');
+  }
+
+

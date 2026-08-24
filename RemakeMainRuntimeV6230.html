@@ -1,0 +1,10 @@
+/* v6.230 Remake section full rebuild.
+   Changed only Index.html.
+   Replaces the Remake tab shell and state handling cleanly: no repeated control layers, no select-reset on render,
+   customer names/status from Overview facts, real product departments, sortable tables, and one action set per card. */
+(function installCleanRemakeSectionV6230() {
+  'use strict';
+
+<?!= includeDashboardFile('RemakeRuntimeCoreV6230') ?><?!= includeDashboardFile('RemakeRuntimePresentationV6230') ?><?!= includeDashboardFile('RemakeFilterRuntimeV6245') ?><?!= includeDashboardFile('RemakeAnalyticsRuntimeV6281') ?><?!= includeDashboardFile('RemakeCustomerTableRuntimeV6230') ?><?!= includeDashboardFile('RemakeTechnicianCoreRuntimeV6342') ?><?!= includeDashboardFile('RemakeTechnicianPopulationRuntimeV6569') ?><?!= includeDashboardFile('RemakeCustomerChartRuntimeV6504') ?><?!= includeDashboardFile('RemakeTransitionRuntimeV6300') ?><?!= includeDashboardFile('RemakePopoutBridgeRuntimeV6339') ?><?!= includeDashboardFile('RemakePopoutWindowRuntimeV6339') ?><?!= includeDashboardFile('RemakePopoutControllerRuntimeV6339') ?><?!= includeDashboardFile('RemakeCacheRuntimeV6388') ?>  startupOnceV6624();
+})();
+

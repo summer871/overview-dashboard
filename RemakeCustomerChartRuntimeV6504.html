@@ -1,0 +1,37 @@
+  function renderCustomerChartV6230() {
+    const canvas = idV6230('remakeCustomerChartV6230');
+    const empty = idV6230('remakeCustomerDetailEmptyV6503');
+    if (!canvas || !window.Chart) return;
+    const item = responsibilityItemV6504();
+    if (item.state !== 'ready') {
+      if (empty) {
+        empty.textContent = item.state === 'multiple' ? 'Choose one selected item to compare its case, unit, and discount shares.' : 'Select an item to compare its share of remake cases, units, and discount.';
+        empty.style.display = 'flex';
+      }
+      if (customerChartV6230) { try { customerChartV6230.destroy(); } catch (error) {} customerChartV6230 = null; }
+      const context = canvas.getContext && canvas.getContext('2d');
+      if (context) context.clearRect(0,0,canvas.width || 0,canvas.height || 0);
+      return;
+    }
+    if (empty) empty.style.display = 'none';
+    const config = {
+      type:'bar',
+      data:{labels:['Case share','Unit share','Discount share'],datasets:[{label:item.label,data:[item.caseShare,item.unitShare,item.discountShare].map(function(value){return numV6230(value)*100;}),backgroundColor:['rgba(242,201,76,.52)','rgba(148,163,184,.40)','rgba(71,84,103,.30)'],borderColor:['#d89b00','#64748b','#344054'],borderWidth:1.2,maxBarThickness:30}]},
+      options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,animation:{duration:95,easing:'easeOutQuad'},plugins:{legend:{display:false},tooltip:{callbacks:{label:function(ctx){return Number(ctx.raw||0).toFixed(1)+'%';}}}},scales:{x:{beginAtZero:true,ticks:{callback:function(value){return Number(value||0).toFixed(0)+'%';},color:'#667085'},grid:{color:'#edf0f5'}},y:{grid:{display:false},ticks:{color:'#334155',font:{size:10.5,weight:'700'}}}}}
+    };
+    if (customerChartV6230) { customerChartV6230.data=config.data; customerChartV6230.options=config.options; customerChartV6230.update(); }
+    else customerChartV6230 = new Chart(canvas.getContext('2d'),config);
+  }
+
+  /* v6.300 local FLIP/canvas transition controller.
+     It takes a lightweight visual snapshot before a cross-filter render, lets
+     the existing calculations and renderers run unchanged, then animates only
+     the affected rows, KPI values, and chart canvases into their new geometry. */
+  /*
+   * APPROVED TRANSITION PRESERVATION NOTE (v6.301+)
+   * Summer explicitly approved the staged local FLIP/table and Chart.js transition
+   * system as the desired interaction baseline. Preserve this architecture in future
+   * edits. Do not replace it with a full-dashboard fade, blur, view transition, or a
+   * synchronous redraw that blocks the click frame. Local component updates should
+   * keep the current content visible, paint click feedback first, then morph in place.
+   */

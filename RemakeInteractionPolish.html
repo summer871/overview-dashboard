@@ -1,0 +1,257 @@
+<!-- v6.424: smooth atomic motion plus active yellow filter pills below the KPI row. -->
+<style id="cdaSmoothAtomicPolishV6424">
+  /* KPI cards stay in the first row. Active yellow filter pills occupy their own
+     clean row below the cards, outside every KPI card. */
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  /* Smooth only paint-safe properties. No card, table, canvas, or layout geometry
+     is transitioned, so atomic rendering remains stable. */
+  #remakeFactorPage :is(button,.remakeButton,.remakeDropdownButtonV6245,.remakeTabToolButtonV6337) {
+    transition:
+      background-color 140ms cubic-bezier(.22, 1, .36, 1),
+      border-color 140ms cubic-bezier(.22, 1, .36, 1),
+      color 140ms cubic-bezier(.22, 1, .36, 1),
+      box-shadow 140ms cubic-bezier(.22, 1, .36, 1),
+      opacity 140ms cubic-bezier(.22, 1, .36, 1) !important;
+  }
+
+  #remakeFactorPage :is(button,.remakeButton,.remakeDropdownButtonV6245,.remakeTabToolButtonV6337):active {
+    opacity: .78 !important;
+  }
+
+  
+
+  
+
+  #remakeFactorPage .remakeDropdownPanelV6245 {
+    transform-origin: top center !important;
+  }
+
+  @media (max-width: 1320px) {
+    
+  }
+
+  @media (max-width: 860px) {
+    
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    #remakeFactorPage * {
+      transition-duration: 0.01ms !important;
+    }
+  }
+</style>
+<script>
+(function installSmoothAtomicPolishV6424(){
+  'use strict';
+  if (window.__cdaSmoothAtomicPolishV6424) return;
+  window.__cdaSmoothAtomicPolishV6424 = true;
+  window.CDA_CURRENT_FRONTEND_VERSION = 'v6.424';
+  window.CDA_SMOOTH_ATOMIC_VERSION = 'v6.424';
+  window.CDA_FILTER_PILLS_BELOW_KPIS_VERSION = 'v6.424';
+
+  const reducedMotionV6424 = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const runningAnimationsV6424 = new WeakMap();
+
+  function cancelNodeAnimationV6424(node){
+    const current = runningAnimationsV6424.get(node);
+    if (!current) return;
+    try { current.cancel(); } catch (error) {}
+    runningAnimationsV6424.delete(node);
+  }
+
+  function animateNodeV6424(node, keyframes, options){
+    if (reducedMotionV6424 || !node || typeof node.animate !== 'function') return;
+    cancelNodeAnimationV6424(node);
+    try {
+      const animation = node.animate(keyframes, options);
+      runningAnimationsV6424.set(node, animation);
+      const clear = function(){
+        if (runningAnimationsV6424.get(node) === animation) runningAnimationsV6424.delete(node);
+      };
+      animation.addEventListener('finish', clear, { once: true });
+      animation.addEventListener('cancel', clear, { once: true });
+    } catch (error) {}
+  }
+
+  function animateOpenPanelV6424(panel){
+    if (!panel || !panel.classList || !panel.classList.contains('open')) return;
+    animateNodeV6424(panel, [
+      { opacity: 0, transform: 'translateY(-5px) scale(.995)' },
+      { opacity: 1, transform: 'translateY(0) scale(1)' }
+    ], {
+      duration: 170,
+      easing: 'cubic-bezier(.22, 1, .36, 1)',
+      fill: 'none'
+    });
+  }
+
+  function animateActivePageV6424(){
+    const page = document.querySelector('.tabPage.active, #remakeFactorPage.active');
+    if (!page) return;
+    animateNodeV6424(page, [
+      { opacity: .88 },
+      { opacity: 1 }
+    ], {
+      duration: 190,
+      easing: 'cubic-bezier(.22, 1, .36, 1)',
+      fill: 'none'
+    });
+  }
+
+  document.addEventListener('click', function(event){
+    const target = event.target && event.target.closest ? event.target.closest('.dropdownButton,.remakeDropdownButtonV6245,.tabBtn') : null;
+    if (!target) return;
+    window.requestAnimationFrame(function(){
+      if (target.classList.contains('tabBtn')) {
+        animateActivePageV6424();
+        return;
+      }
+      const panelId = target.getAttribute('onclick') || '';
+      const match = panelId.match(/['\"]([^'\"]+Panel[^'\"]*)['\"]/i);
+      if (match && match[1]) animateOpenPanelV6424(document.getElementById(match[1]));
+      else {
+        const card = target.closest('.dropdownCard,.remakeDropdownV6245');
+        if (card) animateOpenPanelV6424(card.querySelector('.dropdownPanel.open,.remakeDropdownPanelV6245.open'));
+      }
+    });
+  }, false);
+})();
+</script>
+
+<!-- v6.428: keep the actual Remake Factor yellow filter pills below and completely outside the KPI area. -->
+<style id="cdaRemakePillsOutsideKpiAreaV6428">
+  #remakeFactorPage.cleanRemakeV6230 .remakeShellV6230 > #remakePillsV6230.remakePillsV6230 {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    flex-wrap: wrap !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    margin: 0 0 8px !important;
+    padding: 0 2px !important;
+    gap: 7px !important;
+    background: transparent !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    box-sizing: border-box !important;
+  }
+
+  #remakeFactorPage.cleanRemakeV6230 .remakeShellV6230 > #remakePillsV6230.remakePillsV6230:empty {
+    display: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  #remakeFactorPage.cleanRemakeV6230 .remakeShellV6230 > #remakePillsV6230 .remakePillV6230,
+  #remakeFactorPage.cleanRemakeV6230 .remakeShellV6230 > #remakePillsV6230 .remakeClearAllV6230 {
+    transition:
+      background-color 150ms cubic-bezier(.22, 1, .36, 1),
+      border-color 150ms cubic-bezier(.22, 1, .36, 1),
+      color 150ms cubic-bezier(.22, 1, .36, 1),
+      box-shadow 150ms cubic-bezier(.22, 1, .36, 1),
+      opacity 150ms cubic-bezier(.22, 1, .36, 1) !important;
+  }
+
+  @media (max-width: 760px) {
+    #remakeFactorPage.cleanRemakeV6230 .remakeShellV6230 > #remakePillsV6230.remakePillsV6230 {
+      flex-wrap: nowrap !important;
+      overflow-x: auto !important;
+      overflow-y: hidden !important;
+      -webkit-overflow-scrolling: touch !important;
+      scrollbar-width: thin !important;
+    }
+  }
+</style>
+<script>
+(function installRemakePillsOutsideKpiAreaV6428(){
+  'use strict';
+  window.CDA_REMAKE_PILLS_OUTSIDE_KPI_AREA_VERSION = 'v6.428';
+
+  function placeRemakePillsOutsideKpiAreaV6428(){
+    const page = document.getElementById('remakeFactorPage');
+    if (!page) return;
+    const shell = page.querySelector('.remakeShellV6230');
+    const sticky = shell && shell.querySelector(':scope > .remakeStickyTopV6245');
+    const pills = document.getElementById('remakePillsV6230');
+    if (!shell || !sticky || !pills) return;
+
+    pills.setAttribute('data-placement', 'outside-kpi-area-below-kpis');
+    pills.classList.add('remakePillsOutsideKpiAreaV6428');
+
+    if (pills.parentNode !== shell || pills.previousElementSibling !== sticky) {
+      sticky.insertAdjacentElement('afterend', pills);
+    }
+  }
+
+  const originalInstallCleanRemakeSectionV6428 = window.installCleanRemakeSectionV6230;
+  if (typeof originalInstallCleanRemakeSectionV6428 === 'function' && !originalInstallCleanRemakeSectionV6428.__cdaPillsOutsideV6428) {
+    const wrappedInstallCleanRemakeSectionV6428 = function installCleanRemakeSectionV6428(){
+      const result = originalInstallCleanRemakeSectionV6428.apply(this, arguments);
+      placeRemakePillsOutsideKpiAreaV6428();
+      return result;
+    };
+    wrappedInstallCleanRemakeSectionV6428.__cdaPillsOutsideV6428 = true;
+    window.installCleanRemakeSectionV6230 = wrappedInstallCleanRemakeSectionV6428;
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', placeRemakePillsOutsideKpiAreaV6428, { once: true });
+  } else {
+    placeRemakePillsOutsideKpiAreaV6428();
+  }
+
+  document.addEventListener('click', function(event){
+    const tab = event.target && event.target.closest ? event.target.closest('[data-tab="remakeFactor"],#remakeFactorTab,.tabBtn') : null;
+    if (!tab) return;
+    window.requestAnimationFrame(placeRemakePillsOutsideKpiAreaV6428);
+  }, true);
+
+  window.placeRemakePillsOutsideKpiAreaV6428 = placeRemakePillsOutsideKpiAreaV6428;
+})();
+</script>
+
+<!-- v6.427: keep sticky first-column cells visually joined to their hovered Remake table row. -->
+<style id="remakeCompleteRowHoverStylesV6427">
+  #remakeFactorPage.cleanRemakeV6230 .remakeTable tbody tr.clickable:hover > td,
+  #remakeFactorPage.cleanRemakeV6230 .remakeTable tbody tr.clickable:hover > td:first-child {
+    background: #eef4ff !important;
+    cursor: pointer !important;
+  }
+
+  #remakeFactorPage.cleanRemakeV6230 .remakeTable tbody tr.selectedV6230:hover > td,
+  #remakeFactorPage.cleanRemakeV6230 .remakeTable tbody tr.selectedV6230:hover > td:first-child,
+  #remakeFactorPage.cleanRemakeV6230 .remakeTable tbody tr.selectedPinnedV6311:hover > td,
+  #remakeFactorPage.cleanRemakeV6230 .remakeTable tbody tr.selectedPinnedV6311:hover > td:first-child {
+    background: #fff7d6 !important;
+  }
+
+  #remakeFactorPage.cleanRemakeV6230 .remakeTable tbody tr.dimmedV6266:hover > td,
+  #remakeFactorPage.cleanRemakeV6230 .remakeTable tbody tr.dimmedV6266:hover > td:first-child {
+    background: #f5f6f8 !important;
+  }
+</style>
+<script>
+window.CDA_CURRENT_FRONTEND_VERSION = 'v6.428';
+window.CDA_REMAKE_TABLE_HOVER_VERSION = 'v6.427';
+window.CDA_REMAKE_PILLS_OUTSIDE_KPI_AREA_VERSION = 'v6.428';
+</script>
+

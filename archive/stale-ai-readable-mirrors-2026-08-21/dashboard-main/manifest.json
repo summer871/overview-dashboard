@@ -1,0 +1,19 @@
+{
+  "generatedAtUtc": "2026-08-21T23:23:03.644Z",
+  "authoritativeSource": "DashboardMainScript.html",
+  "authoritativeSourceBytes": 125,
+  "authoritativeSourceSha256": "33b3d96364964d308b9e8b6cf29b151a842d2e5f3363ba5f6b93fc95d42b41b4",
+  "targetChunkBytes": 70000,
+  "chunkCount": 1,
+  "chunks": [
+    {
+      "part": 1,
+      "file": "docs/ai-readable/dashboard-main/DashboardMainScript-Part01.txt",
+      "bytes": 125,
+      "sha256": "33b3d96364964d308b9e8b6cf29b151a842d2e5f3363ba5f6b93fc95d42b41b4"
+    }
+  ],
+  "byteForByteReconstructionVerified": true,
+  "runtimeFilesChanged": false,
+  "purpose": "Read-only inspection mirror. DashboardMainScript.html is itself below the AI readability target after semantic extraction."
+}

@@ -1,0 +1,72 @@
+{
+  "datePt": "2026-08-21",
+  "checkpoint": "Semantic Index extraction batch",
+  "behaviorChangeIntended": false,
+  "source": "Index.html",
+  "sourceSha256Before": "497a1ffba9ad8249985e46e751101666b6afc76a505248d46328d81e11fa4769",
+  "sourceSha256After": "f7678829b26a72c064c7c2ec7973b3e8fbc3b2983ee7d753d796ccc382faac97",
+  "bytesBefore": 175532,
+  "bytesAfter": 139762,
+  "bytesRemovedFromIndex": 35770,
+  "archivePath": "archive/index-semantic-extraction-2026-08-21/Index.pre-semantic-module-extraction.html",
+  "archiveByteForByteVerified": true,
+  "compositionByteForByteReconstructionVerified": true,
+  "overviewReferencesAfter": 0,
+  "modules": [
+    {
+      "name": "RemakeSectionStateControllerV6402",
+      "path": "RemakeSectionStateControllerV6402.html",
+      "bytes": 13960,
+      "sha256": "642d2eb2dfda184e5d76361e2dbffe65db16ff7f31b7c163d229b82af2d2133f",
+      "extractedByteForByte": true,
+      "includeCountInIndex": 1
+    },
+    {
+      "name": "RemakeKpiChooserV6403",
+      "path": "RemakeKpiChooserV6403.html",
+      "bytes": 17970,
+      "sha256": "7be1166d98caa5b5e4811ebef541572ababfdd6b21df5b6a15d7c1e44da9b503",
+      "extractedByteForByte": true,
+      "includeCountInIndex": 1
+    },
+    {
+      "name": "SharedAtomicRenderingV6418",
+      "path": "SharedAtomicRenderingV6418.html",
+      "bytes": 4016,
+      "sha256": "70625ad8b70c52461e9922420a40e78a91a1bde85163fbbc276d54a48dd6c951",
+      "extractedByteForByte": true,
+      "includeCountInIndex": 1
+    }
+  ],
+  "protectedTokenCountsBefore": {
+    "#remakeFactorPage": 541,
+    "#categoricalPage": 6,
+    ".tabPage": 3,
+    "remakeSectionCollapsedV6402": 7,
+    "performRemakeAutomaticCacheSyncV6409": 7,
+    "remakeKpiChooserPopoverV6403": 2,
+    "CDA_ATOMIC_STABLE_RENDER_VERSION": 2,
+    "includeDashboardFile('SharedFilterBar')": 1,
+    "includeDashboardFile('RemakeSharedFilterAdapterV6646')": 1,
+    "includeDashboardFile('TatDashboardControllerScript')": 1,
+    "includeDashboardFile('TatSharedFilterAdapterV6646')": 1,
+    "includeDashboardFile('SharedFooter')": 1
+  },
+  "protectedTokenCountsAfterComposed": {
+    "#remakeFactorPage": 541,
+    "#categoricalPage": 6,
+    ".tabPage": 3,
+    "remakeSectionCollapsedV6402": 7,
+    "performRemakeAutomaticCacheSyncV6409": 7,
+    "remakeKpiChooserPopoverV6403": 2,
+    "CDA_ATOMIC_STABLE_RENDER_VERSION": 2,
+    "includeDashboardFile('SharedFilterBar')": 1,
+    "includeDashboardFile('RemakeSharedFilterAdapterV6646')": 1,
+    "includeDashboardFile('TatDashboardControllerScript')": 1,
+    "includeDashboardFile('TatSharedFilterAdapterV6646')": 1,
+    "includeDashboardFile('SharedFooter')": 1
+  },
+  "logicRewritten": false,
+  "loadOrderChanged": false,
+  "productionDeployment": false
+}

@@ -1,0 +1,35 @@
+<script>
+(function installDashboardClientBootRuntimeV6647(){
+  'use strict';
+
+  // Keep this boot owner idempotent if an earlier composition step has
+  // already initialized the shared dashboard base URL.
+  if (typeof window.dashboardBaseUrl === 'string') return;
+
+  window.dashboardBaseUrl = '<?!= dashboardBaseUrl ?>';
+  window.CDA_SERVER_PRESENTATION = {
+    version: <?!= JSON.stringify(dashboardPresentationVersion || 'v6.251') ?>,
+    mode: <?!= JSON.stringify(dashboardPresentationMode || 'remake') ?>,
+    source: <?!= JSON.stringify(dashboardPresentationSource || 'Code.gs backendPresentationMode') ?>,
+    fastCacheRetained: true
+  };
+
+  // Preserve the current client-side Remake + TAT presentation contract.
+  window.CDA_SERVER_PRESENTATION.mode = 'remaketat';
+  window.CDA_SERVER_PRESENTATION.startTab = 'remakeFactor';
+
+  window.addEventListener('error', function(event) {
+    var box = document.getElementById('singleShellClientError');
+    if (!box) return;
+    box.style.display = 'block';
+    box.textContent = 'CLIENT JS ERROR\n' + event.message + '\nLine: ' + event.lineno + ':' + event.colno + '\nFile: ' + event.filename;
+  });
+
+  window.addEventListener('unhandledrejection', function(event) {
+    var box = document.getElementById('singleShellClientError');
+    if (!box) return;
+    box.style.display = 'block';
+    box.textContent = 'CLIENT PROMISE ERROR\n' + (event.reason && event.reason.message ? event.reason.message : String(event.reason));
+  });
+})();
+</script>

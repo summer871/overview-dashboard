@@ -1,0 +1,28 @@
+<script>
+(function installDashboardShellNavigationRuntimeV6647(){
+  'use strict';
+
+  // The staged legacy runtime still provides these functions today. Remain
+  // inert until that owner is removed so there is no duplicate click handler.
+  if (typeof window.toggleUnderConstructionMenu === 'function' &&
+      typeof window.closeUnderConstructionMenu === 'function') return;
+
+  window.toggleUnderConstructionMenu = function toggleUnderConstructionMenu(event) {
+    if (event) event.stopPropagation();
+    const menu = document.getElementById('underConstructionMenu');
+    if (menu) menu.classList.toggle('open');
+  };
+
+  window.closeUnderConstructionMenu = function closeUnderConstructionMenu() {
+    const menu = document.getElementById('underConstructionMenu');
+    if (menu) menu.classList.remove('open');
+  };
+
+  document.addEventListener('click', function closeDashboardShellMenuOutsideV6647(event) {
+    const target = event && event.target;
+    if (!target || !target.closest || !target.closest('.tabGroup')) {
+      window.closeUnderConstructionMenu();
+    }
+  });
+})();
+</script>

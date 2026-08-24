@@ -1,0 +1,19 @@
+name: Dashboard legacy ownership audit
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out cleanup branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/ai-readable-cleanup-2026-08-21
+
+      - name: Verify saved audit exists
+        run: test -s docs/audits/DASHBOARD-LEGACY-OWNERSHIP-AUDIT-2026-08-21.md

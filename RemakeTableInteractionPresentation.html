@@ -1,0 +1,384 @@
+<!-- v6.357: readable consistent table typography, individual per-column visibility menus, and local chart/card clearing. -->
+
+
+
+<!-- v6.382: removed rejected v6.358/v6.363 mobile app shell and bottom navigation. -->
+
+
+
+
+<!-- v6.360: prevent Ceramist section divider rows from inheriting the generic
+     sticky first-column rule. A colspan divider must paint across the entire
+     table while the table scrolls; otherwise the remaining columns appear as
+     a white block over the divider. -->
+<style id="ceramistSectionScrollFixV6360">
+  #remakeFactorPage.cleanRemakeV6230 #remakeCeramistTableV6342
+  tbody tr.ceramistSectionRowV6348 {
+    position:static !important;
+    z-index:auto !important;
+  }
+
+  #remakeFactorPage.cleanRemakeV6230 #remakeCeramistTableV6342
+  tbody tr.ceramistSectionRowV6348 > td {
+    display:table-cell !important;
+    position:static !important;
+    left:auto !important;
+    top:auto !important;
+    z-index:auto !important;
+    width:auto !important;
+    min-width:0 !important;
+    max-width:none !important;
+    box-shadow:none !important;
+    background:#eef2f6 !important;
+    color:#475467 !important;
+  }
+
+  #remakeFactorPage.cleanRemakeV6230 #remakeCeramistTableV6342
+  tbody tr.ceramistSectionRowV6348:nth-child(even) > td,
+  #remakeFactorPage.cleanRemakeV6230 #remakeCeramistTableV6342
+  tbody tr.ceramistSectionRowV6348:nth-child(odd) > td {
+    background:#eef2f6 !important;
+  }
+</style>
+<script>window.CDA_CERAMIST_SECTION_SCROLL_FIX_VERSION = 'v6.360';</script>
+
+
+<!-- v6.362: keep the selected Ceramist worker frozen directly beneath the
+     table header without allowing the sticky first-column rule or section
+     divider rows to paint a white block over the table. -->
+<style id="ceramistSelectedRowFreezeV6361">
+  @media (min-width:761px) {
+    #remakeFactorPage.cleanRemakeV6230 #remakeCeramistTableV6342 thead th {
+      position:sticky !important;
+      top:0 !important;
+      z-index:8 !important;
+      background:#203038 !important;
+    }
+
+    #remakeFactorPage.cleanRemakeV6230 #remakeCeramistTableV6342 thead th:first-child {
+      z-index:9 !important;
+    }
+
+    #remakeFactorPage.cleanRemakeV6230 #remakeCeramistTableV6342
+    tbody tr.ceramistPinnedWorkerV6361 > td {
+      position:sticky !important;
+      top:var(--ceramist-selected-pin-top-v6361, 28px) !important;
+      z-index:6 !important;
+      background:#fff7d6 !important;
+      box-shadow:inset 0 -1px 0 rgba(217,119,6,.28), 0 3px 6px rgba(15,23,42,.10) !important;
+    }
+
+    #remakeFactorPage.cleanRemakeV6230 #remakeCeramistTableV6342
+    tbody tr.ceramistPinnedWorkerV6361 > td:first-child {
+      left:0 !important;
+      z-index:7 !important;
+      background:#fff7d6 !important;
+    }
+
+    #remakeFactorPage.cleanRemakeV6230 #remakeCeramistTableV6342
+    tbody tr.ceramistSectionRowV6348,
+    #remakeFactorPage.cleanRemakeV6230 #remakeCeramistTableV6342
+    tbody tr.ceramistSectionRowV6348 > td {
+      position:static !important;
+      left:auto !important;
+      top:auto !important;
+      z-index:1 !important;
+      box-shadow:none !important;
+      background:#eef2f6 !important;
+    }
+  }
+
+  @media (max-width:760px) {
+    #remakeFactorPage.cleanRemakeV6230 #remakeCeramistTableV6342
+    tbody tr.ceramistPinnedWorkerV6361 > td {
+      position:static !important;
+      top:auto !important;
+      left:auto !important;
+      box-shadow:none !important;
+    }
+  }
+</style>
+<script id="ceramistSelectedRowFreezeScriptV6362">
+(function(){
+  'use strict';
+  const tableId = 'remakeCeramistTableV6342';
+  const pinnedClass = 'ceramistPinnedWorkerV6361';
+  let observedTable = null;
+  let tableObserver = null;
+  let resizeObserver = null;
+  let queued = false;
+
+  function table(){
+    return document.getElementById(tableId);
+  }
+
+  function setPinTop(node, pixels){
+    const next = pixels + 'px';
+    if (node.style.getPropertyValue('--ceramist-selected-pin-top-v6361') !== next) {
+      node.style.setProperty('--ceramist-selected-pin-top-v6361', next);
+    }
+  }
+
+  function removePinnedRows(node, exceptRow){
+    node.querySelectorAll('tbody tr.' + pinnedClass).forEach(function(row){
+      if (row !== exceptRow) row.classList.remove(pinnedClass);
+    });
+  }
+
+  function measureAndPin(){
+    queued = false;
+    const node = table();
+    if (!node) return;
+
+    const mobile = !!(window.matchMedia && window.matchMedia('(max-width:760px)').matches);
+    const selected = mobile ? null : node.querySelector('tbody tr.ceramistSelectedV6343');
+
+    removePinnedRows(node, selected);
+    if (!selected) {
+      const current = node.querySelector('tbody tr.' + pinnedClass);
+      if (current) current.classList.remove(pinnedClass);
+      return;
+    }
+
+    const header = node.querySelector('thead');
+    const headerHeight = Math.max(1, Math.ceil(header ? header.getBoundingClientRect().height : 28));
+    setPinTop(node, headerHeight);
+
+    if (!selected.classList.contains(pinnedClass)) selected.classList.add(pinnedClass);
+  }
+
+  function queue(){
+    if (queued) return;
+    queued = true;
+    if (window.requestAnimationFrame) window.requestAnimationFrame(measureAndPin);
+    else window.setTimeout(measureAndPin, 0);
+  }
+
+  function observe(){
+    const node = table();
+    if (!node || node === observedTable) {
+      queue();
+      return;
+    }
+
+    if (tableObserver) tableObserver.disconnect();
+    if (resizeObserver) resizeObserver.disconnect();
+
+    observedTable = node;
+    tableObserver = new MutationObserver(queue);
+    tableObserver.observe(node, {
+      childList:true,
+      subtree:true,
+      attributes:true,
+      attributeFilter:['class']
+    });
+
+    if (window.ResizeObserver) {
+      resizeObserver = new ResizeObserver(queue);
+      const header = node.querySelector('thead');
+      if (header) resizeObserver.observe(header);
+    }
+    queue();
+  }
+
+  const pageObserver = new MutationObserver(function(mutations){
+    const relevant = (mutations || []).some(function(mutation){
+      const changed = Array.from(mutation.addedNodes || []).concat(Array.from(mutation.removedNodes || []));
+      return changed.some(function(node){
+        if (!node || node.nodeType !== 1) return false;
+        if (node.id === 'remakeCeramistTableV6342') return true;
+        return !!(node.querySelector && node.querySelector('#remakeCeramistTableV6342'));
+      });
+    });
+    if (relevant) observe();
+  });
+  function start(){
+    const page = document.getElementById('remakeFactorPage') || document.body;
+    if (page) pageObserver.observe(page, { childList:true, subtree:true });
+    observe();
+  }
+
+  window.addEventListener('resize', queue, { passive:true });
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, { once:true });
+  else start();
+})();
+</script>
+<script>window.CDA_CERAMIST_SELECTED_ROW_FREEZE_VERSION = 'v6.362';</script>
+
+
+
+<!-- v6.382: removed separate mobile card/list renderer; real tables remain the source of truth. -->
+
+
+
+<!-- v6.367: worker-cache status and rebuilt timestamp moved out of the worker header and into the page cache footer. The timestamp is explicitly labeled as cache-updated time, not latest case-data date. -->
+
+<style id="ceramistV6368CleanControlsDetailDrawerStyles">
+  /* v6.368: hide advanced worker attribution filters, remove the confusing
+     whole-row blue hover, and make right-side rows intentionally actionable. */
+  #remakeFactorPage.cleanRemakeV6230 #remakeCeramistCardV6342 .ceramistPreviewMetaV6342 {
+    display:none !important;
+  }
+  #remakeFactorPage.cleanRemakeV6230 #remakeCeramistCardV6342 .ceramistTopControlsV6351 {
+    justify-content:flex-start !important;
+  }
+  #remakeFactorPage.cleanRemakeV6230 .ceramistDetailSelectionV6368 {
+    padding:8px 10px !important;
+    border-bottom:1px solid #dfe4eb !important;
+    background:#f8fafc !important;
+    max-height:118px !important;
+    overflow:auto !important;
+  }
+  #remakeFactorPage.cleanRemakeV6230 .ceramistDetailSelectionHeaderV6368 {
+    display:flex !important;
+    align-items:flex-start !important;
+    justify-content:space-between !important;
+    gap:8px !important;
+  }
+  #remakeFactorPage.cleanRemakeV6230 .ceramistDetailSelectionHeadingV6368 {
+    display:flex !important;
+    align-items:baseline !important;
+    gap:7px !important;
+    min-width:0 !important;
+  }
+  #remakeFactorPage.cleanRemakeV6230 .ceramistDetailSelectionHeadingV6368 strong {
+    color:#172033 !important;
+    font:900 11.5px/1.2 Roboto,Arial,sans-serif !important;
+    overflow:hidden !important;
+    text-overflow:ellipsis !important;
+    white-space:nowrap !important;
+  }
+  #remakeFactorPage.cleanRemakeV6230 .ceramistDetailSelectionHeadingV6368 span {
+    color:#667085 !important;
+    font:800 9.5px/1.2 Roboto,Arial,sans-serif !important;
+    white-space:nowrap !important;
+  }
+  #remakeFactorPage.cleanRemakeV6230 .ceramistDetailSelectionCloseV6368 {
+    width:24px !important;
+    height:24px !important;
+    min-width:24px !important;
+    padding:0 !important;
+    border:1px solid #cfd6df !important;
+    border-radius:50% !important;
+    background:#fff !important;
+    color:#475467 !important;
+    font:900 16px/1 Roboto,Arial,sans-serif !important;
+    cursor:pointer !important;
+  }
+  #remakeFactorPage.cleanRemakeV6230 .ceramistDetailSelectionMetricsV6368 {
+    display:grid !important;
+    grid-template-columns:repeat(4,minmax(0,1fr)) !important;
+    gap:6px !important;
+    margin-top:6px !important;
+  }
+  #remakeFactorPage.cleanRemakeV6230 .ceramistDetailSelectionMetricsV6368 > div {
+    display:flex !important;
+    align-items:center !important;
+    justify-content:space-between !important;
+    gap:5px !important;
+    padding:4px 6px !important;
+    background:#fff !important;
+    border:1px solid #e1e6ee !important;
+    border-radius:5px !important;
+    min-width:0 !important;
+  }
+  #remakeFactorPage.cleanRemakeV6230 .ceramistDetailSelectionMetricsV6368 span {
+    color:#667085 !important;
+    font:800 8.5px/1.1 Roboto,Arial,sans-serif !important;
+  }
+  #remakeFactorPage.cleanRemakeV6230 .ceramistDetailSelectionMetricsV6368 strong {
+    color:#172033 !important;
+    font:900 10px/1.1 Roboto,Arial,sans-serif !important;
+    white-space:nowrap !important;
+  }
+  #remakeFactorPage.cleanRemakeV6230 .ceramistDetailSelectionContextV6368 {
+    margin-top:5px !important;
+    color:#475467 !important;
+    font:700 9.5px/1.35 Roboto,Arial,sans-serif !important;
+    white-space:normal !important;
+  }
+  #remakeFactorPage.cleanRemakeV6230 #remakeCeramistDetailTableV6343 tbody tr.ceramistDetailClickableV6368 {
+    cursor:pointer !important;
+  }
+  #remakeFactorPage.cleanRemakeV6230 #remakeCeramistDetailTableV6343 tbody tr.ceramistDetailClickableV6368:nth-child(odd):hover td {
+    background:#fff !important;
+  }
+  #remakeFactorPage.cleanRemakeV6230 #remakeCeramistDetailTableV6343 tbody tr.ceramistDetailClickableV6368:nth-child(even):hover td {
+    background:#fafafa !important;
+  }
+  #remakeFactorPage.cleanRemakeV6230 .ceramistDetailLabelV6368 {
+    display:inline-block !important;
+    max-width:calc(100% - 18px) !important;
+    overflow:hidden !important;
+    text-overflow:ellipsis !important;
+    vertical-align:middle !important;
+  }
+  #remakeFactorPage.cleanRemakeV6230 .ceramistDetailChevronV6368 {
+    float:right !important;
+    color:#98a2b3 !important;
+    font:900 15px/1 Roboto,Arial,sans-serif !important;
+  }
+  #remakeFactorPage.cleanRemakeV6230 .ceramistDetailClickableV6368:hover .ceramistDetailChevronV6368,
+  #remakeFactorPage.cleanRemakeV6230 .ceramistDetailClickableV6368:focus .ceramistDetailChevronV6368 {
+    color:#b7791f !important;
+  }
+  #remakeFactorPage.cleanRemakeV6230 #remakeCeramistDetailTableV6343 tbody tr.ceramistDetailSelectedV6368 td {
+    background:#fff7d6 !important;
+    border-color:#f2c94c !important;
+  }
+  @media(max-width:1180px) {
+    #remakeFactorPage.cleanRemakeV6230 .ceramistPanelV6343.detailOpenV6368 .ceramistPreviewTableWrapV6342 {
+      height:185px !important;
+    }
+  }
+  @media(max-width:720px) {
+    #remakeFactorPage.cleanRemakeV6230 .ceramistDetailSelectionMetricsV6368 {
+      grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+    }
+    #remakeFactorPage.cleanRemakeV6230 .ceramistPanelV6343.detailOpenV6368 .ceramistPreviewTableWrapV6342 {
+      height:auto !important;
+    }
+  }
+</style>
+
+<style>
+  #remakeFactorPage.cleanRemakeV6230 .ceramistDetailSelectionV6368 { display:none !important; }
+  #remakeFactorPage.cleanRemakeV6230 .ceramistPanelV6343.detailOpenV6368 .ceramistPreviewTableWrapV6342 { height:285px !important; }
+  .ceramistCaseDialogOverlayV6369 {
+    position:fixed; inset:0; z-index:100000; display:flex; align-items:center; justify-content:center;
+    padding:24px; background:rgba(15,23,42,.38);
+  }
+  .ceramistCaseDialogV6369 {
+    width:min(720px,calc(100vw - 32px)); max-height:min(76vh,680px); display:flex; flex-direction:column;
+    background:#fff; border:1px solid #d7dce2; border-radius:14px; box-shadow:0 22px 55px rgba(15,23,42,.28); overflow:hidden;
+  }
+  .ceramistCaseDialogHeaderV6369 { display:flex; align-items:flex-start; justify-content:space-between; gap:14px; padding:16px 18px; border-bottom:1px solid #e5e7eb; }
+  .ceramistCaseDialogHeadingV6369 { display:flex; flex-direction:column; gap:4px; min-width:0; }
+  .ceramistCaseDialogHeadingV6369 strong { color:#172033; font:900 15px/1.3 Roboto,Arial,sans-serif; white-space:normal; }
+  .ceramistCaseDialogHeadingV6369 span { color:#667085; font:800 10.5px/1.2 Roboto,Arial,sans-serif; }
+  .ceramistCaseDialogCloseV6369 { width:32px !important; height:32px !important; min-width:32px !important; padding:0 !important; border-radius:50% !important; font-size:19px !important; }
+  .ceramistCaseDialogBodyV6369 { padding:16px 18px; overflow:auto; }
+  .ceramistCaseDialogSectionV6369 + .ceramistCaseDialogSectionV6369 { margin-top:16px; }
+  .ceramistCaseDialogSectionTitleV6369 { margin-bottom:8px; color:#475467; font:900 10px/1.2 Roboto,Arial,sans-serif; text-transform:uppercase; letter-spacing:.45px; }
+  .ceramistCaseDialogChipsV6369 { display:flex; flex-wrap:wrap; gap:7px; }
+  .ceramistCaseDialogChipV6369 { display:inline-flex; align-items:center; min-height:27px; padding:5px 9px; border:1px solid #d7dce2; border-radius:999px; background:#f8fafc; color:#344054; font:800 10.5px/1 Roboto,Arial,sans-serif; }
+  .ceramistCaseDialogTextV6369 { padding:10px 11px; border:1px solid #e1e6ee; border-radius:8px; background:#f8fafc; color:#475467; font:700 10.5px/1.45 Roboto,Arial,sans-serif; white-space:normal; }
+  .ceramistCaseDialogEmptyV6369 { color:#667085; font:700 11px/1.4 Roboto,Arial,sans-serif; }
+  .ceramistCaseDialogFooterV6369 { display:flex; justify-content:flex-end; gap:9px; padding:11px 18px; border-top:1px solid #e5e7eb; background:#f8fafc; }
+  .ceramistCaseDialogFooterV6369 button { height:32px !important; }
+  .ceramistCaseDialogCopyV6369:disabled { opacity:.45; cursor:default; }
+  @media(max-width:720px) {
+    .ceramistCaseDialogOverlayV6369 { align-items:flex-end; padding:0; }
+    .ceramistCaseDialogV6369 { width:100%; max-height:82vh; border-radius:16px 16px 0 0; }
+    .ceramistCaseDialogHeaderV6369 { padding:14px 15px; }
+    .ceramistCaseDialogBodyV6369 { padding:14px 15px; }
+    .ceramistCaseDialogFooterV6369 { padding:10px 15px max(10px,env(safe-area-inset-bottom)); }
+    .ceramistCaseDialogFooterV6369 button { flex:1 1 0; }
+  }
+</style>
+<script>window.CDA_REMAKE_WORKER_CASE_DIALOG_VERSION = 'v6.369';</script>
+
+<script>window.CDA_REMAKE_WORKER_FILTERS_DETAIL_DRAWER_VERSION = 'v6.369';</script>
+
+
+

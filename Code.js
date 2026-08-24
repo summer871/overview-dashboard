@@ -1,7 +1,7 @@
 /**
- * Executive Overview Dashboard Router
- * Version: Code.gs v6.567 independent cache timestamps
- * Date: 2026-07-31
+ * Executive Dashboard Router
+ * Version: Code.gs v6.568 raw include expansion
+ * Date: 2026-08-23
  * Purpose: Serve the dashboard shell and inject presentation metadata.
  */
 function doGet(e) {
@@ -13,13 +13,13 @@ function doGet(e) {
   const template = HtmlService.createTemplateFromFile('Index');
   template.dashboardBaseUrl = getDashboardBaseUrl();
   template.dashboardPresentationMode = presentationMode;
-  template.dashboardPresentationVersion = 'v6.567';
-  template.dashboardPresentationSource = 'Code.gs v6.567 independent cache timestamps';
+  template.dashboardPresentationVersion = 'v6.568';
+  template.dashboardPresentationSource = 'Code.gs v6.568 raw include expansion';
 
   const presentation = {
     mode: presentationMode,
-    version: 'v6.567',
-    source: 'Code.gs v6.567 independent cache timestamps',
+    version: 'v6.568',
+    source: 'Code.gs v6.568 raw include expansion',
     baseUrl: getDashboardBaseUrl()
   };
 
@@ -36,22 +36,45 @@ function doGet(e) {
 }
 
 function includeDashboardFile(filename, context) {
-  const safeFilename = String(filename || '').trim();
-  if (!safeFilename || !/^[A-Za-z0-9_-]+$/.test(safeFilename)) {
-    throw new Error('Invalid dashboard include filename: ' + safeFilename);
-  }
-  const template = HtmlService.createTemplateFromFile(safeFilename);
+  const safeFilename = normalizeDashboardIncludeFilename(filename);
   const values = context && typeof context === 'object' ? context : {};
+  const expandedContent = expandDashboardIncludeFile(safeFilename, []);
+
+  if (!Object.keys(values).length && expandedContent.indexOf('<?') < 0) {
+    return expandedContent;
+  }
+
+  const template = HtmlService.createTemplate(expandedContent);
   Object.keys(values).forEach(function(key) { template[key] = values[key]; });
   return template.evaluate().getContent();
 }
 
+function expandDashboardIncludeFile(filename, stack) {
+  const safeFilename = normalizeDashboardIncludeFilename(filename);
+  const chain = Array.isArray(stack) ? stack : [];
+  if (chain.indexOf(safeFilename) >= 0) {
+    throw new Error('Circular dashboard include: ' + chain.concat([safeFilename]).join(' -> '));
+  }
+
+  const rawContent = HtmlService.createTemplateFromFile(safeFilename).getRawContent();
+  const nextChain = chain.concat([safeFilename]);
+  const includePattern = /<\?!=\s*includeDashboardFile\(\s*(['"])([A-Za-z0-9_-]+)\1\s*\)\s*;?\s*\?>/g;
+
+  return rawContent.replace(includePattern, function(match, quote, childFilename) {
+    return expandDashboardIncludeFile(childFilename, nextChain);
+  });
+}
+
+function normalizeDashboardIncludeFilename(filename) {
+  const safeFilename = String(filename || '').trim();
+  if (!safeFilename || !/^[A-Za-z0-9_-]+$/.test(safeFilename)) {
+    throw new Error('Invalid dashboard include filename: ' + safeFilename);
+  }
+  return safeFilename;
+}
+
 function getDashboardPresentationMode(e) {
-  const params = e && e.parameter ? e.parameter : {};
-  const normalized = String(params.presentation || params.view || params.mode || '').trim().toLowerCase();
-  if (['all','dev','devall','alltabs','full'].indexOf(normalized) >= 0) return 'all';
-  if (['overview','overviewonly','overview-only'].indexOf(normalized) >= 0) return 'overview';
-  return 'remake';
+  return 'remaketat';
 }
 
 function getDashboardBaseUrl() {
@@ -69,29 +92,48 @@ function renderDashboardDebugPage() {
 function debugDashboardServerHealth() {
   const health = {
     ok: true,
-    routerVersion: 'Code.gs v6.567 independent cache timestamps',
+    routerVersion: 'Code.gs v6.568 raw include expansion',
     timestamp: new Date().toISOString(),
     scriptTimeZone: Session.getScriptTimeZone(),
     dashboardBaseUrl: getDashboardBaseUrl(),
     functions: {
-      getOverviewDashboardData: typeof getOverviewDashboardData,
-      refreshOverviewDashboardCache: typeof refreshOverviewDashboardCache,
-      testOverviewDashboardCacheShape: typeof testOverviewDashboardCacheShape,
-      debugOverviewDashboardCacheHealth: typeof debugOverviewDashboardCacheHealth
+      getRemakeFactorData: typeof getRemakeFactorData,
+      refreshRemakeFactorCache: typeof refreshRemakeFactorCache,
+      debugRemakeFactorCacheHealth: typeof debugRemakeFactorCacheHealth,
+      getTatDashboardData: typeof getTatDashboardData,
+      refreshTatDashboardCache: typeof refreshTatDashboardCache,
+      debugTatDashboardCacheHealth: typeof debugTatDashboardCacheHealth
     },
-    cache: {}
+    cache: {
+      remake: {},
+      tat: {}
+    }
   };
+
   try {
-    health.cache = typeof debugOverviewDashboardCacheHealth === 'function'
-      ? debugOverviewDashboardCacheHealth()
-      : { ok:false, message:'debugOverviewDashboardCacheHealth is missing from OverviewDashboardCache.gs' };
+    health.cache.remake = typeof debugRemakeFactorCacheHealth === 'function'
+      ? debugRemakeFactorCacheHealth()
+      : { ok:false, message:'debugRemakeFactorCacheHealth is missing from RemakeFactorCache.js' };
   } catch (error) {
-    health.cache = {
+    health.cache.remake = {
       ok:false,
       message:error && error.message ? error.message : String(error),
       stack:error && error.stack ? error.stack : ''
     };
   }
+
+  try {
+    health.cache.tat = typeof debugTatDashboardCacheHealth === 'function'
+      ? debugTatDashboardCacheHealth()
+      : { ok:false, message:'debugTatDashboardCacheHealth is missing from TatDashboardCache.js' };
+  } catch (error) {
+    health.cache.tat = {
+      ok:false,
+      message:error && error.message ? error.message : String(error),
+      stack:error && error.stack ? error.stack : ''
+    };
+  }
+
   return health;
 }
 
