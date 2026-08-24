@@ -1,0 +1,188 @@
+﻿name: Apps Script HEAD Push
+
+on:
+  push:
+    branches:
+      - automation/apps-script-head-push
+    paths:
+      - .github/apps-script-head-request.json
+
+permissions:
+  contents: read
+
+concurrency:
+  group: overview-dashboard-apps-script-head
+  cancel-in-progress: false
+
+jobs:
+  push-head:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out automation branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Read push request
+        id: request
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          REQUEST=".github/apps-script-head-request.json"
+
+          test -f "$REQUEST"
+
+          ENABLED="$(node -p "require('./$REQUEST').enabled")"
+          SCRIPT_ID="$(node -p "require('./$REQUEST').scriptId")"
+          TARGET_BRANCH="$(node -p "require('./$REQUEST').targetBranch")"
+          TARGET_SHA="$(node -p "require('./$REQUEST').targetSha")"
+          EXPECTED_UI="$(node -p "require('./$REQUEST').expectedUi")"
+          EXPECTED_BUILD="$(node -p "require('./$REQUEST').expectedBuild")"
+
+          if [ "$ENABLED" != "true" ]; then
+            echo "Push request is disabled."
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          test -n "$SCRIPT_ID"
+          test -n "$TARGET_BRANCH"
+          test -n "$TARGET_SHA"
+          test -n "$EXPECTED_UI"
+          test -n "$EXPECTED_BUILD"
+
+          echo "enabled=true" >> "$GITHUB_OUTPUT"
+          echo "script_id=$SCRIPT_ID" >> "$GITHUB_OUTPUT"
+          echo "target_branch=$TARGET_BRANCH" >> "$GITHUB_OUTPUT"
+          echo "target_sha=$TARGET_SHA" >> "$GITHUB_OUTPUT"
+          echo "expected_ui=$EXPECTED_UI" >> "$GITHUB_OUTPUT"
+          echo "expected_build=$EXPECTED_BUILD" >> "$GITHUB_OUTPUT"
+
+      - name: Check out exact dashboard commit
+        if: steps.request.outputs.enabled == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          TARGET_BRANCH="${{ steps.request.outputs.target_branch }}"
+          TARGET_SHA="${{ steps.request.outputs.target_sha }}"
+
+          git fetch origin "$TARGET_BRANCH" --no-tags
+
+          BRANCH_HEAD="$(git rev-parse "origin/$TARGET_BRANCH")"
+
+          if [ "$BRANCH_HEAD" != "$TARGET_SHA" ]; then
+            echo "::error::Requested SHA is not the current head of $TARGET_BRANCH."
+            echo "Requested: $TARGET_SHA"
+            echo "Branch head: $BRANCH_HEAD"
+            exit 1
+          fi
+
+          git checkout --detach "$TARGET_SHA"
+
+          test -z "$(git status --porcelain)"
+
+          echo "Exact GitHub commit:"
+          git log -1 --oneline
+
+      - name: Verify visible test version
+        if: steps.request.outputs.enabled == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          EXPECTED_UI="${{ steps.request.outputs.expected_ui }}"
+          EXPECTED_BUILD="${{ steps.request.outputs.expected_build }}"
+
+          test -f SharedFooter.html
+
+          grep -F "const UI_VERSION = '$EXPECTED_UI';" SharedFooter.html
+          grep -F "const BUILD_LABEL = '$EXPECTED_BUILD';" SharedFooter.html
+
+          echo "UI: $EXPECTED_UI"
+          echo "Build: $EXPECTED_BUILD"
+
+      - name: Set up Node.js
+        if: steps.request.outputs.enabled == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install clasp
+        if: steps.request.outputs.enabled == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          npm install --global @google/clasp
+          clasp --version
+
+      - name: Configure clasp authorization
+        if: steps.request.outputs.enabled == 'true'
+        env:
+          CLASPRC_JSON: ${{ secrets.CLASPRC_JSON }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [ -z "${CLASPRC_JSON:-}" ]; then
+            echo "::error::CLASPRC_JSON repository secret is missing."
+            exit 1
+          fi
+
+          printf '%s' "$CLASPRC_JSON" > "$HOME/.clasprc.json"
+          chmod 600 "$HOME/.clasprc.json"
+
+          node - <<'NODE'
+          const fs = require('fs');
+
+          const authPath =
+            process.env.HOME + '/.clasprc.json';
+
+          const data =
+            JSON.parse(fs.readFileSync(authPath, 'utf8'));
+
+          if (!data.tokens || !data.tokens.work) {
+            throw new Error(
+              "CLASPRC_JSON does not contain the named work credential."
+            );
+          }
+
+          console.log("Named clasp credential work is present.");
+          NODE
+
+          clasp --user work show-authorized-user --json
+
+      - name: Configure Apps Script project
+        if: steps.request.outputs.enabled == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          SCRIPT_ID="${{ steps.request.outputs.script_id }}"
+
+          printf '{"scriptId":"%s","rootDir":"."}\n' \
+            "$SCRIPT_ID" > .clasp.json
+
+          clasp --user work status
+
+      - name: Push exact source to Apps Script HEAD
+        if: steps.request.outputs.enabled == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          echo "Pushing to Apps Script HEAD only."
+          echo "Production deployment will NOT be changed."
+
+          clasp --user work push
+
+          echo ""
+          echo "APPS SCRIPT HEAD PUSH COMPLETE"
+          echo "Git commit: $(git rev-parse HEAD)"
+          echo "UI: ${{ steps.request.outputs.expected_ui }}"
+          echo "Build: ${{ steps.request.outputs.expected_build }}"
+          echo ""
+          echo "/dev visual validation is required."

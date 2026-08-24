@@ -1,0 +1,8 @@
+﻿{
+    "enabled":  false,
+    "scriptId":  "19ep_9Khzq86AIdumIxVN9BfM6rMwG0cHlPaUr46CZy_xJ1ve6_CcHhmo",
+    "targetBranch":  "agent/recovery-v6.635-2026-08-23",
+    "targetSha":  "4d60ba95bb69da1e8247e9a0fe4eb98f3a7fcdda",
+    "expectedUi":  "v6.648",
+    "expectedBuild":  "V6.635-EXACT-RECOVERY-TEST-1"
+}
