@@ -1,8 +1,8 @@
 {
   "enabled": true,
   "scriptId": "19ep_9Khzq86AIdumIxVN9BfM6rMwG0cHlPaUr46CZy_xJ1ve6_CcHhmo",
-  "targetBranch": "agent/ai-readable-cleanup-v6.648-2026-08-23",
-  "targetSha": "445f4b40cf3f8a97745d35889cb555050f99061c",
-  "expectedUi": "v6.649",
-  "expectedBuild": "AI-CLEANUP-FUZZY-EXTRACT-1"
+  "targetBranch": "agent/ai-readable-cleanup-v6.650-2026-08-23",
+  "targetSha": "6cd6e47e62b11bc5514c9584825ebe9de94637bb",
+  "expectedUi": "v6.665",
+  "expectedBuild": "AI-CLEANUP-TECH-STATIC-LAYOUT-1"
 }
