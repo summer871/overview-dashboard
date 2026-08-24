@@ -27,6 +27,101 @@
   };
   let ceramistPopulationSidecarRefreshQueuedV6570 = false;
 
+  function ceramistRootAttributionStateV6600() {
+    const api = window.cdaRemakeRootAttributionBrowserV1351;
+    let active = false;
+    let metadata = null;
+
+    try {
+      active = !!(api && typeof api.active === 'function' && api.active() === true);
+      metadata = active && typeof api.metadata === 'function' ? api.metadata() : null;
+    } catch (error) {
+      active = false;
+      metadata = null;
+    }
+
+    return {
+      api:api || null,
+      active:active,
+      metadata:metadata,
+      token:active
+        ? [
+            'active',
+            textV6230(api && api.version, ''),
+            textV6230(metadata && metadata.version, '')
+          ].join(':')
+        : 'inactive'
+    };
+  }
+
+  function ceramistProjectRootAttributionForDisplayV6600(row, rootState) {
+    const state = rootState || ceramistRootAttributionStateV6600();
+    if (!row || !state.active || !state.api || typeof state.api.projectRow !== 'function') return row;
+
+    try {
+      const projected = state.api.projectRow(row);
+      return projected && typeof projected === 'object' ? projected : row;
+    } catch (error) {
+      console.warn('Technician root-attribution display projection failed', error);
+      return row;
+    }
+  }
+
+  function ceramistCopyRootAttributionFieldsV6600(source, target) {
+    const from = source || {};
+    const to = target || {};
+
+    [
+      'remadeSourceCaseNumber',
+      'remadeSourceCaseRole',
+      'remadeProductId',
+      'remadeProductName',
+      'remadeProductGroup',
+      'remadeDepartment',
+      'remadeProductMappingStatus',
+      'remadeProductMappingMethod',
+      'remadeAttributionDisplayLabel',
+      'remadeProductDisplay',
+      'remadeProductGroupDisplay',
+      'remadeDepartmentDisplay',
+      'remadeAttributionState',
+      'remadeAttributionReason',
+      'remadeChainStatus',
+      'remadeChainDepth',
+      'remadeImmediatePreviousCaseNumber',
+      'remadeRootCaseNumber',
+      'remadeRootConfirmationMethod',
+      'remadeProductMetadataSource',
+      'remadeProductMetadataComplete',
+      'rootAttributionProjectionAppliedV1351',
+      'rootAttributionProjectionIssueV1351',
+      'currentProductIdV1351',
+      'currentProductNameV1351',
+      'currentProductGroupV1351',
+      'currentDepartmentV1351'
+    ].forEach(function(key) {
+      if (Object.prototype.hasOwnProperty.call(from, key)) to[key] = from[key];
+    });
+
+    return to;
+  }
+
+  function ceramistRootAttributionBucketV6600(row) {
+    const text = [
+      row && row.department,
+      row && row.productGroup,
+      row && row.productName,
+      row && row.productKey,
+      row && row.remadeAttributionDisplayLabel
+    ].map(function(value) {
+      return textV6230(value, '');
+    }).filter(Boolean).join(' | ');
+
+    if (/(^|\|\s*)review\s*-/i.test(text)) return 'review';
+    if (/(^|\|\s*)unresolved\s*-/i.test(text)) return 'unresolved';
+    return '';
+  }
+
   function ceramistPopulationNormalizeCaseV6570(value) {
     const clean = textV6230(value, '');
     if (!clean) return '';
@@ -189,11 +284,28 @@
   function ceramistOverlayMainPopulationV6569(sidecarRow, mainRow, matchMethod) {
     const matched = !!sidecarRow;
     const row = Object.assign({}, sidecarRow || {});
+    const rootStateV6600 = ceramistRootAttributionStateV6600();
+    const dimensionRowV6600 = ceramistProjectRootAttributionForDisplayV6600(mainRow, rootStateV6600);
     const caseNumber = ceramistPopulationCaseIdentityV6569(mainRow);
     const caseId = textV6230(mainRow && mainRow.caseId, caseNumber);
-    const productId = textV6230(mainRow && mainRow.productId, '');
-    const productName = textV6230(mainRow && mainRow.productName, productId || 'Unknown product');
-    const productKey = textV6230(mainRow && mainRow.productKey, productId || productName);
+
+    // Keep the current product identity separately. Worker-responsibility matching
+    // is based on the current case/product sidecar and must not be changed by the
+    // historical root-product projection used for display.
+    const currentProductIdV6600 = textV6230(mainRow && mainRow.productId, '');
+    const currentProductNameV6600 = textV6230(mainRow && mainRow.productName, currentProductIdV6600 || 'Unknown product');
+    const currentProductGroupV6600 = textV6230(mainRow && mainRow.productGroup, 'Unassigned');
+    const currentDepartmentV6600 = textV6230(mainRow && mainRow.department, 'Unassigned');
+
+    const productId = textV6230(dimensionRowV6600 && dimensionRowV6600.productId, '');
+    const productName = textV6230(
+      dimensionRowV6600 && dimensionRowV6600.productName,
+      productId || currentProductNameV6600 || 'Unknown product'
+    );
+    const productKey = textV6230(
+      dimensionRowV6600 && dimensionRowV6600.productKey,
+      productId || productName
+    );
     const customerId = textV6230(mainRow && mainRow.customerId, '');
     const customerName = textV6230(mainRow && mainRow.customerName, customerId || 'Unknown customer');
 
@@ -217,12 +329,24 @@
     );
     row.practiceName = textV6230(mainRow && mainRow.practiceName, row.practiceName || '');
     row.customerActive = mainRow && mainRow.customerActive === false ? false : true;
-    row.department = textV6230(mainRow && mainRow.department, row.department || 'Unassigned');
-    row.productId = productId || textV6230(row.productId, '');
-    row.currentProductId = productId || textV6230(row.currentProductId, row.productId);
-    row.productKey = productKey || textV6230(row.productKey, row.productId || productName);
+    row.department = textV6230(
+      dimensionRowV6600 && dimensionRowV6600.department,
+      row.department || currentDepartmentV6600 || 'Unassigned'
+    );
+    row.productId = productId || '';
+    row.currentProductId = currentProductIdV6600 || textV6230(row.currentProductId, '');
+    row.productKey = productKey || textV6230(row.productKey, productName);
     row.productName = productName;
-    row.productGroup = textV6230(mainRow && mainRow.productGroup, row.productGroup || 'Unassigned');
+    row.productGroup = textV6230(
+      dimensionRowV6600 && dimensionRowV6600.productGroup,
+      row.productGroup || currentProductGroupV6600 || 'Unassigned'
+    );
+    row.currentProductNameV6600 = currentProductNameV6600;
+    row.currentProductGroupV6600 = currentProductGroupV6600;
+    row.currentDepartmentV6600 = currentDepartmentV6600;
+    row.rootAttributionActiveV6600 = rootStateV6600.active === true;
+    ceramistCopyRootAttributionFieldsV6600(dimensionRowV6600, row);
+    row.rootAttributionBucketV6600 = ceramistRootAttributionBucketV6600(dimensionRowV6600);
     row.remakeReason = textV6230(mainRow && mainRow.remakeReason, row.remakeReason || 'Not specified');
     row.quantity = numV6230(mainRow && (mainRow.quantity !== undefined ? mainRow.quantity : mainRow.units));
     row.units = row.quantity;
@@ -302,6 +426,7 @@
     const sourceMainRows = Array.isArray(mainRows) ? mainRows.filter(function(row) {
       return row && isRemakeV6230(row);
     }) : [];
+    const rootStateV6600 = ceramistRootAttributionStateV6600();
     const remakeState = window.remakeFactorState || {};
     const remakeData = remakeState.data || {};
     const mainRowsWithCaseNumber = sourceMainRows.filter(function(row) {
@@ -316,7 +441,8 @@
       sourceMainRows.length,
       sourceSidecarRows.length,
       mainRowsWithCaseNumber,
-      sidecarRowsWithCaseNumber
+      sidecarRowsWithCaseNumber,
+      rootStateV6600.token
     ].join('|');
 
     if (ceramistPopulationMemoV6569.signature === signature) {
@@ -440,6 +566,16 @@
       attributedJoinedCases:coverage.attributed,
       unattributedOnlyCases:coverage.unattributedOnly,
       mixedCases:coverage.mixed,
+      rootAttributionActive:rootStateV6600.active === true,
+      rootAttributionProjectedRows:joinedRows.filter(function(row) {
+        return row && row.rootAttributionProjectionAppliedV1351 === true;
+      }).length,
+      rootAttributionReviewRows:joinedRows.filter(function(row) {
+        return row && row.rootAttributionBucketV6600 === 'review';
+      }).length,
+      rootAttributionUnresolvedRows:joinedRows.filter(function(row) {
+        return row && row.rootAttributionBucketV6600 === 'unresolved';
+      }).length,
       sidecarReady:true,
       caseNumberReady:true,
       waitingForSidecar:false,
