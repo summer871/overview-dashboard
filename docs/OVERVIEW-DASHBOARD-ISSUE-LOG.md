@@ -105,3 +105,47 @@ The wrapper syntax failure did **not** invalidate the v6.668 dashboard handoff i
 ### Remaining follow-up
 
 The next user-run PowerShell block must use a syntax-checked, paste-safe clipboard/error-capture pattern before it is sent.
+---
+
+## OD-003 — Shared Dashboard click/cross-filter does not recalculate Remake KPIs
+
+**Date:** 2026-08-24
+**Status:** IMPLEMENTED — `/dev` verification pending
+**Area:** Shared Dashboard interaction contract — cross-filter → KPI recalculation
+**Version:** `v6.670`
+**Build:** `AI-SHARED-CROSSFILTER-KPI-SYNC-1`
+
+### Symptom
+
+Clicking a Remake table value changed the click/cross-filter selection and table presentation, but the KPI strip could remain at the pre-click values.
+
+### Root cause
+
+The Remake row-filter engine already applies `crossFilterValuesV6634(...)` to department, product, product group, customer, and reason.
+
+The KPI comparison cache did not include those cross-filter values in `comparisonFilterSignatureV6301()`, so `comparisonPackV6301()` could reuse a stale KPI result after a table or chart click.
+
+TAT already recalculates its KPI comparison through its active cross-filter state. Shared Dashboard behavior requires the same interaction contract across tabs unless a documented metric-specific exception applies.
+
+### Fix
+
+Added all supported Remake click/cross-filter dimensions to the KPI comparison-cache signature:
+
+- department
+- product
+- productGroup
+- customer
+- reason
+
+No KPI formula or denominator rule was changed. Existing Reason behavior remains intact: reason filters narrow the remake numerator without shrinking the established Total Cases denominator.
+
+### Acceptance
+
+- A Remake row click immediately recalculates applicable KPIs.
+- Ctrl/Cmd additive selections recalculate from the full selected set.
+- Clearing the click filter restores the previous KPI scope.
+- Dropdown filters remain independent.
+- TAT cross-filter to KPI behavior remains intact.
+- Technician side-by-side layout from v6.668 remains intact.
+- Customer table extraction from v6.669 remains intact.
+- Production remains unchanged.

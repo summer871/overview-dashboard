@@ -21547,6 +21547,9 @@
       return kind + '=' + filterValuesV6245(kind).map(String).sort().join('|') + ';excluded=' + excludedFilterValuesV6389(kind).map(String).sort().join('|');
     });
     parts.push('months=' + Array.from(uiV6230.selectedMonths || []).map(String).sort().join('|'));
+    ['department','product','productGroup','customer','reason'].forEach(function(kind){
+      parts.push('cross:' + kind + '=' + crossFilterValuesV6634(kind).map(String).sort().join('|'));
+    });
     return parts.join('::');
   }
   function comparisonPackV6301(allRows) {
