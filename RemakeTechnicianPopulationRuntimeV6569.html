@@ -1099,10 +1099,134 @@
     const parsed = new Date(raw);
     return isNaN(parsed.getTime()) ? raw : parsed.toLocaleString(undefined, { year:'numeric', month:'short', day:'numeric', hour:'numeric', minute:'2-digit' });
   }
+  let ceramistLayoutResizeBoundV6663 = false;
+  let ceramistLayoutResizeTimerV6663 = 0;
+
+  function ensureCeramistMasterDetailLayoutV6663() {
+    const masterTable = idV6230('remakeCeramistTableV6342');
+    const detailTable = idV6230('remakeCeramistDetailTableV6343');
+    if (!masterTable || !detailTable) return false;
+
+    const masterPanel = masterTable.closest
+      ? masterTable.closest('.ceramistPanelV6343')
+      : null;
+    const detailPanel = detailTable.closest
+      ? detailTable.closest('.ceramistPanelV6343')
+      : null;
+
+    if (!masterPanel || !detailPanel) return false;
+
+    let workspace = null;
+
+    if (
+      masterPanel.parentElement &&
+      masterPanel.parentElement === detailPanel.parentElement
+    ) {
+      workspace = masterPanel.parentElement;
+    }
+
+    if (!workspace && masterPanel.closest) {
+      workspace = masterPanel.closest('.ceramistWorkspaceV6343');
+    }
+
+    if (!workspace && detailPanel.closest) {
+      workspace = detailPanel.closest('.ceramistWorkspaceV6343');
+    }
+
+    if (!workspace) return false;
+
+    const rect = workspace.getBoundingClientRect
+      ? workspace.getBoundingClientRect()
+      : { width:0 };
+
+    const availableWidth = Number(rect && rect.width || 0);
+
+    // v6.663: the prior 820px CSS breakpoint still stacked the dashboard in
+    // Summer's split-screen/Windows-scaled browser. Keep side-by-side down to
+    // 620 CSS px; stack only when the actual rendered workspace is truly narrow.
+    const sideBySide = availableWidth >= 620;
+
+    workspace.classList.add('ceramistWorkspaceDomOwnedV6663');
+    workspace.setAttribute(
+      'data-ceramist-layout-v6663',
+      sideBySide ? 'side-by-side' : 'stacked-mobile'
+    );
+    workspace.setAttribute(
+      'data-ceramist-layout-width-v6663',
+      String(Math.round(availableWidth))
+    );
+
+    if (sideBySide) {
+      workspace.style.setProperty('display', 'grid', 'important');
+      workspace.style.setProperty(
+        'grid-template-columns',
+        'minmax(300px,38%) minmax(0,62%)',
+        'important'
+      );
+      workspace.style.setProperty('grid-template-rows', 'minmax(0,auto)', 'important');
+      workspace.style.setProperty('grid-auto-flow', 'column', 'important');
+      workspace.style.setProperty('align-items', 'stretch', 'important');
+      workspace.style.setProperty('gap', '0', 'important');
+      workspace.style.setProperty('width', '100%', 'important');
+      workspace.style.setProperty('max-width', '100%', 'important');
+      workspace.style.setProperty('min-width', '0', 'important');
+
+      masterPanel.style.setProperty('display', 'block', 'important');
+      masterPanel.style.setProperty('grid-column', '1', 'important');
+      masterPanel.style.setProperty('grid-row', '1', 'important');
+      masterPanel.style.setProperty('min-width', '0', 'important');
+      masterPanel.style.setProperty('width', 'auto', 'important');
+      masterPanel.style.setProperty('max-width', '100%', 'important');
+
+      detailPanel.style.setProperty('display', 'block', 'important');
+      detailPanel.style.setProperty('grid-column', '2', 'important');
+      detailPanel.style.setProperty('grid-row', '1', 'important');
+      detailPanel.style.setProperty('min-width', '0', 'important');
+      detailPanel.style.setProperty('width', 'auto', 'important');
+      detailPanel.style.setProperty('max-width', '100%', 'important');
+      detailPanel.style.setProperty('border-left', '1px solid #dfe4eb', 'important');
+      detailPanel.style.setProperty('border-top', '0', 'important');
+    } else {
+      workspace.style.setProperty('display', 'block', 'important');
+      workspace.style.setProperty('grid-template-columns', '1fr', 'important');
+
+      masterPanel.style.removeProperty('grid-column');
+      masterPanel.style.removeProperty('grid-row');
+      masterPanel.style.setProperty('width', '100%', 'important');
+
+      detailPanel.style.removeProperty('grid-column');
+      detailPanel.style.removeProperty('grid-row');
+      detailPanel.style.setProperty('width', '100%', 'important');
+      detailPanel.style.setProperty('border-left', '0', 'important');
+      detailPanel.style.setProperty('border-top', '1px solid #dfe4eb', 'important');
+    }
+
+    return true;
+  }
+
+  function scheduleCeramistMasterDetailLayoutV6663(delay) {
+    window.clearTimeout(ceramistLayoutResizeTimerV6663);
+    ceramistLayoutResizeTimerV6663 = window.setTimeout(function() {
+      ensureCeramistMasterDetailLayoutV6663();
+    }, Math.max(0, Number(delay || 0)));
+  }
+
+  function bindCeramistMasterDetailResizeV6663() {
+    if (ceramistLayoutResizeBoundV6663) return;
+    ceramistLayoutResizeBoundV6663 = true;
+
+    window.addEventListener('resize', function() {
+      scheduleCeramistMasterDetailLayoutV6663(40);
+    }, { passive:true });
+  }
   function renderCeramistAnalysisV6342() {
     const table = idV6230('remakeCeramistTableV6342');
     const detailTable = idV6230('remakeCeramistDetailTableV6343');
     if (!table || !detailTable) return;
+    bindCeramistMasterDetailResizeV6663();
+    ensureCeramistMasterDetailLayoutV6663();
+    scheduleCeramistMasterDetailLayoutV6663(0);
+    scheduleCeramistMasterDetailLayoutV6663(120);
     const status = idV6230('remakeCeramistStatusV6342');
     const masterHeader = '<colgroup>'
       + '<col style="width:28%">'
@@ -1336,42 +1460,29 @@
               return /completed via invoice note/i.test(String(value || ''));
             }).join(' | ')
           : '';
-        const viaTooltipV6662 = 'Why VIA NOTE: ' +
-          (viaReasonV6662 || 'Invoice-note TECH# evidence was used to establish responsibility.');
+        const viaTooltipV6663 = viaReasonV6662 ||
+          'Invoice-note TECH# evidence was used to establish responsibility.';
         noteBadgesV6662.push(
           '<span class="ceramistNoteBadgeV6343 noteViaV6662" title="' +
-          escV6230(viaTooltipV6662) + '" aria-label="' +
-          escV6230(viaTooltipV6662) + '">' +
+          escV6230(viaTooltipV6663) + '" aria-label="' +
+          escV6230(viaTooltipV6663) + '">' +
           escV6230(fmtCountV6230(noteViaCountV6662)) + ' VIA NOTE</span>'
         );
       }
 
-      if (noteMatchCountV6662 > 0) {
-        const matchReasonsV6662 = Array.isArray(row.noteMatchReasonsV6662)
-          ? row.noteMatchReasonsV6662
-          : [];
-        const matchTooltipV6662 = 'Why NOTE MATCH: ' +
-          (matchReasonsV6662.join(' | ') ||
-            'Invoice-note TECH# evidence agrees with the worker already established by the normal CERAMICS task.');
-        noteBadgesV6662.push(
-          '<span class="ceramistNoteBadgeV6343 noteMatchV6662" title="' +
-          escV6230(matchTooltipV6662) + '" aria-label="' +
-          escV6230(matchTooltipV6662) + '">' +
-          escV6230(fmtCountV6230(noteMatchCountV6662)) + ' NOTE MATCH</span>'
-        );
-      }
+      // v6.663: NOTE MATCH is intentionally silent in the visible table.
+      // It remains in noteMatchCasesV6662/noteMatchReasonsV6662 for audit use.
 
       if (noteReviewCountV6662 > 0) {
         const reviewReasonsV6662 = Array.isArray(row.noteReviewReasonsV6662)
           ? row.noteReviewReasonsV6662
           : [];
-        const reviewTooltipV6662 = 'Why NOTE REVIEW: ' +
-          (reviewReasonsV6662.join(' | ') ||
-            'Invoice-note TECH# evidence could not be reconciled cleanly to the assigned worker.');
+        const reviewTooltipV6663 = reviewReasonsV6662.join(' | ') ||
+          'Invoice-note TECH# evidence could not be reconciled cleanly to the assigned worker.';
         noteBadgesV6662.push(
           '<span class="ceramistNoteBadgeV6343 noteReviewV6662" title="' +
-          escV6230(reviewTooltipV6662) + '" aria-label="' +
-          escV6230(reviewTooltipV6662) + '">' +
+          escV6230(reviewTooltipV6663) + '" aria-label="' +
+          escV6230(reviewTooltipV6663) + '">' +
           escV6230(fmtCountV6230(noteReviewCountV6662)) + ' NOTE REVIEW</span>'
         );
       }
