@@ -233,6 +233,13 @@ assert(tatAdapterPos > tatControllerPos, 'TAT shared-filter adapter must load af
 const remakeAdapter = read('RemakeSharedFilterAdapterV6646.html');
 const tatAdapter = read('TatSharedFilterAdapterV6646.html');
 const tatController = read('TatDashboardControllerScript.html');
+const tatRenderRuntime = read('TatDashboardRenderRuntimeV6509.html');
+const tatRenderInclude = "<?!= includeDashboardFile('TatDashboardRenderRuntimeV6509') ?>";
+const tatControllerPreSplit = read('archive/tat-controller-pre-split-2026-08-23/TatDashboardControllerScript.html');
+assert(tatController.includes(tatRenderInclude), 'TAT controller is missing the semantic render-runtime include.');
+assert(tatController.replace(tatRenderInclude,tatRenderRuntime) === tatControllerPreSplit, 'TAT controller + render runtime no longer reconstruct the protected pre-split controller byte-for-byte.');
+try { new vm.Script(tatRenderRuntime,{filename:'TatDashboardRenderRuntimeV6509.html'}); } catch (error) { failures.push('TatDashboardRenderRuntimeV6509.html: ' + error.message); }
+notes.push('TAT controller semantic render extraction reconstructs the protected pre-split bytes.');
 assert(remakeAdapter.includes('cdaSharedFilterActiveV6646'), 'Remake shared-filter mount guard is missing.');
 assert(remakeAdapter.includes('getPopulationKeys'), 'Remake linked-inventory adapter contract is missing.');
 assert(remakeAdapter.includes('commitEffectiveSelectionV6389'), 'Remake adapter is not using the established effective-selection commit path.');
