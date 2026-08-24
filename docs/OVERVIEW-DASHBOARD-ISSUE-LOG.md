@@ -197,3 +197,30 @@ The v6.670 handoff stopped with `Wrong branch: System.Object[]` because native c
 The wrapper was corrected to flatten native output before reading single-value results such as the Git branch name.
 
 Production was untouched.
+
+---
+
+## OD-006 — v6.671 extracted module contained a blank line at EOF
+
+**Date:** 2026-08-24
+**Status:** PROCESS FIXED
+**Area:** AI → PowerShell cleanup/deployment handoff
+**Version:** `v6.671`
+**Build:** `AI-CLEANUP-POPOUT-CONTROLLER-RUNTIME-1`
+**Dashboard behavior impact:** None
+
+### Symptom
+
+The v6.671 mechanical popout-controller extraction completed successfully, but `git diff --cached --check` stopped the handoff with `RemakePopoutControllerRuntimeV6339.html:36: new blank line at EOF.`
+
+### Root cause
+
+The exact extraction boundary intentionally stopped immediately before `slimDataV6230`, but the separator whitespace between the two source regions was included at the end of the newly created module. Git correctly rejected that new EOF blank line during the staged diff safety check.
+
+### Resolution / permanent handoff rule
+
+For a newly extracted runtime module, preserve the exact implementation and source order but normalize trailing separator whitespace so the new file ends with exactly one final newline before staging. Continue to require `git diff --cached --check` before every commit.
+
+The original v6.671 run stopped before commit, Git push, clasp push, or production deployment. The recovery resumes from the already-extracted local source rather than repeating the extraction.
+
+Production remained untouched.

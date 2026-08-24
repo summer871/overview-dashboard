@@ -1,0 +1,35 @@
+  window.popoutRemakeComponentV6230 = function popoutRemakeComponentV6339(component) {
+    const meta = remakePopoutMetaV6339(component);
+    if (!meta) return;
+    const existing = remakePopoutRefsV6339[component];
+    if (existing && existing.win && !existing.win.closed) {
+      try { existing.win.focus(); } catch (error) {}
+      scheduleRemakePopoutSyncV6339(20);
+      return;
+    }
+    const width = Math.max(880, Math.min(Math.round(screen.width * .82), 1540));
+    const height = Math.max(600, Math.min(Math.round(screen.height * .82), 940));
+    const left = Math.max(18, Math.round((window.screenX || window.screenLeft || 0) + 56));
+    const top = Math.max(18, Math.round((window.screenY || window.screenTop || 0) + 46));
+    const win = window.open('', 'cdaRemakePopout_' + slugV6230(component), 'popup=yes,width=' + width + ',height=' + height + ',left=' + left + ',top=' + top + ',resizable=yes,scrollbars=yes');
+    if (!win) {
+      setNoticeV6230('Browser blocked the pop-out. Allow pop-ups for this dashboard.', 'warn');
+      return;
+    }
+    remakePopoutRefsV6339[component] = { win:win, component:component };
+    try {
+      win.document.open();
+      win.document.write(popupHtmlV6339(component, meta.title));
+      win.document.close();
+      win.focus();
+      scheduleRemakePopoutSyncV6339(140);
+    } catch (error) {
+      console.error('Interactive Remake pop-out failed', error);
+    }
+  };
+
+  const remakePopoutObservedPageV6339 = idV6230('remakeFactorPage');
+  if (remakePopoutObservedPageV6339 && typeof MutationObserver === 'function') {
+    const remakePopoutObserverV6339 = new MutationObserver(function(){ scheduleRemakePopoutSyncV6339(180); });
+    remakePopoutObserverV6339.observe(remakePopoutObservedPageV6339, { childList:true, subtree:true, attributes:true, attributeFilter:['class','aria-pressed'] });
+  }
