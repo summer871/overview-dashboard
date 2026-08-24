@@ -1,6 +1,6 @@
 # AI Code Map
 
-**Purpose:** Give maintainers and AI agents one concise map of the currently active Remake + TAT dashboard source after the 2026-08-21/22 cleanup.
+**Purpose:** Give maintainers and AI agents one concise map of the currently active Remake + TAT dashboard source after the 2026-08-21/23 cleanup.
 
 **Scope:** Repository structure and ownership only. This file is not an Apps Script runtime module.
 
@@ -82,6 +82,8 @@ These includes currently occur after the closing `</html>` in `Index.html`. That
 10. `SharedTopParityControllerV6527.html`
 11. `SharedFooter.html`
 
+A recursive include audit on 2026-08-23 verified 58 reachable root HTML modules and zero missing include targets after the stale `SharedFooter -> SharedComponentFoundation` chain was removed.
+
 ## Remake runtime composition
 
 `RemakeMainRuntimeV6230.html` is the semantic Remake parent. It assembles, in order:
@@ -101,24 +103,40 @@ These includes currently occur after the closing `</html>` in `Index.html`. That
 13. `RemakeCacheRuntimeV6388.html`
 14. `startupOnceV6624()`
 
-## Authoritative shared owners
+## Verified active owners
 
-Use one owner per responsibility. Do not create parallel lifecycle owners or fallback copies.
+Use one owner per responsibility. Do not create parallel lifecycle owners or fallback copies. This table describes code that is actually reachable from the current `Index.html` composition, not older intended framework ownership.
 
-| Responsibility | Authoritative owner |
+| Responsibility | Verified active owner |
 |---|---|
 | Tab switching / TAT activation | `TatDashboardControllerScript.html` |
 | Saved card geometry / layout editor | `SharedDashboardLayoutEditorV6593.html` |
-| Table shell, rows, totals, selection, sort | `SharedTableModule.html` |
+| Table shell, rows, totals, selection, sort, shared column chooser | `SharedTableModule.html` |
 | Column state, sizing, persistence, interactions | `SharedDashboardTablePlatformV6586.html` |
-| Column visibility | `SharedDashboardColumnsV6548.html` |
-| Shared feature routing | `SharedDashboardFeatureRuntimeV6579.html` |
-| Toolbar | `SharedDashboardToolbarV6548.html` |
-| KPI visibility | `SharedDashboardKpiV6547.html` |
-| Popout | `SharedDashboardPopoutV6548.html` |
+| Remake legacy column-chooser compatibility | `RemakeColumnChooserRuntimeV6357.html` |
+| Remake toolbar / compact controls | `RemakeCompactControlsPresentation.html` |
+| TAT toolbar/filter/cache controls | `TatDashboardControllerScript.html` + `TatSharedFilterAdapterV6646.html` |
+| Remake KPI visibility | `RemakeKpiChooserV6403.html` |
+| TAT KPI visibility | `TatDashboardControllerScript.html` |
+| Remake popout | `RemakePopoutBridgeRuntimeV6339.html` + `RemakePopoutWindowRuntimeV6339.html` + `RemakePopoutControllerRuntimeV6339.html` |
+| TAT popout | `TatDashboardControllerScript.html` |
 | Chart sizing / visual fit | `SharedVisualFitControllerV6617.html` |
 | Release identity | `SharedFooter.html` |
 | Shared filter UI | `SharedFilterBar.html` + `SharedFilterBarStyles.html` |
+
+## Archived intended shared-platform owners
+
+The older v6.58x generic shared-feature framework is **not part of the current browser composition**. A recursive include audit found these five root files unreachable; their own dependencies (registry, theme, popover, isolation, renderer, and related scaffold) had already been archived. They are therefore preserved with that inactive scaffold rather than left in the clasp root:
+
+- `archive/inactive-shared-platform-scaffold-v6544-v6562/SharedDashboardColumnsV6548.html`
+- `archive/inactive-shared-platform-scaffold-v6544-v6562/SharedDashboardFeatureRuntimeV6579.html`
+- `archive/inactive-shared-platform-scaffold-v6544-v6562/SharedDashboardKpiV6547.html`
+- `archive/inactive-shared-platform-scaffold-v6544-v6562/SharedDashboardPopoutV6548.html`
+- `archive/inactive-shared-platform-scaffold-v6544-v6562/SharedDashboardToolbarV6548.html`
+
+`SharedComponentFoundation.html` is also preserved in that archive. It was removed from the active footer chain because restoring it would re-load the retired scaffold, duplicate `SharedTableStyles` / `SharedTableModule`, and reference archived or CI-only components.
+
+Do not reintroduce these files as active owners without an explicit architecture change and `/dev` checkpoint.
 
 ## CI-only compatibility fixtures
 
@@ -164,7 +182,7 @@ Generated component-audit output belongs under `reports/`, which is ignored by G
 Important archive groups include:
 
 - retired paused Overview / legacy DashboardMain runtime
-- inactive v6.544-v6.562 shared-platform scaffold
+- inactive v6.544-v6.562 shared-platform scaffold, including the stranded v6.58x generic feature owners
 - stale selector dependency reports and stale AI-readable mirrors
 - obsolete local preview harness and `refactor/flatten-index` push helpers
 - completed one-off GitHub workflows and `.github/scripts` cleanup executors
