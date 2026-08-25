@@ -17,7 +17,7 @@ Purpose: Remake-only adapter for click cross-filter pills, Technician/Ceramist l
 (function installRemakeCrossFilterAdapterV6681(){
   'use strict';
 
-  const VERSION='v6.681-repair-4';
+  const VERSION='v6.681-repair-5-reset-state';
   const STORAGE_KEY='cdaRemakeClickCrossFilters.v6681';
   const SELECTED_CLASS='cdaCrossFilterSelectedV6681';
   const PILL_CLASS='cdaRemakeCrossFilterPillV6681';
@@ -61,7 +61,9 @@ Purpose: Remake-only adapter for click cross-filter pills, Technician/Ceramist l
     try{
       const parsed=JSON.parse(sessionStorage.getItem(STORAGE_KEY)||'[]');
       return Array.isArray(parsed)?parsed.filter(function(item){
-        return item&&item.source&&item.label;
+        return item&&
+          item.source==='remakeCeramistDetailTableV6343'&&
+          item.label;
       }):[];
     }catch(error){
       return [];
@@ -195,12 +197,17 @@ Purpose: Remake-only adapter for click cross-filter pills, Technician/Ceramist l
   }
 
   function clearKind(kind){
+    writeFallbackState(readFallbackState().filter(function(item){
+      return item.kind!==kind;
+    }));
+
     if(kind==='ceramist'){
       try{
         if(typeof selectCeramistV6343==='function')selectCeramistV6343('');
         else if(typeof window.selectCeramistV6343==='function')window.selectCeramistV6343('');
       }catch(error){}
       scheduleRender();
+      scheduleSharedTop();
       return;
     }
 
@@ -209,6 +216,7 @@ Purpose: Remake-only adapter for click cross-filter pills, Technician/Ceramist l
       else if(typeof window.clearRemakeFilterV6230==='function')window.clearRemakeFilterV6230(kind);
     }catch(error){}
     scheduleRender();
+    scheduleSharedTop();
   }
 
   function findMatchingRow(item){
@@ -393,7 +401,7 @@ Purpose: Remake-only adapter for click cross-filter pills, Technician/Ceramist l
 
     if(!suppressClick){
       const row=event.target.closest('table tbody tr');
-      if(eligibleRow(row))rememberFallbackRow(row,event);
+      if(eligibleRow(row)&&sourceKey(row)==='remakeCeramistDetailTableV6343')rememberFallbackRow(row,event);
     }
 
     window.setTimeout(scheduleRender,0);
@@ -404,6 +412,21 @@ Purpose: Remake-only adapter for click cross-filter pills, Technician/Ceramist l
     if(event.target&&event.target.closest&&event.target.closest('#remakeFactorPage')){
       window.setTimeout(scheduleRender,0);
     }
+  },false);
+  document.addEventListener('click',function(event){
+    if(!event.target||!event.target.closest)return;
+    const reset=event.target.closest('#remakeTabResetV6337,.remakeClearAllV6230');
+    if(!reset)return;
+
+    writeFallbackState([]);
+    window.setTimeout(function(){
+      scheduleRender();
+      scheduleSharedTop();
+    },0);
+    window.setTimeout(function(){
+      scheduleRender();
+      scheduleSharedTop();
+    },100);
   },false);
 
   function start(){
