@@ -1,6 +1,6 @@
 <!-- RemakeCrossFilterStickyRepairV6681.html
-Version: v6.681 repair 2
-Purpose: Final owner for Remake click-cross-filter pills, cross-table selection highlighting, and sticky KPI/filter/pill placement.
+Version: v6.681 repair 3
+Purpose: Final owner for fixed Remake KPI/filter/pill chrome, authoritative technician pill labeling, and persistent click-source highlighting.
 -->
 <style id="cdaRemakeCrossFilterStickyRepairStylesV6681">
   #remakeFactorPage.cleanRemakeV6230,
@@ -10,13 +10,24 @@ Purpose: Final owner for Remake click-cross-filter pills, cross-table selection 
   }
 
   #remakeFactorPage.cleanRemakeV6230 .remakeStickyTopV6245 {
-    position: sticky !important;
+    position: fixed !important;
     top: 34px !important;
-    z-index: 120 !important;
+    left: var(--cda-remake-fixed-left-v6681, 0px) !important;
+    width: var(--cda-remake-fixed-width-v6681, 100%) !important;
+    z-index: 1200 !important;
     overflow: visible !important;
     transform: none !important;
     background: #f6f8fb !important;
     isolation: isolate !important;
+    box-sizing: border-box !important;
+  }
+
+  #cdaRemakeStickySpacerV6681 {
+    display: block !important;
+    width: 100% !important;
+    height: var(--cda-remake-fixed-height-v6681, 0px) !important;
+    min-height: var(--cda-remake-fixed-height-v6681, 0px) !important;
+    pointer-events: none !important;
   }
 
   #remakeFactorPage.cleanRemakeV6230 .remakeStickyTopV6245 > #remakePillsV6230.remakePillsV6230 {
@@ -35,7 +46,7 @@ Purpose: Final owner for Remake click-cross-filter pills, cross-table selection 
     border: 0 !important;
     box-shadow: none !important;
     position: relative !important;
-    z-index: 122 !important;
+    z-index: 1202 !important;
   }
 
   #remakeFactorPage.cleanRemakeV6230 .remakeStickyTopV6245 > #remakePillsV6230.remakePillsV6230:empty {
@@ -47,7 +58,7 @@ Purpose: Final owner for Remake click-cross-filter pills, cross-table selection 
   #remakeFactorPage.cleanRemakeV6230 .remakeStickyTopV6245 .remakeKpisV6230,
   #remakeFactorPage.cleanRemakeV6230 .remakeStickyTopV6245 .remakeFilterBarV6230 {
     position: relative !important;
-    z-index: 121 !important;
+    z-index: 1201 !important;
   }
 
   #remakePillsV6230 .cdaRemakeCrossFilterPillV6681 {
@@ -96,8 +107,13 @@ Purpose: Final owner for Remake click-cross-filter pills, cross-table selection 
 
   @media (max-width: 760px) {
     #remakeFactorPage.cleanRemakeV6230 .remakeStickyTopV6245 {
-      position: sticky !important;
-      top: 34px !important;
+      position: static !important;
+      left: auto !important;
+      width: auto !important;
+    }
+
+    #cdaRemakeStickySpacerV6681 {
+      display: none !important;
     }
 
     #remakeFactorPage.cleanRemakeV6230 .remakeStickyTopV6245 > #remakePillsV6230.remakePillsV6230 {
@@ -117,7 +133,7 @@ Purpose: Final owner for Remake click-cross-filter pills, cross-table selection 
 (function installRemakeCrossFilterStickyRepairV6681(){
   'use strict';
 
-  const VERSION = 'v6.681-repair-2';
+  const VERSION = 'v6.681-repair-3';
   const STORAGE_KEY = 'cdaRemakeClickCrossFilters.v6681';
   const SELECTED_CLASS = 'cdaCrossFilterSelectedV6681';
   const PILL_CLASS = 'cdaRemakeCrossFilterPillV6681';
@@ -135,6 +151,7 @@ Purpose: Final owner for Remake click-cross-filter pills, cross-table selection 
   let renderFrame = 0;
   let suppressClick = false;
   let shellObserver = null;
+  let sizeObserver = null;
 
   function clean(value){
     return String(value == null ? '' : value).replace(/\s+/g,' ').trim();
@@ -144,23 +161,68 @@ Purpose: Final owner for Remake click-cross-filter pills, cross-table selection 
     return document.getElementById('remakeFactorPage');
   }
 
-  function sticky(){
+  function shell(){
     const root = page();
-    return root && root.querySelector('.remakeShellV6230 > .remakeStickyTopV6245');
+    return root && root.querySelector('.remakeShellV6230');
+  }
+
+  function sticky(){
+    const root = shell();
+    return root && root.querySelector(':scope > .remakeStickyTopV6245');
   }
 
   function rail(){
     return document.getElementById('remakePillsV6230');
   }
 
+  function ensureSpacer(){
+    const root = shell();
+    const target = sticky();
+    if (!root || !target) return null;
+
+    let spacer = document.getElementById('cdaRemakeStickySpacerV6681');
+    if (!spacer) {
+      spacer = document.createElement('div');
+      spacer.id = 'cdaRemakeStickySpacerV6681';
+      target.insertAdjacentElement('afterend', spacer);
+    } else if (spacer.previousElementSibling !== target) {
+      target.insertAdjacentElement('afterend', spacer);
+    }
+    return spacer;
+  }
+
   function placeNativePillRailInsideSticky(){
     const target = sticky();
     const pills = rail();
     if (!target || !pills) return false;
-
     if (pills.parentNode !== target) target.appendChild(pills);
-    pills.setAttribute('data-placement','inside-sticky-below-kpis-v6681');
+    pills.setAttribute('data-placement','inside-fixed-kpi-area-v6681');
     return true;
+  }
+
+  function syncFixedGeometry(){
+    const target = sticky();
+    const root = shell();
+    if (!target || !root) return;
+
+    const mobile = !!(window.matchMedia && window.matchMedia('(max-width:760px)').matches);
+    if (mobile) {
+      root.style.removeProperty('--cda-remake-fixed-left-v6681');
+      root.style.removeProperty('--cda-remake-fixed-width-v6681');
+      root.style.removeProperty('--cda-remake-fixed-height-v6681');
+      return;
+    }
+
+    const rect = root.getBoundingClientRect();
+    const width = Math.max(0, Math.round(rect.width));
+    const left = Math.round(rect.left);
+    const height = Math.max(0, Math.ceil(target.getBoundingClientRect().height));
+
+    root.style.setProperty('--cda-remake-fixed-left-v6681', left + 'px');
+    root.style.setProperty('--cda-remake-fixed-width-v6681', width + 'px');
+    root.style.setProperty('--cda-remake-fixed-height-v6681', height + 'px');
+
+    ensureSpacer();
   }
 
   function readFallbackState(){
@@ -200,16 +262,9 @@ Purpose: Final owner for Remake click-cross-filter pills, cross-table selection 
     return clean(cell && cell.textContent);
   }
 
-  function cardTitle(row){
-    const card = row && row.closest && row.closest('.remakeCard,.ceramistPanelV6343,[data-cda-dashboard-card]');
-    const title = card && card.querySelector &&
-      card.querySelector('.remakeCardTitle,.ceramistPanelTitleV6343,.chartTitle,[data-cda-dashboard-title]');
-    return clean(title && title.textContent) || clean(row && row.closest('table') && row.closest('table').id) || 'Selection';
-  }
-
   function sourceKey(row){
     const table = row && row.closest && row.closest('table');
-    return clean(table && table.id) || cardTitle(row);
+    return clean(table && table.id) || 'selection';
   }
 
   function kindFromRow(row){
@@ -225,9 +280,7 @@ Purpose: Final owner for Remake click-cross-filter pills, cross-table selection 
     }
     if (id === 'remakeCeramistTableV6342') return 'ceramist';
     if (id === 'remakeCeramistDetailTableV6343') {
-      const active = document.querySelector(
-        '#remakeCeramistCardV6342 .active, #remakeCeramistCardV6342 [aria-pressed="true"]'
-      );
+      const active = document.querySelector('#remakeCeramistCardV6342 .active, #remakeCeramistCardV6342 [aria-pressed="true"]');
       const text = clean(active && active.textContent).toLowerCase();
       if (text.indexOf('group') >= 0) return 'productGroup';
       if (text.indexOf('dept') >= 0) return 'department';
@@ -247,13 +300,35 @@ Purpose: Final owner for Remake click-cross-filter pills, cross-table selection 
     return !!kindFromRow(row);
   }
 
+  function authoritativeTechnicianLabel(){
+    const titleCandidates = Array.from(document.querySelectorAll(
+      '#remakeCeramistCardV6342 [class*="title"], #remakeCeramistCardV6342 [class*="Title"], #remakeCeramistCardV6342 h1, #remakeCeramistCardV6342 h2, #remakeCeramistCardV6342 h3'
+    ));
+
+    for (let i = 0; i < titleCandidates.length; i += 1) {
+      const text = clean(titleCandidates[i].textContent);
+      const match = text.match(/^(.+?)\s*[Â·\-]\s*(?:Product|Group|Dept|Department|Customer|Reason)\s+breakdown\b/i);
+      if (match && clean(match[1])) return clean(match[1]);
+    }
+
+    const pinned = document.querySelector('#remakeCeramistTableV6342 tbody tr.ceramistPinnedWorkerV6361');
+    if (pinned) return rowLabel(pinned);
+
+    const selected = document.querySelector('#remakeCeramistTableV6342 tbody tr.ceramistSelectedV6343');
+    return rowLabel(selected);
+  }
+
   function selectedLabelsForKind(kind){
+    if (kind === 'ceramist') {
+      const label = authoritativeTechnicianLabel();
+      return label ? [label] : [];
+    }
+
     let selectors = [];
     if (kind === 'reason') selectors = ['#remakeReasonTable tbody tr.selectedV6230'];
     if (kind === 'department') selectors = ['#remakeDepartmentTable tbody tr.selectedV6230'];
     if (kind === 'customer') selectors = ['#remakeCustomerTable tbody tr.selectedV6230'];
     if (kind === 'product' || kind === 'productGroup') selectors = ['#remakeProductTable tbody tr.selectedV6230'];
-    if (kind === 'ceramist') selectors = ['#remakeCeramistTableV6342 tbody tr.ceramistSelectedV6343'];
 
     const labels = [];
     selectors.forEach(function(selector){
@@ -299,9 +374,8 @@ Purpose: Final owner for Remake click-cross-filter pills, cross-table selection 
   }
 
   function findMatchingRow(item){
-    const tables = Array.from(document.querySelectorAll('#remakeFactorPage table'));
-    const exact = tables.find(function(table){ return clean(table.id) === item.source; });
-    const candidates = exact ? [exact] : tables;
+    const exact = document.getElementById(item.source);
+    const candidates = exact ? [exact] : Array.from(document.querySelectorAll('#remakeFactorPage table'));
 
     for (let i = 0; i < candidates.length; i += 1) {
       const rows = Array.from(candidates[i].querySelectorAll('tbody tr'));
@@ -373,19 +447,20 @@ Purpose: Final owner for Remake click-cross-filter pills, cross-table selection 
       pills.appendChild(createPill(text,function(){ clearKind(kind); }));
     });
 
-    const ceramistLabels = selectedLabelsForKind('ceramist');
-    if (ceramistLabels.length && !nativePillAlreadyShows(LABELS.ceramist)) {
+    const technician = authoritativeTechnicianLabel();
+    if (technician && !nativePillAlreadyShows(LABELS.ceramist)) {
       pills.appendChild(createPill(
-        LABELS.ceramist + ': ' + ceramistLabels.join(', '),
+        LABELS.ceramist + ': ' + technician,
         function(){ clearKind('ceramist'); }
       ));
     }
 
     readFallbackState().forEach(function(item){
       const kind = item.kind || '';
+      if (kind === 'ceramist') return;
       if (kind && crossValues(kind).length) return;
 
-      const text = (LABELS[kind] || item.title || 'Selection') + ': ' + item.label;
+      const text = (LABELS[kind] || 'Selection') + ': ' + item.label;
       const duplicate = Array.from(pills.querySelectorAll('.' + PILL_CLASS)).some(function(node){
         return clean(node.textContent).replace(/\s*x$/i,'') === text;
       });
@@ -401,25 +476,22 @@ Purpose: Final owner for Remake click-cross-filter pills, cross-table selection 
 
     const activeLabels = [];
     ['reason','department','product','productGroup','customer'].forEach(function(kind){
-      const values = crossValues(kind);
-      const labels = friendlyValues(kind,values);
-      labels.forEach(function(label){
+      friendlyValues(kind,crossValues(kind)).forEach(function(label){
         if (label && activeLabels.indexOf(label) < 0) activeLabels.push(label);
       });
     });
 
-    readFallbackState().forEach(function(item){
-      if (item.label && activeLabels.indexOf(item.label) < 0) activeLabels.push(item.label);
-    });
-
-    if (!activeLabels.length) return;
     const active = new Set(activeLabels.map(clean));
-
     document.querySelectorAll('#remakeFactorPage table tbody tr').forEach(function(row){
       if (!row.querySelector('td') || row.classList.contains('ceramistSectionRowV6348')) return;
-      if (active.has(rowLabel(row))) {
+      if (active.has(rowLabel(row))) row.classList.add(SELECTED_CLASS);
+    });
+
+    readFallbackState().forEach(function(item){
+      const row = findMatchingRow(item);
+      if (row) {
         row.classList.add(SELECTED_CLASS);
-        row.setAttribute('data-cda-cross-highlight-v6681','true');
+        row.setAttribute('data-cda-cross-highlight-v6681','source');
       }
     });
   }
@@ -429,7 +501,6 @@ Purpose: Final owner for Remake click-cross-filter pills, cross-table selection 
     const item = {
       source: sourceKey(row),
       kind: kind,
-      title: LABELS[kind] || cardTitle(row),
       label: rowLabel(row)
     };
 
@@ -452,6 +523,7 @@ Purpose: Final owner for Remake click-cross-filter pills, cross-table selection 
   function renderAll(){
     renderFrame = 0;
     placeNativePillRailInsideSticky();
+    syncFixedGeometry();
     renderNativeCrossFilterPills();
     applyCrossTableHighlights();
   }
@@ -461,22 +533,26 @@ Purpose: Final owner for Remake click-cross-filter pills, cross-table selection 
     renderFrame = window.requestAnimationFrame(renderAll);
   }
 
-  function installFinalPlacementObserver(){
-    const root = page();
-    const shell = root && root.querySelector('.remakeShellV6230');
-    if (!shell || shellObserver) return;
+  function installObservers(){
+    const root = shell();
+    const target = sticky();
+    if (!root) return;
 
-    shellObserver = new MutationObserver(function(){
-      scheduleRender();
-    });
-    shellObserver.observe(shell,{childList:true,subtree:false});
+    if (!shellObserver) {
+      shellObserver = new MutationObserver(scheduleRender);
+      shellObserver.observe(root,{childList:true,subtree:true});
+    }
+
+    if (window.ResizeObserver && target && !sizeObserver) {
+      sizeObserver = new ResizeObserver(scheduleRender);
+      sizeObserver.observe(target);
+      sizeObserver.observe(root);
+    }
   }
 
   document.addEventListener('click',function(event){
     if (!event.target || !event.target.closest) return;
-
-    const root = event.target.closest('#remakeFactorPage');
-    if (!root) return;
+    if (!event.target.closest('#remakeFactorPage')) return;
 
     if (!suppressClick) {
       const row = event.target.closest('table tbody tr');
@@ -484,6 +560,7 @@ Purpose: Final owner for Remake click-cross-filter pills, cross-table selection 
     }
 
     window.setTimeout(scheduleRender,0);
+    window.setTimeout(scheduleRender,80);
   },false);
 
   document.addEventListener('change',function(event){
@@ -492,14 +569,11 @@ Purpose: Final owner for Remake click-cross-filter pills, cross-table selection 
     }
   },false);
 
-  window.addEventListener('scroll',function(){
-    placeNativePillRailInsideSticky();
-  },{passive:true});
-
+  window.addEventListener('scroll',syncFixedGeometry,{passive:true});
   window.addEventListener('resize',scheduleRender,{passive:true});
 
   function start(){
-    installFinalPlacementObserver();
+    installObservers();
     renderAll();
     window.setTimeout(renderAll,80);
     window.setTimeout(renderAll,300);
