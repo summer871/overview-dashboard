@@ -17,7 +17,7 @@ Purpose: Remake-only adapter for click cross-filter pills, Technician/Ceramist l
 (function installRemakeCrossFilterAdapterV6681(){
   'use strict';
 
-  const VERSION='v6.681-repair-5-reset-state';
+  const VERSION='v6.681-repair-6-pill-lag';
   const STORAGE_KEY='cdaRemakeClickCrossFilters.v6681';
   const SELECTED_CLASS='cdaCrossFilterSelectedV6681';
   const PILL_CLASS='cdaRemakeCrossFilterPillV6681';
@@ -57,22 +57,14 @@ Purpose: Remake-only adapter for click cross-filter pills, Technician/Ceramist l
     if(shared&&typeof shared.scheduleTopChrome==='function')shared.scheduleTopChrome();
   }
 
+  let clickSelections=[];
+
   function readFallbackState(){
-    try{
-      const parsed=JSON.parse(sessionStorage.getItem(STORAGE_KEY)||'[]');
-      return Array.isArray(parsed)?parsed.filter(function(item){
-        return item&&
-          item.source==='remakeCeramistDetailTableV6343'&&
-          item.label;
-      }):[];
-    }catch(error){
-      return [];
-    }
+    return clickSelections.slice();
   }
 
   function writeFallbackState(items){
-    try{sessionStorage.setItem(STORAGE_KEY,JSON.stringify(items||[]));}
-    catch(error){}
+    clickSelections=Array.isArray(items)?items.slice():[];
   }
 
   function crossValues(kind){
@@ -309,13 +301,19 @@ Purpose: Remake-only adapter for click cross-filter pills, Technician/Ceramist l
     readFallbackState().forEach(function(item){
       const kind=item.kind||'';
       if(kind==='ceramist')return;
-      if(kind&&crossValues(kind).length)return;
+
+      const actualValues=crossValues(kind);
+      const friendlyActual=friendlyValues(kind,actualValues);
+      const actualHasLabel=friendlyActual.some(function(value){
+        return clean(value)===clean(item.label);
+      });
+      if(actualHasLabel)return;
 
       const text=(LABELS[kind]||'Selection')+': '+item.label;
       const duplicate=Array.from(pills.querySelectorAll('.'+PILL_CLASS)).some(function(node){
         return clean(node.textContent).replace(/\s*x$/i,'')===text;
       });
-      if(!duplicate)pills.appendChild(createPill(text,function(){clearFallbackItem(item);}));
+      if(!duplicate)pills.appendChild(createPill(text,function(){clearKind(kind);}));
     });
 
     scheduleSharedTop();
@@ -389,8 +387,16 @@ Purpose: Remake-only adapter for click cross-filter pills, Technician/Ceramist l
   function installObserver(){
     const root=page();
     if(!root||pageObserver)return;
-    pageObserver=new MutationObserver(function(){
-      scheduleRender();
+    pageObserver=new MutationObserver(function(mutations){
+      const relevant=mutations.some(function(mutation){
+        return Array.from(mutation.addedNodes||[]).some(function(node){
+          return node&&node.nodeType===1&&(
+            node.matches&&node.matches('tbody,tr,#remakePillsV6230')||
+            node.querySelector&&node.querySelector('tbody,tr,#remakePillsV6230')
+          );
+        });
+      });
+      if(relevant)scheduleRender();
     });
     pageObserver.observe(root,{childList:true,subtree:true});
   }
@@ -401,7 +407,7 @@ Purpose: Remake-only adapter for click cross-filter pills, Technician/Ceramist l
 
     if(!suppressClick){
       const row=event.target.closest('table tbody tr');
-      if(eligibleRow(row)&&sourceKey(row)==='remakeCeramistDetailTableV6343')rememberFallbackRow(row,event);
+      if(eligibleRow(row))rememberFallbackRow(row,event);
     }
 
     window.setTimeout(scheduleRender,0);
