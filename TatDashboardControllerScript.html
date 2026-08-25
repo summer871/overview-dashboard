@@ -180,12 +180,29 @@
   }
 
   function filterMarkup(type){
-    return '<div class="remakeFilter" data-filter-kind="'+esc(type)+'" data-tat-filter="'+esc(type)+'">'
-      +'<button id="tatFilterButton_'+esc(type)+'_V6509" class="remakeDropdownButtonV6245" type="button" aria-haspopup="listbox" aria-expanded="false" onclick="toggleTatDropdownV6509(\''+escJs(type)+'\',event)">'+esc(ALL_LABELS[type])+'</button>'
-      +'<div id="tatFilterPanel_'+esc(type)+'_V6509" class="remakeDropdownPanelV6245" onclick="event.stopPropagation()">'
-      +'<div class="remakeDropdownHeaderV6245"><label class="remakeVisibleToggleV6502"><input id="tatVisible_'+esc(type)+'_V6509" type="checkbox" onchange="toggleTatVisibleV6509(\''+escJs(type)+'\',this.checked)"> Visible</label><button type="button" onclick="resetTatFilterV6509(\''+escJs(type)+'\')">Reset</button><button type="button" onclick="noneTatFilterV6509(\''+escJs(type)+'\')">None</button><span id="tatCount_'+esc(type)+'_V6509" class="remakeDropdownCountV6245"></span></div>'
-      +'<input id="tatSearch_'+esc(type)+'_V6509" class="remakeDropdownSearchV6245" type="search" placeholder="Search '+esc(LABELS[type].toLowerCase())+'" oninput="searchTatFilterV6509(\''+escJs(type)+'\',this.value)">'
-      +'<div id="tatList_'+esc(type)+'_V6509" class="remakeDropdownListV6245" role="listbox" aria-multiselectable="true"></div></div></div>';
+    const engine=window.cdaDashboardFilterEngineV6681;
+    if(!engine)return '';
+    return engine.filterMarkup({
+      kind:type,
+      label:LABELS[type],
+      allLabel:ALL_LABELS[type],
+      attributes:{'data-tat-filter':type},
+      ids:{
+        buttonId:'tatFilterButton_'+type+'_V6509',
+        panelId:'tatFilterPanel_'+type+'_V6509',
+        visibleToggleId:'tatVisible_'+type+'_V6509',
+        countId:'tatCount_'+type+'_V6509',
+        searchId:'tatSearch_'+type+'_V6509',
+        listId:'tatList_'+type+'_V6509'
+      },
+      handlers:{
+        toggle:"toggleTatDropdownV6509('" + escJs(type) + "',event)",
+        visible:"toggleTatVisibleV6509('" + escJs(type) + "',this.checked)",
+        reset:"resetTatFilterV6509('" + escJs(type) + "')",
+        none:"noneTatFilterV6509('" + escJs(type) + "')",
+        search:"searchTatFilterV6509('" + escJs(type) + "',this.value)"
+      }
+    });
   }
   function bindTatFilterControlsV6524(){
     FILTER_TYPES.forEach(function(type){
@@ -219,7 +236,7 @@
       host.innerHTML='<div class="remakeFilterBarV6230">'+FILTER_TYPES.map(filterMarkup).join('')+'</div>'
         +'<button id="tatTabSearchProxyV6509" class="remakeTabToolButtonV6337 remakeTabSearchProxyV6337" type="button" title="Search all filters" aria-label="Search all filters" aria-expanded="false" onclick="toggleTatGlobalSearchV6509(event)"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="6"></circle><path d="m16 16 4 4"></path></svg></button>'
         +'<button id="tatSettingsButtonV6509" class="remakeTabToolButtonV6337 remakeTabSearchProxyV6337 tatSettingsButtonV6509" type="button" title="Settings" aria-label="Settings" aria-expanded="false" onclick="toggleTatSettingsV6509(event)"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"></circle><path d="M12 2.8v2.1M12 19.1v2.1M2.8 12h2.1M19.1 12h2.1M4.5 4.5 6 6M18 18l1.5 1.5M4.5 19.5 6 18M18 6l1.5-1.5"></path></svg></button>'
-        +'<button id="tatTabResetV6509" class="remakeTabToolButtonV6337 remakeTabResetV6337" type="button" title="Reset all TAT filters" onclick="resetTatAllV6509(event)">Reset</button>'
+        +'<button id="tatTabResetV6509" class="remakeTabToolButtonV6337 remakeTabResetV6337" type="button" title="Reset all TAT filters" onclick="cdaDashboardFilterEngineV6681.resetTab('tat',event)">Reset</button>'
         +'<div class="remakeCacheActionBarV6338"><button id="tatReloadButtonV6509" class="remakeButton secondary" type="button" title="Reload the saved Drive cache and replace this browser copy" onclick="reloadTatV6509(event)"><span class="remakeCacheActionIconV6338" aria-hidden="true">&#8595;</span><span class="remakeCacheActionLabelV6338">Reload</span></button><button id="tatRefreshButtonV6509" class="remakeButton" type="button" title="Build missing months first, then replace the current month" onclick="refreshTatV6509(event)"><span class="remakeCacheActionIconV6338" aria-hidden="true">&#8635;</span><span class="remakeCacheActionLabelV6338">Refresh</span></button></div>';
       tabs.appendChild(host);
       bindTatFilterControlsV6524();
@@ -340,22 +357,50 @@
 
   function visibleOptions(type){const term=state.searches[type]||'';return optionList(type).filter(function(option){return !term||fuzzy(option.label+' '+option.key,term);});}
   function renderFilter(type){
-    const button=id('tatFilterButton_'+type+'_V6509'),list=id('tatList_'+type+'_V6509'),count=id('tatCount_'+type+'_V6509'),search=id('tatSearch_'+type+'_V6509'),visible=id('tatVisible_'+type+'_V6509');if(!button||!list)return;
-    button.textContent=selectionLabel(type);button.classList.toggle('active',mode(type)!=='ALL');if(search&&search.value!==state.searches[type])search.value=state.searches[type]||'';
-    const options=visibleOptions(type);list.innerHTML=options.length?options.map(function(option){const checked=isSelected(type,option.key);return '<div class="remakeDropdownRowV6245 '+(checked?'active':'')+'" role="option" aria-selected="'+(checked?'true':'false')+'" onclick="toggleTatOptionV6509(\''+escJs(type)+'\',\''+escJs(option.key)+'\')"><input type="checkbox" '+(checked?'checked':'')+' tabindex="-1"><span class="remakeDropdownLabelV6245">'+esc(option.label)+'</span><button class="remakeDropdownOnlyV6245" type="button" onclick="event.stopPropagation();onlyTatOptionV6509(\''+escJs(type)+'\',\''+escJs(option.key)+'\')">Only</button></div>';}).join(''):'<div class="remakeDropdownEmptyV6245">No visible options.</div>';
-    const checkedCount=options.filter(function(option){return isSelected(type,option.key);}).length;if(count)count.textContent=checkedCount+' of '+options.length+' visible selected';if(visible){visible.checked=options.length>0&&checkedCount===options.length;visible.indeterminate=checkedCount>0&&checkedCount<options.length;}
+    const engine=window.cdaDashboardFilterEngineV6681;
+    const button=id('tatFilterButton_'+type+'_V6509'),list=id('tatList_'+type+'_V6509'),count=id('tatCount_'+type+'_V6509'),search=id('tatSearch_'+type+'_V6509'),visible=id('tatVisible_'+type+'_V6509');
+    if(!button||!list||!engine)return;
+    button.textContent=selectionLabel(type);
+    button.classList.toggle('active',mode(type)!=='ALL');
+    if(search&&search.value!==state.searches[type])search.value=state.searches[type]||'';
+    const options=visibleOptions(type);
+    list.innerHTML=options.length?options.map(function(option){
+      const checked=isSelected(type,option.key);
+      return engine.optionRowMarkup({
+        checked:checked,
+        active:checked,
+        label:option.label,
+        toggleCode:"toggleTatOptionV6509('" + escJs(type) + "','" + escJs(option.key) + "')",
+        onlyCode:"onlyTatOptionV6509('" + escJs(type) + "','" + escJs(option.key) + "',event)"
+      });
+    }).join(''):engine.emptyOptionMarkup('No visible options.');
+    const checkedCount=options.filter(function(option){return isSelected(type,option.key);}).length;
+    if(count)count.textContent=checkedCount+' of '+options.length+' visible selected';
+    if(visible){
+      visible.checked=options.length>0&&checkedCount===options.length;
+      visible.indeterminate=checkedCount>0&&checkedCount<options.length;
+    }
   }
   function renderFilters(){state.distributionMode='percent';FILTER_TYPES.forEach(renderFilter);renderPills();}
   function clearTopFilter(type){selectedSet(type).clear();setMode(type,'ALL');renderAll();}
-  function pill(label,clearCode){return '<span class="tatPillV6509 remakePillV6230">'+esc(label)+'<button type="button" aria-label="Clear '+esc(label)+'" onclick="'+clearCode+'">×</button></span>';}
   function renderPills(){
-    const node=id('tatPillsV6509');if(!node)return;const parts=[];
-    FILTER_TYPES.forEach(function(type){if(mode(type)!=='ALL')parts.push(pill(LABELS[type]+': '+selectionLabel(type),'clearTatTopFilterV6509(\''+escJs(type)+'\')'));});
-    state.cross.months.forEach(function(value){parts.push(pill('Month: '+value,'clearTatCrossV6509(\'month\',\''+escJs(value)+'\')'));});
-    state.cross.tatBuckets.forEach(function(value){parts.push(pill('TAT: '+value+(value==='31+'?'':' days'),'clearTatCrossV6509(\'bucket\',\''+escJs(value)+'\')'));});
-    if(state.cross.lateBand)parts.push(pill('Promise: '+state.cross.lateBand,'clearTatCrossV6509(\'late\')'));
-    if(state.cross.issue)parts.push(pill('Issue: '+state.cross.issue,'clearTatCrossV6509(\'issue\')'));
-    node.innerHTML=parts.join('');node.style.display=parts.length?'flex':'none';
+    const engine=window.cdaDashboardFilterEngineV6681;
+    if(!engine)return;
+    const parts=[];
+    FILTER_TYPES.forEach(function(type){
+      if(mode(type)!=='ALL'){
+        parts.push({clearKey:'top:'+type,label:LABELS[type]+': '+selectionLabel(type),title:LABELS[type]+': '+selectionLabel(type)});
+      }
+    });
+    state.cross.months.forEach(function(value){
+      parts.push({clearKey:'month:'+value,label:'Month: '+value,title:'Month: '+value});
+    });
+    state.cross.tatBuckets.forEach(function(value){
+      parts.push({clearKey:'bucket:'+value,label:'TAT: '+value+(value==='31+'?'':' days'),title:'TAT: '+value});
+    });
+    if(state.cross.lateBand)parts.push({clearKey:'late',label:'Promise: '+state.cross.lateBand,title:'Promise: '+state.cross.lateBand});
+    if(state.cross.issue)parts.push({clearKey:'issue',label:'Issue: '+state.cross.issue,title:'Issue: '+state.cross.issue});
+    engine.renderPills('tat','tatPillsV6509',parts,{showResetAll:true});
   }
   function comparison(rows){const current=selectedTatReportingYearV6510(),prior=current===2026?2025:null;return {currentYear:current,priorYear:prior,current:metrics((rows||[]).filter(function(row){return Number(row.year)===current;})),prior:prior?metrics((rows||[]).filter(function(row){return Number(row.year)===prior;})):metrics([])};}
   function tatKpiDeltaHtmlV6528(currentValue,priorValue,priorYear,formatter,options){
@@ -740,6 +785,26 @@
   window.selectTatLateBandV6509=function(value){state.cross.lateBand=state.cross.lateBand===value?'':value;renderAll();};
   window.selectTatIssueV6509=function(value){state.cross.issue=state.cross.issue===value?'':value;renderAll();};
   window.resetTatAllV6509=function(event){if(event){event.preventDefault();event.stopPropagation();}FILTER_TYPES.forEach(function(type){selectedSet(type).clear();setMode(type,'ALL');state.searches[type]='';});state.cross.months.clear();state.cross.tatBuckets.clear();state.cross.lateBand='';state.cross.issue='';closeDropdowns();closeTatFloatingPanelsV6509();renderAll();};
+  if(window.cdaDashboardFilterEngineV6681){
+    window.cdaDashboardFilterEngineV6681.registerTab('tat',{
+      clear:function(clearKey){
+        const key=String(clearKey||'');
+        if(key.indexOf('top:')===0)return window.clearTatTopFilterV6509(key.slice(4));
+        if(key.indexOf('month:')===0)return window.clearTatCrossV6509('month',key.slice(6));
+        if(key.indexOf('bucket:')===0)return window.clearTatCrossV6509('bucket',key.slice(7));
+        if(key==='late')return window.clearTatCrossV6509('late');
+        if(key==='issue')return window.clearTatCrossV6509('issue');
+        return false;
+      },
+      clearDimension:function(kind){
+        return window.clearTatTopFilterV6509(String(kind||''));
+      },
+      reset:function(){
+        return window.resetTatAllV6509();
+      }
+    });
+  }
+
   window.setTatDistributionModeV6509=function(){state.distributionMode='percent';renderAll();closeTatFloatingPanelsV6509();};
   window.toggleTatSectionV6509=function(section){if(section!=='customers'&&section!=='quality')return;state.collapsed[section]=!state.collapsed[section];applyCollapsedState();saveViewState();};
 

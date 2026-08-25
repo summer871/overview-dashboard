@@ -8,6 +8,19 @@
   /* Each circular arrow clears only the selection owned by that chart/card. */
   window.clearRemakeComponentV6230 = function clearRemakeComponentV6357(component) {
     const key = String(component || '');
+    const engine = window.cdaDashboardFilterEngineV6681;
+
+    if (engine) {
+      if (key === 'trend') return engine.clear('remake','months');
+      if (key === 'reason' || key === 'department' || key === 'customer') return engine.clearDimension('remake',key);
+      if (key === 'product') {
+        const groupButton = document.getElementById('remakeProductModeGroupBtnV6264');
+        const filterKind = groupButton && groupButton.classList.contains('active') ? 'productGroup' : 'product';
+        return engine.clearDimension('remake',filterKind);
+      }
+      if (key === 'ceramist') return engine.clear('remake','technician');
+    }
+
     if (key === 'trend') {
       if (typeof window.clearRemakeFilterV6230 === 'function') window.clearRemakeFilterV6230('months');
       return;

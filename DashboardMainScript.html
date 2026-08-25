@@ -19878,25 +19878,266 @@
   function setFilterExclusionsV6389(kind, values) { const seen = new Set(); const clean = []; (Array.isArray(values) ? values : [values]).forEach(value => { const text = String(value === null || value === undefined ? '' : value).trim(); if (text && !seen.has(text)) { seen.add(text); clean.push(text); } }); if (!uiV6230.filterExclusionsV6389) uiV6230.filterExclusionsV6389 = {}; uiV6230.filterExclusionsV6389[kind] = clean; uiV6230.filters[kind] = []; const meta = filterMetaV6245[kind]; const input = meta ? idV6230(meta.inputId) : null; if (input) input.value = '[]'; return clean; }
   function matchesFilterV6245(kind, value) { const selected = filterValuesV6245(kind); if (filterIsNoneV6308(kind)) return false; if (selected.length) return selected.some(item => String(item) === String(value)); const excluded = new Set(excludedFilterValuesV6389(kind)); return !excluded.has(String(value)); }
   function filterOptionLabelV6245(kind, value) { if (String(value) === REMAKE_NONE_FILTER_VALUE_V6308) return 'None'; const options = (uiV6230.filterOptionsV6245 && uiV6230.filterOptionsV6245[kind]) || []; const match = options.find(opt => String(opt.value) === String(value)); return match ? match.label : ''; }
-  function multiFilterMarkupV6245(kind, label, allLabel) {
-    const meta = filterMetaV6245[kind];
-    const visibleToggleId = 'remakeVisibleToggleV6502_' + kind;
-    return '<div class="remakeFilter remakeMultiFilterV6245" data-filter-kind="' + escV6230(kind) + '">'
-      + '<label for="' + escV6230(meta.buttonId) + '">' + escV6230(label) + '</label>'
-      + '<input id="' + escV6230(meta.inputId) + '" class="remakeHiddenSelectV6245" data-multi-managed-v6245="1" type="hidden" value="[]">'
-      + '<button id="' + escV6230(meta.buttonId) + '" class="remakeDropdownButtonV6245" type="button" onclick="toggleRemakeDropdownV6245(\'' + escJsV6230(kind) + '\')">' + escV6230(allLabel) + '</button>'
-      + '<div id="' + escV6230(meta.panelId) + '" class="remakeDropdownPanelV6245">'
-      + '<div class="remakeDropdownHeaderV6245">'
-      + '<label class="remakeVisibleToggleV6502" title="Check to select every visible option. Uncheck to deselect every visible option.">'
-      + '<input id="' + escV6230(visibleToggleId) + '" type="checkbox" onchange="toggleVisibleRemakeOptionsV6502(\'' + escJsV6230(kind) + '\',this.checked,event)">'
-      + '<span>Visible</span></label>'
-      + '<button type="button" title="Select all options and remove this filter" aria-label="Reset ' + escV6230(label) + ' filter" onclick="clearRemakeMultiFilterV6245(\'' + escJsV6230(kind) + '\')">Reset</button>'
-      + '<button type="button" title="Deselect every option" aria-label="Select no ' + escV6230(label.toLowerCase()) + ' options" onclick="selectNoneRemakeOptionsV6308(\'' + escJsV6230(kind) + '\')">None</button>'
-      + '<span id="' + escV6230(meta.countId) + '" class="remakeDropdownCountV6245">0</span></div>'
-      + '<input id="' + escV6230(meta.searchId) + '" class="remakeDropdownSearchV6245" type="text" placeholder="Search ' + escV6230(label.toLowerCase()) + '" oninput="renderRemakeDropdownListV6245(\'' + escJsV6230(kind) + '\')">'
-      + '<div id="' + escV6230(meta.listId) + '" class="remakeDropdownListV6245"></div></div></div>';
-  }
+  // v6.681 shared filter engine: one template/renderer/reset router for Remake, TAT, and future dashboard tabs.
+  (function installCdaDashboardFilterEngineV6681(){
+    'use strict';
+    if (window.cdaDashboardFilterEngineV6681) return;
 
+    const VERSION = 'v6.681-shared-filter-engine-1';
+    const adapters = new Map();
+
+    function clean(value){
+      return String(value == null ? '' : value).replace(/\s+/g,' ').trim();
+    }
+
+    function escapeHtml(value){
+      return String(value == null ? '' : value)
+        .replace(/&/g,'&amp;')
+        .replace(/</g,'&lt;')
+        .replace(/>/g,'&gt;')
+        .replace(/"/g,'&quot;')
+        .replace(/'/g,'&#39;');
+    }
+
+    function escapeAttr(value){
+      return String(value == null ? '' : value)
+        .replace(/&/g,'&amp;')
+        .replace(/"/g,'&quot;')
+        .replace(/</g,'&lt;')
+        .replace(/>/g,'&gt;');
+    }
+
+    function htmlAttributes(attributes){
+      return Object.keys(attributes || {}).map(function(name){
+        const value = attributes[name];
+        return value == null || value === false
+          ? ''
+          : ' ' + escapeHtml(name) + '="' + escapeAttr(value === true ? '' : value) + '"';
+      }).join('');
+    }
+
+    function eventAttribute(name,code){
+      return code ? ' ' + name + '="' + escapeAttr(code) + '"' : '';
+    }
+
+    function filterMarkup(config){
+      const item = config || {};
+      const ids = item.ids || {};
+      const handlers = item.handlers || {};
+      const kind = clean(item.kind);
+      const label = clean(item.label || kind);
+      const allLabel = clean(item.allLabel || ('All ' + label.toLowerCase()));
+      const visibleToggleId = ids.visibleToggleId || '';
+      const containerClass = clean(item.containerClass || 'remakeFilter remakeMultiFilterV6245');
+      const hiddenInput = ids.inputId
+        ? '<input id="' + escapeHtml(ids.inputId) + '" class="remakeHiddenSelectV6245" data-multi-managed-v6245="1" type="hidden" value="[]">'
+        : '';
+
+      return '<div class="' + escapeHtml(containerClass) + '" data-filter-kind="' + escapeHtml(kind) + '"' + htmlAttributes(item.attributes) + '>'
+        + '<label class="cdaDashboardFilterLabelV6681" for="' + escapeHtml(ids.buttonId || '') + '">' + escapeHtml(label) + '</label>'
+        + hiddenInput
+        + '<button id="' + escapeHtml(ids.buttonId || '') + '" class="remakeDropdownButtonV6245" type="button" aria-haspopup="listbox" aria-expanded="false"'
+        + eventAttribute('onclick',handlers.toggle) + '>' + escapeHtml(allLabel) + '</button>'
+        + '<div id="' + escapeHtml(ids.panelId || '') + '" class="remakeDropdownPanelV6245" onclick="event.stopPropagation()">'
+        + '<div class="remakeDropdownHeaderV6245">'
+        + '<label class="remakeVisibleToggleV6502" title="Check to select every visible option. Uncheck to deselect every visible option.">'
+        + '<input' + (visibleToggleId ? ' id="' + escapeHtml(visibleToggleId) + '"' : '') + ' type="checkbox"'
+        + eventAttribute('onchange',handlers.visible) + '><span>Visible</span></label>'
+        + '<button type="button" title="Select all options and remove this filter" aria-label="Reset ' + escapeHtml(label) + ' filter"'
+        + eventAttribute('onclick',handlers.reset) + '>Reset</button>'
+        + '<button type="button" title="Deselect every option" aria-label="Select no ' + escapeHtml(label.toLowerCase()) + ' options"'
+        + eventAttribute('onclick',handlers.none) + '>None</button>'
+        + '<span id="' + escapeHtml(ids.countId || '') + '" class="remakeDropdownCountV6245">0</span></div>'
+        + '<input id="' + escapeHtml(ids.searchId || '') + '" class="remakeDropdownSearchV6245" type="search" placeholder="Search ' + escapeHtml(label.toLowerCase()) + '"'
+        + eventAttribute('oninput',handlers.search) + '>'
+        + '<div id="' + escapeHtml(ids.listId || '') + '" class="remakeDropdownListV6245" role="listbox" aria-multiselectable="true"></div>'
+        + '</div></div>';
+    }
+
+    function optionRowMarkup(config){
+      const item = config || {};
+      const checked = item.checked === true;
+      const active = item.active === true;
+      const classes = 'remakeDropdownRowV6245' + (active ? ' active' : '');
+      const inactive = item.inactive === true ? '<span class="inactiveBadge">Inactive</span>' : '';
+
+      return '<div class="' + classes + '" role="option" aria-selected="' + (checked ? 'true' : 'false') + '"'
+        + eventAttribute('onclick',item.toggleCode) + '>'
+        + '<input type="checkbox" ' + (checked ? 'checked ' : '') + 'tabindex="-1">'
+        + '<span class="remakeDropdownLabelV6245" title="' + escapeAttr(item.label || '') + '">' + escapeHtml(item.label || '') + inactive + '</span>'
+        + '<button class="remakeDropdownOnlyV6245" type="button"'
+        + eventAttribute('onclick','event.stopPropagation();' + String(item.onlyCode || '')) + '>Only</button>'
+        + '</div>';
+    }
+
+    function emptyOptionMarkup(message){
+      return '<div class="remakeDropdownEmptyV6245">' + escapeHtml(message || 'No visible options.') + '</div>';
+    }
+
+    function adapterFor(tabKey){
+      return adapters.get(String(tabKey || '')) || null;
+    }
+
+    function registerTab(tabKey,adapter){
+      const key = clean(tabKey);
+      if (!key || !adapter || typeof adapter !== 'object') return false;
+      adapters.set(key,adapter);
+      return true;
+    }
+
+    function scheduleTopChrome(){
+      const top = window.cdaSharedTopParityV6527;
+      if (top && typeof top.scheduleTopChrome === 'function') top.scheduleTopChrome();
+    }
+
+    function emit(name,tabKey,detail){
+      try {
+        document.dispatchEvent(new CustomEvent(name,{
+          detail:Object.assign({tabKey:String(tabKey || '')},detail || {})
+        }));
+      } catch (error) {}
+    }
+
+    function clear(tabKey,clearKey){
+      const adapter = adapterFor(tabKey);
+      if (!adapter || typeof adapter.clear !== 'function') return false;
+      const result = adapter.clear(String(clearKey || ''));
+      emit('cdaDashboardFilterChangedV6681',tabKey,{clearKey:String(clearKey || '')});
+      scheduleTopChrome();
+      return result;
+    }
+
+    function clearDimension(tabKey,kind){
+      const adapter = adapterFor(tabKey);
+      if (!adapter) return false;
+      const result = typeof adapter.clearDimension === 'function'
+        ? adapter.clearDimension(String(kind || ''))
+        : typeof adapter.clear === 'function'
+          ? adapter.clear(String(kind || ''))
+          : false;
+      emit('cdaDashboardFilterChangedV6681',tabKey,{dimension:String(kind || '')});
+      scheduleTopChrome();
+      return result;
+    }
+
+    function resetTab(tabKey,event){
+      if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+      const adapter = adapterFor(tabKey);
+      if (!adapter || typeof adapter.reset !== 'function') return false;
+      const result = adapter.reset();
+      emit('cdaDashboardFilterResetV6681',tabKey,{});
+      scheduleTopChrome();
+      return result;
+    }
+
+    function createPill(tabKey,descriptor){
+      const item = descriptor || {};
+      const pill = document.createElement('span');
+      pill.className = 'remakePillV6230 cdaDashboardFilterPillV6681';
+      pill.setAttribute('data-cda-filter-pill-v6681','true');
+      pill.setAttribute('data-cda-filter-pill-tab-v6681',String(tabKey || ''));
+      if (item.clearKey) pill.setAttribute('data-cda-filter-pill-key-v6681',String(item.clearKey));
+
+      const text = document.createElement('span');
+      text.className = 'cdaDashboardFilterPillTextV6681';
+      text.textContent = String(item.label || '');
+      text.title = String(item.title || item.label || '');
+      pill.appendChild(text);
+
+      if (item.clearKey) {
+        const close = document.createElement('button');
+        close.type = 'button';
+        close.textContent = 'Ã—';
+        close.title = 'Remove filter';
+        close.setAttribute('aria-label','Remove ' + String(item.label || 'filter'));
+        close.addEventListener('click',function(event){
+          event.preventDefault();
+          event.stopPropagation();
+          clear(tabKey,item.clearKey);
+        });
+        pill.appendChild(close);
+      }
+
+      return pill;
+    }
+
+    function renderPills(tabKey,railId,descriptors,options){
+      const rail = document.getElementById(String(railId || ''));
+      if (!rail) return false;
+
+      const items = Array.isArray(descriptors) ? descriptors.filter(function(item){
+        return item && clean(item.label);
+      }) : [];
+      rail.replaceChildren();
+      rail.style.removeProperty('display');
+      rail.setAttribute('data-cda-filter-engine-tab-v6681',String(tabKey || ''));
+      rail.setAttribute('data-empty',items.length ? 'false' : 'true');
+
+      items.forEach(function(item){
+        rail.appendChild(createPill(tabKey,item));
+      });
+
+      if (items.length && (!options || options.showResetAll !== false)) {
+        const reset = document.createElement('button');
+        reset.type = 'button';
+        reset.className = 'remakeClearAllV6230 cdaDashboardFilterResetV6681';
+        reset.textContent = 'Reset all';
+        reset.title = 'Reset all filters';
+        reset.setAttribute('aria-label','Reset all filters');
+        reset.addEventListener('click',function(event){
+          resetTab(tabKey,event);
+        });
+        rail.appendChild(reset);
+      }
+
+      scheduleTopChrome();
+      return true;
+    }
+
+    window.cdaDashboardFilterEngineV6681 = Object.freeze({
+      version:VERSION,
+      filterMarkup:filterMarkup,
+      optionRowMarkup:optionRowMarkup,
+      emptyOptionMarkup:emptyOptionMarkup,
+      registerTab:registerTab,
+      renderPills:renderPills,
+      clear:clear,
+      clearDimension:clearDimension,
+      resetTab:resetTab,
+      scheduleTopChrome:scheduleTopChrome
+    });
+    window.CDA_DASHBOARD_FILTER_ENGINE_VERSION = VERSION;
+  })();
+
+  function multiFilterMarkupV6245(kind, label, allLabel) {
+    const engine = window.cdaDashboardFilterEngineV6681;
+    const meta = filterMetaV6245[kind];
+    if (!engine || !meta) return '';
+    return engine.filterMarkup({
+      kind:kind,
+      label:label,
+      allLabel:allLabel,
+      ids:{
+        inputId:meta.inputId,
+        buttonId:meta.buttonId,
+        panelId:meta.panelId,
+        visibleToggleId:'remakeVisibleToggleV6502_' + kind,
+        countId:meta.countId,
+        searchId:meta.searchId,
+        listId:meta.listId
+      },
+      handlers:{
+        toggle:"toggleRemakeDropdownV6245('" + escJsV6230(kind) + "')",
+        visible:"toggleVisibleRemakeOptionsV6502('" + escJsV6230(kind) + "',this.checked,event)",
+        reset:"clearRemakeMultiFilterV6245('" + escJsV6230(kind) + "')",
+        none:"selectNoneRemakeOptionsV6308('" + escJsV6230(kind) + "')",
+        search:"renderRemakeDropdownListV6245('" + escJsV6230(kind) + "')"
+      }
+    });
+  }
   function buildShellV6230(force) {
     const page = idV6230('remakeFactorPage');
     if (!page) return;
@@ -20569,37 +20810,141 @@
     const extra = labels.length > 2 ? ' +' + (labels.length - 2) : '';
     return pillKindLabelV6247(kind) + ': ' + shown + extra;
   }
-  function renderPillsV6230(){
+  function renderPillsV6230() {
+    const engine = window.cdaDashboardFilterEngineV6681;
     const rail = idV6230('remakePillsV6230');
-    if (!rail) return;
+    if (!rail || !engine) return;
     const pills = [];
-    ['year','department','product','productGroup','customer','reason'].forEach(kind => {
+    const kinds = ['year','department','product','productGroup','customer','reason'];
+
+    kinds.forEach(function(kind) {
       const excluded = excludedFilterValuesV6389(kind);
       const values = filterValuesV6245(kind);
+
       if (excluded.length) {
-        const fullTitle = excluded.map(value => pillKindLabelV6247(kind) + ' excluded: ' + filterLabelV6230(kind, value)).join('\n');
-        const labels = excluded.map(value => filterLabelV6230(kind, value)).filter(Boolean);
-        const shown = labels.slice(0, 2).join(', ');
+        const fullTitle = excluded.map(function(value) {
+          return pillKindLabelV6247(kind) + ' excluded: ' + filterLabelV6230(kind,value);
+        }).join('\n');
+        const labels = excluded.map(function(value) {
+          return filterLabelV6230(kind,value);
+        }).filter(Boolean);
+        const shown = labels.slice(0,2).join(', ');
         const extra = labels.length > 2 ? ' +' + (labels.length - 2) : '';
-        pills.push({ clear: kind, label: pillKindLabelV6247(kind) + ' excluded: ' + shown + extra, title: fullTitle });
-        return;
+        pills.push({
+          clearKey:'hard:' + kind,
+          label:pillKindLabelV6247(kind) + ' excluded: ' + shown + extra,
+          title:fullTitle
+        });
+      } else if (values.length) {
+        pills.push({
+          clearKey:'hard:' + kind,
+          label:compactPillLabelV6247(kind,values,function(value){ return filterLabelV6230(kind,value); }),
+          title:values.map(function(value){
+            return pillKindLabelV6247(kind) + ': ' + filterLabelV6230(kind,value);
+          }).join('\n')
+        });
       }
-      if (!values.length) return;
-      const fullTitle = values.map(value => pillKindLabelV6247(kind) + ': ' + filterLabelV6230(kind, value)).join('\n');
-      const label = compactPillLabelV6247(kind, values, value => filterLabelV6230(kind, value));
-      pills.push({ clear: kind, label, title: fullTitle });
+
+      const crossValues = crossFilterValuesV6634(kind);
+      if (crossValues.length) {
+        pills.push({
+          clearKey:'cross:' + kind,
+          label:compactPillLabelV6247(kind,crossValues,function(value){ return filterLabelV6230(kind,value); }),
+          title:crossValues.map(function(value){
+            return pillKindLabelV6247(kind) + ': ' + filterLabelV6230(kind,value);
+          }).join('\n')
+        });
+      }
     });
+
     const months = Array.from(uiV6230.selectedMonths || []).sort(sortMonthV6230);
     if (months.length) {
       pills.push({
-        clear: 'months',
-        label: compactPillLabelV6247('month', months, month => monthLabelV6230(month)),
-        title: months.map(month => 'Month: ' + monthLabelV6230(month)).join('\n')
+        clearKey:'months',
+        label:compactPillLabelV6247('month',months,function(month){ return monthLabelV6230(month); }),
+        title:months.map(function(month){ return 'Month: ' + monthLabelV6230(month); }).join('\n')
       });
     }
-    if (!pills.length) { rail.innerHTML = ''; return; }
-    rail.innerHTML = pills.map(pill => '<span class="remakePillV6230" title="' + escV6230(pill.title || pill.label) + '"><span>' + escV6230(pill.label) + '</span><button type="button" onclick="clearRemakeFilterV6230(\'' + escJsV6230(pill.clear) + '\')">x</button></span>').join('') + '<button type="button" class="remakeClearAllV6230" title="Reset all filters" aria-label="Reset all filters" onclick="clearRemakeFilterV6230(\'all\')">Reset all</button>';
+
+    const technicianKey = String(ceramistStateV6342 && ceramistStateV6342.selectedCeramist || '').trim();
+    if (technicianKey) {
+      let technicianLabel = technicianKey;
+      try {
+        const selectedSummary = (uiV6230.lastTables.ceramist || []).find(function(row) {
+          return String(row.key) === technicianKey;
+        });
+        if (selectedSummary && typeof ceramistCleanWorkerLabelV6349 === 'function') {
+          technicianLabel = ceramistCleanWorkerLabelV6349(selectedSummary.label,technicianKey) || technicianKey;
+        }
+      } catch (error) {}
+      pills.push({
+        clearKey:'technician',
+        label:'Technician: ' + technicianLabel,
+        title:'Technician: ' + technicianLabel
+      });
+    }
+
+    engine.renderPills('remake','remakePillsV6230',pills,{showResetAll:true});
   }
+
+  function commitRemakeSharedFilterChangeV6681() {
+    persistUiV6230();
+    syncFilterControlsV6230();
+    renderDashboardV6230();
+  }
+
+  function clearRemakeSharedDimensionV6681(kind) {
+    const key = String(kind || '');
+    if (!key) return false;
+    if (Object.prototype.hasOwnProperty.call(uiV6230.filters,key)) setFilterValuesV6245(key,[]);
+    if (uiV6230.crossFiltersV6634 && Object.prototype.hasOwnProperty.call(uiV6230.crossFiltersV6634,key)) {
+      setCrossFilterValuesV6634(key,[]);
+    }
+    try {
+      if (typeof clearRemakeResponsibilitySelectionV6504 === 'function') clearRemakeResponsibilitySelectionV6504(key);
+    } catch (error) {}
+    commitRemakeSharedFilterChangeV6681();
+    return true;
+  }
+
+  window.cdaDashboardFilterEngineV6681.registerTab('remake',{
+    clear:function(clearKey) {
+      const key = String(clearKey || '');
+      if (key.indexOf('hard:') === 0) {
+        const kind = key.slice(5);
+        if (typeof window.clearRemakeFilterV6230 === 'function') return window.clearRemakeFilterV6230(kind);
+        return false;
+      }
+      if (key.indexOf('cross:') === 0) {
+        const kind = key.slice(6);
+        try { if (typeof pushRemakeUndoV6266 === 'function') pushRemakeUndoV6266(); } catch (error) {}
+        setCrossFilterValuesV6634(kind,[]);
+        try {
+          if (typeof clearRemakeResponsibilitySelectionV6504 === 'function') clearRemakeResponsibilitySelectionV6504(kind);
+        } catch (error) {}
+        commitRemakeSharedFilterChangeV6681();
+        return true;
+      }
+      if (key === 'months') {
+        if (typeof window.clearRemakeFilterV6230 === 'function') return window.clearRemakeFilterV6230('months');
+        return false;
+      }
+      if (key === 'technician') {
+        if (typeof window.resetTechnicianAnalysisV6386 === 'function') window.resetTechnicianAnalysisV6386(false);
+        renderDashboardV6230();
+        return true;
+      }
+      return false;
+    },
+    clearDimension:function(kind) {
+      return clearRemakeSharedDimensionV6681(kind);
+    },
+    reset:function() {
+      if (typeof window.clearRemakeAllNowV6681 === 'function') return window.clearRemakeAllNowV6681();
+      if (typeof window.clearRemakeFilterV6230 === 'function') return window.clearRemakeFilterV6230('all');
+      return false;
+    }
+  });
   function allOptionsForDropdownV6245(kind){ return ((uiV6230.filterOptionsV6245&&uiV6230.filterOptionsV6245[kind])||[]).slice(); }
   function allOptionValuesForDropdownV6245(kind){ return allOptionsForDropdownV6245(kind).map(opt=>String(opt.value)); }
   function explicitSelectionSetV6250(kind){ return new Set(filterValuesV6245(kind).map(value=>String(value)).filter(value=>value!==REMAKE_NONE_FILTER_VALUE_V6308)); }
@@ -20656,7 +21001,35 @@
     if(count) count.textContent=none?('None selected · '+visible.length+' shown'):(excluded.length?(selectedCount+' selected · '+excluded.length+' excluded · '+visible.length+' shown'):(values.length?(values.length+' selected · '+visible.length+' shown'):('All selected · '+visible.length+' shown')));
     syncVisibleRemakeToggleV6502(kind, visible, effective);
   }
-  window.renderRemakeDropdownListV6245=function(kind){ const meta=filterMetaV6245[kind]; if(!meta) return; const list=idV6230(meta.listId); if(!list) return; const explicit=explicitSelectionSetV6250(kind); const excluded=exclusionSetV6389(kind); const effective=effectiveSelectionSetV6250(kind); const visible=visibleOptionsForDropdownV6245(kind); renderDropdownButtonV6245(kind); if(!visible.length){list.innerHTML='<div class="remakeDropdownEmptyV6245">No matching options.</div>';return;} list.innerHTML=visible.map(opt=>{ const value=String(opt.value); const checked=effective.has(value); const explicitActive=!excluded.size&&explicit.size&&checked; const inactive=opt.active===false?'<span class="inactiveBadge">Inactive</span>':''; return '<div class="remakeDropdownRowV6245'+(explicitActive?' active':'')+'" onclick="toggleRemakeMultiValueV6245(\''+escJsV6230(kind)+'\',\''+escJsV6230(value)+'\')"><input type="checkbox" '+(checked?'checked':'')+'><div class="remakeDropdownLabelV6245" title="'+escV6230(opt.label)+'">'+escV6230(opt.label)+inactive+'</div><button type="button" class="remakeDropdownOnlyV6245" onclick="onlyRemakeMultiValueV6245(\''+escJsV6230(kind)+'\',\''+escJsV6230(value)+'\',event)">Only</button></div>'; }).join(''); };
+  window.renderRemakeDropdownListV6245 = function(kind) {
+    const meta = filterMetaV6245[kind];
+    const engine = window.cdaDashboardFilterEngineV6681;
+    if (!meta || !engine) return;
+    const list = idV6230(meta.listId);
+    if (!list) return;
+    const explicit = explicitSelectionSetV6250(kind);
+    const excluded = exclusionSetV6389(kind);
+    const effective = effectiveSelectionSetV6250(kind);
+    const visible = visibleOptionsForDropdownV6245(kind);
+    renderDropdownButtonV6245(kind);
+    if (!visible.length) {
+      list.innerHTML = engine.emptyOptionMarkup('No matching options.');
+      return;
+    }
+    list.innerHTML = visible.map(function(opt) {
+      const value = String(opt.value);
+      const checked = effective.has(value);
+      const explicitActive = !excluded.size && explicit.size && checked;
+      return engine.optionRowMarkup({
+        checked:checked,
+        active:!!explicitActive,
+        label:opt.label,
+        inactive:opt.active === false,
+        toggleCode:"toggleRemakeMultiValueV6245('" + escJsV6230(kind) + "','" + escJsV6230(value) + "')",
+        onlyCode:"onlyRemakeMultiValueV6245('" + escJsV6230(kind) + "','" + escJsV6230(value) + "',event)"
+      });
+    }).join('');
+  };
   function renderAllRemakeDropdownsV6245(){ Object.keys(filterMetaV6245).forEach(kind=>{ const meta=filterMetaV6245[kind]; renderDropdownButtonV6245(kind); const panel=meta?idV6230(meta.panelId):null; if(panel&&panel.classList.contains('open')) window.renderRemakeDropdownListV6245(kind); }); }
   window.toggleRemakeDropdownV6245=function(kind){ const meta=filterMetaV6245[kind]; if(!meta) return; Object.keys(filterMetaV6245).forEach(other=>{const m=filterMetaV6245[other]; const p=idV6230(m.panelId); const b=idV6230(m.buttonId); if(other!==kind){ if(p) p.classList.remove('open'); if(b) b.classList.remove('active'); }}); const panel=idV6230(meta.panelId); const btn=idV6230(meta.buttonId); if(panel) panel.classList.toggle('open'); if(btn) btn.classList.toggle('active'); window.renderRemakeDropdownListV6245(kind); const search=idV6230(meta.searchId); if(panel&&panel.classList.contains('open')&&search) setTimeout(()=>search.focus(),20); };
   window.toggleRemakeMultiValueV6245=function(kind,value){ pushRemakeUndoV6266(); const text=String(value); const next=effectiveSelectionSetV6250(kind); if(next.has(text)) next.delete(text); else next.add(text); commitEffectiveSelectionV6389(kind,Array.from(next)); persistUiV6230(); renderDashboardV6230(); };
@@ -24054,7 +24427,7 @@
       const previous=window.clearRemakeFilterV6230; const wrapped=function(kind){clearRemakeResponsibilitySelectionV6504(kind);return previous.apply(this,arguments);}; wrapped.__v6504Responsibility=true; window.clearRemakeFilterV6230=wrapped;
     }
     if (window.selectCeramistV6343 && !window.selectCeramistV6343.__v6504Responsibility) {
-      const previous=window.selectCeramistV6343; const wrapped=function(value){const next=String(value||'');const clearing=next&&next===String(ceramistStateV6342.selectedCeramist||'');setRemakeResponsibilitySelectionV6504('technician',clearing?[]:[next]);const result=previous.apply(this,arguments);window.setTimeout(function(){renderCustomerResponsibilitySummaryV6503();renderCustomerChartV6230();},0);return result;}; wrapped.__v6504Responsibility=true; window.selectCeramistV6343=wrapped;
+      const previous=window.selectCeramistV6343; const wrapped=function(value){const next=String(value||'');const clearing=next&&next===String(ceramistStateV6342.selectedCeramist||'');setRemakeResponsibilitySelectionV6504('technician',clearing?[]:[next]);const result=previous.apply(this,arguments);window.setTimeout(function(){renderCustomerResponsibilitySummaryV6503();renderCustomerChartV6230();renderPillsV6230();},0);return result;}; wrapped.__v6504Responsibility=true; window.selectCeramistV6343=wrapped;
     }
     window.setRemakeResponsibilitySelectionV6504=setRemakeResponsibilitySelectionV6504;
   }

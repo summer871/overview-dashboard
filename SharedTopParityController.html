@@ -3,9 +3,9 @@
   'use strict';
 
   window.CDA_CURRENT_FRONTEND_VERSION='v6.681';
-  window.CDA_SHARED_TOP_PARITY_VERSION='v6.681-repair-6';
+  window.CDA_SHARED_TOP_PARITY_VERSION='v6.681-shared-filter-engine-1';
   window.CDA_UNIFIED_TOOLBAR_VERSION='v6.528-full-label-or-icons';
-  window.CDA_SHARED_TOP_CHROME_VERSION='v6.681-repair-6';
+  window.CDA_SHARED_TOP_CHROME_VERSION='v6.681-shared-filter-engine-1';
 
   const hostIds=['remakeTabFilterHostV6337','tatTabFilterHostV6509'];
   const icons={year:'Y',department:'D',product:'P',productGroup:'G',customer:'C',reason:'R'};
@@ -237,31 +237,6 @@
     });
   }
 
-  function createFilterPill(labelText,removeAction,extraClass){
-    const pill=document.createElement('span');
-    pill.className='cdaDashboardFilterPillV6681'+(extraClass?' '+extraClass:'');
-
-    const text=document.createElement('span');
-    text.className='cdaDashboardFilterPillTextV6681';
-    text.textContent=String(labelText||'');
-    text.title=text.textContent;
-
-    const close=document.createElement('button');
-    close.type='button';
-    close.textContent='x';
-    close.title='Remove filter';
-    close.setAttribute('aria-label','Remove '+text.textContent);
-    close.addEventListener('click',function(event){
-      event.preventDefault();
-      event.stopPropagation();
-      if(typeof removeAction==='function')removeAction();
-    });
-
-    pill.appendChild(text);
-    pill.appendChild(close);
-    return pill;
-  }
-
   function scheduleAll(){
     prepareToolbar();
     scheduleTopChrome();
@@ -309,11 +284,10 @@
   }
 
   window.cdaSharedTopParityV6527=Object.freeze({
-    version:'v6.681-repair-6',
+    version:'v6.681-shared-filter-engine-1',
     schedule:scheduleAll,
     scheduleTopChrome:scheduleTopChrome,
     syncTopChrome:syncTopChrome,
-    createFilterPill:createFilterPill
   });
 
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});

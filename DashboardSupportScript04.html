@@ -512,7 +512,9 @@ window.CDA_REMAKE_COMPACT_VERSION = 'v6.385-minimal-saved-views-menu';
     if (event) { event.preventDefault(); event.stopPropagation(); }
     closeCompactPanelsV6382();
     closeSearchV6382();
-    if (typeof window.clearRemakeFilterV6230 === 'function') window.clearRemakeFilterV6230('all');
+    if (window.cdaDashboardFilterEngineV6681) window.cdaDashboardFilterEngineV6681.resetTab('remake',event);
+    else if (typeof window.clearRemakeAllNowV6681 === 'function') window.clearRemakeAllNowV6681();
+    else if (typeof window.clearRemakeFilterV6230 === 'function') window.clearRemakeFilterV6230('all');
     else if (typeof window.resetRemakeTabFiltersV6337 === 'function') window.resetRemakeTabFiltersV6337(event);
   }
 
@@ -526,6 +528,8 @@ window.CDA_REMAKE_COMPACT_VERSION = 'v6.385-minimal-saved-views-menu';
     }
     closeViewsV6382();
   }
+
+  window.clearRemakeAllNowV6681 = clearAllNowV6382;
 
   function installResetDefaultV6382(){
     const current = window.clearRemakeFilterV6230;
