@@ -20050,7 +20050,7 @@
       if (item.clearKey) {
         const close = document.createElement('button');
         close.type = 'button';
-        close.textContent = 'Ã—';
+        close.textContent = String.fromCharCode(215);
         close.title = 'Remove filter';
         close.setAttribute('aria-label','Remove ' + String(item.label || 'filter'));
         close.addEventListener('click',function(event){
