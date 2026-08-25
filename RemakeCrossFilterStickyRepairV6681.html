@@ -17,7 +17,7 @@ Purpose: Remake-only adapter for click cross-filter pills, Technician/Ceramist l
 (function installRemakeCrossFilterAdapterV6681(){
   'use strict';
 
-  const VERSION='v6.681-repair-7-pill-identity';
+  const VERSION='v6.681-repair-8-click-capture';
   const STORAGE_KEY='cdaRemakeClickCrossFilters.v6681';
   const SELECTED_CLASS='cdaCrossFilterSelectedV6681';
   const PILL_CLASS='cdaRemakeCrossFilterPillV6681';
@@ -322,47 +322,49 @@ Purpose: Remake-only adapter for click cross-filter pills, Technician/Ceramist l
       const kind=item.kind||'';
       if(kind==='ceramist')return;
 
-      const actualValues=crossValues(kind);
-      const friendlyActual=friendlyValues(kind,actualValues);
-      const actualHasLabel=friendlyActual.some(function(value){
-        return clean(value)===clean(item.label);
+      const prefix=(LABELS[kind]||'Selection')+':';
+      const duplicateKind=Array.from(pills.querySelectorAll('.'+PILL_CLASS)).some(function(node){
+        return clean(node.textContent).toLowerCase().indexOf(prefix.toLowerCase())===0;
       });
-      if(actualHasLabel)return;
+      if(duplicateKind)return;
 
       const text=(LABELS[kind]||'Selection')+': '+item.label;
-      const duplicate=Array.from(pills.querySelectorAll('.'+PILL_CLASS)).some(function(node){
-        return clean(node.textContent).replace(/\s*x$/i,'')===text;
-      });
-      if(!duplicate)pills.appendChild(createPill(text,function(){clearKind(kind);}));
+      pills.appendChild(createPill(text,function(){clearKind(kind);}));
     });
 
     scheduleSharedTop();
   }
 
   function applyCrossTableHighlights(){
-    document.querySelectorAll('#remakeFactorPage table tbody tr.'+SELECTED_CLASS).forEach(function(row){
+    document.querySelectorAll('#remakeFactorPage tr.'+SELECTED_CLASS).forEach(function(row){
       row.classList.remove(SELECTED_CLASS);
       row.removeAttribute('data-cda-cross-highlight-v6681');
     });
 
-    const activeLabels=[];
-    ['reason','department','product','productGroup','customer'].forEach(function(kind){
-      friendlyValues(kind,crossValues(kind)).forEach(function(label){
-        if(label&&activeLabels.indexOf(label)<0)activeLabels.push(label);
-      });
-    });
-
-    const active=new Set(activeLabels.map(clean));
-    document.querySelectorAll('#remakeFactorPage table tbody tr').forEach(function(row){
-      if(!row.querySelector('td')||row.classList.contains('ceramistSectionRowV6348'))return;
-      if(active.has(rowLabel(row)))row.classList.add(SELECTED_CLASS);
-    });
+    const mainOwnerByKind={
+      reason:'remakeReasonTable',
+      department:'remakeDepartmentTable',
+      product:'remakeProductTable',
+      productGroup:'remakeProductTable',
+      customer:'remakeCustomerTable'
+    };
 
     readFallbackState().forEach(function(item){
-      const row=findMatchingRow(item);
-      if(row){
-        row.classList.add(SELECTED_CLASS);
-        row.setAttribute('data-cda-cross-highlight-v6681','source');
+      const sourceRow=findMatchingRow(item);
+      if(sourceRow){
+        sourceRow.classList.add(SELECTED_CLASS);
+        sourceRow.setAttribute('data-cda-cross-highlight-v6681','source');
+      }
+
+      if(item.source==='remakeCeramistDetailTableV6343'){
+        const owner=mainOwnerByKind[item.kind];
+        if(owner){
+          const related=findMatchingRow({source:owner,label:item.label});
+          if(related){
+            related.classList.add(SELECTED_CLASS);
+            related.setAttribute('data-cda-cross-highlight-v6681','related');
+          }
+        }
       }
     });
   }
@@ -426,13 +428,13 @@ Purpose: Remake-only adapter for click cross-filter pills, Technician/Ceramist l
     if(!event.target.closest('#remakeFactorPage'))return;
 
     if(!suppressClick){
-      const row=event.target.closest('table tbody tr');
+      const row=event.target.closest('tr');
       if(eligibleRow(row))rememberFallbackRow(row,event);
     }
 
     window.setTimeout(scheduleRender,0);
     window.setTimeout(scheduleRender,80);
-  },false);
+  },true);
 
   document.addEventListener('change',function(event){
     if(event.target&&event.target.closest&&event.target.closest('#remakeFactorPage')){
