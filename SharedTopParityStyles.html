@@ -698,3 +698,136 @@ Purpose: Own the shared Remake/TAT top-filter presentation and Remake cascading 
   }
 })();
 </script>
+<!-- v6.681 repair 4: shared owner for Remake/TAT fixed KPI stage and filter-pill rail placement. -->
+<style id="cdaSharedTopChromeV6681Styles">
+  @media (min-width:761px) {
+    #remakeFactorPage.cleanRemakeV6230[data-cda-shared-top-chrome-v6681="true"] .remakeShellV6230 > .remakeStickyTopV6245,
+    #tatDashboardPageV6509.cleanRemakeV6230[data-cda-shared-top-chrome-v6681="true"] > .tatKpiStageV6509 {
+      position:fixed!important;
+      top:var(--cda-shared-top-offset-v6681,34px)!important;
+      left:var(--cda-shared-top-left-v6681,0px)!important;
+      width:var(--cda-shared-top-width-v6681,100%)!important;
+      margin:0!important;
+      z-index:1200!important;
+      overflow:visible!important;
+      transform:none!important;
+      box-sizing:border-box!important;
+      isolation:isolate!important;
+    }
+
+    #remakeFactorPage.cleanRemakeV6230[data-cda-shared-top-chrome-v6681="true"] #remakePillsV6230,
+    #tatDashboardPageV6509.cleanRemakeV6230[data-cda-shared-top-chrome-v6681="true"] #tatPillsV6509 {
+      position:fixed!important;
+      top:var(--cda-shared-rail-top-v6681,0px)!important;
+      left:var(--cda-shared-top-left-v6681,0px)!important;
+      width:var(--cda-shared-top-width-v6681,100%)!important;
+      z-index:1201!important;
+    }
+
+    #remakeFactorPage.cleanRemakeV6230 .cdaSharedTopChromeSpacerV6681,
+    #tatDashboardPageV6509.cleanRemakeV6230 .cdaSharedTopChromeSpacerV6681 {
+      display:block!important;
+      width:100%!important;
+      min-height:var(--cda-shared-top-spacer-height-v6681,0px)!important;
+      height:var(--cda-shared-top-spacer-height-v6681,0px)!important;
+      margin:0!important;
+      padding:0!important;
+      pointer-events:none!important;
+    }
+  }
+
+  #remakeFactorPage.cleanRemakeV6230 #remakePillsV6230,
+  #tatDashboardPageV6509.cleanRemakeV6230 #tatPillsV6509 {
+    display:flex!important;
+    align-items:center!important;
+    justify-content:flex-start!important;
+    flex-wrap:wrap!important;
+    gap:7px!important;
+    min-width:0!important;
+    min-height:0!important;
+    margin:0 0 8px!important;
+    padding:5px 2px 2px!important;
+    background:transparent!important;
+    border:0!important;
+    border-radius:0!important;
+    box-shadow:none!important;
+    box-sizing:border-box!important;
+  }
+
+  #remakeFactorPage.cleanRemakeV6230 #remakePillsV6230:empty,
+  #tatDashboardPageV6509.cleanRemakeV6230 #tatPillsV6509:empty {
+    display:none!important;
+    margin:0!important;
+    padding:0!important;
+  }
+
+  #remakeFactorPage.cleanRemakeV6230 #remakePillsV6230 :is(.remakePillV6230,.cdaDashboardFilterPillV6681),
+  #tatDashboardPageV6509.cleanRemakeV6230 #tatPillsV6509 :is(.remakePillV6230,.cdaDashboardFilterPillV6681) {
+    display:inline-flex!important;
+    align-items:center!important;
+    gap:6px!important;
+    min-height:24px!important;
+    max-width:min(390px,52vw)!important;
+    padding:3px 8px 3px 10px!important;
+    border:1px solid #efc84a!important;
+    border-radius:999px!important;
+    background:#fff4b8!important;
+    color:#664300!important;
+    box-shadow:0 1px 2px rgba(116,83,0,.12)!important;
+    font:800 10px/1.15 Roboto,Arial,sans-serif!important;
+  }
+
+  #remakeFactorPage.cleanRemakeV6230 #remakePillsV6230 .cdaDashboardFilterPillTextV6681,
+  #tatDashboardPageV6509.cleanRemakeV6230 #tatPillsV6509 .cdaDashboardFilterPillTextV6681 {
+    min-width:0!important;
+    overflow:hidden!important;
+    text-overflow:ellipsis!important;
+    white-space:nowrap!important;
+  }
+
+  #remakeFactorPage.cleanRemakeV6230 #remakePillsV6230 :is(.remakePillV6230,.cdaDashboardFilterPillV6681) button,
+  #tatDashboardPageV6509.cleanRemakeV6230 #tatPillsV6509 :is(.remakePillV6230,.cdaDashboardFilterPillV6681) button {
+    width:18px!important;
+    height:18px!important;
+    min-width:18px!important;
+    padding:0!important;
+    border:0!important;
+    border-radius:50%!important;
+    background:transparent!important;
+    color:#7a4a00!important;
+    font:900 14px/18px Arial,sans-serif!important;
+    cursor:pointer!important;
+  }
+
+  @media (max-width:760px) {
+    #remakeFactorPage.cleanRemakeV6230 .remakeShellV6230 > .remakeStickyTopV6245,
+    #tatDashboardPageV6509.cleanRemakeV6230 > .tatKpiStageV6509,
+    #remakeFactorPage.cleanRemakeV6230 #remakePillsV6230,
+    #tatDashboardPageV6509.cleanRemakeV6230 #tatPillsV6509 {
+      position:static!important;
+      top:auto!important;
+      left:auto!important;
+      width:auto!important;
+    }
+
+    #remakeFactorPage.cleanRemakeV6230 .cdaSharedTopChromeSpacerV6681,
+    #tatDashboardPageV6509.cleanRemakeV6230 .cdaSharedTopChromeSpacerV6681 {
+      display:none!important;
+    }
+
+    #remakeFactorPage.cleanRemakeV6230 #remakePillsV6230,
+    #tatDashboardPageV6509.cleanRemakeV6230 #tatPillsV6509 {
+      flex-wrap:nowrap!important;
+      overflow-x:auto!important;
+      overflow-y:hidden!important;
+      -webkit-overflow-scrolling:touch!important;
+      scrollbar-width:thin!important;
+    }
+
+    #remakeFactorPage.cleanRemakeV6230 #remakePillsV6230 :is(.remakePillV6230,.cdaDashboardFilterPillV6681),
+    #tatDashboardPageV6509.cleanRemakeV6230 #tatPillsV6509 :is(.remakePillV6230,.cdaDashboardFilterPillV6681) {
+      max-width:82vw!important;
+      flex:0 0 auto!important;
+    }
+  }
+</style>

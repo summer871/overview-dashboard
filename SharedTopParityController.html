@@ -1,61 +1,316 @@
 <script id="cdaSharedTopParityV6527Controller">
 (function installCdaSharedTopParityV6527(){
   'use strict';
-  window.CDA_CURRENT_FRONTEND_VERSION='v6.528';
-  window.CDA_SHARED_TOP_PARITY_VERSION='v6.528';
+
+  window.CDA_CURRENT_FRONTEND_VERSION='v6.681';
+  window.CDA_SHARED_TOP_PARITY_VERSION='v6.681-repair-4';
   window.CDA_UNIFIED_TOOLBAR_VERSION='v6.528-full-label-or-icons';
+  window.CDA_SHARED_TOP_CHROME_VERSION='v6.681-repair-4';
 
   const hostIds=['remakeTabFilterHostV6337','tatTabFilterHostV6509'];
   const icons={year:'Y',department:'D',product:'P',productGroup:'G',customer:'C',reason:'R'};
-  const observed=new WeakSet();
-  let applying=false;
-  let frame=0;
+  const observedHosts=new WeakSet();
+  const observedTopNodes=new WeakSet();
+  const topConfigs=[
+    {
+      key:'remake',
+      pageId:'remakeFactorPage',
+      rootSelector:'.remakeShellV6230',
+      stageSelector:'.remakeShellV6230 > .remakeStickyTopV6245',
+      railId:'remakePillsV6230'
+    },
+    {
+      key:'tat',
+      pageId:'tatDashboardPageV6509',
+      rootSelector:null,
+      stageSelector:':scope > .tatKpiStageV6509',
+      railId:'tatPillsV6509'
+    }
+  ];
 
-  function visible(element){return !!(element&&!element.hidden&&getComputedStyle(element).display!=='none');}
-  function activeHost(){return hostIds.map(function(id){return document.getElementById(id);}).find(visible)||null;}
-  function fixedSiblingWidth(tabs,host){
-    return Array.from(tabs.children).filter(function(child){return child!==host&&visible(child);}).reduce(function(total,child){return total+child.getBoundingClientRect().width+4;},20);
+  let applying=false;
+  let toolbarFrame=0;
+  let chromeFrame=0;
+  let bodyObserver=null;
+  let topResizeObserver=null;
+
+  function visible(element){
+    if(!element||element.hidden)return false;
+    const style=getComputedStyle(element);
+    if(style.display==='none'||style.visibility==='hidden')return false;
+    const rect=element.getBoundingClientRect();
+    return rect.width>0&&rect.height>0;
   }
+
+  function activeHost(){
+    return hostIds.map(function(id){return document.getElementById(id);}).find(visible)||null;
+  }
+
+  function fixedSiblingWidth(tabs,host){
+    return Array.from(tabs.children).filter(function(child){
+      return child!==host&&visible(child);
+    }).reduce(function(total,child){
+      return total+child.getBoundingClientRect().width+4;
+    },20);
+  }
+
   function applyMode(){
     if(applying)return;
     applying=true;
     try{
       const tabs=document.querySelector('.managerTabs');
       const host=activeHost();
-      hostIds.forEach(function(id){const item=document.getElementById(id);if(item)item.classList.remove('cdaIconToolbarV6527');});
+      hostIds.forEach(function(id){
+        const item=document.getElementById(id);
+        if(item)item.classList.remove('cdaIconToolbarV6527');
+      });
       if(!tabs||!host)return;
       const available=Math.max(0,tabs.clientWidth-fixedSiblingWidth(tabs,host));
       const natural=host.scrollWidth;
       if(natural>available+1)host.classList.add('cdaIconToolbarV6527');
-    }finally{applying=false;}
+    }finally{
+      applying=false;
+    }
   }
-  function schedule(){if(frame)return;frame=requestAnimationFrame(function(){frame=0;applyMode();});}
+
+  function scheduleToolbar(){
+    if(toolbarFrame)return;
+    toolbarFrame=requestAnimationFrame(function(){
+      toolbarFrame=0;
+      applyMode();
+    });
+  }
+
   function prepareHost(host){
     if(!host)return;
     host.querySelectorAll('.remakeFilter[data-filter-kind]').forEach(function(filter){
       const kind=filter.getAttribute('data-filter-kind');
       const button=filter.querySelector('.remakeDropdownButtonV6245');
-      if(button){button.dataset.cdaIconV6527=icons[kind]||'?';button.title=(button.textContent||'').trim();}
+      if(button){
+        button.dataset.cdaIconV6527=icons[kind]||'?';
+        button.title=(button.textContent||'').trim();
+      }
     });
-    if(!observed.has(host)&&window.ResizeObserver){
-      observed.add(host);
-      const ro=new ResizeObserver(schedule);
+    if(!observedHosts.has(host)&&window.ResizeObserver){
+      observedHosts.add(host);
+      const ro=new ResizeObserver(scheduleToolbar);
       ro.observe(host);
-      host.querySelectorAll('.remakeDropdownButtonV6245').forEach(function(button){ro.observe(button);});
+      host.querySelectorAll('.remakeDropdownButtonV6245').forEach(function(button){
+        ro.observe(button);
+      });
     }
   }
-  function prepare(){hostIds.forEach(function(id){prepareHost(document.getElementById(id));});schedule();}
 
-  window.addEventListener('resize',schedule,{passive:true});
+  function prepareToolbar(){
+    hostIds.forEach(function(id){
+      prepareHost(document.getElementById(id));
+    });
+    scheduleToolbar();
+  }
+
+  function tabsHeight(){
+    const tabs=document.querySelector('.managerTabs');
+    if(!tabs)return 34;
+    const rect=tabs.getBoundingClientRect();
+    return Math.max(0,Math.ceil(rect.height||34));
+  }
+
+  function pageFor(config){
+    return document.getElementById(config.pageId);
+  }
+
+  function rootFor(config,page){
+    if(!page)return null;
+    return config.rootSelector?page.querySelector(config.rootSelector):page;
+  }
+
+  function stageFor(config,page){
+    if(!page)return null;
+    return page.querySelector(config.stageSelector);
+  }
+
+  function railFor(config){
+    return document.getElementById(config.railId);
+  }
+
+  function spacerId(config){
+    return 'cdaSharedTopChromeSpacerV6681_'+config.key;
+  }
+
+  function ensureSpacer(config,stage,rail){
+    if(!stage||!rail||!rail.parentNode)return null;
+    let spacer=document.getElementById(spacerId(config));
+    if(!spacer){
+      spacer=document.createElement('div');
+      spacer.id=spacerId(config);
+      spacer.className='cdaSharedTopChromeSpacerV6681';
+      spacer.setAttribute('data-cda-shared-top-tab-v6681',config.key);
+    }
+    if(spacer.parentNode!==rail.parentNode||spacer.previousElementSibling!==rail){
+      rail.insertAdjacentElement('afterend',spacer);
+    }
+    return spacer;
+  }
+
+  function placeRailBelowStage(config,page,stage,rail){
+    if(!page||!stage||!rail)return false;
+    const parent=config.key==='remake'?rootFor(config,page):page;
+    if(!parent)return false;
+    if(rail.parentNode!==parent||rail.previousElementSibling!==stage){
+      stage.insertAdjacentElement('afterend',rail);
+    }
+    rail.setAttribute('data-cda-shared-pill-placement-v6681','below-kpi-stage');
+    return true;
+  }
+
+  function observeTopNode(node){
+    if(!node||observedTopNodes.has(node)||!window.ResizeObserver)return;
+    if(!topResizeObserver)topResizeObserver=new ResizeObserver(scheduleTopChrome);
+    observedTopNodes.add(node);
+    topResizeObserver.observe(node);
+  }
+
+  function clearChromeState(config,page){
+    if(!page)return;
+    page.removeAttribute('data-cda-shared-top-chrome-v6681');
+    [
+      '--cda-shared-top-offset-v6681',
+      '--cda-shared-top-left-v6681',
+      '--cda-shared-top-width-v6681',
+      '--cda-shared-rail-top-v6681',
+      '--cda-shared-top-spacer-height-v6681'
+    ].forEach(function(name){page.style.removeProperty(name);});
+    const spacer=document.getElementById(spacerId(config));
+    if(spacer)spacer.style.removeProperty('height');
+  }
+
+  function syncTopConfig(config){
+    const page=pageFor(config);
+    if(!page)return false;
+
+    const stage=stageFor(config,page);
+    const rail=railFor(config);
+    const root=rootFor(config,page);
+    if(!stage||!rail||!root)return false;
+
+    placeRailBelowStage(config,page,stage,rail);
+    const spacer=ensureSpacer(config,stage,rail);
+
+    observeTopNode(root);
+    observeTopNode(stage);
+    observeTopNode(rail);
+
+    const mobile=!!(window.matchMedia&&window.matchMedia('(max-width:760px)').matches);
+    if(mobile||!visible(page)){
+      clearChromeState(config,page);
+      return true;
+    }
+
+    const rootRect=root.getBoundingClientRect();
+    const top=tabsHeight();
+    const left=Math.round(rootRect.left);
+    const width=Math.max(0,Math.round(rootRect.width));
+    const stageHeight=Math.max(0,Math.ceil(stage.getBoundingClientRect().height));
+    const railHeight=rail.childElementCount?Math.max(0,Math.ceil(rail.getBoundingClientRect().height)):0;
+    const railTop=top+stageHeight;
+    const spacerHeight=stageHeight+railHeight;
+
+    page.style.setProperty('--cda-shared-top-offset-v6681',top+'px');
+    page.style.setProperty('--cda-shared-top-left-v6681',left+'px');
+    page.style.setProperty('--cda-shared-top-width-v6681',width+'px');
+    page.style.setProperty('--cda-shared-rail-top-v6681',railTop+'px');
+    page.style.setProperty('--cda-shared-top-spacer-height-v6681',spacerHeight+'px');
+    page.setAttribute('data-cda-shared-top-chrome-v6681','true');
+
+    if(spacer)spacer.style.height=spacerHeight+'px';
+    return true;
+  }
+
+  function syncTopChrome(){
+    topConfigs.forEach(syncTopConfig);
+  }
+
+  function scheduleTopChrome(){
+    if(chromeFrame)return;
+    chromeFrame=requestAnimationFrame(function(){
+      chromeFrame=0;
+      syncTopChrome();
+    });
+  }
+
+  function createFilterPill(labelText,removeAction,extraClass){
+    const pill=document.createElement('span');
+    pill.className='cdaDashboardFilterPillV6681'+(extraClass?' '+extraClass:'');
+
+    const text=document.createElement('span');
+    text.className='cdaDashboardFilterPillTextV6681';
+    text.textContent=String(labelText||'');
+    text.title=text.textContent;
+
+    const close=document.createElement('button');
+    close.type='button';
+    close.textContent='x';
+    close.title='Remove filter';
+    close.setAttribute('aria-label','Remove '+text.textContent);
+    close.addEventListener('click',function(event){
+      event.preventDefault();
+      event.stopPropagation();
+      if(typeof removeAction==='function')removeAction();
+    });
+
+    pill.appendChild(text);
+    pill.appendChild(close);
+    return pill;
+  }
+
+  function scheduleAll(){
+    prepareToolbar();
+    scheduleTopChrome();
+  }
+
+  window.addEventListener('resize',scheduleAll,{passive:true});
+  window.addEventListener('scroll',scheduleTopChrome,{passive:true});
+
   document.addEventListener('click',function(event){
-    if(event.target&&event.target.closest&&event.target.closest('#remakeFactorTabBtn,#tatTabBtnV6509'))schedule();
+    if(event.target&&event.target.closest&&event.target.closest('#remakeFactorTabBtn,#tatTabBtnV6509')){
+      window.setTimeout(scheduleAll,0);
+      window.setTimeout(scheduleAll,80);
+    }
   },true);
 
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',prepare,{once:true});else prepare();
-  const tabs=document.querySelector('.managerTabs');
-  if(tabs&&window.MutationObserver){
-    const observer=new MutationObserver(function(){prepare();if(document.getElementById('tatTabFilterHostV6509'))observer.disconnect();});
-    observer.observe(tabs,{childList:true});
+  function start(){
+    prepareToolbar();
+    syncTopChrome();
+
+    const tabs=document.querySelector('.managerTabs');
+    if(tabs&&window.MutationObserver){
+      const tabsObserver=new MutationObserver(function(){
+        prepareToolbar();
+        scheduleTopChrome();
+      });
+      tabsObserver.observe(tabs,{childList:true,subtree:true,attributes:true,attributeFilter:['hidden','class']});
+    }
+
+    if(document.body&&window.MutationObserver&&!bodyObserver){
+      bodyObserver=new MutationObserver(function(){
+        scheduleTopChrome();
+      });
+      bodyObserver.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['class','hidden','style']});
+    }
+
+    window.setTimeout(syncTopChrome,80);
+    window.setTimeout(syncTopChrome,300);
   }
+
+  window.cdaSharedTopParityV6527=Object.freeze({
+    version:'v6.681-repair-4',
+    schedule:scheduleAll,
+    scheduleTopChrome:scheduleTopChrome,
+    syncTopChrome:syncTopChrome,
+    createFilterPill:createFilterPill
+  });
+
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});
+  else start();
 })();
 </script>

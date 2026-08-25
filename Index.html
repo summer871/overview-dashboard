@@ -1005,100 +1005,6 @@
 })();
 </script>
 
-<!-- v6.428: keep the actual Remake Factor yellow filter pills below and completely outside the KPI area. -->
-<style id="cdaRemakePillsOutsideKpiAreaV6428">
-  #remakeFactorPage.cleanRemakeV6230 .remakeShellV6230 > #remakePillsV6230.remakePillsV6230 {
-    display: flex !important;
-    align-items: center !important;
-    justify-content: flex-start !important;
-    flex-wrap: wrap !important;
-    width: 100% !important;
-    min-width: 0 !important;
-    min-height: 0 !important;
-    margin: 0 0 8px !important;
-    padding: 0 2px !important;
-    gap: 7px !important;
-    background: transparent !important;
-    border: 0 !important;
-    border-radius: 0 !important;
-    box-shadow: none !important;
-    box-sizing: border-box !important;
-  }
-
-  #remakeFactorPage.cleanRemakeV6230 .remakeShellV6230 > #remakePillsV6230.remakePillsV6230:empty {
-    display: none !important;
-    margin: 0 !important;
-    padding: 0 !important;
-  }
-
-  #remakeFactorPage.cleanRemakeV6230 .remakeShellV6230 > #remakePillsV6230 .remakePillV6230,
-  #remakeFactorPage.cleanRemakeV6230 .remakeShellV6230 > #remakePillsV6230 .remakeClearAllV6230 {
-    transition:
-      background-color 150ms cubic-bezier(.22, 1, .36, 1),
-      border-color 150ms cubic-bezier(.22, 1, .36, 1),
-      color 150ms cubic-bezier(.22, 1, .36, 1),
-      box-shadow 150ms cubic-bezier(.22, 1, .36, 1),
-      opacity 150ms cubic-bezier(.22, 1, .36, 1) !important;
-  }
-
-  @media (max-width: 760px) {
-    #remakeFactorPage.cleanRemakeV6230 .remakeShellV6230 > #remakePillsV6230.remakePillsV6230 {
-      flex-wrap: nowrap !important;
-      overflow-x: auto !important;
-      overflow-y: hidden !important;
-      -webkit-overflow-scrolling: touch !important;
-      scrollbar-width: thin !important;
-    }
-  }
-</style>
-<script>
-(function installRemakePillsOutsideKpiAreaV6428(){
-  'use strict';
-  window.CDA_REMAKE_PILLS_OUTSIDE_KPI_AREA_VERSION = 'v6.428';
-
-  function placeRemakePillsOutsideKpiAreaV6428(){
-    const page = document.getElementById('remakeFactorPage');
-    if (!page) return;
-    const shell = page.querySelector('.remakeShellV6230');
-    const sticky = shell && shell.querySelector(':scope > .remakeStickyTopV6245');
-    const pills = document.getElementById('remakePillsV6230');
-    if (!shell || !sticky || !pills) return;
-
-    pills.setAttribute('data-placement', 'outside-kpi-area-below-kpis');
-    pills.classList.add('remakePillsOutsideKpiAreaV6428');
-
-    if (pills.parentNode !== shell || pills.previousElementSibling !== sticky) {
-      sticky.insertAdjacentElement('afterend', pills);
-    }
-  }
-
-  const originalInstallCleanRemakeSectionV6428 = window.installCleanRemakeSectionV6230;
-  if (typeof originalInstallCleanRemakeSectionV6428 === 'function' && !originalInstallCleanRemakeSectionV6428.__cdaPillsOutsideV6428) {
-    const wrappedInstallCleanRemakeSectionV6428 = function installCleanRemakeSectionV6428(){
-      const result = originalInstallCleanRemakeSectionV6428.apply(this, arguments);
-      placeRemakePillsOutsideKpiAreaV6428();
-      return result;
-    };
-    wrappedInstallCleanRemakeSectionV6428.__cdaPillsOutsideV6428 = true;
-    window.installCleanRemakeSectionV6230 = wrappedInstallCleanRemakeSectionV6428;
-  }
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', placeRemakePillsOutsideKpiAreaV6428, { once: true });
-  } else {
-    placeRemakePillsOutsideKpiAreaV6428();
-  }
-
-  document.addEventListener('click', function(event){
-    const tab = event.target && event.target.closest ? event.target.closest('[data-tab="remakeFactor"],#remakeFactorTab,.tabBtn') : null;
-    if (!tab) return;
-    window.requestAnimationFrame(placeRemakePillsOutsideKpiAreaV6428);
-  }, true);
-
-  window.placeRemakePillsOutsideKpiAreaV6428 = placeRemakePillsOutsideKpiAreaV6428;
-})();
-</script>
-
 <!-- v6.427: keep sticky first-column cells visually joined to their hovered Remake table row. -->
 <style id="remakeCompleteRowHoverStylesV6427">
   #remakeFactorPage.cleanRemakeV6230 .remakeTable tbody tr.clickable:hover > td,
@@ -1122,7 +1028,6 @@
 <script>
 window.CDA_CURRENT_FRONTEND_VERSION = 'v6.428';
 window.CDA_REMAKE_TABLE_HOVER_VERSION = 'v6.427';
-window.CDA_REMAKE_PILLS_OUTSIDE_KPI_AREA_VERSION = 'v6.428';
 </script>
 
 </body>
