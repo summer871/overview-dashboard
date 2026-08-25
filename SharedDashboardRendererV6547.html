@@ -87,7 +87,7 @@ Purpose: Replace-mode tab renderer with explicit component identity, optional sh
       bindComponents(tab,oldPage);
       return oldPage;
     }
-    const wasActive = oldPage.classList.contains('active') || getComputedStyle(oldPage).display !== 'none';
+    const wasActive = oldPage.classList.contains('active');
     if (typeof tab.beforeReplace === 'function') tab.beforeReplace({oldPage:oldPage,tab:tab});
     const page = document.createElement(oldPage.tagName.toLowerCase());
     page.id = tab.pageId;
@@ -100,7 +100,7 @@ Purpose: Replace-mode tab renderer with explicit component identity, optional sh
       renderComponent:function(componentKey){ return renderComponent(tab,componentKey); }
     });
     oldPage.parentNode.replaceChild(page,oldPage);
-    page.style.setProperty('display',wasActive ? 'block' : 'none','important');
+
     if (wasActive) page.classList.add('active');
     const deferActiveReveal = wasActive && tab.replaceRevealMode !== 'immediate';
     if (deferActiveReveal) {
