@@ -1,204 +1,102 @@
 <!-- RemakeDashboardBootstrapV6548.html
-Version: v6.608
-Release: v6.628
-Date: 2026-08-03
-Purpose: Register, reconcile, and audit all Remake components while requiring the same dashboard-wide table-surface platform used by TAT.
+Version: v6.681
+Date: 2026-08-25
+Purpose: Register and construct Remake once through the shared replace-mode renderer. No decorator, legacy bridge, reconciliation observer, or competing page constructor participates in Remake layout ownership.
 -->
 <script id="cdaRemakeDashboardBootstrapControllerV6548">
 (function installRemakeDashboardBootstrapV6548(){
   'use strict';
 
-  if (window.__cdaRemakeDashboardBootstrapV6586) return;
-  window.__cdaRemakeDashboardBootstrapV6586 = true;
+  if (window.__cdaRemakeDashboardBootstrapV6682) return;
+  window.__cdaRemakeDashboardBootstrapV6682 = true;
 
   const platform = window.cdaDashboardPlatformV6547;
-  const decorator = window.cdaDashboardDecoratorV6548;
+  const renderer = window.cdaDashboardRendererV6547;
   const definition = window.cdaRemakeDashboardDefinitionV6548;
-  const sharedAudit = window.cdaDashboardAuditV6550;
-  const bridge = window.cdaRemakeLegacyBridgeV6554;
   const adapter = window.cdaRemakeDashboardAdapterV6548;
   const tableSurfaces = window.cdaDashboardTableSurfacesV6586;
   const layoutEditor = window.cdaDashboardLayoutEditorV6593;
-  if (!platform || !decorator || !definition || !sharedAudit || !bridge || !adapter || !tableSurfaces || !layoutEditor) {
-    throw new Error('Remake bootstrap requires registry, decorator, definition, shared audit, bridge, adapter, the dashboard-wide table platform, and the personal layout editor.');
+  if (!platform || !renderer || !definition || !adapter || !tableSurfaces || !layoutEditor) {
+    throw new Error('Remake bootstrap requires registry, shared renderer, Remake definition/adapter, table platform, and layout editor.');
   }
-
-  window.__cdaRemakeDashboardBootstrapV6587 = 'v6.628';
 
   platform.registerTab(definition);
   const registrationAudit = platform.validateTab('remake');
-  if (!registrationAudit.ok) {
-    throw new Error('Remake definition is invalid:\n' + registrationAudit.errors.join('\n'));
-  }
+  if (!registrationAudit.ok) throw new Error('Remake definition is invalid:\n' + registrationAudit.errors.join('\n'));
+  if (definition.mountMode !== 'replace') throw new Error('Remake must use shared replace-mode rendering.');
 
-  let scheduledV6586 = false;
-  let decoratingV6624 = false;
-  let reconciliationAttemptsV6586 = 0;
+  let rendered = false;
 
-  function baseAuditV6586(){ return decorator.audit('remake'); }
-
-  function applyTableSurfacesV6586(page){
+  function prepareTables(page){
     const target = page || document.getElementById(definition.pageId);
     if (!target) return false;
     tableSurfaces.preparePage(target);
     return true;
   }
 
-  function decorateV6586(){
-    if (decoratingV6624) return null;
-    decoratingV6624 = true;
-    scheduledV6586 = false;
-    try {
-      const page = decorator.decorate('remake');
-      applyTableSurfacesV6586(page);
-      return page;
-    } finally {
-      decoratingV6624 = false;
+  function render(){
+    if (rendered) return document.getElementById(definition.pageId);
+    const page = renderer.rebuild('remake');
+    if (!page) return null;
+    prepareTables(page);
+    rendered = true;
+    document.documentElement.setAttribute('data-cda-remake-single-construction-v6682','true');
+    if (typeof window.startRemakeDashboardRuntimeV6682 !== 'function') {
+      throw new Error('Remake runtime starter was not exported by DashboardMainScript.');
     }
+    window.startRemakeDashboardRuntimeV6682();
+    return page;
   }
 
-  function scheduleV6586(){
-    if (scheduledV6586 || decoratingV6624) return;
-    scheduledV6586 = true;
-    Promise.resolve().then(function(){
-      if (!scheduledV6586) return;
-      decorateV6586();
-    });
-  }
-
-  function stopReconciliationV6586(){
-    scheduledV6586 = false;
-    reconciliationAttemptsV6586 = 0;
-  }
-
-  function scheduleReconciliationV6586(){
-    reconciliationAttemptsV6586 += 1;
-    scheduleV6586();
-  }
-
-  function relevantNodeV6586(node){
-    if (!node || node.nodeType !== 1) return false;
-    const selector = [
-      '#remakeReasonCardV6230','#remakeDepartmentCardV6230','#remakeProductCardV6230',
-      '#remakeCustomerCardV6230','#remakeCeramistCardV6342','.remakeCard','.remakeCardHeader',
-      '.tableCompareToggleV6297','[data-column-chooser-v6357]',
-      '.clearComponentButtonV6304','[data-remake-section-toggle-v6402]','table'
-    ].join(',');
-    if (node.matches && node.matches(selector)) return true;
-    return !!(node.querySelector && node.querySelector(selector));
-  }
-
-  function dependencyAuditV6586(){
+  function dependencyAudit(){
     return {
-      tableSurfaces:tableSurfaces.version === 'v6.595' && tableSurfaces.mode === 'universal-standard-partition-adjacent-pair-column-authority',
-      layoutEditor:layoutEditor.version === 'v6.608' && layoutEditor.mode === 'universal-collision-safe-stable-canvas',
-      sharedColumns:window.cdaDashboardColumnsV6548 && window.cdaDashboardColumnsV6548.version === 'v6.595',
-      sharedColumnWidths:window.cdaDashboardColumnWidthsV6581 && window.cdaDashboardColumnWidthsV6581.version === 'v6.595',
-      sharedTheme:!!window.cdaDashboardThemeV6549,
-      sharedPopover:!!window.cdaDashboardPopoverV6547,
-      sharedToolbar:!!window.cdaDashboardToolbarV6548,
-      componentCatalog:!!window.cdaDashboardCatalogV6555,
-      componentIsolation:window.cdaDashboardIsolationV6555 && window.cdaDashboardIsolationV6555.version === 'v6.595' &&
-        window.cdaDashboardIsolationV6555.tableMode === 'bounded-shared-table-surface',
-      livePopout:window.cdaDashboardPopoutV6548 && window.cdaDashboardPopoutV6548.version === 'v6.595' &&
-        window.cdaDashboardPopoutV6548.mode === 'detached-live-component' &&
-        window.cdaDashboardPopoutV6548.tableMode === 'bounded-shared-table-surface',
-      sharedAudit:sharedAudit.version === 'v6.595',
-      decorator:decorator.version === 'v6.558',
-      bridge:bridge.version === 'v6.566',
-      adapter:adapter.version === 'v6.566',
-      definition:definition.version === 'v6.581',
-      nativeTitleToggle:adapter.nativeTitleToggle === true,
-      detachedCollapseBridge:typeof adapter.syncDetachedNativeCollapse === 'function',
-      nativeCollapseRestorer:typeof bridge.restoreNativeCollapseControls === 'function',
-      clearRemakeComponentV6230:typeof window.clearRemakeComponentV6230 === 'function'
+      renderer:!!renderer && renderer.version === 'v6.562',
+      definition:definition.version === 'v6.681' && definition.mountMode === 'replace',
+      adapter:adapter.version === 'v6.681',
+      tableSurfaces:!!tableSurfaces,
+      layoutEditor:!!layoutEditor,
+      runtimeStarter:typeof window.startRemakeDashboardRuntimeV6682 === 'function',
+      decoratorInactive:!window.cdaDashboardDecoratorV6548,
+      legacyBridgeInactive:!window.cdaRemakeLegacyBridgeV6554
     };
   }
 
-  function auditV6586(){
-    const base = baseAuditV6586();
-    const dependencies = dependencyAuditV6586();
-    const page = document.getElementById('remakeFactorPage');
-    const comparisonButtons = page ? Array.from(page.querySelectorAll(
-      '.cdaDashboardToolbarV6547 [data-cda-dashboard-feature-key="comparePriorYear"]'
-    )) : [];
-    const sharedControls = sharedAudit.audit();
-    const catalog = window.cdaDashboardCatalogV6555.audit();
-    const tableSurfaceAudit = tableSurfaces.audit(document);
-    const allRequiredDependenciesPresent = Object.keys(dependencies).every(function(key){
-      return dependencies[key] === true;
-    });
-    const expectedActiveComponents = definition.components.length === 6;
-    const sharedControlsValidated = sharedControls.ok && expectedActiveComponents && catalog.ok &&
-      base.allComponentsDecorated && base.toolbarCount === base.expectedToolbarCount;
+  function audit(){
+    const base = renderer.audit('remake');
+    const dependencies = dependencyAudit();
+    const page = document.getElementById(definition.pageId);
+    const catalog = window.cdaDashboardCatalogV6555 && typeof window.cdaDashboardCatalogV6555.audit === 'function'
+      ? window.cdaDashboardCatalogV6555.audit()
+      : {ok:false};
+    const tableAudit = tableSurfaces && typeof tableSurfaces.audit === 'function' ? tableSurfaces.audit(document) : {ok:false};
+    const allDependencies = Object.keys(dependencies).every(function(key){ return dependencies[key] === true; });
+    const oldStaticShellAbsent = !!page && page.querySelectorAll(':scope > .remakeShell').length === 0;
+    const canonicalPage = !!page && page.getAttribute('data-cda-dashboard-tab') === 'remake';
     return Object.assign({},base,{
-      version:'v6.608',
-      mode:'native-remake-header-with-dashboard-wide-table-surfaces',
-      activeComponentCount:definition.components.length,
-      expectedActiveComponents:6,
-      activeComponentModelCorrect:expectedActiveComponents,
+      version:'v6.681',
+      mode:'shared-replace-single-render-owner',
       dependencies:dependencies,
-      allRequiredDependenciesPresent:allRequiredDependenciesPresent,
+      allRequiredDependenciesPresent:allDependencies,
+      canonicalPage:canonicalPage,
+      oldStaticShellAbsent:oldStaticShellAbsent,
       componentCatalog:catalog,
-      tableSurfaceAudit:tableSurfaceAudit,
-      allTablesGoverned:tableSurfaceAudit.ok,
-      noCardReplacement:!!page && !page.hasAttribute('data-cda-dashboard-tab') &&
-        page.querySelectorAll('[data-cda-dashboard-component]').length === 0,
-      priorYearLabels:comparisonButtons.filter(function(button){ return !button.hidden; }).map(function(button){
-        return button.textContent.trim();
-      }),
-      priorYearLabelsCorrect:comparisonButtons.filter(function(button){ return !button.hidden; }).length === 4 &&
-        comparisonButtons.filter(function(button){ return !button.hidden; }).every(function(button){
-          return button.textContent.trim() === String(new Date().getFullYear() - 1);
-        }),
-      plainMoreButtons:!!page && Array.from(page.querySelectorAll(
-        '.cdaDashboardToolbarV6547 [data-cda-dashboard-feature-key="more"]'
-      )).every(function(button){ return button.classList.contains('cdaDashboardButtonPlainV6548'); }),
-      sharedControls:sharedControls,
-      sharedControlsValidated:sharedControlsValidated,
-      ok:registrationAudit.ok && expectedActiveComponents && allRequiredDependenciesPresent && catalog.ok &&
-        tableSurfaceAudit.ok && base.allComponentsDecorated && base.noDuplicateIds && sharedControlsValidated
+      tableSurfaceAudit:tableAudit,
+      ok:registrationAudit.ok && allDependencies && canonicalPage && oldStaticShellAbsent &&
+        base.noDuplicateIds && base.oneCardPerComponent && base.headerControlsOwned && catalog.ok && tableAudit.ok
     });
   }
 
-  function startV6586(){
-    let observer = null;
-    function attachV6624(page){
-      if (!page) return false;
-      decorateV6586();
-      if (window.MutationObserver) {
-        observer = new MutationObserver(function(records){
-          if (records.some(function(record){
-            return Array.from(record.addedNodes || []).some(relevantNodeV6586);
-          })) scheduleV6586();
-        });
-        observer.observe(page,{childList:true,subtree:true});
-      }
-      document.documentElement.setAttribute('data-cda-remake-single-construction-v6624','true');
-      return true;
-    }
-    const existing = document.getElementById(definition.pageId);
-    if (attachV6624(existing)) return;
-    if (!window.MutationObserver || !document.body) return;
-    const pageObserver = new MutationObserver(function(){
-      const page = document.getElementById(definition.pageId);
-      if (!page) return;
-      pageObserver.disconnect();
-      attachV6624(page);
-    });
-    pageObserver.observe(document.body,{childList:true,subtree:true});
-  }
+  function start(){ render(); }
 
   window.cdaRemakeDashboardV6548 = Object.freeze({
-    version:'v6.608',
+    version:'v6.681',
     definition:definition,
-    decorate:decorateV6586,
-    audit:auditV6586,
-    dependencyAudit:dependencyAuditV6586,
-    reconcile:scheduleReconciliationV6586
+    render:render,
+    audit:audit,
+    dependencyAudit:dependencyAudit
   });
 
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded',startV6586,{once:true});
-  else startV6586();
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded',start,{once:true});
+  else start();
 })();
 </script>

@@ -1,362 +1,147 @@
 <!-- RemakeDashboardAdapterV6548.html
-Version: v6.566
-Date: 2026-07-30
-Purpose: Connect shared features to the active Remake card, including stable prior-year controls inside live detached windows.
+Version: v6.681
+Date: 2026-08-25
+Purpose: Thin Remake adapter for the shared replace-mode dashboard renderer. It routes tab-local data/actions directly to Remake domain functions and contains no legacy DOM-provider bridge or decorator behavior.
 -->
-<style id="cdaRemakeDashboardAdapterStylesV6548">
-  #remakeFactorPage .remakeCardActionsV6230,
-  [data-cda-detached-component="true"] .remakeCardActionsV6230 {
-    position:relative!important;
-    z-index:20!important;
-    pointer-events:auto!important;
-    visibility:visible!important;
-    opacity:1!important;
-  }
-  #remakeFactorPage .remakeCardActionsV6230 > .cdaDashboardToolbarV6547,
-  #remakeFactorPage .remakeCardActionsV6230 .cdaDashboardButtonV6547,
-  [data-cda-detached-component="true"] .remakeCardActionsV6230 > .cdaDashboardToolbarV6547,
-  [data-cda-detached-component="true"] .remakeCardActionsV6230 .cdaDashboardButtonV6547 {
-    pointer-events:auto!important;
-  }
-  #remakeFactorPage .cdaDashboardDecoratedActionsV6548[data-cda-dashboard-shared-host="true"] {
-    display:none!important;
-  }
-</style>
 <script id="cdaRemakeDashboardAdapterControllerV6548">
 (function installRemakeDashboardAdapterV6548(){
   'use strict';
 
-  if (window.cdaRemakeDashboardAdapterV6548 &&
-      window.cdaRemakeDashboardAdapterV6548.version === 'v6.566') return;
+  if (window.cdaRemakeDashboardAdapterV6548 && window.cdaRemakeDashboardAdapterV6548.version === 'v6.681') return;
 
-  const bridge = window.cdaRemakeLegacyBridgeV6554;
-  if (!bridge) throw new Error('Remake adapter requires the legacy bridge.');
-
-  const COLLAPSE_STORAGE_KEY_V6558 = 'cdaRemakeCollapsedSections.v6402';
-  const DETACHED_COMPONENT_BY_SECTION_V6558 = {
-    customer:'remake.customer',
-    technician:'remake.ceramist'
-  };
-  const comparisonBusyV6566 = new WeakSet();
-
-  function cardV6548(component,context){
-    return context && context.card || bridge.card(component,context);
-  }
-
-  function providerV6548(component,action,context){
-    const card = cardV6548(component,context);
-    if (card && card.querySelector) {
-      bridge.prepare(component,{card:card,document:card.ownerDocument});
-      return card.querySelector('[data-cda-dashboard-legacy-action="' + action + '"]');
+  function card(context){
+    if (context && context.card) return context.card;
+    const component = context && context.component;
+    if (!component) return null;
+    const catalog = window.cdaDashboardCatalogV6555;
+    if (catalog && typeof catalog.resolveCard === 'function') {
+      const resolved = catalog.resolveCard('remake',component.key);
+      if (resolved) return resolved;
     }
-    return bridge.provider(component,action,context);
+    return component.cardId ? document.getElementById(component.cardId) : null;
   }
 
-  function invokeV6548(component,action,context){
-    const provider = providerV6548(component,action,context);
-    if (!provider || typeof provider.click !== 'function') return false;
-    provider.click();
+  function targetTable(component,context){
+    const owner = card(context);
+    const id = component && (component.targetId || component.tableIds && component.tableIds[0]);
+    if (!id) return owner && owner.querySelector('table');
+    const doc = owner && owner.ownerDocument || document;
+    const node = doc.getElementById(id);
+    return node && node.tagName === 'TABLE' ? node : node && node.closest ? node.closest('table') : null;
+  }
+
+  function getChart(context){
+    const component = context && context.component;
+    const canvasId = component && component.targetId;
+    if (!canvasId || !window.Chart) return null;
+    if (typeof window.Chart.getChart === 'function') return window.Chart.getChart(canvasId) || null;
+    return null;
+  }
+
+  function comparisonActive(component,context){
+    const table = targetTable(component,context);
+    return !!(table && table.classList.contains('compareColumnsV6301'));
+  }
+
+  function priorYearLabel(){ return String(new Date().getFullYear() - 1); }
+
+  function togglePriorYearComparison(context){
+    const component = context && context.component;
+    const key = component && (component.legacyKey || component.key);
+    if (!key || typeof window.toggleRemakeTableCompareV6297 !== 'function') return false;
+    window.toggleRemakeTableCompareV6297(key);
     return true;
   }
 
-  function targetTableV6548(component,context){
-    const id = Array.isArray(component.tableIds) && component.tableIds.length
-      ? component.tableIds[0]
-      : component.targetId;
-    const card = cardV6548(component,context);
-    let target = null;
-    if (card && id) {
-      if (card.id === id) target = card;
-      else {
-        try { target = card.querySelector('#' + CSS.escape(id)); }
-        catch (error) { target = card.querySelector('[id="' + String(id).replace(/"/g,'\\"') + '"]'); }
-      }
+  function openColumns(context){
+    return !!(window.cdaDashboardColumnsV6548 && typeof window.cdaDashboardColumnsV6548.open === 'function' &&
+      window.cdaDashboardColumnsV6548.open(context));
+  }
+
+  function popout(context){
+    return !!(window.cdaDashboardPopoutV6548 && typeof window.cdaDashboardPopoutV6548.open === 'function' &&
+      window.cdaDashboardPopoutV6548.open(context));
+  }
+
+  function reset(context){
+    const component = context && context.component;
+    if (!component) return false;
+    if (comparisonActive(component,context) && typeof window.toggleRemakeTableCompareV6297 === 'function') {
+      window.toggleRemakeTableCompareV6297(component.legacyKey || component.key);
     }
-    if (!target) {
-      const doc = context && context.document || card && card.ownerDocument || document;
-      target = id && doc.getElementById(id);
-    }
-    return target && target.tagName === 'TABLE'
-      ? target
-      : target && target.closest ? target.closest('table') : null;
-  }
-
-  function legacyCompareButtonV6548(component,context){
-    return providerV6548(component,'comparePriorYear',context);
-  }
-
-  function comparisonActiveV6548(component,context){
-    const table = targetTableV6548(component,context);
-    const legacy = legacyCompareButtonV6548(component,context);
-    return !!((table && table.classList.contains('compareColumnsV6301')) ||
-      (legacy && (legacy.classList.contains('active') || legacy.getAttribute('aria-pressed') === 'true')));
-  }
-
-  function priorYearLabelV6548(context){
-    const legacy = legacyCompareButtonV6548(context.component,context);
-    const match = String(legacy && legacy.textContent || '').match(/\b(20\d{2})\b/);
-    return match ? match[1] : '2025';
-  }
-
-  function isCollapsedV6555(context){
-    const card = cardV6548(context.component,context);
-    return !!(card && card.classList.contains('remakeSectionCollapsedV6402'));
-  }
-
-  function readCollapseStateV6558(key){
-    try {
-      const state = JSON.parse(localStorage.getItem(COLLAPSE_STORAGE_KEY_V6558) || '{}');
-      return typeof state[key] === 'boolean' ? state[key] : true;
-    } catch (error) {
+    if (typeof window.clearRemakeComponentV6230 === 'function') {
+      window.clearRemakeComponentV6230(component.legacyKey || component.key);
       return true;
     }
+    return false;
   }
 
-  function syncDetachedNativeCollapseV6558(key){
-    const componentId = DETACHED_COMPONENT_BY_SECTION_V6558[key];
-    const isolation = window.cdaDashboardIsolationV6555;
-    const card = componentId && isolation && typeof isolation.card === 'function'
-      ? isolation.card(componentId)
-      : null;
-    if (!card) return false;
-    const collapsed = readCollapseStateV6558(key);
-    card.classList.toggle('remakeSectionCollapsedV6402',collapsed);
-    card.setAttribute('data-remake-section-collapsed-v6402',collapsed ? '1' : '0');
-    const title = card.querySelector('.remakeCardTitle');
-    if (title) {
-      title.setAttribute('aria-expanded',collapsed ? 'false' : 'true');
-      title.setAttribute('aria-label',(collapsed ? 'Expand ' : 'Collapse ') + title.textContent.replace(/[▾▸▼▲▶◀⌄⌃˅˄]/g,'').trim() + ' section');
-    }
-    const button = card.querySelector('[data-remake-section-toggle-v6402="' + key + '"]');
-    if (button) {
-      button.setAttribute('aria-expanded',collapsed ? 'false' : 'true');
-      button.setAttribute('aria-label',(collapsed ? 'Expand ' : 'Collapse ') + key + ' section');
-      button.setAttribute('title',(collapsed ? 'Expand ' : 'Collapse ') + key + ' section');
-    }
+  function exportCurrent(context){
+    const component = context && context.component;
+    if (!component || typeof window.exportRemakeComponentV6230 !== 'function') return false;
+    window.exportRemakeComponentV6230(component.legacyKey || component.key);
     return true;
   }
 
-  function installNativeCollapseBridgeV6558(){
-    const current = window.toggleRemakeSectionV6402;
-    if (typeof current !== 'function' || current.__cdaDetachedAwareV6558) return;
-    const wrapped = function(key){
-      const result = current.apply(this,arguments);
-      syncDetachedNativeCollapseV6558(String(key || ''));
-      return result;
-    };
-    wrapped.__cdaDetachedAwareV6558 = true;
-    wrapped.__cdaOriginalV6558 = current;
-    window.toggleRemakeSectionV6402 = wrapped;
-  }
-
-  function syncToolbarStateV6548(context){
-    const toolbar = context.toolbar || null;
-    if (!toolbar) return;
-    const compare = toolbar.querySelector('[data-cda-dashboard-feature-key="comparePriorYear"]');
-    if (compare) {
-      const provider = legacyCompareButtonV6548(context.component,context);
-      const priorYear = priorYearLabelV6548(context);
-      compare.hidden = !provider;
-      compare.textContent = priorYear;
-      compare.setAttribute('aria-label','Compare with ' + priorYear);
-      compare.setAttribute('title','Compare with ' + priorYear);
-      if (provider) {
-        compare.setAttribute('aria-pressed',comparisonActiveV6548(context.component,context) ? 'true' : 'false');
-      }
-    }
-  }
-
-  function syncComponentV6548(component,card){
-    const resolvedCard = card || cardV6548(component,null);
-    const toolbar = resolvedCard && resolvedCard.querySelector(
-      '.cdaDashboardToolbarV6547[data-cda-dashboard-toolbar="' + component.key + '"]'
-    );
-    if (toolbar) syncToolbarStateV6548({
-      component:component,
-      toolbar:toolbar,
-      card:resolvedCard,
-      document:resolvedCard.ownerDocument
-    });
-  }
-
-  function togglePriorYearComparisonV6548(context){
-    const provider = legacyCompareButtonV6548(context.component,context);
-    if (!provider || typeof provider.click !== 'function') return false;
-    if (comparisonBusyV6566.has(provider)) return true;
-    comparisonBusyV6566.add(provider);
-    provider.click();
-    window.setTimeout(function(){
-      comparisonBusyV6566.delete(provider);
-      syncComponentV6548(context.component,context.card);
-    },80);
+  function exportAll(context){
+    const component = context && context.component;
+    if (!component || typeof window.exportRemakeAllDataV6399 !== 'function') return false;
+    window.exportRemakeAllDataV6399(component.legacyKey || component.key);
     return true;
   }
 
-  function openColumnsV6548(context){
-    return !!(window.cdaDashboardColumnsV6548 && window.cdaDashboardColumnsV6548.open(context));
+  function isCollapsed(context){
+    const node = card(context);
+    return !!(node && node.classList.contains('remakeSectionCollapsedV6402'));
   }
 
-  function getChartV6548(context){
-    const card = cardV6548(context.component,context);
-    const canvas = card && card.querySelector ? card.querySelector('canvas') : null;
-    try {
-      return window.Chart && typeof window.Chart.getChart === 'function' && canvas
-        ? window.Chart.getChart(canvas) || null
-        : null;
-    } catch (error) { return null; }
-  }
-
-  function componentIdV6566(context){
-    const tabKey = context && context.tab && context.tab.key || 'remake';
-    const componentKey = context && context.component && context.component.key;
-    return componentKey ? String(tabKey) + '.' + String(componentKey) : '';
-  }
-
-  function stabilizeDetachedComparisonV6566(context){
-    const isolation = window.cdaDashboardIsolationV6555;
-    const id = componentIdV6566(context);
-    const session = isolation && id && typeof isolation.session === 'function'
-      ? isolation.session(id)
-      : null;
-    if (!session || !session.card || !session.popup || session.popup.closed) return false;
-    if (session.remakeComparisonObserverV6566) return true;
-
-    if (session.observer && typeof session.observer.disconnect === 'function') session.observer.disconnect();
-    const popup = session.popup;
-    let frame = 0;
-    session.observer = new popup.MutationObserver(function(records){
-      const meaningful = records.some(function(record){
-        return record.type === 'childList' ||
-          (record.type === 'attributes' && record.attributeName === 'hidden');
-      });
-      if (!meaningful || frame) return;
-      frame = popup.requestAnimationFrame(function(){
-        frame = 0;
-        if (!session.card || popup.closed) return;
-        bridge.prepare(context.component,{card:session.card,document:session.card.ownerDocument});
-        if (typeof isolation.normalizeFullTable === 'function') isolation.normalizeFullTable(id);
-        syncComponentV6548(context.component,session.card);
-      });
-    });
-    session.observer.observe(session.card,{
-      childList:true,
-      subtree:true,
-      attributes:true,
-      attributeFilter:['hidden']
-    });
-    session.remakeComparisonObserverV6566 = true;
-    session.card.setAttribute('data-cda-remake-popout-stable-v6566','true');
-    bridge.prepare(context.component,{card:session.card,document:session.card.ownerDocument});
-    syncComponentV6548(context.component,session.card);
-    return true;
-  }
-
-  function popoutV6548(context){
-    const opened = !!(window.cdaDashboardPopoutV6548 && window.cdaDashboardPopoutV6548.open(context));
-    if (opened) window.setTimeout(function(){ stabilizeDetachedComparisonV6566(context); },0);
-    return opened;
-  }
-
-  function resetV6548(context){
-    if (window.cdaDashboardColumnsV6548) window.cdaDashboardColumnsV6548.reset(context);
-    const legacy = legacyCompareButtonV6548(context.component,context);
-    if (legacy && comparisonActiveV6548(context.component,context)) legacy.click();
-    if (!invokeV6548(context.component,'reset',context) &&
-        typeof window.clearRemakeComponentV6230 === 'function') {
-      window.clearRemakeComponentV6230(context.component.legacyKey || context.component.key);
-    }
-    window.setTimeout(function(){ syncComponentV6548(context.component,context.card); },0);
-    return true;
-  }
-
-  function exportCurrentV6548(context){
-    return invokeV6548(context.component,'exportCurrent',context);
-  }
-
-  function exportAllV6548(context){
-    if (invokeV6548(context.component,'exportAll',context)) return true;
-    return exportCurrentV6548(context);
-  }
-
-  function collapseV6555(context){
-    const key = context.component.collapseKey;
+  function collapse(context){
+    const component = context && context.component;
+    const key = component && component.collapseKey;
     if (!key || typeof window.toggleRemakeSectionV6402 !== 'function') return false;
     window.toggleRemakeSectionV6402(key);
-    window.setTimeout(function(){ syncComponentV6548(context.component,context.card); },0);
     return true;
   }
 
-  function prepareComponentV6548(context){
-    context.card.classList.add('cdaDashboardCardV6547');
-    const header = context.card.querySelector('.remakeCardHeader');
-    if (header) header.classList.add('cdaDashboardCardHeaderV6547');
-    bridge.prepare(context.component,context);
-    const staleHost = header && header.querySelector(
-      ':scope > .cdaDashboardDecoratedActionsV6548[data-cda-dashboard-shared-host="true"]'
-    );
-    if (staleHost) staleHost.remove();
-  }
-
-  function resolveToolbarHostV6548(context){
-    const header = context.header;
-    let host = header.querySelector('.remakeCardActionsV6230');
-    if (!host) {
-      const doc = header.ownerDocument || document;
-      host = doc.createElement('div');
-      host.className = 'remakeCardActionsV6230';
-      header.appendChild(host);
+  function beforeReplace(){
+    if (window.cdaDashboardPopoverV6547 && typeof window.cdaDashboardPopoverV6547.close === 'function') {
+      window.cdaDashboardPopoverV6547.close();
     }
-    host.setAttribute('data-cda-dashboard-shared-host','native-remake-actions');
-    return host;
-  }
-
-  function applyColumnsV6548(tab){
-    if (!window.cdaDashboardColumnsV6548) return;
-    tab.components.forEach(function(component){
-      if (component.kind === 'table') {
-        const card = cardV6548(component,null);
-        window.cdaDashboardColumnsV6548.apply({
-          tab:tab,
-          component:component,
-          card:card,
-          document:card && card.ownerDocument || document
-        });
+    if (window.Chart && typeof window.Chart.getChart === 'function') {
+      const chart = window.Chart.getChart('remakeTrendChartV6230');
+      if (chart && typeof chart.destroy === 'function') {
+        try { chart.destroy(); } catch (error) {}
       }
-    });
+    }
+    return true;
   }
 
-  function afterDecorateV6548(context){
-    installNativeCollapseBridgeV6558();
-    applyColumnsV6548(context.tab);
-    context.tab.components.forEach(function(component){
-      const card = cardV6548(component,null);
-      bridge.prepare(component,{card:card,document:card && card.ownerDocument || document});
-      syncComponentV6548(component,card);
-    });
+  function afterReplace(){
+    if (typeof window.applyRemakeSectionStatesV6402 === 'function') window.applyRemakeSectionStatesV6402();
+    if (window.cdaDashboardTitleToggleV6555 && typeof window.cdaDashboardTitleToggleV6555.syncAll === 'function') {
+      window.cdaDashboardTitleToggleV6555.syncAll('remake');
+    }
+    if (window.cdaDashboardTableIntegrationV6547 && typeof window.cdaDashboardTableIntegrationV6547.applyAll === 'function') {
+      window.cdaDashboardTableIntegrationV6547.applyAll();
+    }
+    return true;
   }
-
-  installNativeCollapseBridgeV6558();
 
   window.cdaRemakeDashboardAdapterV6548 = Object.freeze({
-    version:'v6.566',
-    nativeTitleToggle:true,
-    priorYearLabel:priorYearLabelV6548,
-    togglePriorYearComparison:togglePriorYearComparisonV6548,
-    openColumns:openColumnsV6548,
-    getChart:getChartV6548,
-    popout:popoutV6548,
-    reset:resetV6548,
-    exportCurrent:exportCurrentV6548,
-    exportAll:exportAllV6548,
-    isCollapsed:isCollapsedV6555,
-    collapse:collapseV6555,
-    prepareComponent:prepareComponentV6548,
-    resolveToolbarHost:resolveToolbarHostV6548,
-    syncToolbarState:syncToolbarStateV6548,
-    afterDecorate:afterDecorateV6548,
-    comparisonActive:comparisonActiveV6548,
-    stabilizeDetachedComparison:stabilizeDetachedComparisonV6566,
-    syncDetachedNativeCollapse:syncDetachedNativeCollapseV6558
+    version:'v6.681',
+    getChart:getChart,
+    openColumns:openColumns,
+    popout:popout,
+    reset:reset,
+    exportCurrent:exportCurrent,
+    exportAll:exportAll,
+    comparisonActive:comparisonActive,
+    priorYearLabel:priorYearLabel,
+    togglePriorYearComparison:togglePriorYearComparison,
+    isCollapsed:isCollapsed,
+    collapse:collapse,
+    beforeReplace:beforeReplace,
+    afterReplace:afterReplace
   });
 })();
 </script>

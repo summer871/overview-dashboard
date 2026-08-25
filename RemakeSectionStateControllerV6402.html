@@ -118,56 +118,12 @@ window.CDA_REMAKE_LAYOUT_REFRESH_VERSION = 'v6.408';
     try { localStorage.setItem(COLLAPSE_STORAGE_KEY_V6402, JSON.stringify(state || defaultSectionStateV6402())); } catch (error) {}
   }
 
-  function ensureSectionTitleInteractionV6408(def, title, collapsed){
-    if (!title) return;
-    title.setAttribute('data-remake-section-title-v6408', def.key);
-    title.setAttribute('role', 'button');
-    title.setAttribute('tabindex', '0');
-    title.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
-    title.setAttribute('aria-label', (collapsed ? 'Expand ' : 'Collapse ') + def.label + ' section');
-    title.setAttribute('title', (collapsed ? 'Expand ' : 'Collapse ') + def.label + ' section');
-    if (title.__cdaRemakeSectionTitleV6408) return;
-    title.__cdaRemakeSectionTitleV6408 = true;
-    title.addEventListener('click', function(event){
-      if (event.defaultPrevented) return;
-      window.toggleRemakeSectionV6402(def.key);
-    });
-    title.addEventListener('keydown', function(event){
-      if (event.target !== title) return;
-      if (event.key !== 'Enter' && event.key !== ' ') return;
-      event.preventDefault();
-      window.toggleRemakeSectionV6402(def.key);
-    });
-  }
-
-  function ensureSectionToggleV6402(def, card, collapsed){
+  // v6.681: shared title-toggle presentation owns collapse controls. This service keeps Remake collapse state only.
+  function retireLegacySectionControlsV6682(card){
     if (!card) return;
-    const header = card.querySelector(':scope > .remakeCardHeader');
-    if (!header) return;
-    const title = header.querySelector('.remakeCardTitle');
-    ensureSectionTitleInteractionV6408(def, title, collapsed);
-    let button = header.querySelector('[data-remake-section-toggle-v6402="' + def.key + '"]');
-    if (!button) {
-      button = document.createElement('button');
-      button.type = 'button';
-      button.className = 'remakeSectionToggleV6402';
-      button.setAttribute('data-remake-section-toggle-v6402', def.key);
-      const chevron = document.createElement('span');
-      chevron.className = 'remakeSectionChevronV6402';
-      chevron.setAttribute('aria-hidden', 'true');
-      chevron.innerHTML = '&#9662;';
-      button.appendChild(chevron);
-      button.addEventListener('click', function(event){
-        event.preventDefault();
-        event.stopPropagation();
-        window.toggleRemakeSectionV6402(def.key);
-      });
-    }
-    if (title && button.parentNode !== title) title.appendChild(button);
-    else if (!title && button.parentNode !== header) header.insertBefore(button, header.firstChild);
-    button.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
-    button.setAttribute('aria-label', (collapsed ? 'Expand ' : 'Collapse ') + def.label + ' section');
-    button.setAttribute('title', (collapsed ? 'Expand ' : 'Collapse ') + def.label + ' section');
+    card.querySelectorAll('[data-remake-section-toggle-v6402]').forEach(function(button){
+      try { button.remove(); } catch (error) {}
+    });
   }
 
   function applyRemakeSectionStatesV6402(){
@@ -178,7 +134,7 @@ window.CDA_REMAKE_LAYOUT_REFRESH_VERSION = 'v6.408';
       const collapsed = state[def.key] !== false;
       card.classList.toggle('remakeSectionCollapsedV6402', collapsed);
       card.setAttribute('data-remake-section-collapsed-v6402', collapsed ? '1' : '0');
-      ensureSectionToggleV6402(def, card, collapsed);
+      retireLegacySectionControlsV6682(card);
     });
   }
 
@@ -272,50 +228,12 @@ window.CDA_REMAKE_LAYOUT_REFRESH_VERSION = 'v6.408';
     window.addEventListener('focus', checkAfterReturn);
   }
 
-  function observeShellReplacementV6402(){
-    const page = document.getElementById('remakeFactorPage');
-    if (!page) {
-      window.setTimeout(observeShellReplacementV6402, 300);
-      return;
-    }
-    if (window.__cdaRemakeSectionObserverV6402) return;
-    let applyQueuedV6408 = false;
-    window.__cdaRemakeSectionObserverV6402 = new MutationObserver(function(mutations){
-      const sectionHeaderChangedV6408 = (mutations || []).some(function(mutation){
-        if (!mutation || mutation.type !== 'childList') return false;
-        const target = mutation.target;
-        if (!target || target.nodeType !== 1) return false;
-        if (target === page) return true;
-        if (target.matches && target.matches('#remakeCustomerCardV6230, #remakeCeramistCardV6342')) return true;
-        if (target.closest && (
-          target.closest('#remakeCustomerCardV6230 > .remakeCardHeader') ||
-          target.closest('#remakeCeramistCardV6342 > .remakeCardHeader')
-        )) return true;
-        const changedNodesV6408 = Array.from(mutation.addedNodes || []).concat(Array.from(mutation.removedNodes || []));
-        return changedNodesV6408.some(function(node){
-          if (!node || node.nodeType !== 1) return false;
-          if (node.matches && node.matches('#remakeCustomerCardV6230, #remakeCeramistCardV6342, .remakeCardHeader, .remakeCardTitle')) return true;
-          return !!(node.querySelector && node.querySelector('#remakeCustomerCardV6230, #remakeCeramistCardV6342, .remakeCardHeader, .remakeCardTitle'));
-        });
-      });
-      if (!sectionHeaderChangedV6408 || applyQueuedV6408) return;
-      applyQueuedV6408 = true;
-      window.requestAnimationFrame(function(){
-        applyQueuedV6408 = false;
-        applyRemakeSectionStatesV6402();
-      });
-    });
-    // v6.408: watch inside the card headers because customer/technician pills
-    // can rewrite title text and remove the appended arrow button.
-    window.__cdaRemakeSectionObserverV6402.observe(page, { childList: true, subtree: true });
-  }
-
   function startV6402(){
     applyRemakeSectionStatesV6402();
     restoreScrollAfterPageReloadV6402();
     installPageReloadTimerV6402();
     installRemakeFocusSyncV6409();
-    observeShellReplacementV6402();
+
     window.setTimeout(applyRemakeSectionStatesV6402, 350);
     window.setTimeout(applyRemakeSectionStatesV6402, 1300);
   }

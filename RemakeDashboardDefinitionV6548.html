@@ -1,21 +1,21 @@
 <!-- RemakeDashboardDefinitionV6548.html
-Version: v6.581
-Date: 2026-07-31
-Purpose: Declarative Remake feature configuration for the shared runtime while preserving native Remake title and collapse ownership.
+Version: v6.681
+Date: 2026-08-25
+Purpose: Declarative replace-mode Remake dashboard definition for the shared dashboard renderer. Remake supplies only tab-local component markup and callbacks; the shared renderer owns page/card construction.
 -->
 <script id="cdaRemakeDashboardDefinitionControllerV6548">
 (function installRemakeDashboardDefinitionV6548(){
   'use strict';
 
-  if (window.cdaRemakeDashboardDefinitionV6548 && window.cdaRemakeDashboardDefinitionV6548.version === 'v6.581') return;
+  if (window.cdaRemakeDashboardDefinitionV6548 && window.cdaRemakeDashboardDefinitionV6548.version === 'v6.681') return;
 
+  const platform = window.cdaDashboardPlatformV6547;
   const adapter = window.cdaRemakeDashboardAdapterV6548;
-  if (!window.cdaDashboardPlatformV6547 || !adapter) {
-    throw new Error('Remake definition requires the shared dashboard registry and Remake adapter.');
-  }
+  if (!platform || !adapter) throw new Error('Remake definition requires the shared dashboard registry and Remake adapter.');
 
   const TABLE_FEATURES = ['comparePriorYear','columns','columnWidths','popout','reset','more','exportCurrent','exportAll'];
   const STANDARD_TABLE_FEATURES = ['columns','columnWidths','popout','reset','more','exportCurrent','exportAll'];
+  const CHART_FEATURES = ['popout','reset','more','exportCurrent','exportAll'];
   const BASE_OPTIONS = {
     popout:{adapterMethod:'popout'},
     reset:{adapterMethod:'reset'},
@@ -27,69 +27,219 @@ Purpose: Declarative Remake feature configuration for the shared runtime while p
     labelAdapterMethod:'priorYearLabel'
   };
   const COLLAPSE_OPTIONS = {adapterMethod:'collapse',stateAdapterMethod:'isCollapsed'};
-  const WIDTH_BASE_V6581 = {
+  const WIDTH_BASE = {
     absoluteMin:48,absoluteMax:720,numericMin:58,numericMax:82,
     textMin:88,textMax:150,firstColumnMin:132,firstColumnMax:720,fallbackWidth:560
   };
-  function widthOptionsV6581(overrides){
-    return Object.assign({},WIDTH_BASE_V6581,overrides || {});
+
+  function widthOptions(overrides){ return Object.assign({},WIDTH_BASE,overrides || {}); }
+  function options(extra){ return Object.assign({},BASE_OPTIONS,extra || {}); }
+
+  const FILTER_IDS = {
+    year:{inputId:'remakeYearFilter',buttonId:'remakeYearButtonV6245',panelId:'remakeYearPanelV6245',searchId:'remakeYearSearchV6245',listId:'remakeYearListV6245',countId:'remakeYearCountV6245'},
+    department:{inputId:'remakeDepartmentFilter',buttonId:'remakeDepartmentButtonV6245',panelId:'remakeDepartmentPanelV6245',searchId:'remakeDepartmentSearchV6245',listId:'remakeDepartmentListV6245',countId:'remakeDepartmentCountV6245'},
+    product:{inputId:'remakeProductFilter',buttonId:'remakeProductButtonV6245',panelId:'remakeProductPanelV6245',searchId:'remakeProductSearchV6245',listId:'remakeProductListV6245',countId:'remakeProductCountV6245'},
+    productGroup:{inputId:'remakeProductGroupFilter',buttonId:'remakeProductGroupButtonV6245',panelId:'remakeProductGroupPanelV6245',searchId:'remakeProductGroupSearchV6245',listId:'remakeProductGroupListV6245',countId:'remakeProductGroupCountV6245'},
+    customer:{inputId:'remakeCustomerFilter',buttonId:'remakeCustomerButtonV6245',panelId:'remakeCustomerPanelV6245',searchId:'remakeCustomerSearchV6245',listId:'remakeCustomerListV6245',countId:'remakeCustomerCountV6245'},
+    reason:{inputId:'remakeReasonFilter',buttonId:'remakeReasonButtonV6245',panelId:'remakeReasonPanelV6245',searchId:'remakeReasonSearchV6245',listId:'remakeReasonListV6245',countId:'remakeReasonCountV6245'}
+  };
+
+  function filterMarkup(kind,label,allLabel){
+    const engine = window.cdaDashboardFilterEngineV6681;
+    const ids = FILTER_IDS[kind];
+    if (!engine || !ids) throw new Error('Shared filter engine is required before Remake layout rendering.');
+    return engine.filterMarkup({
+      kind:kind,
+      label:label,
+      allLabel:allLabel,
+      ids:Object.assign({},ids,{visibleToggleId:'remakeVisibleToggleV6502_' + kind}),
+      handlers:{
+        toggle:"toggleRemakeDropdownV6245('" + kind + "')",
+        visible:"toggleVisibleRemakeOptionsV6502('" + kind + "',this.checked,event)",
+        reset:"clearRemakeMultiFilterV6245('" + kind + "')",
+        none:"selectNoneRemakeOptionsV6308('" + kind + "')",
+        search:"renderRemakeDropdownListV6245('" + kind + "')"
+      }
+    });
   }
 
-  function optionsV6579(extra){
-    return Object.assign({},BASE_OPTIONS,extra || {});
+  function simpleTable(id,extraClass){
+    return '<div class="remakeTableWrap ' + (extraClass || '') + '"><table id="' + id + '" class="remakeTable"></table></div>';
   }
 
-  function monthlyCardV6555(){
-    const page = document.getElementById('remakeFactorPage');
-    if (!page) return null;
-    return Array.from(page.querySelectorAll('.remakeCard,article')).find(function(card){
-      const title = card.querySelector('.remakeCardTitle,.tatCardTitleV6509');
-      return !!(title && /monthly\s+remake\s+(?:comparison|rate)/i.test(title.textContent || ''));
-    }) || null;
+  function productHeaderControls(){
+    return '<div class="remakeProductModeBarV6264" aria-label="Products or groups">' +
+      '<button id="remakeProductModeProductBtnV6264" type="button" onclick="setRemakeProductTableModeV6264(\'product\')">Products</button>' +
+      '<button id="remakeProductModeGroupBtnV6264" type="button" onclick="setRemakeProductTableModeV6264(\'group\')">Groups</button>' +
+      '</div>';
+  }
+
+  function monthlyBody(){
+    return '<div class="remakeChartModeBarV6230">' +
+      '<button id="remakeModeLineV6230" type="button" onclick="setRemakeChartModeV6230(\'line\')">Line</button>' +
+      '<button id="remakeModeBarV6230" type="button" onclick="setRemakeChartModeV6230(\'bar\')">Bar</button>' +
+      '<button id="remakeMeasureCasesV6245" class="measureToggleV6245" type="button" onclick="setRemakeTrendMeasureV6245(\'cases\')">Cases</button>' +
+      '<button id="remakeMeasureUnitsV6245" type="button" onclick="setRemakeTrendMeasureV6245(\'units\')">Units</button>' +
+      '<button id="remakeValueTotalV6247" class="valueToggleV6247" type="button" onclick="setRemakeTrendValueModeV6247(\'total\')">Total</button>' +
+      '<button id="remakeValuePercentV6247" type="button" onclick="setRemakeTrendValueModeV6247(\'percent\')">%</button>' +
+      '<div id="remakeTrendViewGroupV6304" class="remakeTrendViewGroupV6304" aria-label="Monthly or cumulative line view" hidden>' +
+        '<span class="remakeTrendViewLabelV6304">View</span>' +
+        '<button id="remakeMonthlyV6304" class="cumulativeToggleV6302" type="button" title="Show each month separately" onclick="setRemakeTrendCumulativeV6304(false)">Monthly</button>' +
+        '<button id="remakeCumulativeV6302" class="cumulativeToggleV6302" type="button" title="Show a running year-to-date total" onclick="setRemakeTrendCumulativeV6304(true)">Cumulative</button>' +
+      '</div></div>' +
+      '<div class="remakeChartBoxV6230"><canvas id="remakeTrendChartV6230"></canvas></div>';
+  }
+
+  function ceramistBody(){
+    return '<div class="ceramistTopControlsV6351">' +
+      '<div class="ceramistPreviewKpisV6342">' +
+        '<div class="ceramistPreviewKpiV6342"><div class="label">Cases</div><div id="remakeCeramistVisibleCasesV6343" class="value">-</div></div>' +
+        '<div class="ceramistPreviewKpiV6342"><div class="label">Remake units</div><div id="remakeCeramistUnitsV6342" class="value">-</div></div>' +
+        '<div class="ceramistPreviewKpiV6342"><div class="label">Discount</div><div id="remakeCeramistDiscountV6342" class="value">-</div></div>' +
+        '<div class="ceramistPreviewKpiV6342" title="Percent of visible remake cases that are fully attributed to one confirmed responsible worker. Partial or unassigned cases are excluded from the numerator."><div class="label">Attribution</div><div id="remakeCeramistCoverageV6342" class="value">-</div></div>' +
+      '</div>' +
+      '<div class="ceramistPreviewMetaV6342"><div class="ceramistFilterStackV6343"><div class="ceramistFilterRowV6343">' +
+        '<div id="remakeCeramistCaseStatusBarV6343" class="ceramistFlagBarV6342">' +
+          '<button class="ceramistFlagButtonV6342" data-ceramist-case-status="all" type="button" title="All cases" onclick="setCeramistCaseStatusV6343(\'all\')">All <span id="remakeCeramistAllCountV6342">0</span></button>' +
+          '<button class="ceramistFlagButtonV6342" data-ceramist-case-status="full" type="button" title="Fully attributed cases" onclick="setCeramistCaseStatusV6343(\'full\')">Attributed <span id="remakeCeramistFullCountV6343">0</span></button>' +
+          '<button class="ceramistFlagButtonV6342" data-ceramist-case-status="partial" type="button" title="Partially attributed cases" onclick="setCeramistCaseStatusV6343(\'partial\')">Partial <span id="remakeCeramistPartialCountV6343">0</span></button>' +
+          '<button class="ceramistFlagButtonV6342" data-ceramist-case-status="unattributed" type="button" title="Unattributed cases" onclick="setCeramistCaseStatusV6343(\'unattributed\')">Unassigned <span id="remakeCeramistUnattributedCountV6342">0</span></button>' +
+        '</div><span class="ceramistFilterSeparatorV6347" aria-hidden="true"></span>' +
+        '<div id="remakeCeramistDiagnosticBarV6343" class="ceramistFlagBarV6342">' +
+          '<button class="ceramistFlagButtonV6342" data-ceramist-diagnostic="none" type="button" title="No review flag filter" onclick="setCeramistDiagnosticV6343(\'none\')">None</button>' +
+          '<button class="ceramistFlagButtonV6342" data-ceramist-diagnostic="multi" type="button" title="Multiple remake chains" onclick="setCeramistDiagnosticV6343(\'multi\')">Multi <span id="remakeCeramistMultiCountV6342">0</span></button>' +
+          '<button class="ceramistFlagButtonV6342" data-ceramist-diagnostic="rootMissing" type="button" title="No matching prior/root CERAMICS completion was found in the attribution cache" onclick="setCeramistDiagnosticV6343(\'rootMissing\')">No prior match <span id="remakeCeramistRootMissingCountV6342">0</span></button>' +
+          '<button class="ceramistFlagButtonV6342" data-ceramist-diagnostic="noteEvidence" type="button" title="Prior or root invoice-note evidence" onclick="setCeramistDiagnosticV6343(\'noteEvidence\')">Notes <span id="remakeCeramistNoteEvidenceCountV6343">0</span></button>' +
+        '</div></div></div></div>' +
+      '</div>' +
+      '<div id="remakeCeramistWorkspaceV6343" class="ceramistWorkspaceV6343 technicianMasterDetailV6667">' +
+        '<section class="ceramistPanelV6343 technicianMasterPanelV6667" aria-label="Ceramist responsibility summary">' +
+          '<div class="ceramistPanelHeaderV6343"><div class="ceramistPanelTitleV6343">Responsible worker</div></div>' +
+          '<div class="remakeTableWrap ceramistPreviewTableWrapV6342"><table id="remakeCeramistTableV6342" class="remakeTable"></table></div>' +
+        '</section>' +
+        '<section class="ceramistPanelV6343 technicianDetailPanelV6667" aria-label="Selected ceramist breakdown">' +
+          '<div class="ceramistPanelHeaderV6343"><div id="remakeCeramistDetailTitleV6343" class="ceramistPanelTitleV6343">Select a ceramist</div>' +
+            '<div id="remakeCeramistBreakdownBarV6343" class="ceramistBreakdownBarV6343">' +
+              '<button data-ceramist-breakdown="product" type="button" onclick="setCeramistBreakdownV6343(\'product\')">Product</button>' +
+              '<button data-ceramist-breakdown="group" type="button" onclick="setCeramistBreakdownV6343(\'group\')">Group</button>' +
+              '<button data-ceramist-breakdown="department" type="button" onclick="setCeramistBreakdownV6343(\'department\')">Dept</button>' +
+              '<button data-ceramist-breakdown="customer" type="button" onclick="setCeramistBreakdownV6343(\'customer\')">Customer</button>' +
+              '<button data-ceramist-breakdown="reason" type="button" onclick="setCeramistBreakdownV6343(\'reason\')">Reason</button>' +
+            '</div></div>' +
+          '<div id="remakeCeramistDetailSelectionV6368" class="ceramistDetailSelectionV6368" hidden></div>' +
+          '<div class="remakeTableWrap ceramistPreviewTableWrapV6342"><table id="remakeCeramistDetailTableV6343" class="remakeTable"></table></div>' +
+        '</section>' +
+      '</div>';
+  }
+
+  const components = [
+    {
+      key:'monthly',legacyKey:'trend',title:'Monthly Remake Comparison',kind:'chart',chartKey:'trend',cardId:'remakeTrendCardV6230',targetId:'remakeTrendChartV6230',
+      features:CHART_FEATURES.slice(),featureOptions:options(),renderBody:monthlyBody
+    },
+    {
+      key:'department',legacyKey:'department',title:'Departments',kind:'table',cardId:'remakeDepartmentCardV6230',targetId:'remakeDepartmentTable',tableIds:['remakeDepartmentTable'],
+      features:TABLE_FEATURES.slice(),featureOptions:options({comparePriorYear:COMPARE_OPTIONS,columnWidths:widthOptions({firstColumnMin:140})}),
+      renderBody:function(){ return simpleTable('remakeDepartmentTable'); }
+    },
+    {
+      key:'reason',legacyKey:'reason',title:'Remake Reasons',kind:'table',cardId:'remakeReasonCardV6230',targetId:'remakeReasonTable',tableIds:['remakeReasonTable'],
+      features:TABLE_FEATURES.slice(),featureOptions:options({comparePriorYear:COMPARE_OPTIONS,columnWidths:widthOptions({firstColumnMin:150})}),
+      renderBody:function(){ return simpleTable('remakeReasonTable'); }
+    },
+    {
+      key:'product',legacyKey:'product',title:'Products',kind:'table',cardId:'remakeProductCardV6230',targetId:'remakeProductTable',tableIds:['remakeProductTable'],
+      features:TABLE_FEATURES.slice(),featureOptions:options({comparePriorYear:COMPARE_OPTIONS,columnWidths:widthOptions({firstColumnMin:170})}),
+      renderTitle:function(){ return '<div id="remakeProductTitleV6264" class="tatCardTitleV6509 remakeCardTitle">Products</div>'; },
+      renderHeaderControls:productHeaderControls,
+      renderBody:function(){ return simpleTable('remakeProductTable'); }
+    },
+    {
+      key:'customer',legacyKey:'customer',title:'Customers',kind:'table',cardId:'remakeCustomerCardV6230',targetId:'remakeCustomerTable',tableIds:['remakeCustomerTable'],collapseKey:'customer',cardClass:'remakeCardWideV6230',
+      features:TABLE_FEATURES.concat(['collapse']),featureOptions:options({comparePriorYear:COMPARE_OPTIONS,columnWidths:widthOptions({firstColumnMin:180}),collapse:COLLAPSE_OPTIONS}),
+      renderTitle:function(){ return '<div id="remakeCustomerTitleV6251" class="tatCardTitleV6509 remakeCardTitle">Customers</div>'; },
+      renderBody:function(){ return simpleTable('remakeCustomerTable','remakeCustomerTableWrapV6230'); }
+    },
+    {
+      key:'ceramist',legacyKey:'ceramist',title:'Technicians',kind:'table',cardId:'remakeCeramistCardV6342',targetId:'remakeCeramistTableV6342',tableIds:['remakeCeramistTableV6342','remakeCeramistDetailTableV6343'],collapseKey:'technician',cardClass:'remakeCardWideV6230',
+      features:STANDARD_TABLE_FEATURES.concat(['collapse']),featureOptions:options({columnWidths:widthOptions({firstColumnMin:160}),collapse:COLLAPSE_OPTIONS}),renderBody:ceramistBody
+    }
+  ];
+
+  function kpiMarkup(){
+    return '<div class="remakeKpi" title="Primary KPI shows the current comparison year. The small line compares against the prior year using the same months."><div class="label">Total Cases</div><div id="remakeTotalCases" class="value">-</div><div id="remakeTotalCasesSub" class="sub"></div></div>' +
+      '<div class="remakeKpi"><div class="label">Remake Cases</div><div id="remakeCases" class="value">-</div><div id="remakeCasesSub" class="sub"></div></div>' +
+      '<div class="remakeKpi"><div class="label">Case Rate</div><div id="remakeCaseRate" class="value">-</div><div id="remakeCaseRateSub" class="sub"></div></div>' +
+      '<div class="remakeKpi"><div class="label">Total Units</div><div id="remakeTotalUnits" class="value">-</div><div id="remakeTotalUnitsSub" class="sub"></div></div>' +
+      '<div class="remakeKpi"><div class="label">Remake Units</div><div id="remakeUnits" class="value">-</div><div id="remakeUnitsSub" class="sub"></div></div>' +
+      '<div class="remakeKpi"><div class="label">Unit Rate</div><div id="remakeUnitRate" class="value">-</div><div id="remakeUnitRateSub" class="sub"></div></div>' +
+      '<div class="remakeKpi"><div class="label">Remake Discount</div><div id="remakeDiscount" class="value">-</div><div id="remakeDiscountSub" class="sub"></div></div>';
+  }
+
+  function renderLayout(context){
+    return '<div class="remakeShellV6230">' +
+      '<div class="remakeStickyTopV6245">' +
+        '<div class="remakeHeaderV6230" style="display:none !important;"></div>' +
+        '<div id="remakeNotice" class="remakeNotice"></div>' +
+        '<div class="remakeGlobalSearchBarV6304">' +
+          '<button id="remakeGlobalSearchButtonV6304" class="remakeGlobalSearchButtonV6304" type="button" title="Search every dashboard filter" aria-label="Search every dashboard filter" aria-expanded="false" onclick="toggleRemakeGlobalSearchV6304(event)">' +
+            '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M10.7 4a6.7 6.7 0 1 0 4.13 11.98l3.6 3.6 1.41-1.42-3.59-3.59A6.7 6.7 0 0 0 10.7 4Zm0 2a4.7 4.7 0 1 1 0 9.4 4.7 4.7 0 0 1 0-9.4Z"/></svg>' +
+          '</button>' +
+          '<div id="remakeGlobalSearchPanelV6304" class="remakeGlobalSearchPanelV6304" role="dialog" aria-label="Search all filters">' +
+            '<div class="remakeGlobalSearchInputRowV6304">' +
+              '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M10.7 4a6.7 6.7 0 1 0 4.13 11.98l3.6 3.6 1.41-1.42-3.59-3.59A6.7 6.7 0 0 0 10.7 4Zm0 2a4.7 4.7 0 1 1 0 9.4 4.7 4.7 0 0 1 0-9.4Z"/></svg>' +
+              '<input id="remakeGlobalSearchInputV6304" type="search" autocomplete="off" placeholder="Search and select multiple filters" oninput="renderRemakeGlobalSearchV6304()" onkeydown="handleRemakeGlobalSearchKeyV6304(event)">' +
+              '<button type="button" class="remakeGlobalSearchCloseV6304" title="Close search" aria-label="Close search" onclick="closeRemakeGlobalSearchV6304()">&#215;</button>' +
+            '</div>' +
+            '<div id="remakeGlobalSearchResultsV6304" class="remakeGlobalSearchResultsV6304"></div>' +
+            '<div id="remakeGlobalSearchActionsV6305" class="remakeGlobalSearchActionsV6305">' +
+              '<span id="remakeGlobalSearchCountV6305" class="remakeGlobalSearchCountV6305">0 selected</span>' +
+              '<button type="button" class="remakeGlobalSearchClearV6305" title="Remove all five global filters and return them to All" onclick="clearRemakeGlobalSearchDraftV6305()">Reset all filters</button>' +
+              '<button type="button" class="remakeGlobalSearchApplyV6305" onclick="applyRemakeGlobalSearchSelectionsV6305()">Apply</button>' +
+            '</div>' +
+          '</div>' +
+        '</div>' +
+        '<div id="remakeFilterHomeV6337" aria-hidden="true"></div>' +
+        '<div class="remakeFilterBarV6230">' +
+          filterMarkup('year','Year','All years') +
+          filterMarkup('department','Department','All departments') +
+          filterMarkup('product','Product','All products') +
+          filterMarkup('productGroup','Group','All groups') +
+          filterMarkup('customer','Customer','All customers') +
+          filterMarkup('reason','Reason','All reasons') +
+        '</div>' +
+        '<div class="remakeKpisV6230">' + kpiMarkup() + '</div>' +
+        '<div id="remakePillsV6230" class="remakePillsV6230" data-placement="below-remake-kpis"></div>' +
+      '</div>' +
+      '<div class="remakeGridV6230">' + context.renderComponent('monthly') + context.renderComponent('department') + '</div>' +
+      '<div class="remakeGridV6230">' + context.renderComponent('reason') + context.renderComponent('product') + '</div>' +
+      '<div class="remakeGridV6230">' + context.renderComponent('customer') + '</div>' +
+      '<div class="remakeGridV6230">' + context.renderComponent('ceramist') + '</div>' +
+      '<div class="remakePageFooterV6338" aria-label="Cache status">' +
+        '<div id="remakeCacheActionHomeV6338" aria-hidden="true"></div>' +
+        '<div class="remakeCacheActionBarV6338" aria-label="Remake cache controls">' +
+          '<button id="remakeReloadSavedBtn" class="remakeButton secondary" type="button" title="Reload the saved Drive cache and replace this browser copy" onclick="reloadRemakeFactorSavedCache()"><span class="remakeCacheActionIconV6338" aria-hidden="true">&#8595;</span><span class="remakeCacheActionLabelV6338">Reload</span></button>' +
+          '<button id="remakeRefreshBtn" class="remakeButton" type="button" title="Build missing months first, then replace current month from the API" onclick="refreshRemakeFactorData()"><span class="remakeCacheActionIconV6338" aria-hidden="true">&#8635;</span><span class="remakeCacheActionLabelV6338">Refresh</span></button>' +
+        '</div>' +
+        '<span id="remakeCeramistStatusV6342" class="remakeRefreshStamp remakeFooterStampV6338 remakeWorkerFooterStampV6367" title="This is when the worker cache was rebuilt, not the latest case invoice date.">Worker cache: not loaded</span>' +
+        '<span id="remakeLastRefresh" class="remakeRefreshStamp remakeFooterStampV6338 remakeMainFooterStampV6367">Not loaded</span>' +
+      '</div>' +
+    '</div>';
   }
 
   window.cdaRemakeDashboardDefinitionV6548 = {
-    version:'v6.581',
+    version:'v6.681',
     key:'remake',
-    mountMode:'decorate',
+    mountMode:'replace',
+    replaceRevealMode:'immediate',
     pageId:'remakeFactorPage',
     tabButtonId:'remakeFactorTabBtn',
+    pageClass:'tabPage cleanRemakeV6230',
     adapter:adapter,
-    components:[
-      {
-        key:'monthly',legacyKey:'trend',title:'Monthly Remake Comparison',kind:'chart',
-        resolveCard:monthlyCardV6555,
-        features:['popout','reset','more','exportCurrent','exportAll'],
-        featureOptions:optionsV6579()
-      },
-      {
-        key:'reason',legacyKey:'reason',title:'Remake Reasons',kind:'table',cardId:'remakeReasonCardV6230',
-        targetId:'remakeReasonTable',tableIds:['remakeReasonTable'],features:TABLE_FEATURES.slice(),
-        featureOptions:optionsV6579({comparePriorYear:COMPARE_OPTIONS,columnWidths:widthOptionsV6581({firstColumnMin:150})})
-      },
-      {
-        key:'department',legacyKey:'department',title:'Departments',kind:'table',cardId:'remakeDepartmentCardV6230',
-        targetId:'remakeDepartmentTable',tableIds:['remakeDepartmentTable'],features:TABLE_FEATURES.slice(),
-        featureOptions:optionsV6579({comparePriorYear:COMPARE_OPTIONS,columnWidths:widthOptionsV6581({firstColumnMin:140})})
-      },
-      {
-        key:'product',legacyKey:'product',title:'Products',kind:'table',cardId:'remakeProductCardV6230',
-        targetId:'remakeProductTable',tableIds:['remakeProductTable'],features:TABLE_FEATURES.slice(),
-        featureOptions:optionsV6579({comparePriorYear:COMPARE_OPTIONS,columnWidths:widthOptionsV6581({firstColumnMin:170})})
-      },
-      {
-        key:'customer',legacyKey:'customer',title:'Customers',kind:'table',cardId:'remakeCustomerCardV6230',
-        targetId:'remakeCustomerTable',tableIds:['remakeCustomerTable'],collapseKey:'customer',
-        features:TABLE_FEATURES.concat(['collapse']),
-        featureOptions:optionsV6579({comparePriorYear:COMPARE_OPTIONS,columnWidths:widthOptionsV6581({firstColumnMin:180}),collapse:COLLAPSE_OPTIONS})
-      },
-      {
-        key:'ceramist',legacyKey:'ceramist',title:'Technicians',kind:'table',cardId:'remakeCeramistCardV6342',
-        targetId:'remakeCeramistTableV6342',tableIds:['remakeCeramistTableV6342','remakeCeramistDetailTableV6343'],
-        collapseKey:'technician',features:STANDARD_TABLE_FEATURES.concat(['collapse']),
-        featureOptions:optionsV6579({columnWidths:widthOptionsV6581({firstColumnMin:160}),collapse:COLLAPSE_OPTIONS})
-      }
-    ]
+    components:components,
+    renderLayout:renderLayout,
+    beforeReplace:function(){ adapter.beforeReplace(); },
+    afterReplace:function(){ adapter.afterReplace(); }
   };
 })();
 </script>

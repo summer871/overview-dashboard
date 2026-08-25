@@ -30,9 +30,6 @@ Purpose: Final owner for Remake hard-focus dropdown inventories after all dashbo
     if(window.__cdaRemakeFilterLifecycleV6636||!ready())return false;
     window.__cdaRemakeFilterLifecycleV6636=true;
     window.CDA_REMAKE_FILTER_LIFECYCLE_VERSION=VERSION;
-    window.CDA_CURRENT_FRONTEND_VERSION=VERSION;
-    window.CDA_SHARED_FOOTER_VERSION=VERSION;
-    window.CDA_SHARED_FOOTER_BUILD=BUILD;
 
     const previousRenderDashboard=renderDashboardV6230&&renderDashboardV6230.__cdaPreviousV6635
       ?renderDashboardV6230.__cdaPreviousV6635
@@ -206,22 +203,6 @@ Purpose: Final owner for Remake hard-focus dropdown inventories after all dashbo
     window.renderDashboardV6230=renderDashboardV6636;
     window.renderRemakeDropdownListV6245=renderRemakeDropdownListV6636;
 
-    function refreshReleaseIdentity(){
-      const footer=document.getElementById('cdaSharedAppFooterV6531');
-      if(!footer)return;
-      footer.querySelectorAll('[data-footer-item]').forEach(function(item){
-        const text=String(item.textContent||'');
-        if(/^UI:/i.test(text))item.textContent='UI: '+VERSION;
-        if(/^Build:/i.test(text))item.textContent='Build: '+BUILD;
-      });
-    }
-
-    if(window.MutationObserver&&document.body){
-      const identityObserver=new MutationObserver(refreshReleaseIdentity);
-      identityObserver.observe(document.body,{childList:true,subtree:true,characterData:true});
-      window.__cdaRemakeFilterIdentityObserverV6636=identityObserver;
-    }
-
     window.cdaRemakeFilterLifecycleV6636=Object.freeze({
       version:VERSION,
       build:BUILD,
@@ -252,7 +233,7 @@ Purpose: Final owner for Remake hard-focus dropdown inventories after all dashbo
     });
 
     synchronize(true);
-    refreshReleaseIdentity();
+
     return true;
   }
 

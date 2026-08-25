@@ -40,8 +40,13 @@ Purpose: Replace-mode tab renderer with explicit component identity, optional sh
       ? component.renderTitle({tab:tab,component:component,platform:platform})
       : '<div class="tatCardTitleV6509 remakeCardTitle">' + platform.util.escapeHtml(component.title) + '</div>';
     const stableId = tab.key + '.' + component.key;
+    const cardClasses = ['tatCardV6509','remakeCard','cdaDashboardCardV6547'];
+    if (component.wide) cardClasses.push('tatWideV6509');
+    String(component.cardClass || '').split(/\s+/).filter(Boolean).forEach(function(className){
+      if (cardClasses.indexOf(className) < 0) cardClasses.push(className);
+    });
     return '<article' + (component.cardId ? ' id="' + platform.util.escapeHtml(component.cardId) + '"' : '') +
-      ' class="tatCardV6509 remakeCard cdaDashboardCardV6547' + (component.wide ? ' tatWideV6509' : '') + '"' +
+      ' class="' + platform.util.escapeHtml(cardClasses.join(' ')) + '"' +
       ' data-cda-dashboard-component="' + platform.util.escapeHtml(component.key) + '"' +
       ' data-cda-component-id="' + platform.util.escapeHtml(stableId) + '"' +
       ' data-cda-component-tab="' + platform.util.escapeHtml(tab.key) + '"' +
@@ -96,8 +101,9 @@ Purpose: Replace-mode tab renderer with explicit component identity, optional sh
     });
     oldPage.parentNode.replaceChild(page,oldPage);
     page.style.setProperty('display',wasActive ? 'block' : 'none','important');
-    if (wasActive) {
-      page.classList.add('active');
+    if (wasActive) page.classList.add('active');
+    const deferActiveReveal = wasActive && tab.replaceRevealMode !== 'immediate';
+    if (deferActiveReveal) {
       page.setAttribute('data-cda-tab-preparing-v6627','true');
       page.style.setProperty('visibility','hidden','important');
       page.style.setProperty('pointer-events','none','important');
