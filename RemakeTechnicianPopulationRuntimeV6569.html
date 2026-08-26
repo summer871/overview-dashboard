@@ -1193,12 +1193,8 @@
     const attributedRows = selectedRows.filter(ceramistIsAttributedV6343);
     const groups = sortedRowsV6230(ceramistGroupRowsV6342(selectedRows), 'ceramist');
     if (!groups.some(row => String(row.key) === String(ceramistStateV6342.selectedCeramist))) {
-      if (ceramistStateV6342.selectionCleared === true) {
-        ceramistStateV6342.selectedCeramist = '';
-      } else {
-        const preferred = groups.find(row => String(row.key) !== '[Unattributed]') || groups[0];
-        ceramistStateV6342.selectedCeramist = preferred ? String(preferred.key) : '';
-      }
+      ceramistStateV6342.selectedCeramist = '';
+      ceramistStateV6342.selectionCleared = true;
     }
     const selectedCeramist = ceramistStateV6342.selectedCeramist;
     const selectedGroup = groups.find(row => String(row.key) === String(selectedCeramist));
@@ -1643,6 +1639,7 @@
       ceramistStateV6342.selectionCleared = !next;
     }
     renderCeramistAnalysisV6342();
+    if (typeof renderPillsV6230 === 'function') renderPillsV6230();
   };
   window.setCeramistFlagV6342 = function setCeramistFlagV6342(flag) {
     if (flag === 'unattributed') window.setCeramistCaseStatusV6343('unattributed');

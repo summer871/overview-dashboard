@@ -11,8 +11,7 @@ function renderCustomerTableV6230(customerGroups) {
     const allCustomerRows = sortedRowsV6230(remakeCustomers, 'customer');
     const sorted = selectedRowsFirstV6311(allCustomerRows, selectedCustomers, row => row.key, 300);
     uiV6230.lastTables.customer = sorted;
-    const title = idV6230('remakeCustomerTitleV6251');
-    if (title) title.textContent = 'Customers';
+
     renderCustomerResponsibilitySummaryV6503(customerGroups);
     table.classList.toggle('compareColumnsV6301', compare);
     const header = '<thead><tr>'

@@ -218,11 +218,8 @@
       +'</div>';
   }
   function buildUi(){
-    const tabs=document.querySelector('.managerTabs');const remakeButton=id('remakeFactorTabBtn');
-    if(tabs&&remakeButton&&!id('tatTabBtnV6509')){
-      const oldButton=id('tatTabBtnV6508');if(oldButton)oldButton.remove();
-      const button=document.createElement('button');button.id='tatTabBtnV6509';button.className='tabBtn';button.type='button';button.textContent='TAT';remakeButton.insertAdjacentElement('afterend',button);
-      const oldHost=id('tatTabFilterHostV6508');if(oldHost)oldHost.remove();
+    const tabs=document.querySelector('.managerTabs');
+    if(tabs&&!id('tatTabFilterHostV6509')){
       const host=document.createElement('div');host.id='tatTabFilterHostV6509';host.hidden=true;host.setAttribute('aria-label','TAT dashboard filters and cache controls');
       host.innerHTML='<div class="remakeFilterBarV6230">'+FILTER_TYPES.map(filterMarkup).join('')+'</div>'
         +'<button id="tatTabSearchProxyV6509" class="remakeTabToolButtonV6337 remakeTabSearchProxyV6337" type="button" title="Search all filters" aria-label="Search all filters" aria-expanded="false" onclick="toggleTatGlobalSearchV6509(event)"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="6"></circle><path d="m16 16 4 4"></path></svg></button>'
@@ -230,34 +227,15 @@
         +'<button id="tatTabResetV6509" class="remakeTabToolButtonV6337 remakeTabResetV6337" type="button" title="Reset all TAT filters" onclick="cdaDashboardFilterEngineV6681.resetTab('tat',event)">Reset</button>'
         +'<div class="remakeCacheActionBarV6338"><button id="tatReloadButtonV6509" class="remakeButton secondary" type="button" title="Reload the saved Drive cache and replace this browser copy" onclick="reloadTatV6509(event)"><span class="remakeCacheActionIconV6338" aria-hidden="true">&#8595;</span><span class="remakeCacheActionLabelV6338">Reload</span></button><button id="tatRefreshButtonV6509" class="remakeButton" type="button" title="Build missing months first, then replace the current month" onclick="refreshTatV6509(event)"><span class="remakeCacheActionIconV6338" aria-hidden="true">&#8635;</span><span class="remakeCacheActionLabelV6338">Refresh</span></button></div>';
       tabs.appendChild(host);
-      bindTatFilterControlsV6524();
-    } else {
-      bindTatFilterControlsV6524();
     }
+    bindTatFilterControlsV6524();
     if(!id('tatGlobalSearchPanelV6509')){
       const panel=document.createElement('div');panel.id='tatGlobalSearchPanelV6509';panel.className='tatFloatingPanelV6509';panel.innerHTML='<div class="tatGlobalSearchHeadV6509"><input id="tatGlobalSearchInputV6509" type="search" placeholder="Search TAT filters" oninput="renderTatGlobalSearchV6509(this.value)"><button type="button" onclick="closeTatFloatingPanelsV6509()">×</button></div><div id="tatGlobalSearchResultsV6509" class="tatGlobalSearchResultsV6509"></div>';document.body.appendChild(panel);
     }
     if(!id('tatSettingsPanelV6509')){
       const panel=document.createElement('div');panel.id='tatSettingsPanelV6509';panel.className='tatFloatingPanelV6509';panel.innerHTML='<div class="tatGlobalSearchHeadV6509"><strong>TAT view</strong><button type="button" onclick="closeTatFloatingPanelsV6509()">×</button></div><div class="tatSettingsBodyV6509"><div class="tatSettingsNoteV6524">Distribution is shown as percent of eligible cases.</div></div>';document.body.appendChild(panel);
     }
-    const oldPage=id('tatDashboardPageV6508');if(oldPage)oldPage.remove();
-    if(!id('tatDashboardPageV6509')){
-      const page=document.createElement('section');
-      page.id='tatDashboardPageV6509';
-      page.className='tabContent cleanRemakeV6230 tatMirrorRemakeV6512';
-      page.setAttribute('data-cda-dashboard-placeholder-v6627','true');
-      page.style.setProperty('display','none','important');
-      document.body.appendChild(page);
-    }
-    installRemakeCustomerCollapse();
     applyCollapsedState();
-  }
-
-  function installRemakeCustomerCollapse(){
-    if(typeof window.applyRemakeSectionStatesV6402==='function')window.applyRemakeSectionStatesV6402();
-  }
-  function toggleRemakeCustomerCollapse(){
-    if(typeof window.toggleRemakeSectionV6402==='function')window.toggleRemakeSectionV6402('customer');
   }
   function applyCollapsedState(){
     [['customers','tatCustomerCardV6509','tatCustomerCollapseV6509'],['quality','tatQualityCardV6509','tatQualityCollapseV6509']].forEach(function(entry){const collapsed=!!state.collapsed[entry[0]],card=id(entry[1]),button=id(entry[2]);if(card)card.classList.toggle('collapsed',collapsed);if(button){button.textContent=collapsed?'▸':'▾';button.setAttribute('aria-expanded',collapsed?'false':'true');}});
