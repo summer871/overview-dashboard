@@ -1012,7 +1012,7 @@ Purpose: Universal Power BI-style canvas with single-authority saved geometry, i
       const nestedParent = card.parentElement && card.parentElement.closest && card.parentElement.closest(cardSelectorV6593);
       if (nestedParent && nestedParent !== card && page.contains(nestedParent)) return;
       if (card.closest('[role="dialog"],.remakeColumnChooserPopoverV6357,.cdaPopoverV6547,#cdaLayoutEditorBarV6593')) return;
-      if (card.closest('[data-cda-dashboard-accordion-stack-v6681="true"]')) return;
+
       unique.push(card);
     });
     return unique;
@@ -1028,11 +1028,21 @@ Purpose: Universal Power BI-style canvas with single-authority saved geometry, i
       if (!parent) return;
       const naturalGrid = card.closest('.remakeGridV6230,.tatGridV6509,[data-cda-layout-editor-grid]');
       if (naturalGrid && page.contains(naturalGrid)) parent = naturalGrid;
+      const isAccordionV6681 = !!(parent.matches && parent.matches('[data-cda-dashboard-accordion-stack-v6681="true"]'));
+      const accordionGridKeyV6681 = tabKeyV6593(page) + '-accordion-v6681';
       if (!parent.getAttribute('data-cda-layout-editor-grid')) {
-        parent.setAttribute('data-cda-layout-editor-grid','universal-' + safeKeyV6593(parent.id || cardKeyV6593(card,index) || String(index + 1)));
+        parent.setAttribute(
+          'data-cda-layout-editor-grid',
+          isAccordionV6681
+            ? 'universal-' + accordionGridKeyV6681
+            : 'universal-' + safeKeyV6593(parent.id || cardKeyV6593(card,index) || String(index + 1))
+        );
       }
       if (!parent.getAttribute('data-cda-layout-editor-grid-key-v6593')) {
-        parent.setAttribute('data-cda-layout-editor-grid-key-v6593',parent.id || 'universal-grid-' + String(index + 1));
+        parent.setAttribute(
+          'data-cda-layout-editor-grid-key-v6593',
+          isAccordionV6681 ? accordionGridKeyV6681 : (parent.id || 'universal-grid-' + String(index + 1))
+        );
       }
       parent.setAttribute('data-cda-layout-universal-grid-v6603','true');
     });
@@ -1163,6 +1173,29 @@ Purpose: Universal Power BI-style canvas with single-authority saved geometry, i
     return {version:versionV6593,tab:tabKeyV6593(page),grids:grids};
   }
 
+  function mergeMissingGeometryV6681(saved,current){
+    const merged = cloneV6593(saved || current || {version:versionV6593,grids:{}});
+    merged.version = versionV6593;
+    merged.grids = merged.grids && typeof merged.grids === 'object' ? merged.grids : {};
+    const currentGrids = current && current.grids && typeof current.grids === 'object' ? current.grids : {};
+    Object.keys(currentGrids).forEach(function(gridKey){
+      const sourceGrid = currentGrids[gridKey];
+      if (!sourceGrid) return;
+      if (!merged.grids[gridKey]) {
+        merged.grids[gridKey] = cloneV6593(sourceGrid);
+        return;
+      }
+      const targetGrid = merged.grids[gridKey];
+      targetGrid.items = targetGrid.items && typeof targetGrid.items === 'object' ? targetGrid.items : {};
+      Object.keys(sourceGrid.items || {}).forEach(function(cardKey){
+        if (!targetGrid.items[cardKey]) targetGrid.items[cardKey] = cloneV6593(sourceGrid.items[cardKey]);
+      });
+      if (!Number.isFinite(Number(targetGrid.height))) targetGrid.height = Number(sourceGrid.height) || 42;
+      if (!Number.isFinite(Number(targetGrid.baseHeight))) targetGrid.baseHeight = Number(sourceGrid.baseHeight) || 42;
+    });
+    return merged;
+  }
+
   function layoutForTabV6593(tab){
     const store = readStoreV6593();
     const value = store && store.tabs && store.tabs[tab];
@@ -1204,6 +1237,7 @@ Purpose: Universal Power BI-style canvas with single-authority saved geometry, i
     if (!grid) return;
     grid.removeAttribute('data-cda-layout-grid-v6593');
     grid.removeAttribute('data-cda-layout-editor-grid-key-v6593');
+    grid.removeAttribute('data-cda-layout-accordion-managed-v6681');
     ['position','height','min-height','max-height','overflow','overflow-x'].forEach(function(name){ grid.style.removeProperty(name); });
     const cards = [];
     Array.from(grid.children || []).forEach(function(node){
@@ -1266,6 +1300,14 @@ Purpose: Universal Power BI-style canvas with single-authority saved geometry, i
       : null;
   }
 
+  function accordionFlowAnchorV6681(page){
+    const accordion = accordionStackV6681(page);
+    if (!accordion) return null;
+    return accordion.getAttribute('data-cda-layout-accordion-managed-v6681') === 'true'
+      ? null
+      : accordion;
+  }
+
   function ensureCanvasSpacerV6606(page){
     if (!page) return null;
     let spacer = page.querySelector('#cdaLayoutCanvasSpacerV6606');
@@ -1274,7 +1316,7 @@ Purpose: Universal Power BI-style canvas with single-authority saved geometry, i
       spacer.id = 'cdaLayoutCanvasSpacerV6606';
       spacer.setAttribute('aria-hidden','true');
     }
-    const accordion = accordionStackV6681(page);
+    const accordion = accordionFlowAnchorV6681(page);
     if (accordion && accordion.parentNode) {
       if (spacer.parentNode !== accordion.parentNode || spacer.nextSibling !== accordion) {
         accordion.parentNode.insertBefore(spacer,accordion);
@@ -1302,7 +1344,7 @@ Purpose: Universal Power BI-style canvas with single-authority saved geometry, i
     if (!page) return 0;
     const spacer = ensureCanvasSpacerV6606(page);
     const scrollY = window.scrollY || window.pageYOffset || 0;
-    const accordion = accordionStackV6681(page);
+    const accordion = accordionFlowAnchorV6681(page);
 
     if (accordion && spacer && spacer.parentNode === accordion.parentNode) {
       const boundaryTop = spacer.getBoundingClientRect().top + scrollY;
@@ -1434,7 +1476,15 @@ Purpose: Universal Power BI-style canvas with single-authority saved geometry, i
   function applyLayoutV6593(page,layout,suppressRefreshV6608,skipUniversalReflowV6611){
     if (!page || !layout) return false;
     const targets = [];
-    gridsForPageV6593(page).forEach(function(grid,index){
+    const pageGridsV6681 = gridsForPageV6593(page);
+    pageGridsV6681.forEach(function(grid,index){
+      if (!grid.matches || !grid.matches('[data-cda-dashboard-accordion-stack-v6681="true"]')) return;
+      const resolvedAccordionGridV6681 = findGridLayoutV6593(layout,grid,index);
+      if (resolvedAccordionGridV6681.value) grid.setAttribute('data-cda-layout-accordion-managed-v6681','true');
+      else grid.removeAttribute('data-cda-layout-accordion-managed-v6681');
+    });
+    ensureCanvasSpacerV6606(page);
+    pageGridsV6681.forEach(function(grid,index){
       const resolvedGrid = findGridLayoutV6593(layout,grid,index);
       const gridLayout = resolvedGrid.value;
       if (!gridLayout) return;
@@ -1766,7 +1816,8 @@ Purpose: Universal Power BI-style canvas with single-authority saved geometry, i
     const tab = tabKeyV6593(page);
     const saved = layoutForTabV6593(tab);
     const before = geometryMapV6593(page);
-    const working = saved ? cloneV6593(saved) : capturePageV6593(page);
+    const current = capturePageV6593(page);
+    const working = saved ? mergeMissingGeometryV6681(saved,current) : current;
     sessionV6593 = {page:page,tab:tab,savedBefore:saved,working:cloneV6593(working),history:[],changed:false,entryGeometry:before,entryDelta:0,collapseShiftsV6607:{}};
     document.documentElement.classList.add('cdaLayoutEditorActiveV6593');
     applyLayoutV6593(page,sessionV6593.working);
@@ -1814,7 +1865,8 @@ Purpose: Universal Power BI-style canvas with single-authority saved geometry, i
     const page = sessionV6593.page;
     const saved = sessionV6593.savedBefore;
     exitEditingV6593();
-    if (saved) applyLayoutV6593(page,saved); else clearPageLayoutV6593(page);
+    clearPageLayoutV6593(page);
+    if (saved) applyLayoutV6593(page,saved);
     showToastV6593('Layout changes cancelled.');
   }
 
