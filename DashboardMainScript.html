@@ -24300,14 +24300,11 @@
 
   function startupV6230() {
     buildShellV6230(false);
-    installSwitchAndRenderV6230();
     installUniversalResponsibilityInteractionsV6504();
     installOverviewSafetyV6230();
     setBannerV6230();
-    if (typeof state !== 'undefined' && state && state.activeTab === 'remakeFactor') {
-      if (!window.remakeFactorState || !window.remakeFactorState.loaded) window.loadRemakeFactorData(false);
-      else renderDashboardV6230();
-    }
+    if (!window.remakeFactorState || !window.remakeFactorState.loaded) window.loadRemakeFactorData(false);
+    else renderDashboardV6230();
   }
 
   let startupCompletedV6624 = false;
