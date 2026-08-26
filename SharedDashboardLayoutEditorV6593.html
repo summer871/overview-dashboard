@@ -986,13 +986,6 @@ Purpose: Universal Power BI-style canvas with single-authority saved geometry, i
     card.removeAttribute('data-cda-layout-collapsible-v6606');
   }
 
-  function normalizedRemakeSectionLabelV6601(value){
-    return cleanTextV6593(value || '')
-      .replace(/[\u25B2-\u25BC\u25C0-\u25C4\u203A\u00BB\u2190-\u2193]+/g,' ')
-      .replace(/\s+/g,' ')
-      .trim()
-      .toLowerCase();
-  }
 
   function remakeCardTitleV6601(card){
     if (!card || !card.querySelector) return '';
@@ -1009,102 +1002,6 @@ Purpose: Universal Power BI-style canvas with single-authority saved geometry, i
     return cleanTextV6593(title && title.textContent || '');
   }
 
-  function visibleRectV6601(node){
-    if (!node || !node.getBoundingClientRect) return null;
-    const rect = node.getBoundingClientRect();
-    if (!rect || rect.width < 1 || rect.height < 1) return null;
-    return rect;
-  }
-
-  function titleNodesV6601(page,label){
-    const expected = String(label || '').toLowerCase();
-    const selectors = [
-      '[data-remake-section-toggle-v6402]',
-      '[data-cda-dashboard-title-toggle="true"]',
-      'button[aria-expanded]',
-      '[role="button"][aria-expanded]',
-      '.remakeCardTitle',
-      '[class*="CardTitle"]',
-      'h1','h2','h3','h4','h5','h6','strong','span','button','div'
-    ].join(',');
-    return Array.from(page.querySelectorAll(selectors)).filter(function(node){
-      if (!visibleRectV6601(node)) return false;
-      const labelText = normalizedRemakeSectionLabelV6601(node.textContent || '');
-      if (labelText !== expected) return false;
-      return !Array.from(node.children || []).some(function(child){
-        return normalizedRemakeSectionLabelV6601(child.textContent || '') === expected;
-      });
-    });
-  }
-
-  function cardCandidateScoreV6601(page,node,titleNode,label){
-    if (!node || node === page || !node.contains(titleNode)) return Number.NEGATIVE_INFINITY;
-    const pageRect = visibleRectV6601(page);
-    const rect = visibleRectV6601(node);
-    if (!pageRect || !rect || rect.width < Math.max(420,pageRect.width * .55) || rect.height < 30) return Number.NEGATIVE_INFINITY;
-    const idClass = String((node.id || '') + ' ' + (node.className || '')).toLowerCase();
-    const exactLabel = String(label || '').toLowerCase();
-    let score = 0;
-    if (node.matches('.remakeCard,article,[data-cda-dashboard-component],[data-cda-dashboard-decorated-component]')) score += 180;
-    if (idClass.indexOf('card') >= 0) score += 90;
-    if (idClass.indexOf('section') >= 0 || idClass.indexOf('panel') >= 0) score += 70;
-    if (idClass.indexOf(exactLabel === 'customers' ? 'customer' : 'technician') >= 0) score += 85;
-    if (node.querySelector('table,tbody,[class*="Table"],[class*="table"],[data-column-chooser-v6357],.cdaDashboardToolbarV6547')) score += 120;
-    if (node.querySelector('[data-remake-section-toggle-v6402],[data-cda-dashboard-title-toggle="true"],button[aria-expanded]')) score += 80;
-    if (node.children && node.children.length > 1) score += 30;
-    if (node.scrollHeight > rect.height + 8) score += 35;
-    if (/header|head|title|toolbar/.test(idClass)) score -= 130;
-    if (node === titleNode) score -= 200;
-    const depth = (function(){ let d=0,c=titleNode; while(c && c!==node){ d += 1; c=c.parentElement; } return d; })();
-    score += Math.max(0,25 - depth * 3);
-    score -= Math.min(80,(rect.width * rect.height) / Math.max(1,pageRect.width * pageRect.height) * 60);
-    return score;
-  }
-
-  function resolveRemakeBottomCardV6601(page,label){
-    const directSelectors = label === 'Customers' ? [
-      '#remakeCustomerCardV6230','#remakeCustomerSectionV6402','#remakeCustomersSectionV6402',
-      '[data-remake-customers-card]','[data-remake-customers-section]'
-    ] : [
-      '#remakeCeramistCardV6342','#remakeTechnicianCardV6342','#remakeTechniciansCardV6342',
-      '#remakeTechnicianSectionV6402','#remakeTechniciansSectionV6402',
-      '[data-remake-technicians-card]','[data-remake-technicians-section]'
-    ];
-    for (let i=0;i<directSelectors.length;i+=1) {
-      const direct = page.querySelector(directSelectors[i]);
-      if (direct && visibleRectV6601(direct)) return direct;
-    }
-    let best = null;
-    let bestScore = Number.NEGATIVE_INFINITY;
-    titleNodesV6601(page,label).forEach(function(titleNode){
-      let current = titleNode;
-      let depth = 0;
-      while (current && current !== page && depth < 10) {
-        const score = cardCandidateScoreV6601(page,current,titleNode,label);
-        if (score > bestScore) {
-          best = current;
-          bestScore = score;
-        }
-        current = current.parentElement;
-        depth += 1;
-      }
-    });
-    return best;
-  }
-
-  function remakeBottomCardsV6601(page){
-    if (!page || page.id !== 'remakeFactorPage') return [];
-    const cards = [];
-    function add(card,label){
-      if (!card || !page.contains(card) || cards.indexOf(card) >= 0) return;
-      card.setAttribute('data-cda-layout-shared-card-v6601','true');
-      card.setAttribute('data-cda-layout-shared-card-label-v6601',String(label || ''));
-      cards.push(card);
-    }
-    add(resolveRemakeBottomCardV6601(page,'Customers'),'Customers');
-    add(resolveRemakeBottomCardV6601(page,'Technicians'),'Technicians');
-    return cards;
-  }
 
   function candidateCardsV6603(page){
     if (!page) return [];
@@ -1115,9 +1012,9 @@ Purpose: Universal Power BI-style canvas with single-authority saved geometry, i
       const nestedParent = card.parentElement && card.parentElement.closest && card.parentElement.closest(cardSelectorV6593);
       if (nestedParent && nestedParent !== card && page.contains(nestedParent)) return;
       if (card.closest('[role="dialog"],.remakeColumnChooserPopoverV6357,.cdaPopoverV6547,#cdaLayoutEditorBarV6593')) return;
+      if (card.closest('[data-cda-dashboard-accordion-stack-v6681="true"]')) return;
       unique.push(card);
     });
-    remakeBottomCardsV6601(page).forEach(function(card){ if (unique.indexOf(card) < 0) unique.push(card); });
     return unique;
   }
 
@@ -3478,7 +3375,8 @@ Purpose: Universal Power BI-style canvas with single-authority saved geometry, i
       const page = toggledCard.closest(pageSelectorV6593);
       if (!page) return;
       syncCollapseMarkersV6607(toggledCard);
-      const hasManagedLayout = !!((sessionV6593 && sessionV6593.page === page) || layoutForTabV6593(tabKeyV6593(page)));
+      const hasManagedLayout = !!(shellForCardV6593(toggledCard) &&
+        ((sessionV6593 && sessionV6593.page === page) || layoutForTabV6593(tabKeyV6593(page))));
       if (!hasManagedLayout) {
         updatePageExtentV6606(page,null,null);
         scheduleVisualFitV6617(page,'shared-collapse-natural-flow',0);

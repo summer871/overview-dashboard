@@ -204,7 +204,10 @@
       }
       if(panel){
         panel.dataset.tatFilterType=type;
-        panel.addEventListener('click',function(event){event.stopPropagation();});
+        if(!panel.dataset.tatPanelBoundV6681){
+          panel.dataset.tatPanelBoundV6681='true';
+          panel.addEventListener('click',function(event){event.stopPropagation();});
+        }
       }
     });
   }
@@ -264,7 +267,38 @@
   }
   function setNotice(message,isError){const node=id('tatNoticeV6509');if(!node)return;node.textContent=message||'';node.style.display=message?'block':'none';node.classList.toggle('error',!!isError);}
   function setLoading(loading,message){state.loading=!!loading;['tatReloadButtonV6509','tatRefreshButtonV6509'].forEach(function(name){const button=id(name);if(button)button.disabled=!!loading;});const stamp=id('tatStampV6509');if(stamp){stamp.classList.toggle('loading',!!loading);if(message)stamp.textContent=message;}}
-  function handlePayload(payload,meta,options){const unpacked=unpackPayload(payload);applyTatProductGroupsV6525(unpacked.rows);state.data=payload;state.rows=unpacked.rows.filter(function(row){return Number(row.year)===2025||Number(row.year)===2026;});state.dataQualityAvailable=unpacked.dataQualityAvailable;state.schema=unpacked.schema;state.meta=meta||{};state.loaded=true;if(!(options&&options.skipCacheWrite))writeLocalCache({payload:payload,meta:meta||{},savedAt:Date.now()});renderAll();}
+  function handlePayload(payload,meta,options){
+    const unpacked=unpackPayload(payload);
+    applyTatProductGroupsV6525(unpacked.rows);
+    const previous={
+      data:state.data,
+      rows:state.rows,
+      dataQualityAvailable:state.dataQualityAvailable,
+      schema:state.schema,
+      meta:state.meta,
+      loaded:state.loaded
+    };
+    state.data=payload;
+    state.rows=unpacked.rows.filter(function(row){return Number(row.year)===2025||Number(row.year)===2026;});
+    state.dataQualityAvailable=unpacked.dataQualityAvailable;
+    state.schema=unpacked.schema;
+    state.meta=meta||{};
+    state.loaded=false;
+    try{
+      renderAll();
+      state.loaded=true;
+      if(!(options&&options.skipCacheWrite))writeLocalCache({payload:payload,meta:meta||{},savedAt:Date.now()});
+      return true;
+    }catch(error){
+      state.data=previous.data;
+      state.rows=previous.rows;
+      state.dataQualityAvailable=previous.dataQualityAvailable;
+      state.schema=previous.schema;
+      state.meta=previous.meta;
+      state.loaded=previous.loaded;
+      throw error;
+    }
+  }
   async function load(force){
     if(state.loading)return false;
     setLoading(true,'Loading TAT cache...');setNotice('',false);
@@ -301,7 +335,6 @@
       const message=error&&error.message?error.message:String(error);
       setLoading(false,state.loaded?'Cached TAT view':'TAT cache unavailable');
       setNotice(message,true);
-      if(!state.loaded)renderAll();
       return false;
     }
   }
@@ -827,19 +860,28 @@
 
   window.ensureTatDashboardDataV6681=function ensureTatDashboardDataV6681(){
     startup();
-    if(state.loaded){renderAll();return Promise.resolve(true);}
+    if(state.loaded){
+      try{
+        renderAll();
+        return Promise.resolve(true);
+      }catch(error){
+        state.loaded=false;
+        setNotice(error&&error.message?error.message:String(error),true);
+      }
+    }
     if(state.loading)return Promise.resolve(false);
     return load(false);
   };
   window.CDA_TAT_DATA_OWNER='tat-dashboard-controller-v6.681';
 
   function startup(){
-    if(startupCompleteV6681)return true;
-    restoreViewState();
-    migrateTatProductGroupStateV6525();
+    if(!startupCompleteV6681){
+      restoreViewState();
+      migrateTatProductGroupStateV6525();
+      startupCompleteV6681=true;
+    }
     buildUi();
     bindTatKpiChooserV6528();
-    startupCompleteV6681=true;
     return true;
   }
 

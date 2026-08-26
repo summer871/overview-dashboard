@@ -175,7 +175,9 @@ Purpose: Declarative TAT layout with per-component feature configuration for the
       '<div class="tatCoverageMetricV6509"><span>Excluded Cases</span><strong id="tatCoverageExcludedV6509">-</strong></div>' +
       '<div id="tatCoverageNoteV6509" class="tatCoverageNoteV6509"></div></div>' +
       '<div id="tatPillsV6509" class="tatPillsV6509"></div><div class="tatGridV6509 remakeGridV6230">' +
-      components.map(function(component){ return context.renderComponent(component.key); }).join('') + '</div></div>';
+      components.filter(function(component){ return !component.collapseKey; }).map(function(component){ return context.renderComponent(component.key); }).join('') + '</div>' +
+      '<div class="cdaDashboardAccordionStackV6681" data-cda-dashboard-accordion-stack-v6681="true">' +
+      components.filter(function(component){ return !!component.collapseKey; }).map(function(component){ return context.renderComponent(component.key); }).join('') + '</div></div>';
   }
 
   window.cdaTatDashboardDefinitionV6547 = {

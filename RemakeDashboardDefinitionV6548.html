@@ -213,8 +213,9 @@ Purpose: Declarative replace-mode Remake dashboard definition for the shared das
       '</div>' +
       '<div class="remakeGridV6230">' + context.renderComponent('monthly') + context.renderComponent('department') + '</div>' +
       '<div class="remakeGridV6230">' + context.renderComponent('reason') + context.renderComponent('product') + '</div>' +
-      '<div class="remakeGridV6230">' + context.renderComponent('customer') + '</div>' +
-      '<div class="remakeGridV6230">' + context.renderComponent('ceramist') + '</div>' +
+      '<div class="cdaDashboardAccordionStackV6681" data-cda-dashboard-accordion-stack-v6681="true">' +
+        components.filter(function(component){ return !!component.collapseKey; }).map(function(component){ return context.renderComponent(component.key); }).join('') +
+      '</div>' +
       '<div class="remakePageFooterV6338" aria-label="Cache status">' +
         '<div id="remakeCacheActionHomeV6338" aria-hidden="true"></div>' +
         '<div class="remakeCacheActionBarV6338" aria-label="Remake cache controls">' +
