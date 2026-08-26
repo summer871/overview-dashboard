@@ -55,6 +55,7 @@ Purpose: One configuration-driven runtime for shared dashboard features across T
 
   const COLLAPSE_STORAGE_PREFIX_V6681 = 'cdaDashboardCollapse.v6681.';
   const collapseStateByTabV6681 = new Map();
+  const collapseChildDisplayStateV6681 = new WeakMap();
 
   function collapseKeyV6681(context){
     const component = context && context.component;
@@ -125,11 +126,41 @@ Purpose: One configuration-driven runtime for shared dashboard features across T
     return Object.prototype.hasOwnProperty.call(state,key) ? state[key] === true : collapseDefaultV6681(context);
   }
 
+  function collapseChildrenV6681(card){
+    return Array.from(card && card.children || []).filter(function(child){
+      return !(child.classList && child.classList.contains('cdaDashboardCardHeaderV6547'));
+    });
+  }
+
+  function applyCollapseChildVisibilityV6681(card,collapsed){
+    collapseChildrenV6681(card).forEach(function(child){
+      if (collapsed) {
+        if (!collapseChildDisplayStateV6681.has(child)) {
+          collapseChildDisplayStateV6681.set(child,{
+            display:child.style.getPropertyValue('display'),
+            priority:child.style.getPropertyPriority('display')
+          });
+        }
+        child.style.setProperty('display','none','important');
+        child.setAttribute('data-cda-dashboard-collapse-hidden-v6681','true');
+        return;
+      }
+
+      if (child.getAttribute('data-cda-dashboard-collapse-hidden-v6681') !== 'true') return;
+      const previous = collapseChildDisplayStateV6681.get(child) || {display:'',priority:''};
+      child.style.removeProperty('display');
+      if (previous.display) child.style.setProperty('display',previous.display,previous.priority || '');
+      child.removeAttribute('data-cda-dashboard-collapse-hidden-v6681');
+      collapseChildDisplayStateV6681.delete(child);
+    });
+  }
+
   function applyCollapseV6681(context,collapsed){
     const card = collapseCardV6681(context);
     if (!card) return false;
     card.classList.toggle('cdaDashboardCollapsedV6681',!!collapsed);
     card.setAttribute('data-cda-dashboard-collapsed-v6681',collapsed ? 'true' : 'false');
+    applyCollapseChildVisibilityV6681(card,!!collapsed);
     return true;
   }
 

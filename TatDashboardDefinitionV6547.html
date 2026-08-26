@@ -180,6 +180,31 @@ Purpose: Declarative TAT layout with per-component feature configuration for the
       components.filter(function(component){ return !!component.collapseKey; }).map(function(component){ return context.renderComponent(component.key); }).join('') + '</div></div>';
   }
 
+  function showTatLifecycleErrorV6681(error){
+    const message = error && error.message ? error.message : String(error || 'TAT data lifecycle failed.');
+    const notice = document.getElementById('tatNoticeV6509');
+    if (notice) {
+      notice.textContent = message;
+      notice.style.display = 'block';
+      notice.classList.add('error');
+    }
+    return false;
+  }
+
+  function ensureTatDataLifecycleV6681(){
+    if (typeof window.ensureTatDashboardDataV6681 !== 'function') {
+      return Promise.resolve(showTatLifecycleErrorV6681(new Error('TAT data owner is unavailable.')));
+    }
+    try {
+      const result = window.ensureTatDashboardDataV6681();
+      return result && typeof result.then === 'function'
+        ? result.catch(function(error){ return showTatLifecycleErrorV6681(error); })
+        : Promise.resolve(result !== false);
+    } catch (error) {
+      return Promise.resolve(showTatLifecycleErrorV6681(error));
+    }
+  }
+
   window.cdaTatDashboardDefinitionV6547 = {
     version:'v6.581',
     key:'tat',
@@ -190,9 +215,7 @@ Purpose: Declarative TAT layout with per-component feature configuration for the
     components:components,
     renderLayout:renderLayoutV6547,
     onActivate:function(){
-      return typeof window.ensureTatDashboardDataV6681 === 'function'
-        ? window.ensureTatDashboardDataV6681()
-        : false;
+      return ensureTatDataLifecycleV6681();
     },
     beforeReplace:function(){ adapter.beforeReplace(); },
     afterReplace:function(){
@@ -200,6 +223,7 @@ Purpose: Declarative TAT layout with per-component feature configuration for the
       adapter.afterReplace();
       productTable.afterReplace();
       layout.afterReplace();
+      ensureTatDataLifecycleV6681();
     },
     kpiConfig:kpiConfig
   };
