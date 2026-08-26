@@ -88,10 +88,7 @@ Purpose: One dashboard-wide column-layout authority for Remake and TAT. Standard
   }
 
   html body [data-cda-table-surface-host-v6586="true"] {
-    flex: 1 1 0 !important;
-    height: 100% !important;
     min-height: 0 !important;
-    max-height: 100% !important;
   }
 
   html body [data-cda-table-surface-host-v6586="true"][data-cda-table-host-collapsed-v6590="true"] {
@@ -622,6 +619,16 @@ Purpose: One dashboard-wide column-layout authority for Remake and TAT. Standard
     return !!(node && node.matches && !node.matches(structuralLayoutOwnerSelectorV6668));
   }
 
+  function structuralLayoutOwnerForV6668(surface){
+    const host = surface && surface.host;
+    const card = surface && surface.card;
+    if (!host || !host.closest) return null;
+    const owner = host.closest(structuralLayoutOwnerSelectorV6668);
+    if (!owner || owner === host || owner === card) return null;
+    if (card && !card.contains(owner)) return null;
+    return owner;
+  }
+
   function surfaceRenderedV6588(surface){
     const table = surface && surface.table;
     if (!table || !table.isConnected || table.closest('[hidden]')) return false;
@@ -770,6 +777,7 @@ Purpose: One dashboard-wide column-layout authority for Remake and TAT. Standard
 
     if (isDetachedSurfaceV6586(surface)) {
       clearSurfacePathV6588(surface);
+      host.removeAttribute('data-cda-table-structural-host-v6668');
       host.removeAttribute('data-cda-table-host-collapsed-v6590');
       host.style.removeProperty('visibility');
       host.style.setProperty('flex','0 1 auto','important');
@@ -780,6 +788,10 @@ Purpose: One dashboard-wide column-layout authority for Remake and TAT. Standard
       host.setAttribute('data-cda-table-surface-height-source-v6586','detached-viewport-space');
       return;
     }
+
+    const structuralOwnerV6668 = structuralLayoutOwnerForV6668(surface);
+    if (structuralOwnerV6668) host.setAttribute('data-cda-table-structural-host-v6668','true');
+    else host.removeAttribute('data-cda-table-structural-host-v6668');
 
     const collapsed = prepareCardLayoutV6588(surface);
     host.setAttribute('data-cda-table-host-collapsed-v6590',collapsed ? 'true' : 'false');
@@ -796,6 +808,16 @@ Purpose: One dashboard-wide column-layout authority for Remake and TAT. Standard
     }
 
     host.style.removeProperty('visibility');
+    if (structuralOwnerV6668) {
+      host.style.removeProperty('flex');
+      host.style.removeProperty('height');
+      host.style.setProperty('min-height','0','important');
+      host.style.removeProperty('max-height');
+      host.style.setProperty('overflow-y','auto','important');
+      host.setAttribute('data-cda-table-surface-height-source-v6586','structural-layout-owner-v6668');
+      return;
+    }
+
     host.style.setProperty('flex','1 1 0','important');
     host.style.setProperty('height','100%','important');
     host.style.setProperty('min-height','0','important');
@@ -2277,9 +2299,16 @@ Purpose: One dashboard-wide column-layout authority for Remake and TAT. Standard
       ? surface.layoutNodesV6588[surface.layoutNodesV6588.length - 1]
       : null;
     const outerPathRect = outerPath && outerPath.getBoundingClientRect ? outerPath.getBoundingClientRect() : null;
+    const structuralOwnerV6668 = structuralLayoutOwnerForV6668(surface);
+    const structuralOwnerRectV6668 = structuralOwnerV6668 && structuralOwnerV6668.getBoundingClientRect
+      ? structuralOwnerV6668.getBoundingClientRect()
+      : null;
+    const structuralViewportContainedV6668 = !visible || !structuralOwnerRectV6668 || !hostRect ||
+      hostRect.bottom <= structuralOwnerRectV6668.bottom + 1.5;
     const viewportBottomAligned = !visible || detached || collapsed || !cardRect ||
       (!!hostRect && Math.abs(hostRect.bottom - cardRect.bottom) <= 2.5) ||
-      (!!outerPathRect && Math.abs(outerPathRect.bottom - cardRect.bottom) <= 2.5);
+      (!!outerPathRect && Math.abs(outerPathRect.bottom - cardRect.bottom) <= 2.5) ||
+      (!!structuralOwnerRectV6668 && structuralViewportContainedV6668);
     const insideCard = !visible || detached || !cardRect || !hostRect || hostRect.bottom <= cardRect.bottom + 1.5;
     const columnEdgeAligned = !visible || !tableRect || !lastHeaderRect || Math.abs(lastHeaderRect.right - tableRect.right) <= 1.5;
     const fillsViewport = !visible || tableWidth + 2 >= Number(host && host.clientWidth || 0);
@@ -2320,7 +2349,7 @@ Purpose: One dashboard-wide column-layout authority for Remake and TAT. Standard
       typographyRestored:typographyRestored,
       desktopSpacingRestored:desktopSpacingRestored,
       viewportBottomAligned:viewportBottomAligned,
-      stableFlexHeight:!visible || detached || collapsed || (host && host.getAttribute('data-cda-table-surface-height-source-v6586') === 'stable-card-profile-v6590'),
+      stableFlexHeight:!visible || detached || collapsed || (host && /^(?:stable-card-profile-v6590|structural-layout-owner-v6668)$/.test(host.getAttribute('data-cda-table-surface-height-source-v6586') || '')),
       horizontalOverflow:horizontalOverflow,
       verticalOverflow:verticalOverflow,
       hostClientHeight:Number(host && host.clientHeight || 0),
