@@ -146,8 +146,17 @@ Purpose: One configuration-driven runtime for shared dashboard features across T
     const next = !collapsedV6681(context);
     state[key] = next;
     writeCollapseMapV6681(context,state);
-    applyCollapseV6681(context,next);
-    return true;
+    const applied = applyCollapseV6681(context,next);
+    if (applied && platform.util && typeof platform.util.emit === 'function') {
+      platform.util.emit('cdaDashboardCollapseChangedV6681',{
+        tabKey:collapseTabKeyV6681(context),
+        componentKey:String(context && context.component && context.component.key || ''),
+        collapseKey:key,
+        collapsed:next,
+        card:collapseCardV6681(context)
+      });
+    }
+    return applied;
   }
   function csvCellV6579(value){
     const text = String(value == null ? '' : value);

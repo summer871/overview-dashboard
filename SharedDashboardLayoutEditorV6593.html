@@ -1196,16 +1196,10 @@ Purpose: Universal Power BI-style canvas with single-authority saved geometry, i
 
   function cardCollapsedV6593(card){
     if (!card) return false;
-    const nativeToggle = card.querySelector('[data-cda-dashboard-title-toggle="true"][aria-expanded],.tatCollapseButtonV6509[aria-expanded],[data-remake-section-toggle-v6402][aria-expanded]');
-    if (nativeToggle) return String(nativeToggle.getAttribute('aria-expanded') || '').toLowerCase() === 'false';
-    const remakeState = card.getAttribute('data-remake-section-collapsed-v6402');
-    if (remakeState !== null) return String(remakeState) === '1' || String(remakeState).toLowerCase() === 'true';
-    const nativeState = card.getAttribute('data-collapsed');
-    if (nativeState !== null) return String(nativeState).toLowerCase() === 'true' || String(nativeState) === '1';
-    if (card.classList.contains('collapsed') || card.classList.contains('remakeSectionCollapsedV6402')) return true;
-    const tableState = card.getAttribute('data-cda-table-card-collapsed-v6590');
-    if (tableState !== null) return String(tableState).toLowerCase() === 'true';
-    return false;
+    const sharedState = card.getAttribute('data-cda-dashboard-collapsed-v6681');
+    if (sharedState !== null) return /^(?:1|true)$/i.test(String(sharedState));
+    const sharedToggle = card.querySelector('[data-cda-dashboard-title-toggle="true"][aria-expanded]');
+    return !!(sharedToggle && String(sharedToggle.getAttribute('aria-expanded') || '').toLowerCase() === 'false');
   }
 
   function syncCollapseMarkersV6607(card){
@@ -2956,13 +2950,7 @@ Purpose: Universal Power BI-style canvas with single-authority saved geometry, i
     }
   }
 
-  function queueAfterNativeToggleV6612(callback){
-    /* requestAnimationFrame runs after the complete click dispatch and native toggle
-       handlers, but before that frame is painted. */
-    window.requestAnimationFrame(function(){ callback(); });
-  }
-
-  function beginSmoothToggleV6612(page,card){
+  function beginSmoothToggleV6612(page,card,collapsedAfter){
     if (!page) return null;
     smoothToggleTokenV6612 += 1;
     smoothToggleBusyV6612 = true;
@@ -2970,7 +2958,7 @@ Purpose: Universal Power BI-style canvas with single-authority saved geometry, i
     page.removeAttribute('data-cda-layout-smooth-reflow-v6612');
     page.setAttribute('data-cda-layout-prepaint-reflow-v6612','true');
     const sourceShell = card && shellForCardV6593(card);
-    if (sourceShell) sourceShell.setAttribute('data-cda-layout-toggle-source-v6612',cardCollapsedV6593(card) ? 'expand' : 'collapse');
+    if (sourceShell) sourceShell.setAttribute('data-cda-layout-toggle-source-v6612',collapsedAfter === true ? 'collapse' : 'expand');
     const before = [];
     page.querySelectorAll('.cdaLayoutItemShellV6594[data-cda-layout-item-v6593="true"]').forEach(function(shell){
       const rect = shell.getBoundingClientRect();
@@ -2995,7 +2983,6 @@ Purpose: Universal Power BI-style canvas with single-authority saved geometry, i
       updatePageExtentV6606(page,null,null);
       refreshReleasedVisualV6604({card:card});
       scheduleRefreshV6593(page);
-      scheduleTatRepairV6593(20);
     },smoothToggleDurationV6612 + 35);
   }
 
@@ -3321,7 +3308,7 @@ Purpose: Universal Power BI-style canvas with single-authority saved geometry, i
   }
 
   function layoutObserverOptionsV6608(){
-    return {childList:true,subtree:true,attributes:true,attributeFilter:['class','hidden','aria-expanded','data-remake-section-collapsed-v6402','data-cda-table-card-collapsed-v6590','data-collapsed']};
+    return {childList:true,subtree:true,attributes:true,attributeFilter:['class','hidden','aria-expanded','data-cda-dashboard-collapsed-v6681','data-cda-table-card-collapsed-v6590']};
   }
 
   function observeLayoutV6608(){
@@ -3484,29 +3471,23 @@ Purpose: Universal Power BI-style canvas with single-authority saved geometry, i
         });
       },viewportResizeSettleMsV6617);
     },{passive:true});
-    document.addEventListener('click',function(event){
-      if (!event.target || !event.target.closest) return;
-      let toggle = event.target.closest('.tatCollapseButtonV6509,[data-remake-section-toggle-v6402],[data-cda-dashboard-title-toggle="true"],[aria-expanded]');
-      if (!toggle) {
-        const header = event.target.closest('.remakeCardHeader,.tatCardHeadV6509,[class*="CardHeader"],[class*="CardHead"]');
-        const card = header && header.closest(cardSelectorV6593);
-        if (card && (card.hasAttribute('data-remake-section-collapsed-v6402') || card.hasAttribute('data-cda-table-card-collapsed-v6590') || card.hasAttribute('data-collapsed'))) toggle = header;
-      }
-      if (!toggle) return;
-      const toggledCard = toggle.closest(cardSelectorV6593) || (toggle.matches && toggle.matches(cardSelectorV6593) ? toggle : null);
-      const page = toggledCard ? toggledCard.closest(pageSelectorV6593) : toggle.closest(pageSelectorV6593);
-      const hasManagedLayout = !!(page && ((sessionV6593 && sessionV6593.page === page) || layoutForTabV6593(tabKeyV6593(page))));
+    document.addEventListener('cdaDashboardCollapseChangedV6681',function(event){
+      const detail = event && event.detail || {};
+      const toggledCard = detail.card && detail.card.isConnected ? detail.card : null;
+      if (!toggledCard || !toggledCard.matches || !toggledCard.matches('[data-cda-dashboard-component]')) return;
+      const page = toggledCard.closest(pageSelectorV6593);
+      if (!page) return;
+      syncCollapseMarkersV6607(toggledCard);
+      const hasManagedLayout = !!((sessionV6593 && sessionV6593.page === page) || layoutForTabV6593(tabKeyV6593(page)));
       if (!hasManagedLayout) {
-        scheduleTatRepairV6593(80);
+        updatePageExtentV6606(page,null,null);
+        scheduleVisualFitV6617(page,'shared-collapse-natural-flow',0);
+        lastStructureSignatureV6608 = structureSignatureV6608();
         return;
       }
-      const smoothTransactionV6612 = beginSmoothToggleV6612(page,toggledCard);
-      /* The frame callback runs after native toggle handlers and before the next paint.
-         The observer is paused by smoothToggleBusyV6612 during this transaction. */
-      queueAfterNativeToggleV6612(function(){
-        applySmoothToggleLayoutV6612(page,toggledCard,smoothTransactionV6612);
-      });
-    },true);
+      const smoothTransactionV6612 = beginSmoothToggleV6612(page,toggledCard,detail.collapsed === true);
+      applySmoothToggleLayoutV6612(page,toggledCard,smoothTransactionV6612);
+    });
     /* v6.628: the tab controller is the sole activation owner. It calls
        preparePage()/commitPage() directly before and after reveal. */
     document.addEventListener('cdaTableRendered',function(event){
