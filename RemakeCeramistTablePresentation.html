@@ -1,12 +1,39 @@
 <style id="remakeV6344CeramistReadableLayoutStyles">
 
+  @media(min-width:1280px) {
+    #remakeFactorPage.cleanRemakeV6230 .ceramistWorkspaceV6343 {
+      min-height:0 !important;
+      align-items:stretch !important;
+    }
+
+    #remakeFactorPage.cleanRemakeV6230 .ceramistPanelV6343 {
+      display:flex !important;
+      flex-direction:column !important;
+      min-height:0 !important;
+      overflow:hidden !important;
+    }
+
+    #remakeFactorPage.cleanRemakeV6230 .ceramistPanelV6343 > .ceramistPanelHeaderV6343 {
+      flex:0 0 auto !important;
+    }
+  }
+
   #remakeFactorPage.cleanRemakeV6230 .ceramistPreviewTableWrapV6342 {
     width:100% !important;
     max-width:100% !important;
     height:310px !important;
+    min-height:0 !important;
     overflow-y:auto !important;
     overflow-x:hidden !important;
     scrollbar-gutter:stable !important;
+    box-sizing:border-box !important;
+    overscroll-behavior:contain !important;
+  }
+
+  @media(min-width:1280px) {
+    #remakeFactorPage.cleanRemakeV6230 .ceramistPanelV6343 > .ceramistPreviewTableWrapV6342 {
+      flex:1 1 310px !important;
+    }
   }
   #remakeFactorPage.cleanRemakeV6230 #remakeCeramistTableV6342,
   #remakeFactorPage.cleanRemakeV6230 #remakeCeramistDetailTableV6343 {
