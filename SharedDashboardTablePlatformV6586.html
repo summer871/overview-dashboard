@@ -87,6 +87,34 @@ Purpose: One dashboard-wide column-layout authority for Remake and TAT. Standard
     overflow: hidden !important;
   }
 
+  /* Shared composite-table contract. A split/master-detail component declares
+     structure in markup; the table platform owns vertical fill and scrolling. */
+  html body [data-cda-table-structural-layout] {
+    flex: 1 1 0 !important;
+    align-self: stretch !important;
+    box-sizing: border-box !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    min-height: 0 !important;
+  }
+
+  html body [data-cda-table-structural-panel="true"] {
+    display: flex !important;
+    flex-direction: column !important;
+    box-sizing: border-box !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+  }
+
+  html body [data-cda-table-structural-panel="true"] > [data-cda-table-surface-host-v6586="true"] {
+    flex: 1 1 0 !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+  }
+
   html body [data-cda-table-surface-host-v6586="true"] {
     min-height: 0 !important;
   }
@@ -341,7 +369,7 @@ Purpose: One dashboard-wide column-layout authority for Remake and TAT. Standard
     '[class*="tableFrame"]','[class*="TableViewport"]','[class*="tableViewport"]',
     '[class*="TableScroll"]','[class*="tableScroll"]'
   ].join(',');
-  const structuralLayoutOwnerSelectorV6668 = '.technicianMasterDetailV6667,.technicianMasterPanelV6667,.technicianDetailPanelV6667';
+  const structuralLayoutOwnerSelectorV6668 = '[data-cda-table-structural-layout],[data-cda-table-structural-panel="true"]';
 
   const registriesByDocumentV6586 = new WeakMap();
   const observersByDocumentV6586 = new WeakMap();
