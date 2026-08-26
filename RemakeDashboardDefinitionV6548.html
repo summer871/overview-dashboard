@@ -26,7 +26,7 @@ Purpose: Declarative replace-mode Remake dashboard definition for the shared das
     adapterMethod:'togglePriorYearComparison',
     labelAdapterMethod:'priorYearLabel'
   };
-  const COLLAPSE_OPTIONS = {adapterMethod:'collapse',stateAdapterMethod:'isCollapsed'};
+  const COLLAPSE_OPTIONS = {defaultCollapsed:true};
   const WIDTH_BASE = {
     absoluteMin:48,absoluteMax:720,numericMin:58,numericMax:82,
     textMin:88,textMax:150,firstColumnMin:132,firstColumnMax:720,fallbackWidth:560
@@ -238,6 +238,11 @@ Purpose: Declarative replace-mode Remake dashboard definition for the shared das
     adapter:adapter,
     components:components,
     renderLayout:renderLayout,
+    onActivate:function(){
+      if (typeof window.syncRemakeTabFiltersV6337 === 'function') window.syncRemakeTabFiltersV6337();
+      if (typeof window.placeRemakePillsOutsideKpiAreaV6428 === 'function') window.placeRemakePillsOutsideKpiAreaV6428();
+      return true;
+    },
     beforeReplace:function(){ adapter.beforeReplace(); },
     afterReplace:function(){ adapter.afterReplace(); }
   };

@@ -175,37 +175,6 @@ Purpose: TAT bridge for shared dashboard capabilities, separate Products / Group
     return true;
   }
 
-  function isCollapsedV6547(context){
-    const current = stateV6547();
-    const section = context && context.component && context.component.collapseSection;
-    return !!(current && current.collapsed && section && current.collapsed[section]);
-  }
-
-  function applyDetachedCollapseV6547(context){
-    const card = context && context.card;
-    const current = stateV6547();
-    const section = context && context.component && context.component.collapseSection;
-    if (!card || !current || !current.collapsed || !section) return;
-    const collapsed = !!current.collapsed[section];
-    card.classList.toggle('collapsed',collapsed);
-    const legacyButton = card.querySelector('.tatCollapseButtonV6509');
-    if (legacyButton) {
-      legacyButton.textContent = collapsed ? '▸' : '▾';
-      legacyButton.setAttribute('aria-expanded',collapsed ? 'false' : 'true');
-    }
-    const titleButton = card.querySelector('[data-cda-dashboard-title-toggle="true"]');
-    if (titleButton && window.cdaDashboardTitleToggleV6555) {
-      window.cdaDashboardTitleToggleV6555.sync(context,titleButton);
-    }
-  }
-
-  function collapseV6547(context){
-    if (!context.component.collapseSection || typeof window.toggleTatSectionV6509 !== 'function') return false;
-    window.toggleTatSectionV6509(context.component.collapseSection);
-    applyDetachedCollapseV6547(context);
-    return true;
-  }
-
   function beforeReplaceV6547(){
     if (window.cdaDashboardPopoverV6547) window.cdaDashboardPopoverV6547.close();
     if (window.cdaTable && typeof window.cdaTable.closeChooser === 'function') window.cdaTable.closeChooser();
@@ -233,7 +202,6 @@ Purpose: TAT bridge for shared dashboard capabilities, separate Products / Group
   }
 
   function afterReplaceV6547(){
-    if (window.cdaDashboardTitleToggleV6555) window.cdaDashboardTitleToggleV6555.syncAll('tat');
     return true;
   }
 
@@ -243,13 +211,10 @@ Purpose: TAT bridge for shared dashboard capabilities, separate Products / Group
     openColumns:openColumnsV6547,
     popout:popoutV6547,
     reset:resetV6547,
-    isCollapsed:isCollapsedV6547,
-    collapse:collapseV6547,
     exportCurrent:exportCurrentV6547,
     exportAll:exportAllV6547,
     beforeReplace:beforeReplaceV6547,
-    afterReplace:afterReplaceV6547,
-    applyDetachedCollapse:applyDetachedCollapseV6547
+    afterReplace:afterReplaceV6547
   });
 })();
 </script>

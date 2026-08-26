@@ -9,6 +9,9 @@ Purpose: Single canonical activation owner for shared Remake and TAT dashboard t
 
   if(window.cdaDashboardTabControllerV6681)return;
 
+  const platform=window.cdaDashboardPlatformV6547;
+  if(!platform)throw new Error('Shared dashboard tab controller requires the shared registry.');
+
   const VERSION='v6.681';
   const STORAGE_KEY='cdaExecutiveActiveTab.remakeTat.v6509';
   const configs={
@@ -85,11 +88,11 @@ Purpose: Single canonical activation owner for shared Remake and TAT dashboard t
     const page=show(config);
     if(!page)return false;
 
-    if(key==='remake'){
-      if(typeof window.syncRemakeTabFiltersV6337==='function')safeCall('Remake filter-host sync warning',function(){return window.syncRemakeTabFiltersV6337();});
-      if(typeof window.placeRemakePillsOutsideKpiAreaV6428==='function')safeCall('Remake pill placement warning',function(){return window.placeRemakePillsOutsideKpiAreaV6428();});
-    }else if(typeof window.ensureTatDashboardDataV6681==='function'){
-      safeCall('TAT data-start warning',function(){return window.ensureTatDashboardDataV6681();});
+    const tab=platform.getTab(key);
+    if(tab&&typeof tab.onActivate==='function'){
+      safeCall('Dashboard tab lifecycle warning',function(){
+        return tab.onActivate({tab:tab,page:page,key:key,controller:window.cdaDashboardTabControllerV6681||null});
+      });
     }
 
     if(window.state&&typeof window.state==='object')window.state.activeTab=config.storageValue;

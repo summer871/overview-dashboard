@@ -90,19 +90,6 @@ Purpose: Thin Remake adapter for the shared replace-mode dashboard renderer. It 
     return true;
   }
 
-  function isCollapsed(context){
-    const node = card(context);
-    return !!(node && node.classList.contains('remakeSectionCollapsedV6402'));
-  }
-
-  function collapse(context){
-    const component = context && context.component;
-    const key = component && component.collapseKey;
-    if (!key || typeof window.toggleRemakeSectionV6402 !== 'function') return false;
-    window.toggleRemakeSectionV6402(key);
-    return true;
-  }
-
   function beforeReplace(){
     if (window.cdaDashboardPopoverV6547 && typeof window.cdaDashboardPopoverV6547.close === 'function') {
       window.cdaDashboardPopoverV6547.close();
@@ -117,10 +104,6 @@ Purpose: Thin Remake adapter for the shared replace-mode dashboard renderer. It 
   }
 
   function afterReplace(){
-    if (typeof window.applyRemakeSectionStatesV6402 === 'function') {
-      try { window.applyRemakeSectionStatesV6402(); }
-      catch (error) { console.warn('Remake section-state sync warning',error); }
-    }
     return true;
   }
 
@@ -135,8 +118,6 @@ Purpose: Thin Remake adapter for the shared replace-mode dashboard renderer. It 
     comparisonActive:comparisonActive,
     priorYearLabel:priorYearLabel,
     togglePriorYearComparison:togglePriorYearComparison,
-    isCollapsed:isCollapsed,
-    collapse:collapse,
     beforeReplace:beforeReplace,
     afterReplace:afterReplace
   });

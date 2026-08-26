@@ -30,7 +30,7 @@ Purpose: Declarative TAT layout with per-component feature configuration for the
     exportAll:{adapterMethod:'exportAll'}
   };
   const PERFORMANCE_OPTIONS = Object.assign({},CHART_OPTIONS);
-  const COLLAPSE_OPTIONS = {adapterMethod:'collapse',stateAdapterMethod:'isCollapsed'};
+  const COLLAPSE_OPTIONS = {defaultCollapsed:false};
   const WIDTH_BASE_V6581 = {
     absoluteMin:48,absoluteMax:720,numericMin:58,numericMax:82,
     textMin:88,textMax:150,firstColumnMin:132,firstColumnMax:720,fallbackWidth:560
@@ -105,7 +105,7 @@ Purpose: Declarative TAT layout with per-component feature configuration for the
     },
     {
       key:'customer',title:'Customers',kind:'table',tableKey:'tatCustomer',targetId:'tatCustomerTableV6509',
-      cardId:'tatCustomerCardV6509',wide:true,collapseSection:'customers',
+      cardId:'tatCustomerCardV6509',wide:true,collapseKey:'customers',
       features:TABLE_FEATURES.concat(['collapse']),
       featureOptions:optionsV6579(TABLE_OPTIONS,{columnWidths:widthOptionsV6581({firstColumnMin:180}),collapse:COLLAPSE_OPTIONS}),
       renderBody:function(){
@@ -117,7 +117,7 @@ Purpose: Declarative TAT layout with per-component feature configuration for the
     },
     {
       key:'quality',title:'Data Quality & Coverage',kind:'table',tableKey:'tatQuality',targetId:'tatQualityTableV6509',
-      cardId:'tatQualityCardV6509',wide:true,collapseSection:'quality',summaryIds:['tatIssueSummaryV6509'],
+      cardId:'tatQualityCardV6509',wide:true,collapseKey:'quality',summaryIds:['tatIssueSummaryV6509'],
       features:TABLE_FEATURES.concat(['collapse']),
       featureOptions:optionsV6579(TABLE_OPTIONS,{columnWidths:widthOptionsV6581({firstColumnMin:150,textMin:86,textMax:132}),collapse:COLLAPSE_OPTIONS}),
       renderTitle:function(){
@@ -187,6 +187,11 @@ Purpose: Declarative TAT layout with per-component feature configuration for the
     adapter:adapter,
     components:components,
     renderLayout:renderLayoutV6547,
+    onActivate:function(){
+      return typeof window.ensureTatDashboardDataV6681 === 'function'
+        ? window.ensureTatDashboardDataV6681()
+        : false;
+    },
     beforeReplace:function(){ adapter.beforeReplace(); },
     afterReplace:function(){
       window.cdaDashboardKpiV6547.bind(kpiConfig);

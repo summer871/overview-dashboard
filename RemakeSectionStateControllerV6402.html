@@ -1,88 +1,3 @@
-<style id="remakeV6402PageReloadCollapseStyles">
-  /* v6.402: page-only reload and compact collapsible detail sections. */
-  #remakeFactorPage.cleanRemakeV6230 .remakeSectionToggleV6402 {
-    width: 22px !important;
-    height: 22px !important;
-    min-width: 22px !important;
-    margin: -3px 0 -3px 4px !important;
-    padding: 0 !important;
-    display: inline-flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    border: 0 !important;
-    border-radius: 50% !important;
-    background: transparent !important;
-    color: #667085 !important;
-    box-shadow: none !important;
-    cursor: pointer !important;
-    vertical-align: middle !important;
-  }
-
-  #remakeFactorPage.cleanRemakeV6230 .remakeSectionToggleV6402:hover,
-  #remakeFactorPage.cleanRemakeV6230 .remakeSectionToggleV6402:focus-visible {
-    background: #f2f4f7 !important;
-    color: #344054 !important;
-    outline: none !important;
-  }
-
-
-  /* v6.408: the section name is also an accessible expand/collapse target. */
-  #remakeFactorPage.cleanRemakeV6230 .remakeCardTitle[data-remake-section-title-v6408] {
-    cursor: pointer !important;
-    user-select: none !important;
-  }
-
-  #remakeFactorPage.cleanRemakeV6230 .remakeCardTitle[data-remake-section-title-v6408]:focus-visible {
-    outline: 2px solid rgba(37,99,235,.35) !important;
-    outline-offset: 3px !important;
-    border-radius: 4px !important;
-  }
-
-  #remakeFactorPage.cleanRemakeV6230 .remakeSectionChevronV6402 {
-    display: inline-block !important;
-    width: 12px !important;
-    font-size: 12px !important;
-    line-height: 1 !important;
-    transform: rotate(0deg);
-    transform-origin: center !important;
-    transition: transform .10s ease !important;
-  }
-
-  #remakeFactorPage.cleanRemakeV6230 .remakeSectionCollapsedV6402 {
-    height: auto !important;
-    min-height: 0 !important;
-    max-height: none !important;
-    overflow: visible !important;
-  }
-
-  #remakeFactorPage.cleanRemakeV6230 #remakeCustomerCardV6230.remakeSectionCollapsedV6402,
-  #remakeFactorPage.cleanRemakeV6230 #remakeCeramistCardV6342.remakeSectionCollapsedV6402 {
-    height: auto !important;
-    min-height: 0 !important;
-    max-height: none !important;
-  }
-
-  #remakeFactorPage.cleanRemakeV6230 .remakeSectionCollapsedV6402 > :not(.remakeCardHeader) {
-    display: none !important;
-  }
-
-  #remakeFactorPage.cleanRemakeV6230 .remakeSectionCollapsedV6402 > .remakeCardHeader {
-    border-bottom: 0 !important;
-  }
-
-  #remakeFactorPage.cleanRemakeV6230 .remakeSectionCollapsedV6402 .remakeSectionChevronV6402 {
-    transform: rotate(-90deg) !important;
-  }
-
-  @media (max-width: 760px) {
-    #remakeFactorPage.cleanRemakeV6230 .remakeSectionToggleV6402 {
-      width: 24px !important;
-      height: 24px !important;
-      min-width: 24px !important;
-      margin-left: 3px !important;
-    }
-  }
-</style>
 <script>
 window.CDA_REMAKE_LAYOUT_REFRESH_VERSION = 'v6.408';
 (function installRemakePageReloadAndSectionsV6402(){
@@ -91,63 +6,7 @@ window.CDA_REMAKE_LAYOUT_REFRESH_VERSION = 'v6.408';
   if (window.__cdaRemakePageReloadSectionsV6402) return;
   window.__cdaRemakePageReloadSectionsV6402 = true;
 
-  const COLLAPSE_STORAGE_KEY_V6402 = 'cdaRemakeCollapsedSections.v6402';
   const SCROLL_STORAGE_KEY_V6402 = 'cdaRemakePageOnlyReloadScroll.v6402';
-  const PAGE_RELOAD_DELAY_MS_V6402 = 2 * 60 * 60 * 1000;
-  const SECTION_DEFS_V6402 = [
-    { key: 'customer', cardId: 'remakeCustomerCardV6230', label: 'Customers' },
-    { key: 'technician', cardId: 'remakeCeramistCardV6342', label: 'Technicians' }
-  ];
-
-  function defaultSectionStateV6402(){
-    return { customer: true, technician: true };
-  }
-
-  function readSectionStateV6402(){
-    const state = defaultSectionStateV6402();
-    try {
-      const saved = JSON.parse(localStorage.getItem(COLLAPSE_STORAGE_KEY_V6402) || '{}');
-      SECTION_DEFS_V6402.forEach(function(def){
-        if (typeof saved[def.key] === 'boolean') state[def.key] = saved[def.key];
-      });
-    } catch (error) {}
-    return state;
-  }
-
-  function writeSectionStateV6402(state){
-    try { localStorage.setItem(COLLAPSE_STORAGE_KEY_V6402, JSON.stringify(state || defaultSectionStateV6402())); } catch (error) {}
-  }
-
-  // v6.681: shared title-toggle presentation owns collapse controls. This service keeps Remake collapse state only.
-  function retireLegacySectionControlsV6682(card){
-    if (!card) return;
-    card.querySelectorAll('[data-remake-section-toggle-v6402]').forEach(function(button){
-      try { button.remove(); } catch (error) {}
-    });
-  }
-
-  function applyRemakeSectionStatesV6402(){
-    const state = readSectionStateV6402();
-    SECTION_DEFS_V6402.forEach(function(def){
-      const card = document.getElementById(def.cardId);
-      if (!card) return;
-      const collapsed = state[def.key] !== false;
-      card.classList.toggle('remakeSectionCollapsedV6402', collapsed);
-      card.setAttribute('data-remake-section-collapsed-v6402', collapsed ? '1' : '0');
-      retireLegacySectionControlsV6682(card);
-    });
-  }
-
-  window.applyRemakeSectionStatesV6402 = applyRemakeSectionStatesV6402;
-  window.toggleRemakeSectionV6402 = function(key){
-    const def = SECTION_DEFS_V6402.find(function(item){ return item.key === key; });
-    if (!def) return;
-    const state = readSectionStateV6402();
-    state[key] = !(state[key] !== false);
-    writeSectionStateV6402(state);
-    applyRemakeSectionStatesV6402();
-  };
-
   function restoreScrollAfterPageReloadV6402(){
     try {
       const saved = JSON.parse(localStorage.getItem(SCROLL_STORAGE_KEY_V6402) || 'null');
@@ -229,15 +88,10 @@ window.CDA_REMAKE_LAYOUT_REFRESH_VERSION = 'v6.408';
   }
 
   function startV6402(){
-    applyRemakeSectionStatesV6402();
     restoreScrollAfterPageReloadV6402();
     installPageReloadTimerV6402();
     installRemakeFocusSyncV6409();
-
-    window.setTimeout(applyRemakeSectionStatesV6402, 350);
-    window.setTimeout(applyRemakeSectionStatesV6402, 1300);
   }
-
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', startV6402, { once: true });
   else startV6402();
 })();

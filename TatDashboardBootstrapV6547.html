@@ -115,24 +115,17 @@ Purpose: Register, render, and audit the unified TAT dashboard while requiring t
   }
 
   function startV6586(){
-    let completed = false;
-    let observer = null;
-    function runWhenReadyV6624(){
-      if (completed) return true;
-      if (!document.getElementById(definition.pageId) || !window.cdaTable) return false;
-      completed = true;
-      if (observer) observer.disconnect();
-      const page = renderV6586();
-      finishRenderV6586(page);
-      document.documentElement.setAttribute('data-cda-tat-single-construction-v6624','true');
-      return true;
+    if (!document.getElementById(definition.pageId)) {
+      throw new Error('TAT bootstrap requires the static TAT dashboard mount point.');
     }
-    if (runWhenReadyV6624()) return;
-    if (!window.MutationObserver || !document.body) return;
-    observer = new MutationObserver(function(){ runWhenReadyV6624(); });
-    observer.observe(document.body,{childList:true,subtree:true});
+    if (!window.cdaTable) {
+      throw new Error('TAT bootstrap requires the shared table module before construction.');
+    }
+    const page = renderV6586();
+    finishRenderV6586(page);
+    document.documentElement.setAttribute('data-cda-tat-single-construction-v6624','true');
+    return page;
   }
-
   window.cdaTatDashboardV6547 = Object.freeze({
     version:'v6.608',
     definition:definition,

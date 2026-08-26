@@ -10,7 +10,7 @@
   const QUALITY_ISSUES = ['Missing Date In','Completion date is before Date In','Missing due date','Missing hold end','Invoice date fallback'];
   const state = window.cdaTatStateV6509 = window.cdaTatStateV6509 || {
     loaded:false,loading:false,data:null,rows:[],charts:{},searches:{},modes:{},selected:{},distributionMode:'percent',
-    cross:{months:[],tatBuckets:[],lateBand:'',issue:''},collapsed:{customers:false,quality:false}
+    cross:{months:[],tatBuckets:[],lateBand:'',issue:''}
   };
   FILTER_TYPES.forEach(function(type){
     if(!state.searches[type])state.searches[type]='';
@@ -20,9 +20,9 @@
   if(!(state.cross.months instanceof Set))state.cross.months=new Set(Array.isArray(state.cross.months)?state.cross.months:[]);
   if(!(state.cross.tatBuckets instanceof Set))state.cross.tatBuckets=new Set(Array.isArray(state.cross.tatBuckets)?state.cross.tatBuckets:[]);
   if(!state.distributionMode)state.distributionMode='percent';
-  if(!state.collapsed)state.collapsed={customers:false,quality:false};
 
   const cache = {dbName:'tatDashboardFastCacheDb',storeName:'payloads',key:'tat-dashboard-v3-reconciled-quality'};
+  let startupCompleteV6681=false;
 
   function id(value){return document.getElementById(value);}
   function esc(value){return String(value==null?'':value).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
@@ -151,7 +151,7 @@
   }
   function saveViewState(){
     try{
-      const payload={modes:state.modes,searches:state.searches,distributionMode:state.distributionMode,selected:{},cross:{months:Array.from(state.cross.months),tatBuckets:Array.from(state.cross.tatBuckets),lateBand:state.cross.lateBand||'',issue:state.cross.issue||''},collapsed:state.collapsed};
+      const payload={modes:state.modes,searches:state.searches,distributionMode:state.distributionMode,selected:{},cross:{months:Array.from(state.cross.months),tatBuckets:Array.from(state.cross.tatBuckets),lateBand:state.cross.lateBand||'',issue:state.cross.issue||''}};
       FILTER_TYPES.forEach(function(type){payload.selected[type]=Array.from(selectedSet(type));});
       localStorage.setItem('cdaTatViewState.v6509',JSON.stringify(payload));
     }catch(error){}
@@ -166,7 +166,6 @@
       });
       state.distributionMode='percent';
       if(parsed.cross){state.cross.months=new Set(parsed.cross.months||[]);state.cross.tatBuckets=new Set(parsed.cross.tatBuckets||[]);state.cross.lateBand=parsed.cross.lateBand||'';state.cross.issue=parsed.cross.issue||'';}
-      if(parsed.collapsed)state.collapsed={customers:!!parsed.collapsed.customers,quality:!!parsed.collapsed.quality};
     }catch(error){}
   }
 
@@ -235,12 +234,7 @@
     if(!id('tatSettingsPanelV6509')){
       const panel=document.createElement('div');panel.id='tatSettingsPanelV6509';panel.className='tatFloatingPanelV6509';panel.innerHTML='<div class="tatGlobalSearchHeadV6509"><strong>TAT view</strong><button type="button" onclick="closeTatFloatingPanelsV6509()">×</button></div><div class="tatSettingsBodyV6509"><div class="tatSettingsNoteV6524">Distribution is shown as percent of eligible cases.</div></div>';document.body.appendChild(panel);
     }
-    applyCollapsedState();
   }
-  function applyCollapsedState(){
-    [['customers','tatCustomerCardV6509','tatCustomerCollapseV6509'],['quality','tatQualityCardV6509','tatQualityCollapseV6509']].forEach(function(entry){const collapsed=!!state.collapsed[entry[0]],card=id(entry[1]),button=id(entry[2]);if(card)card.classList.toggle('collapsed',collapsed);if(button){button.textContent=collapsed?'▸':'▾';button.setAttribute('aria-expanded',collapsed?'false':'true');}});
-  }
-
   function openDb(){
     return new Promise(function(resolve,reject){if(!window.indexedDB){resolve(null);return;}const request=indexedDB.open(cache.dbName,1);request.onupgradeneeded=function(){const db=request.result;if(!db.objectStoreNames.contains(cache.storeName))db.createObjectStore(cache.storeName);};request.onsuccess=function(){resolve(request.result);};request.onerror=function(){reject(request.error);};});
   }
@@ -714,7 +708,7 @@
   function renderAll(){
     applyTatProductGroupsV6525(state.rows);
     migrateTatProductGroupStateV6525();
-    renderFilters();const rows=reportingRowsV6510();renderKpis();renderCoverage(rows);renderMonthly();renderDepartmentTable();renderDistribution();renderLateTable();renderCustomerTable();renderQuality();applyTatKpiVisibilityV6528();applyCollapsedState();saveViewState();const stamp=id('tatStampV6509');if(stamp&&!state.loading)stamp.textContent=state.meta&&state.meta.generatedAtDisplay?state.meta.generatedAtDisplay:(state.loaded?'TAT cache loaded':'TAT cache not loaded');
+    renderFilters();const rows=reportingRowsV6510();renderKpis();renderCoverage(rows);renderMonthly();renderDepartmentTable();renderDistribution();renderLateTable();renderCustomerTable();renderQuality();applyTatKpiVisibilityV6528();saveViewState();const stamp=id('tatStampV6509');if(stamp&&!state.loading)stamp.textContent=state.meta&&state.meta.generatedAtDisplay?state.meta.generatedAtDisplay:(state.loaded?'TAT cache loaded':'TAT cache not loaded');
   }
 
   function closeDropdowns(){FILTER_TYPES.forEach(function(type){const panel=id('tatFilterPanel_'+type+'_V6509'),button=id('tatFilterButton_'+type+'_V6509');if(panel)panel.classList.remove('open');if(button){button.setAttribute('aria-expanded','false');button.classList.remove('active');if(mode(type)!=='ALL')button.classList.add('active');}});}
@@ -775,7 +769,6 @@
   }
 
   window.setTatDistributionModeV6509=function(){state.distributionMode='percent';renderAll();closeTatFloatingPanelsV6509();};
-  window.toggleTatSectionV6509=function(section){if(section!=='customers'&&section!=='quality')return;state.collapsed[section]=!state.collapsed[section];applyCollapsedState();saveViewState();};
 
   function closeTatFloatingPanelsV6509(){['tatGlobalSearchPanelV6509','tatSettingsPanelV6509'].forEach(function(name){const panel=id(name);if(panel)panel.classList.remove('open');});['tatTabSearchProxyV6509','tatSettingsButtonV6509'].forEach(function(name){const button=id(name);if(button)button.setAttribute('aria-expanded','false');});}
   window.closeTatFloatingPanelsV6509=closeTatFloatingPanelsV6509;
@@ -804,15 +797,21 @@
   window.refreshTatV6509=function(event){if(event){event.preventDefault();event.stopPropagation();}if(state.loading)return;setLoading(true,'Refreshing open month…');setNotice('',false);callServer('refreshTatDashboardCache',{incremental:true,openRefreshMonths:1}).then(function(){return callServer('ensureTatDashboardBrowserReadyCacheCurrent');}).then(function(meta){setLoading(false,meta&&meta.message||'Refresh requested');setNotice(meta&&meta.message||'The open month was refreshed. The optimized browser cache is rebuilding.',false);if(meta&&meta.fresh)load(true);else window.setTimeout(function(){load(true);},65000);}).catch(function(error){setLoading(false,'Refresh failed');setNotice(error&&error.message?error.message:String(error),true);});};
 
   window.ensureTatDashboardDataV6681=function ensureTatDashboardDataV6681(){
-    if(!state.loaded&&!state.loading)load(false);
-    return true;
+    startup();
+    if(state.loaded){renderAll();return Promise.resolve(true);}
+    if(state.loading)return Promise.resolve(false);
+    return load(false);
   };
+  window.CDA_TAT_DATA_OWNER='tat-dashboard-controller-v6.681';
 
   function startup(){
+    if(startupCompleteV6681)return true;
     restoreViewState();
     migrateTatProductGroupStateV6525();
     buildUi();
     bindTatKpiChooserV6528();
+    startupCompleteV6681=true;
+    return true;
   }
 
   let tatDropdownRepositionFrameV6524=0;  function repositionOpenTatDropdownV6524(){

@@ -3,6 +3,20 @@ Version: v6.595
 Date: 2026-08-01
 Purpose: One configuration-driven runtime for shared dashboard features across TAT, Remake, future tabs, and detached live components, with mode-aware routing between chart controls and the dashboard-wide table platform.
 -->
+<style id="cdaSharedDashboardCollapseStylesV6681">
+  [data-cda-dashboard-component].cdaDashboardCollapsedV6681 {
+    height:auto!important;
+    min-height:0!important;
+    max-height:none!important;
+    overflow:visible!important;
+  }
+  [data-cda-dashboard-component].cdaDashboardCollapsedV6681 > :not(.cdaDashboardCardHeaderV6547) {
+    display:none!important;
+  }
+  [data-cda-dashboard-component].cdaDashboardCollapsedV6681 > .cdaDashboardCardHeaderV6547 {
+    border-bottom:0!important;
+  }
+</style>
 <script id="cdaSharedDashboardFeatureRuntimeControllerV6579">
 (function installSharedDashboardFeatureRuntimeV6579(){
   'use strict';
@@ -37,6 +51,88 @@ Purpose: One configuration-driven runtime for shared dashboard features across T
     const component = context && context.component;
     if (!component || (component.features || []).indexOf(featureKey) < 0) return false;
     return optionsForV6579(context,featureKey).enabled !== false;
+  }
+
+  const COLLAPSE_STORAGE_PREFIX_V6681 = 'cdaDashboardCollapse.v6681.';
+
+  function collapseKeyV6681(context){
+    const component = context && context.component;
+    return String(component && (component.collapseKey || component.key) || '').trim();
+  }
+
+  function collapseStorageV6681(context){
+    const view = context && context.window || context && context.document && context.document.defaultView || window;
+    try { return view && view.localStorage || window.localStorage; }
+    catch (error) { return null; }
+  }
+
+  function collapseStorageKeyV6681(context){
+    const tabKey = String(context && context.tab && context.tab.key || 'dashboard');
+    return COLLAPSE_STORAGE_PREFIX_V6681 + tabKey;
+  }
+
+  function collapseDefaultV6681(context){
+    return optionsForV6579(context,'collapse').defaultCollapsed === true;
+  }
+
+  function readCollapseMapV6681(context){
+    const storage = collapseStorageV6681(context);
+    if (!storage) return {};
+    try {
+      const value = JSON.parse(storage.getItem(collapseStorageKeyV6681(context)) || '{}');
+      return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+    } catch (error) { return {}; }
+  }
+
+  function writeCollapseMapV6681(context,state){
+    const storage = collapseStorageV6681(context);
+    if (!storage) return false;
+    try {
+      storage.setItem(collapseStorageKeyV6681(context),JSON.stringify(state || {}));
+      return true;
+    } catch (error) { return false; }
+  }
+
+  function collapseCardV6681(context){
+    if (context && context.card) return context.card;
+    const tab = context && context.tab;
+    const component = context && context.component;
+    const catalog = window.cdaDashboardCatalogV6555;
+    return tab && component && catalog && typeof catalog.resolveCard === 'function'
+      ? catalog.resolveCard(tab.key,component.key)
+      : null;
+  }
+
+  function collapsedV6681(context){
+    const key = collapseKeyV6681(context);
+    if (!key) return false;
+    const state = readCollapseMapV6681(context);
+    return Object.prototype.hasOwnProperty.call(state,key) ? state[key] === true : collapseDefaultV6681(context);
+  }
+
+  function applyCollapseV6681(context,collapsed){
+    const card = collapseCardV6681(context);
+    if (!card) return false;
+    card.classList.toggle('cdaDashboardCollapsedV6681',!!collapsed);
+    card.setAttribute('data-cda-dashboard-collapsed-v6681',collapsed ? 'true' : 'false');
+    return true;
+  }
+
+  function syncCollapseV6681(context){
+    const collapsed = collapsedV6681(context);
+    applyCollapseV6681(context,collapsed);
+    return collapsed;
+  }
+
+  function toggleCollapseV6681(context){
+    const key = collapseKeyV6681(context);
+    if (!key) return false;
+    const state = readCollapseMapV6681(context);
+    const next = !collapsedV6681(context);
+    state[key] = next;
+    writeCollapseMapV6681(context,state);
+    applyCollapseV6681(context,next);
+    return true;
   }
 
   function csvCellV6579(value){
@@ -270,7 +366,7 @@ Purpose: One configuration-driven runtime for shared dashboard features across T
     popout:openPopoutV6579,
     reset:resetV6579,
     more:openMoreV6579,
-    collapse:function(context){ return adapterActionV6579('collapse',context); },
+    collapse:toggleCollapseV6681,
     exportCurrent:exportCurrentV6579,
     exportAll:exportAllV6579
   };
@@ -313,16 +409,15 @@ Purpose: One configuration-driven runtime for shared dashboard features across T
   }
 
   function activeV6579(featureKey,context){
+    if (featureKey === 'collapse') return syncCollapseV6681(context);
     const options = optionsForV6579(context,featureKey);
     if (options.stateAdapterMethod) return !!invokeAdapterV6579(context,options.stateAdapterMethod);
     const adapter = adapterForV6579(context);
-    if (featureKey === 'collapse' && typeof adapter.isCollapsed === 'function') return !!adapter.isCollapsed(context);
     if (featureKey === 'comparePriorYear' && typeof adapter.comparisonActive === 'function') {
       return !!adapter.comparisonActive(context.component,context);
     }
     return false;
   }
-
   function syncToolbarV6579(context){
     const toolbar = context && context.toolbar;
     if (!toolbar) return false;
@@ -358,6 +453,7 @@ Purpose: One configuration-driven runtime for shared dashboard features across T
     label:labelV6579,
     title:titleV6579,
     isActive:activeV6579,
+    syncCollapse:syncCollapseV6681,
     tableControlMode:function(context){ return hasVisibleTableSurfacesV6586(context) ? 'table' : 'adapter'; },
     hasVisibleTableSurfaces:hasVisibleTableSurfacesV6586,
     syncToolbar:syncToolbarV6579,
