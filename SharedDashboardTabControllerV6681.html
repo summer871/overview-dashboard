@@ -1,0 +1,153 @@
+<!-- SharedDashboardTabControllerV6681.html
+Version: v6.681
+Date: 2026-08-25
+Purpose: Single canonical activation owner for shared Remake and TAT dashboard tabs. Dashboard construction stays with SharedDashboardRenderer; this controller owns only active-tab visibility, buttons, filter hosts, saved active-tab state, and post-activation service commits.
+-->
+<script id="cdaSharedDashboardTabControllerV6681">
+(function installSharedDashboardTabControllerV6681(){
+  'use strict';
+
+  if(window.cdaDashboardTabControllerV6681)return;
+
+  const VERSION='v6.681';
+  const STORAGE_KEY='cdaExecutiveActiveTab.remakeTat.v6509';
+  const configs={
+    remake:{key:'remake',storageValue:'remakeFactor',pageId:'remakeFactorPage',buttonId:'remakeFactorTabBtn',hostId:'remakeTabFilterHostV6337'},
+    tat:{key:'tat',storageValue:'tat',pageId:'tatDashboardPageV6509',buttonId:'tatTabBtnV6509',hostId:'tatTabFilterHostV6509'}
+  };
+  let desiredKey='remake';
+  let activeKey='';
+
+  function byId(id){return document.getElementById(id);}
+  function normalize(value){return String(value||'').toLowerCase()==='tat'?'tat':'remake';}
+  function pageReady(config){
+    const page=byId(config.pageId);
+    return !!(page&&page.getAttribute('data-cda-dashboard-version')&&page.querySelector('[data-cda-dashboard-component],.remakeCard,.tatCardV6509'));
+  }
+  function setButton(config,active){
+    const button=byId(config.buttonId);
+    if(!button)return;
+    button.hidden=false;
+    button.style.setProperty('display','inline-flex','important');
+    button.style.setProperty('visibility','visible','important');
+    button.style.setProperty('pointer-events','auto','important');
+    button.classList.toggle('active',!!active);
+    button.setAttribute('aria-selected',active?'true':'false');
+  }
+  function hide(config){
+    const page=byId(config.pageId);
+    if(page){
+      page.hidden=true;
+      page.classList.remove('active');
+      page.style.setProperty('display','none','important');
+      page.style.setProperty('visibility','hidden','important');
+      page.style.setProperty('pointer-events','none','important');
+    }
+    const host=byId(config.hostId);if(host)host.hidden=true;
+    setButton(config,false);
+  }
+  function show(config){
+    const page=byId(config.pageId);
+    if(!page)return null;
+    page.hidden=false;
+    page.removeAttribute('hidden');
+    page.classList.add('active');
+    page.style.setProperty('display','block','important');
+    page.style.setProperty('visibility','visible','important');
+    page.style.removeProperty('pointer-events');
+    const host=byId(config.hostId);if(host)host.hidden=false;
+    setButton(config,true);
+    const tabs=document.querySelector('.managerTabs');
+    if(tabs)tabs.classList.toggle('cdaTatActiveV6509',config.key==='tat');
+    return page;
+  }
+  function safeCall(label,callback){
+    try{return callback();}
+    catch(error){console.warn(label,error);return false;}
+  }
+  function commitSharedServices(page,key){
+    const tables=window.cdaDashboardTableSurfacesV6586;
+    if(tables&&typeof tables.commitPage==='function')safeCall('Shared table commit warning',function(){return tables.commitPage(page);});
+    const editor=window.cdaDashboardLayoutEditorV6593;
+    if(editor&&typeof editor.commitPage==='function')safeCall('Shared layout commit warning',function(){return editor.commitPage(page);});
+    const visuals=window.cdaDashboardVisualFitV6617;
+    if(visuals&&typeof visuals.scan==='function')safeCall('Shared visual-fit warning',function(){return visuals.scan(page);});
+    const titles=window.cdaDashboardTitleToggleV6555;
+    if(titles&&typeof titles.syncAll==='function')safeCall('Shared title-toggle warning',function(){return titles.syncAll(key);});
+  }
+  function activate(value){
+    const key=normalize(value);
+    desiredKey=key;
+    const config=configs[key];
+    if(!pageReady(config))return false;
+
+    Object.keys(configs).forEach(function(otherKey){if(otherKey!==key)hide(configs[otherKey]);});
+    const page=show(config);
+    if(!page)return false;
+
+    if(key==='remake'){
+      if(typeof window.syncRemakeTabFiltersV6337==='function')safeCall('Remake filter-host sync warning',function(){return window.syncRemakeTabFiltersV6337();});
+      if(typeof window.placeRemakePillsOutsideKpiAreaV6428==='function')safeCall('Remake pill placement warning',function(){return window.placeRemakePillsOutsideKpiAreaV6428();});
+    }else if(typeof window.ensureTatDashboardDataV6681==='function'){
+      safeCall('TAT data-start warning',function(){return window.ensureTatDashboardDataV6681();});
+    }
+
+    if(window.state&&typeof window.state==='object')window.state.activeTab=config.storageValue;
+    try{localStorage.setItem(STORAGE_KEY,config.storageValue);}catch(error){}
+    activeKey=key;
+    document.documentElement.classList.remove('cdaRemakeTatBootV6501');
+    commitSharedServices(page,key);
+    document.dispatchEvent(new CustomEvent('cdaDashboardTabActivatedV6681',{detail:{tabKey:key,page:page,version:VERSION},bubbles:true,composed:true}));
+    return true;
+  }
+  function bindButton(config){
+    const button=byId(config.buttonId);
+    if(!button)return false;
+    button.removeAttribute('onclick');
+    button.onclick=function(event){
+      if(event){event.preventDefault();event.stopPropagation();}
+      activate(config.key);
+      return false;
+    };
+    return true;
+  }
+  function bindButtons(){
+    bindButton(configs.remake);
+    bindButton(configs.tat);
+  }
+  function readDesired(){
+    try{return normalize(localStorage.getItem(STORAGE_KEY)==='tat'?'tat':'remake');}
+    catch(error){return 'remake';}
+  }
+  function start(){
+    bindButtons();
+    desiredKey=readDesired();
+    activate(desiredKey);
+  }
+
+  document.addEventListener('cdaDashboardTabRenderedV6547',function(event){
+    if(!event||!event.detail)return;
+    const key=normalize(event.detail.tabKey);
+    bindButtons();
+    if(key===desiredKey||!activeKey)activate(desiredKey);
+  });
+
+  window.cdaDashboardTabControllerV6681=Object.freeze({
+    version:VERSION,
+    activate:activate,
+    active:function(){return activeKey;},
+    desired:function(){return desiredKey;},
+    audit:function(){
+      const remakeReady=pageReady(configs.remake);
+      const tatReady=pageReady(configs.tat);
+      const active=activeKey&&configs[activeKey];
+      const page=active&&byId(active.pageId);
+      return{version:VERSION,active:activeKey,desired:desiredKey,remakeReady:remakeReady,tatReady:tatReady,activePageVisible:!!(page&&page.classList.contains('active')&&!page.hidden),ok:!!activeKey&&!!page&&!page.hidden};
+    }
+  });
+  window.CDA_DASHBOARD_TAB_OWNER='shared-dashboard-tab-controller-v6.681';
+
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});
+  else start();
+})();
+</script>

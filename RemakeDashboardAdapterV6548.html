@@ -117,12 +117,9 @@ Purpose: Thin Remake adapter for the shared replace-mode dashboard renderer. It 
   }
 
   function afterReplace(){
-    if (typeof window.applyRemakeSectionStatesV6402 === 'function') window.applyRemakeSectionStatesV6402();
-    if (window.cdaDashboardTitleToggleV6555 && typeof window.cdaDashboardTitleToggleV6555.syncAll === 'function') {
-      window.cdaDashboardTitleToggleV6555.syncAll('remake');
-    }
-    if (window.cdaDashboardTableIntegrationV6547 && typeof window.cdaDashboardTableIntegrationV6547.applyAll === 'function') {
-      window.cdaDashboardTableIntegrationV6547.applyAll();
+    if (typeof window.applyRemakeSectionStatesV6402 === 'function') {
+      try { window.applyRemakeSectionStatesV6402(); }
+      catch (error) { console.warn('Remake section-state sync warning',error); }
     }
     return true;
   }

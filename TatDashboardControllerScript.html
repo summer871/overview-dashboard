@@ -23,10 +23,6 @@
   if(!state.collapsed)state.collapsed={customers:false,quality:false};
 
   const cache = {dbName:'tatDashboardFastCacheDb',storeName:'payloads',key:'tat-dashboard-v3-reconciled-quality'};
-  const legacyIds = ['tabOneBtn','underConstructionBtn','underConstructionMenu','categoricalTabBtn','overviewOne','overviewTwo','categoricalPage','overviewNavActions','dropdownDebugOverlayV6199','dropdownDebugOverlayV6196','layoutEditButtonV6183','layoutEditPanelV6183','layoutCardEditorV6184'];
-  let pendingTabActivationV6627 = '';
-  let initialTabV6627 = 'remakeFactor';
-  let bootReleasedV6627 = false;
 
   function id(value){return document.getElementById(value);}
   function esc(value){return String(value==null?'':value).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
@@ -41,9 +37,6 @@
     const prepared=String(text||'').toLowerCase().replace(/[^a-z0-9]+/g,' ');
     return String(term||'').toLowerCase().trim().split(/\s+/).filter(Boolean).every(function(token){return prepared.indexOf(token)>=0;});
   }
-  function hideElement(element){if(!element)return;element.style.setProperty('display','none','important');element.style.setProperty('visibility','hidden','important');element.style.setProperty('pointer-events','none','important');element.classList.remove('active');}
-  function showElement(element,display){if(!element)return;element.style.setProperty('display',display||'block','important');element.style.setProperty('visibility','visible','important');element.style.removeProperty('pointer-events');}
-  function hideLegacy(){legacyIds.forEach(function(name){hideElement(id(name));});document.querySelectorAll('.managerTabs > .tabGroup').forEach(hideElement);const banner=id('singleShellDebugBanner');if(banner)hideElement(banner);const error=id('singleShellClientError');if(error&&!String(error.textContent||'').trim())hideElement(error);}
   function invoiceDateFromRow(row){return String(row.year||'')+'-'+String(row.monthNum||0).padStart(2,'0')+'-'+String(row.dayOfMonth||0).padStart(2,'0');}
   function monthKey(row){return String(row.year||'')+'-'+String(row.monthNum||0).padStart(2,'0');}
   function tatBucket(row){if(!row.tatEligible)return '';const days=Math.max(0,Math.round(num(row.businessTatDays)));return days>=31?'31+':String(days);}
@@ -228,7 +221,7 @@
     const tabs=document.querySelector('.managerTabs');const remakeButton=id('remakeFactorTabBtn');
     if(tabs&&remakeButton&&!id('tatTabBtnV6509')){
       const oldButton=id('tatTabBtnV6508');if(oldButton)oldButton.remove();
-      const button=document.createElement('button');button.id='tatTabBtnV6509';button.className='tabBtn';button.type='button';button.textContent='TAT';button.onclick=function(event){if(event)event.preventDefault();activateTat();return false;};remakeButton.insertAdjacentElement('afterend',button);
+      const button=document.createElement('button');button.id='tatTabBtnV6509';button.className='tabBtn';button.type='button';button.textContent='TAT';remakeButton.insertAdjacentElement('afterend',button);
       const oldHost=id('tatTabFilterHostV6508');if(oldHost)oldHost.remove();
       const host=document.createElement('div');host.id='tatTabFilterHostV6509';host.hidden=true;host.setAttribute('aria-label','TAT dashboard filters and cache controls');
       host.innerHTML='<div class="remakeFilterBarV6230">'+FILTER_TYPES.map(filterMarkup).join('')+'</div>'
@@ -832,108 +825,19 @@
   window.reloadTatV6509=function(event){if(event){event.preventDefault();event.stopPropagation();}load(true);};
   window.refreshTatV6509=function(event){if(event){event.preventDefault();event.stopPropagation();}if(state.loading)return;setLoading(true,'Refreshing open month…');setNotice('',false);callServer('refreshTatDashboardCache',{incremental:true,openRefreshMonths:1}).then(function(){return callServer('ensureTatDashboardBrowserReadyCacheCurrent');}).then(function(meta){setLoading(false,meta&&meta.message||'Refresh requested');setNotice(meta&&meta.message||'The open month was refreshed. The optimized browser cache is rebuilding.',false);if(meta&&meta.fresh)load(true);else window.setTimeout(function(){load(true);},65000);}).catch(function(error){setLoading(false,'Refresh failed');setNotice(error&&error.message?error.message:String(error),true);});};
 
-  function emitTabLifecycleV6627(name,page,tabKey){
-    document.dispatchEvent(new CustomEvent(name,{detail:{page:page,tabKey:tabKey,release:'v6.628'},bubbles:true,composed:true}));
-  }
-  function pageReadyV6627(page){
-    return !!(page && page.getAttribute('data-cda-dashboard-version') && page.querySelector('.remakeCard,.tatCardV6509,[data-cda-dashboard-component]'));
-  }
-  function preparePageV6627(page,tabKey){
-    if(!page)return false;
-    page.hidden=false;page.removeAttribute('hidden');page.setAttribute('data-cda-tab-preparing-v6627','true');
-    page.style.setProperty('display','block','important');page.style.setProperty('visibility','hidden','important');page.style.setProperty('pointer-events','none','important');page.classList.add('active');
-    emitTabLifecycleV6627('cdaDashboardTabWillActivateV6627',page,tabKey);
-    const editor=window.cdaDashboardLayoutEditorV6593;if(editor&&typeof editor.preparePage==='function')editor.preparePage(page,'controller-prepare');
-    const tables=window.cdaDashboardTableSurfacesV6586;if(tables&&typeof tables.preparePage==='function')tables.preparePage(page);
-    const visuals=window.cdaDashboardVisualFitV6617;if(visuals&&typeof visuals.scan==='function')visuals.scan(page);
+  window.ensureTatDashboardDataV6681=function ensureTatDashboardDataV6681(){
+    if(!state.loaded&&!state.loading)load(false);
     return true;
-  }
-  function revealPageV6627(page,tabKey){
-    if(!page)return false;
-    page.style.setProperty('display','block','important');page.style.setProperty('visibility','visible','important');page.style.removeProperty('pointer-events');page.classList.add('active');page.removeAttribute('data-cda-tab-preparing-v6627');
-    const tables=window.cdaDashboardTableSurfacesV6586;if(tables&&typeof tables.commitPage==='function')tables.commitPage(page);
-    const editor=window.cdaDashboardLayoutEditorV6593;if(editor&&typeof editor.commitPage==='function')editor.commitPage(page);
-    emitTabLifecycleV6627('cdaDashboardTabActivatedV6627',page,tabKey);
-    return true;
-  }
-  function hidePageV6627(page){
-    if(!page)return;
-    page.classList.remove('active');page.removeAttribute('data-cda-tab-preparing-v6627');page.style.setProperty('display','none','important');page.style.setProperty('visibility','hidden','important');page.style.setProperty('pointer-events','none','important');
-  }
-  function releaseBootV6627(){
-    if(bootReleasedV6627)return;
-    bootReleasedV6627=true;document.documentElement.classList.remove('cdaRemakeTatBootV6501');if(document.body)document.body.style.removeProperty('visibility');
-  }
+  };
 
-  function deactivateTat(){
-    const page=id('tatDashboardPageV6509');hidePageV6627(page);
-    const button=id('tatTabBtnV6509');if(button)button.classList.remove('active');
-    const tabs=document.querySelector('.managerTabs');if(tabs)tabs.classList.remove('cdaTatActiveV6509');
-    const host=id('tatTabFilterHostV6509');if(host)host.hidden=true;
-    closeDropdowns();closeTatFloatingPanelsV6509();
-  }
-  function activateRemake(){
-    hideLegacy();
-    const page=id('remakeFactorPage');
-    if(!pageReadyV6627(page)){pendingTabActivationV6627='remake';return false;}
-    preparePageV6627(page,'remake');
-    deactivateTat();
-    revealPageV6627(page,'remake');
-    const button=id('remakeFactorTabBtn');if(button){showElement(button,'inline-flex');button.classList.add('active');}
-    const host=id('remakeTabFilterHostV6337');if(host)host.hidden=false;
-    if(window.state&&typeof window.state==='object')window.state.activeTab='remakeFactor';
-    installRemakeCustomerCollapse();hideLegacy();
-    if(typeof window.syncRemakeTabFiltersV6337==='function')window.syncRemakeTabFiltersV6337();
-    if(typeof window.placeRemakePillsOutsideKpiAreaV6428==='function')window.placeRemakePillsOutsideKpiAreaV6428();
-    try{localStorage.setItem('cdaExecutiveActiveTab.remakeTat.v6509','remakeFactor');}catch(error){}
-    pendingTabActivationV6627='';releaseBootV6627();return true;
-  }
-  function activateTat(){
-    hideLegacy();
-    const page=id('tatDashboardPageV6509');
-    if(!pageReadyV6627(page)){pendingTabActivationV6627='tat';return false;}
-    preparePageV6627(page,'tat');
-    const remakePage=id('remakeFactorPage');hidePageV6627(remakePage);
-    const remakeButton=id('remakeFactorTabBtn');if(remakeButton)remakeButton.classList.remove('active');
-    const remakeHost=id('remakeTabFilterHostV6337');if(remakeHost)remakeHost.hidden=true;
-    revealPageV6627(page,'tat');
-    const button=id('tatTabBtnV6509');if(button){showElement(button,'inline-flex');button.classList.add('active');}
-    const tabs=document.querySelector('.managerTabs');if(tabs)tabs.classList.add('cdaTatActiveV6509');
-    const host=id('tatTabFilterHostV6509');if(host)host.hidden=false;
-    if(window.state&&typeof window.state==='object')window.state.activeTab='tat';
-    if(!state.loaded)load(false);
-    try{localStorage.setItem('cdaExecutiveActiveTab.remakeTat.v6509','tat');}catch(error){}
-    pendingTabActivationV6627='';releaseBootV6627();return true;
-  }
-  window.activateTatDashboardV6509=activateTat;
-  function installSwitch(){const current=typeof window.switchTab==='function'?window.switchTab:null;if(current&&current.__cdaRemakeTatV6509)return;const wrapped=function(tab){return String(tab||'').toLowerCase()==='tat'?activateTat():activateRemake();};wrapped.__cdaRemakeTatV6509=true;window.switchTab=wrapped;try{switchTab=wrapped;}catch(error){}}
   function startup(){
-    try{
-      restoreViewState();migrateTatProductGroupStateV6525();buildUi();bindTatKpiChooserV6528();hideLegacy();installSwitch();
-      const remakeButton=id('remakeFactorTabBtn');if(remakeButton){showElement(remakeButton,'inline-flex');remakeButton.removeAttribute('onclick');remakeButton.onclick=function(event){if(event)event.preventDefault();activateRemake();return false;};}
-      const tatButton=id('tatTabBtnV6509');if(tatButton)showElement(tatButton,'inline-flex');
-      try{initialTabV6627=localStorage.getItem('cdaExecutiveActiveTab.remakeTat.v6509')||'remakeFactor';}catch(error){initialTabV6627='remakeFactor';}
-      if(initialTabV6627==='tat'){pendingTabActivationV6627='tat';if(!activateTat())return;}else activateRemake();
-    }catch(error){releaseBootV6627();throw error;}
+    restoreViewState();
+    migrateTatProductGroupStateV6525();
+    buildUi();
+    bindTatKpiChooserV6528();
   }
 
-  document.addEventListener('cdaDashboardTabRenderedV6547',function(event){
-    if(!event||!event.detail)return;
-    const tabKey=String(event.detail.tabKey||'');
-    if(tabKey==='remake'){
-      const page=event.detail.page||id('remakeFactorPage');
-      if(page)page.removeAttribute('data-cda-dashboard-placeholder-v6627');
-      if(pendingTabActivationV6627==='remake'||initialTabV6627==='remakeFactor')activateRemake();
-      return;
-    }
-    if(tabKey!=='tat')return;
-    const page=event.detail.page||id('tatDashboardPageV6509');
-    if(page)page.removeAttribute('data-cda-dashboard-placeholder-v6627');
-    if(pendingTabActivationV6627==='tat'||initialTabV6627==='tat')activateTat();
-  });
-
-  let tatDropdownRepositionFrameV6524=0;
-  function repositionOpenTatDropdownV6524(){
+  let tatDropdownRepositionFrameV6524=0;  function repositionOpenTatDropdownV6524(){
     tatDropdownRepositionFrameV6524=0;
     FILTER_TYPES.forEach(function(type){const panel=id('tatFilterPanel_'+type+'_V6509'),button=id('tatFilterButton_'+type+'_V6509');if(panel&&button&&panel.classList.contains('open'))positionPanel(button,panel,type==='year'?300:380);});
   }
@@ -942,9 +846,8 @@
   document.addEventListener('keydown',function(event){if(event.key==='Escape'){closeDropdowns();closeTatFloatingPanelsV6509();closeTatKpiChooserV6528();}});
   window.addEventListener('resize',function(){scheduleTatDropdownRepositionV6524();applyTatKpiVisibilityV6528();if(tatKpiPopoverV6528)positionTatKpiChooserV6528();},{passive:true});
   window.addEventListener('scroll',scheduleTatDropdownRepositionV6524,{passive:true,capture:true});
-  window.__tatTestLoadV6509=function(payload){handlePayload(payload,{generatedAtDisplay:'Test payload'});activateTat();};
+  window.__tatTestLoadV6509=function(payload){handlePayload(payload,{generatedAtDisplay:'Test payload'});const controller=window.cdaDashboardTabControllerV6681;if(controller&&typeof controller.activate==='function')controller.activate('tat');};
   window.__tatDebugV6509={unpackPayload:unpackPayload,aggregateCases:aggregateCases,metrics:metrics,issueCases:issueCases,selectedReportingYear:selectedTatReportingYearV6510,reportingRows:reportingRowsV6510,comparisonRows:comparisonRowsV6510};
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',startup,{once:true});else startup();
-  window.addEventListener('load',function(){hideLegacy();installRemakeCustomerCollapse();},{once:true});
 })();
 </script>

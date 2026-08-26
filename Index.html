@@ -33,7 +33,7 @@
 
   <div class="tabs managerTabs">
     <button id="tabOneBtn" class="tabBtn active" onclick="switchTab('one')">Overview</button>
-    <button id="remakeFactorTabBtn" class="tabBtn" onclick="switchTab('remakeFactor')">Remake Factor</button>
+    <button id="remakeFactorTabBtn" class="tabBtn" type="button">Remake Factor</button>
     <div id="remakeTabFilterHostV6337" class="remakeTabFilterHostV6337" aria-label="Remake dashboard filters and cache controls" hidden>
       <button id="remakeTabSearchProxyV6337" class="remakeTabToolButtonV6337 remakeTabSearchProxyV6337" type="button" title="Search all filters" aria-label="Search all filters" aria-expanded="false" onclick="toggleRemakeTabSearchV6337(event)">
         <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="6"></circle><path d="m16 16 4 4"></path></svg>
@@ -467,7 +467,6 @@
   </script>
 
   <?!= includeDashboardFile('DashboardMainScript', {dashboardBaseUrl: dashboardBaseUrl, dashboardPresentationVersion: dashboardPresentationVersion, dashboardPresentationMode: dashboardPresentationMode, dashboardPresentationSource: dashboardPresentationSource}) ?>
-<?!= includeDashboardFile('DashboardSupportScript01') ?>
 <?!= includeDashboardFile('RemakeInteractionStabilityRuntimeV6249') ?>
 
 <?!= includeDashboardFile('DashboardSupportScript02') ?>

@@ -14170,51 +14170,6 @@
     loadRemakeFactorData(true);
   };
 
-  const previousRenderAllV6204 = typeof renderAll === 'function' ? renderAll : null;
-  renderAll = function renderAllV6204() {
-    if (state && state.activeTab === 'remakeFactor') {
-      renderRemakeFactorDashboard();
-      return;
-    }
-    if (typeof previousRenderAllV6204 === 'function') previousRenderAllV6204();
-  };
-
-  window.switchTab = function switchTabV6204(tab) {
-    const validTabs = new Set(['one', 'categorical', 'remakeFactor']);
-    state.activeTab = validTabs.has(tab) ? tab : 'one';
-    state.focusChartId = null;
-    if (typeof closeUnderConstructionMenu === 'function') closeUnderConstructionMenu();
-    if (typeof closeDropdowns === 'function') closeDropdowns();
-
-    const overviewOne = remakeElement('overviewOne');
-    const categoricalPage = remakeElement('categoricalPage');
-    const remakeFactorPage = remakeElement('remakeFactorPage');
-    const overviewTwo = remakeElement('overviewTwo');
-    const tabOneBtn = remakeElement('tabOneBtn');
-    const remakeFactorTabBtn = remakeElement('remakeFactorTabBtn');
-    const underConstructionBtn = remakeElement('underConstructionBtn');
-    const categoricalTabBtn = remakeElement('categoricalTabBtn');
-    const overviewNavActions = remakeElement('overviewNavActions');
-
-    if (overviewOne) overviewOne.classList.toggle('active', state.activeTab === 'one');
-    if (categoricalPage) categoricalPage.classList.toggle('active', state.activeTab === 'categorical');
-    if (remakeFactorPage) remakeFactorPage.classList.toggle('active', state.activeTab === 'remakeFactor');
-    if (overviewTwo) overviewTwo.classList.remove('active');
-    if (tabOneBtn) tabOneBtn.classList.toggle('active', state.activeTab === 'one');
-    if (remakeFactorTabBtn) remakeFactorTabBtn.classList.toggle('active', state.activeTab === 'remakeFactor');
-    if (underConstructionBtn) underConstructionBtn.classList.toggle('active', state.activeTab === 'categorical');
-    if (categoricalTabBtn) categoricalTabBtn.classList.toggle('active', state.activeTab === 'categorical');
-    if (overviewNavActions) overviewNavActions.style.display = state.activeTab === 'one' ? 'inline-flex' : 'none';
-
-    if (state.activeTab === 'remakeFactor') {
-      if (!remakeState.loaded && !remakeState.loading) loadRemakeFactorData(false);
-      else renderRemakeFactorDashboard();
-      return;
-    }
-
-    if (typeof scheduleTabRenderV6202 === 'function') scheduleTabRenderV6202();
-    else if (typeof previousRenderAllV6204 === 'function') previousRenderAllV6204();
-  };
 })();
 
 
@@ -19039,20 +18994,6 @@
   };
   window.refreshRemakeFactorData = function refreshRemakeFactorDataV6216() { window.loadRemakeFactorData(true); };
 
-  const previousSwitchTabV6216 = typeof switchTab === 'function' ? switchTab : null;
-  window.switchTab = switchTab = function switchTabV6216(tab) {
-    if (tab !== 'remakeFactor') return previousSwitchTabV6216 ? previousSwitchTabV6216.apply(this, arguments) : undefined;
-    state.activeTab = 'remakeFactor';
-    if (typeof closeUnderConstructionMenu === 'function') closeUnderConstructionMenu();
-    if (typeof closeDropdowns === 'function') closeDropdowns();
-    ['overviewOne','categoricalPage','overviewTwo'].forEach(id => { const el = document.getElementById(id); if (el) el.classList.remove('active'); });
-    const remake = document.getElementById('remakeFactorPage'); if (remake) { remake.classList.add('active'); remake.classList.add('remakeOverviewReadyV6216'); }
-    const nav = document.getElementById('overviewNavActions'); if (nav) nav.style.display = 'none';
-    const tabOne = document.getElementById('tabOneBtn'); if (tabOne) tabOne.classList.remove('active');
-    const remBtn = document.getElementById('remakeFactorTabBtn'); if (remBtn) remBtn.classList.add('active');
-    const uc = document.getElementById('underConstructionBtn'); if (uc) uc.classList.remove('active');
-    if (!window.remakeFactorState || !window.remakeFactorState.loaded) window.loadRemakeFactorData(false); else renderRemakeFactorDashboardV6216();
-  };
 
   function installStylesV6216() {
     if (document.getElementById(STYLE_ID_V6216)) return;
@@ -24215,44 +24156,6 @@
     }
   }
 
-  function switchToRemakeV6230() {
-    if (typeof state !== 'undefined' && state) state.activeTab = 'remakeFactor';
-    if (typeof closeUnderConstructionMenu === 'function') closeUnderConstructionMenu();
-    if (typeof closeDropdowns === 'function') closeDropdowns();
-    ['overviewOne','categoricalPage','overviewTwo'].forEach(id => { const el = idV6230(id); if (el) el.classList.remove('active'); });
-    const page = idV6230('remakeFactorPage');
-    if (page) page.classList.add('active');
-    [['tabOneBtn', false], ['remakeFactorTabBtn', true], ['underConstructionBtn', false], ['categoricalTabBtn', false]].forEach(([id, active]) => { const el = idV6230(id); if (el) el.classList.toggle('active', !!active); });
-    const nav = idV6230('overviewNavActions');
-    if (nav) nav.style.display = 'none';
-    buildShellV6230(false);
-    if (!window.remakeFactorState || !window.remakeFactorState.loaded) window.loadRemakeFactorData(false);
-    else renderDashboardV6230();
-  }
-
-  function installSwitchAndRenderV6230() {
-    const previousSwitch = typeof window.switchTab === 'function' ? window.switchTab : (typeof switchTab === 'function' ? switchTab : null);
-    if (previousSwitch && !previousSwitch.__v6230CleanRemake) {
-      const switchTabV6230 = function switchTabV6230(tab) {
-        if (tab === 'remakeFactor') { switchToRemakeV6230(); return; }
-        const result = previousSwitch.apply(this, arguments);
-        setBannerV6230();
-        return result;
-      };
-      switchTabV6230.__v6230CleanRemake = true;
-      window.switchTab = switchTabV6230;
-      try { switchTab = switchTabV6230; } catch (error) {}
-    }
-
-    if (typeof renderAll === 'function' && !renderAll.__v6230CleanRemake) {
-      const previousRenderAll = renderAll;
-      renderAll = function renderAllV6230() {
-        if (typeof state !== 'undefined' && state && state.activeTab === 'remakeFactor') { renderDashboardV6230(); return; }
-        return previousRenderAll.apply(this, arguments);
-      };
-      renderAll.__v6230CleanRemake = true;
-    }
-  }
 
   function installUniversalResponsibilityInteractionsV6504() {
     if (window.applyRemakeTableFilterV6230 && !window.applyRemakeTableFilterV6230.__v6504Responsibility) {
