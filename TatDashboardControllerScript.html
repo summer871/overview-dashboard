@@ -240,6 +240,7 @@
   }
   async function readLocalCache(){try{const db=await openDb();if(!db)return null;return await new Promise(function(resolve){const tx=db.transaction(cache.storeName,'readonly');const request=tx.objectStore(cache.storeName).get(cache.key);request.onsuccess=function(){resolve(request.result||null);};request.onerror=function(){resolve(null);};});}catch(error){return null;}}
   async function writeLocalCache(value){try{const db=await openDb();if(!db)return;await new Promise(function(resolve){const tx=db.transaction(cache.storeName,'readwrite');tx.objectStore(cache.storeName).put(value,cache.key);tx.oncomplete=resolve;tx.onerror=resolve;});}catch(error){}}
+  async function deleteLocalCache(){try{const db=await openDb();if(!db)return;await new Promise(function(resolve){const tx=db.transaction(cache.storeName,'readwrite');tx.objectStore(cache.storeName).delete(cache.key);tx.oncomplete=resolve;tx.onerror=resolve;});}catch(error){}}
   function callServer(method){const args=Array.prototype.slice.call(arguments,1);return new Promise(function(resolve,reject){if(!(window.google&&google.script&&google.script.run)){reject(new Error('Apps Script runtime is unavailable.'));return;}let runner=google.script.run.withSuccessHandler(resolve).withFailureHandler(function(error){reject(error instanceof Error?error:new Error(error&&error.message?error.message:String(error)));});runner[method].apply(runner,args);});}
   function base64Bytes(value){const binary=atob(String(value||'')),bytes=new Uint8Array(binary.length);for(let index=0;index<binary.length;index+=1)bytes[index]=binary.charCodeAt(index);return bytes;}
   async function decodeGzip(payloadBase64){const bytes=base64Bytes(payloadBase64);if(typeof DecompressionStream==='function'){const stream=new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'));return JSON.parse(await new Response(stream).text());}if(window.pako&&typeof window.pako.ungzip==='function')return JSON.parse(window.pako.ungzip(bytes,{to:'string'}));throw new Error('This browser cannot decompress the TAT cache.');}
@@ -265,17 +266,45 @@
   function setLoading(loading,message){state.loading=!!loading;['tatReloadButtonV6509','tatRefreshButtonV6509'].forEach(function(name){const button=id(name);if(button)button.disabled=!!loading;});const stamp=id('tatStampV6509');if(stamp){stamp.classList.toggle('loading',!!loading);if(message)stamp.textContent=message;}}
   function handlePayload(payload,meta,options){const unpacked=unpackPayload(payload);applyTatProductGroupsV6525(unpacked.rows);state.data=payload;state.rows=unpacked.rows.filter(function(row){return Number(row.year)===2025||Number(row.year)===2026;});state.dataQualityAvailable=unpacked.dataQualityAvailable;state.schema=unpacked.schema;state.meta=meta||{};state.loaded=true;if(!(options&&options.skipCacheWrite))writeLocalCache({payload:payload,meta:meta||{},savedAt:Date.now()});renderAll();}
   async function load(force){
-    if(state.loading)return;setLoading(true,'Loading TAT cache…');setNotice('',false);
+    if(state.loading)return false;
+    setLoading(true,'Loading TAT cache...');setNotice('',false);
     try{
       let local=null;
-      if(!force){local=await readLocalCache();if(local&&local.payload){handlePayload(local.payload,local.meta||{},{skipCacheWrite:true});setLoading(false,'Cached TAT view');}}
-      const meta=await callServer('getTatDashboardBrowserReadyMeta');if(!meta||!meta.ok||!meta.servable)throw new Error(meta&&meta.message?meta.message:'TAT browser cache is unavailable.');
-      if(!force&&local&&local.payload&&local.meta&&local.meta.cacheToken===meta.cacheToken){state.meta=meta;writeLocalCache({payload:local.payload,meta:meta,savedAt:Date.now()});setLoading(false,meta.generatedAtDisplay||'TAT cache loaded');return;}
-      const response=await callServer('getTatDashboardBrowserReadyData');if(!response||!response.ok||!response.payloadBase64)throw new Error(response&&response.message?response.message:'TAT browser payload is empty.');
-      const payload=await decodeGzip(response.payloadBase64);handlePayload(payload,response);setLoading(false,response.generatedAtDisplay||'TAT cache loaded');
-    }catch(error){setLoading(false,'TAT cache unavailable');setNotice(error&&error.message?error.message:String(error),true);if(!state.loaded)renderAll();}
+      if(!force){
+        local=await readLocalCache();
+        if(local&&local.payload){
+          try{
+            handlePayload(local.payload,local.meta||{},{skipCacheWrite:true});
+            setLoading(true,'Cached TAT view; checking server...');
+          }catch(localError){
+            await deleteLocalCache();
+            local=null;
+            console.warn('Discarded incompatible TAT local cache.',localError);
+          }
+        }
+      }
+      const meta=await callServer('getTatDashboardBrowserReadyMeta');
+      if(!meta||!meta.ok||!meta.servable)throw new Error(meta&&meta.message?meta.message:'TAT browser cache is unavailable.');
+      if(!force&&local&&local.payload&&local.meta&&local.meta.cacheToken===meta.cacheToken){
+        state.meta=meta;
+        writeLocalCache({payload:local.payload,meta:meta,savedAt:Date.now()});
+        setLoading(false,meta.generatedAtDisplay||'TAT cache loaded');
+        return true;
+      }
+      const response=await callServer('getTatDashboardBrowserReadyData');
+      if(!response||!response.ok||!response.payloadBase64)throw new Error(response&&response.message?response.message:'TAT browser payload is empty.');
+      const payload=await decodeGzip(response.payloadBase64);
+      handlePayload(payload,response);
+      setLoading(false,response.generatedAtDisplay||'TAT cache loaded');
+      return true;
+    }catch(error){
+      const message=error&&error.message?error.message:String(error);
+      setLoading(false,state.loaded?'Cached TAT view':'TAT cache unavailable');
+      setNotice(message,true);
+      if(!state.loaded)renderAll();
+      return false;
+    }
   }
-
   function topFilteredRows(){
     return (state.rows||[]).filter(function(row){
       if(Number(row.year)!==2025&&Number(row.year)!==2026)return false;

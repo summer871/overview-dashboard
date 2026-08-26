@@ -74,7 +74,7 @@ Purpose: Shared left-side title interaction routed through the configuration-dri
       event.stopPropagation();
       const context = runtimeContext(tab,component,button,event,card);
       runtime.run('collapse',context);
-      window.setTimeout(function(){ sync(context,button); },0);
+      sync(context,button);
     });
   }
 
