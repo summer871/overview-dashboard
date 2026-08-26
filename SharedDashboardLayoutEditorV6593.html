@@ -349,13 +349,13 @@ Purpose: Universal Power BI-style canvas with single-authority saved geometry, i
     max-height: 100% !important;
   }
 
-  [data-cda-layout-smooth-reflow-v6612="true"] > #cdaLayoutCanvasSpacerV6606 {
+  [data-cda-layout-smooth-reflow-v6612="true"] #cdaLayoutCanvasSpacerV6606 {
     transition: height 190ms cubic-bezier(.2,.75,.25,1) !important;
   }
 
   @media (prefers-reduced-motion: reduce) {
     [data-cda-layout-smooth-reflow-v6612="true"] .cdaLayoutItemShellV6594[data-cda-layout-item-v6593="true"],
-    [data-cda-layout-smooth-reflow-v6612="true"] > #cdaLayoutCanvasSpacerV6606 {
+    [data-cda-layout-smooth-reflow-v6612="true"] #cdaLayoutCanvasSpacerV6606 {
       transition-duration: 0ms !important;
     }
   }
@@ -1260,13 +1260,26 @@ Purpose: Universal Power BI-style canvas with single-authority saved geometry, i
     return rect;
   }
 
+  function accordionStackV6681(page){
+    return page && page.querySelector
+      ? page.querySelector('[data-cda-dashboard-accordion-stack-v6681="true"]')
+      : null;
+  }
+
   function ensureCanvasSpacerV6606(page){
     if (!page) return null;
-    let spacer = page.querySelector(':scope > #cdaLayoutCanvasSpacerV6606');
+    let spacer = page.querySelector('#cdaLayoutCanvasSpacerV6606');
     if (!spacer) {
       spacer = document.createElement('div');
       spacer.id = 'cdaLayoutCanvasSpacerV6606';
       spacer.setAttribute('aria-hidden','true');
+    }
+    const accordion = accordionStackV6681(page);
+    if (accordion && accordion.parentNode) {
+      if (spacer.parentNode !== accordion.parentNode || spacer.nextSibling !== accordion) {
+        accordion.parentNode.insertBefore(spacer,accordion);
+      }
+    } else if (spacer.parentNode !== page || spacer !== page.lastElementChild) {
       page.appendChild(spacer);
     }
     return spacer;
@@ -1289,6 +1302,37 @@ Purpose: Universal Power BI-style canvas with single-authority saved geometry, i
     if (!page) return 0;
     const spacer = ensureCanvasSpacerV6606(page);
     const scrollY = window.scrollY || window.pageYOffset || 0;
+    const accordion = accordionStackV6681(page);
+
+    if (accordion && spacer && spacer.parentNode === accordion.parentNode) {
+      const boundaryTop = spacer.getBoundingClientRect().top + scrollY;
+      let visualBottom = boundaryTop;
+      let managedVisualCount = 0;
+
+      (page.querySelectorAll('.cdaLayoutItemShellV6594[data-cda-layout-item-v6593="true"]') || []).forEach(function(shell){
+        if (active && shell === active.shell && rect) return;
+        const visual = shell.getBoundingClientRect();
+        if (visual.width < 1 && visual.height < 1) return;
+        managedVisualCount += 1;
+        visualBottom = Math.max(visualBottom,visual.bottom + scrollY);
+      });
+
+      if (active && rect) {
+        managedVisualCount += 1;
+        visualBottom = Math.max(visualBottom,active.gridRect.top + scrollY + rect.top + rect.height);
+      }
+
+      const extra = managedVisualCount
+        ? Math.max(0,Math.ceil(visualBottom - boundaryTop + 18))
+        : 0;
+
+      setImportantV6593(spacer.style,'height',extra + 'px');
+      spacer.setAttribute('data-cda-layout-extra-height-v6606',String(extra));
+      spacer.setAttribute('data-cda-layout-flow-anchor-v6681','true');
+      return extra;
+    }
+
+    if (spacer) spacer.removeAttribute('data-cda-layout-flow-anchor-v6681');
     const baseBottom = active && Number.isFinite(active.baseContentBottomV6606) ? active.baseContentBottomV6606 : baseContentBottomV6606(page);
     let visualBottom = active && Number.isFinite(active.otherVisualBottomV6606) ? active.otherVisualBottomV6606 : baseBottom;
     (page.querySelectorAll('.cdaLayoutItemShellV6594[data-cda-layout-item-v6593="true"]') || []).forEach(function(shell){
@@ -1503,7 +1547,7 @@ Purpose: Universal Power BI-style canvas with single-authority saved geometry, i
     if (page.matches && page.matches(gridSelectorV6593)) grids.push(page);
     Array.from(page.querySelectorAll(gridSelectorV6593)).forEach(function(grid){ if (grids.indexOf(grid) < 0) grids.push(grid); });
     grids.forEach(clearGridV6593);
-    const spacer = page.querySelector(':scope > #cdaLayoutCanvasSpacerV6606');
+    const spacer = page.querySelector('#cdaLayoutCanvasSpacerV6606');
     if (spacer) spacer.remove();
     scheduleRefreshV6593(page);
   }
